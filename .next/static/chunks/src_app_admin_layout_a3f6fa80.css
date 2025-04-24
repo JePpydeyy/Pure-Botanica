@@ -1,0 +1,171 @@
+/* [project]/src/app/admin/layout.css [app-client] (css) */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+}
+
+.sidebar {
+  background: #fff;
+  width: 250px;
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+}
+
+.logo {
+  padding: 20px;
+}
+
+.logo img {
+  width: 200px;
+}
+
+.menu {
+  z-index: 1000;
+  padding: 15px 0;
+}
+
+.menu-item {
+  color: #357e38;
+  cursor: pointer;
+  border-radius: 10px;
+  align-items: center;
+  width: 200px;
+  margin-left: 10px;
+  padding: 15px 25px;
+  text-decoration: none;
+  transition: all .3s;
+  display: flex;
+}
+
+.menu-item:hover {
+  color: #f15e2c;
+  background-color: #fff3e0;
+  border-radius: 10px;
+  width: 200px;
+}
+
+.menu-item i {
+  text-align: center;
+  width: 20px;
+  margin-right: 10px;
+}
+
+.divider {
+  background-color: #e5e5e5;
+  height: 1px;
+  margin: 10px 0;
+}
+
+.header {
+  background: #fff;
+  justify-content: space-between;
+  align-items: center;
+  height: 70px;
+  padding: 0 20px;
+  display: flex;
+  position: fixed;
+  top: 0;
+  left: 250px;
+  right: 0;
+}
+
+.search-box {
+  background: #f5f5f5;
+  border-radius: 20px;
+  align-items: center;
+  width: 300px;
+  padding: 8px 15px;
+  display: flex;
+}
+
+.search-box img {
+  width: 20px;
+}
+
+.search-box input {
+  background: none;
+  border: none;
+  outline: none;
+  width: 100%;
+  margin-left: 5px;
+  padding: 5px;
+  font-size: 14px;
+}
+
+.user-menu {
+  align-items: center;
+  gap: 20px;
+  display: flex;
+}
+
+.notification {
+  cursor: pointer;
+  position: relative;
+}
+
+.notification-badge {
+  color: #fff;
+  background: red;
+  border-radius: 50%;
+  justify-content: center;
+  align-items: center;
+  width: 15px;
+  height: 15px;
+  font-size: 10px;
+  display: flex;
+  position: absolute;
+  top: -5px;
+  right: -5px;
+}
+
+.language-selector {
+  cursor: pointer;
+  align-items: center;
+  gap: 5px;
+  display: flex;
+}
+
+.language-selector img {
+  object-fit: cover;
+  width: 50px;
+  height: 40px;
+}
+
+.user-profile {
+  cursor: pointer;
+  align-items: center;
+  gap: 10px;
+  display: flex;
+}
+
+.user-avatar {
+  background: #f0f0f0;
+  border-radius: 50%;
+  justify-content: center;
+  align-items: center;
+  width: 35px;
+  height: 35px;
+  display: flex;
+}
+
+.user-info {
+  text-align: right;
+}
+
+.user-name {
+  color: #357e38;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.user-role {
+  color: #666;
+  font-size: 12px;
+}
+
+
+/*# sourceMappingURL=src_app_admin_layout_a3f6fa80.css.map*/

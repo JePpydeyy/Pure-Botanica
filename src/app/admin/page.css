@@ -1,0 +1,55 @@
+.main-content {
+    margin-left: 250px;
+    padding-top: 70px;
+    min-height: 100vh;
+    background: #f5f5f5;
+}
+.dashboard-header {
+    padding: 20px;
+    background: white;
+    border-bottom: 1px solid #ddd;
+}
+
+.stats-container {
+    display: flex;
+    gap: 20px;
+    padding: 20px;
+}
+
+.stat-box {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    flex: 1;
+    text-align: center;
+}
+
+.chart-container {
+    padding: 20px;
+    background: white;
+    margin: 20px;
+    border-radius: 8px;
+}
+
+.recent-orders {
+    background: white;
+    margin: 20px;
+    padding: 20px;
+    border-radius: 8px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+th {
+    background: #f5f5f5;
+}

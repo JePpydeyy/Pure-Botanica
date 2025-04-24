@@ -1,0 +1,123 @@
+.containerCategory {
+  max-width: 1200px;
+  margin-top: 100px;
+  margin-left: 280px;
+  padding: 0 20px;
+}
+
+.formTableCategory {
+  width: 100%;
+}
+
+.categoryTable {
+  width: 100%;
+  margin: 50px 0;
+  text-align: left;
+  font-size: 20px;
+  border-collapse: collapse;
+}
+
+.categoryTable th,
+.categoryTable td {
+  padding: 15px;
+}
+
+.categoryTableTdLast {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.btnEdit,
+.btnRemove {
+  width: 150px;
+  height: 45px;
+  font-size: 16px;
+  display: inline-block;
+}
+
+.btnEdit {
+  width: 150px;
+  height: 45px;
+  border: 1px solid #004C59;
+  font-size: 16px;
+  border-radius: 4px;
+  margin: 10px 20px;
+  background-color: #004C59;
+  color: white;
+}
+
+.btnRemove {
+  width: 150px;
+  height: 45px;
+  border: 1px solid #F15E2C;
+  font-size: 16px;
+  border-radius: 4px;
+  background-color: #F15E2C;
+  color: white;
+}
+
+.nameTableCategory span {
+  width: 100%;
+  font-size: 32px;
+  font-weight: bold;
+}
+
+.btnAddNewCategory {
+  height: 40px;
+  width: 200px;
+  font-size: 14px;
+  border: 1px solid #004C59;
+  border-radius: 4px;
+  background-color: #004C59;
+  color: white;
+}
+
+.btnAddNewCategory a {
+  color: white;
+  text-decoration: none;
+}
+
+.editInput {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: border-color 0.2s ease;
+  outline: none;
+}
+
+.editInput:focus {
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.1);
+}
+
+.btnSave,
+.btnCancel {
+  padding: 6px 12px;
+  margin-left: 8px;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btnSave {
+  background-color: #4a90e2;
+  color: white;
+  border: none;
+}
+
+.btnSave:hover {
+  background-color: #3a7fcb;
+}
+
+.btnCancel {
+  background-color: #ffffff;
+  color: #555;
+  border: 1px solid #ddd;
+}
+
+.btnCancel:hover {
+  background-color: #f5f5f5;
+}

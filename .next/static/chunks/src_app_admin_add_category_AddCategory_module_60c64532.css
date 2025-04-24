@@ -1,0 +1,62 @@
+/* [project]/src/app/admin/add_category/AddCategory.module.css [app-client] (css) */
+.AddCategory-module__ToJEqW__containerCategory {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.AddCategory-module__ToJEqW__addCategoryForm {
+  flex-direction: column;
+  gap: 20px;
+  max-width: 400px;
+  margin: 20px auto;
+  display: flex;
+}
+
+.AddCategory-module__ToJEqW__formGroup {
+  flex-direction: column;
+  display: flex;
+}
+
+.AddCategory-module__ToJEqW__formGroup label {
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+
+.AddCategory-module__ToJEqW__formGroup input {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 10px;
+  font-size: 16px;
+}
+
+.AddCategory-module__ToJEqW__formButtons {
+  gap: 10px;
+  display: flex;
+}
+
+.AddCategory-module__ToJEqW__btnAdd {
+  cursor: pointer;
+  color: #fff;
+  background: #28a745;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+}
+
+.AddCategory-module__ToJEqW__btnAdd:disabled {
+  cursor: not-allowed;
+  background: #6c757d;
+}
+
+.AddCategory-module__ToJEqW__btnCancel {
+  cursor: pointer;
+  color: #fff;
+  background: #6c757d;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+}
+
+
+/*# sourceMappingURL=src_app_admin_add_category_AddCategory_module_60c64532.css.map*/

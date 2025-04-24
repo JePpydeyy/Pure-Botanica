@@ -1,0 +1,337 @@
+/* === LAYOUT & CONTAINER === */
+.titleContainer {
+  width: 1240px;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  margin: 80px 0 0 280px;
+}
+
+.titleContainer h1 {
+  color: #004C59;
+  font-size: 30px;
+}
+
+.addProductBtn {
+  z-index: 100;
+  width: 150px;
+  height: 35px;
+  background-color: #004C59;
+  text-align: center;
+  text-decoration: none;
+  color: white;
+  border-radius: 5px;
+  line-height: 35px;
+  margin-left: 40px;
+}
+
+.tableContainer {
+  overflow-x: auto;
+  margin-top: 10px;
+  margin-left: 280px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+}
+
+/* === TABLE STYLING === */
+.productTable {
+  z-index: -1;
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #fff;
+}
+
+.productTableThead {
+  background-color: #f4f4f4;
+}
+
+.productTableThead th {
+  padding: 12px 15px;
+  text-align: left;
+  font-weight: bold;
+  color: #333;
+}
+
+.productTable td {
+  padding: 15px;
+  vertical-align: middle;
+}
+
+.productTable tr:hover {
+  background-color: #f9f9f9;
+}
+
+.productTableImage {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.productTableQuantity {
+  text-align: center;
+  font-weight: 500;
+}
+
+/* === ACTION BUTTONS === */
+.actionButtons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
+}
+
+.actionButtons button {
+  min-width: 70px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.editBtn {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.editBtn:hover {
+  background-color: #3e8e41;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.editBtn:active {
+  transform: translateY(0);
+}
+
+.deleteBtn {
+  background-color: #f44336;
+  color: white;
+}
+
+.deleteBtn:hover {
+  background-color: #d32f2f;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.deleteBtn:active {
+  transform: translateY(0);
+}
+
+/* === PAGINATION === */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 25px 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  gap: 5px;
+}
+
+.pageLink {
+  min-width: 40px;
+  height: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: none;
+  border-radius: 50%;
+  background-color: #f0f0f0;
+  color: #555;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.pageLink:hover {
+  background-color: #e0e0e0;
+  transform: translateY(-2px);
+  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.1);
+}
+
+.pageLinkActive {
+  background-color: #4CAF50;
+  color: white;
+  box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
+}
+
+.pageLink:disabled {
+  background-color: #f0f0f0;
+  cursor: not-allowed;
+}
+
+/* === MODAL === */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.4);
+  z-index: 10000;
+}
+
+.modalContent {
+  background-color: #fff;
+  padding: 30px;
+  border-radius: 12px;
+  max-width: 600px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.confirmBtn,
+.cancelBtn {
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.confirmBtn {
+  background-color: #4f46e5;
+  color: white;
+  border: none;
+}
+
+.confirmBtn:hover {
+  background-color: #4338ca;
+}
+
+.cancelBtn {
+  background-color: #f3f4f6;
+  color: #4b5563;
+  border: 1px solid #d1d5db;
+}
+
+.cancelBtn:hover {
+  background-color: #e5e7eb;
+}
+
+/* === NOTIFICATION === */
+.notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 15px 20px;
+  border-radius: 4px;
+  color: white;
+  z-index: 1000;
+}
+
+.notification.success {
+  background-color: #4CAF50;
+}
+
+.notification.error {
+  background-color: #f44336;
+}
+
+/* === ERROR CONTAINER === */
+.errorContainer {
+  text-align: center;
+  padding: 40px 0;
+}
+
+.errorMessage {
+  color: #f44336;
+  font-size: 18px;
+  margin-bottom: 20px;
+}
+
+.retryButton {
+  padding: 8px 16px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* === PROCESSING INDICATOR === */
+.processingIndicator {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 10px 20px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  border-radius: 4px;
+  z-index: 1000;
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 1280px) {
+  .titleContainer,
+  .tableContainer {
+    width: 90%;
+    margin-left: 5%;
+  }
+}
+
+@media (max-width: 768px) {
+  .titleContainer {
+    height: auto;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+    margin-top: 40px;
+  }
+
+  .addProductBtn {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .actionButtons {
+    flex-direction: row;
+    gap: 6px;
+  }
+
+  .actionButtons button {
+    min-width: 60px;
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+
+  .productTableThead th {
+    padding: 10px 8px;
+    font-size: 14px;
+  }
+
+  .productTable td {
+    padding: 10px 8px;
+    font-size: 14px;
+  }
+
+  .pagination {
+    flex-wrap: wrap;
+  }
+
+  .pageLink {
+    min-width: 35px;
+    height: 35px;
+    margin: 2px;
+  }
+}

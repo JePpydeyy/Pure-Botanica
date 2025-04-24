@@ -1,0 +1,184 @@
+/* [project]/src/app/user/contact/contact.module.css [app-client] (css) */
+.contact-module__ciEkzW__contactPage {
+  color: #333;
+  max-width: 1290px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: Segoe UI, Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.contact-module__ciEkzW__contactHeader {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.contact-module__ciEkzW__contactHeader h1 {
+  color: #000;
+  margin-bottom: 10px;
+  font-size: 32px;
+  font-weight: bold;
+}
+
+.contact-module__ciEkzW__contactHeader p {
+  margin: 0;
+  font-size: 16px;
+}
+
+.contact-module__ciEkzW__contactContent {
+  flex-wrap: wrap;
+  gap: 30px;
+  display: flex;
+}
+
+.contact-module__ciEkzW__contactInfo {
+  flex: 1;
+  min-width: 300px;
+}
+
+.contact-module__ciEkzW__logoContainer {
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 30px;
+  margin-bottom: 20px;
+  display: flex;
+}
+
+.contact-module__ciEkzW__logo {
+  flex: 1;
+  min-width: 200px;
+  max-width: 300px;
+}
+
+.contact-module__ciEkzW__logo img {
+  object-fit: contain;
+  width: 100%;
+  height: auto;
+}
+
+.contact-module__ciEkzW__logo h2 {
+  color: #3c7a3e;
+  margin: 10px 0 5px;
+  font-size: 22px;
+}
+
+.contact-module__ciEkzW__slogan {
+  text-align: center;
+  color: #777;
+  font-size: 14px;
+  font-style: italic;
+}
+
+.contact-module__ciEkzW__slogan p {
+  margin: 0;
+}
+
+.contact-module__ciEkzW__infoDetails {
+  border-top: none;
+  border-bottom: none;
+  flex: 2;
+  min-width: 250px;
+  padding: 0;
+}
+
+.contact-module__ciEkzW__infoItem {
+  align-items: flex-start;
+  margin-bottom: 15px;
+  font-size: 14px;
+  line-height: 1.5;
+  display: flex;
+}
+
+.contact-module__ciEkzW__infoItem i {
+  color: #3c7a3e;
+  min-width: 20px;
+  margin-right: 10px;
+  font-size: 16px;
+}
+
+.contact-module__ciEkzW__mapContainer {
+  border-radius: 8px;
+  width: 100%;
+  overflow: hidden;
+}
+
+.contact-module__ciEkzW__mapContainer img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.contact-module__ciEkzW__contactForm {
+  flex: 1;
+  min-width: 300px;
+}
+
+.contact-module__ciEkzW__formHeader {
+  margin-bottom: 20px;
+}
+
+.contact-module__ciEkzW__formHeader h2 {
+  margin-bottom: 5px;
+  font-size: 24px;
+}
+
+.contact-module__ciEkzW__formHeader p {
+  margin: 0;
+  font-size: 16px;
+}
+
+.contact-module__ciEkzW__contactForm form {
+  flex-direction: column;
+  gap: 15px;
+  display: flex;
+}
+
+.contact-module__ciEkzW__formRow {
+  gap: 15px;
+  display: flex;
+}
+
+.contact-module__ciEkzW__contactForm input, .contact-module__ciEkzW__contactForm textarea {
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  height: 50px;
+  padding: 12px 15px;
+  font-size: 14px;
+}
+
+.contact-module__ciEkzW__formRow input {
+  width: 300px;
+}
+
+.contact-module__ciEkzW__contactForm textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.contact-module__ciEkzW__submitBtn {
+  color: #fff;
+  cursor: pointer;
+  background-color: #3c7a3e;
+  border: none;
+  border-radius: 5px;
+  padding: 15px;
+  font-size: 16px;
+  transition: background-color .3s;
+}
+
+.contact-module__ciEkzW__submitBtn:hover {
+  background-color: #2d5c2f;
+}
+
+@media (width <= 768px) {
+  .contact-module__ciEkzW__contactContent, .contact-module__ciEkzW__formRow {
+    flex-direction: column;
+  }
+
+  .contact-module__ciEkzW__formRow input {
+    width: 100%;
+  }
+}
+
+
+/*# sourceMappingURL=src_app_user_contact_contact_module_26a938d6.css.map*/

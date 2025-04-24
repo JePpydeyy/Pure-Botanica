@@ -1,0 +1,176 @@
+/* [project]/src/app/admin/order/order.css [app-client] (css) */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  width: 1440px;
+}
+
+a {
+  color: #000;
+  text-decoration: none;
+}
+
+.oder-container {
+  margin-top: 50px;
+  margin-left: 250px;
+}
+
+.title {
+  font-family: Nunito Sans, sans-serif;
+}
+
+.title h1 {
+  color: #2c3e50;
+  margin-bottom: 20px;
+  font-size: 24px;
+}
+
+.filter-container {
+  width: 1100px;
+  margin: 0 auto 20px;
+}
+
+.filter {
+  text-align: center;
+  border: 1px solid #000;
+  border-top-right-radius: 10px;
+  border-bottom-right-radius: 10px;
+  width: 700px;
+  display: flex;
+}
+
+.filter-icon {
+  border-right: 1px solid #000;
+  width: 45px;
+  padding: 10px;
+}
+
+.filter-text {
+  border-right: 1px solid #000;
+  width: 60px;
+  padding: 10px;
+}
+
+.filter-day, .filter-category, .filter-status {
+  cursor: pointer;
+  border-right: 1px solid #000;
+  width: 120px;
+  padding: 10px;
+  position: relative;
+}
+
+.filter-reload {
+  cursor: pointer;
+  width: 120px;
+  padding: 10px;
+}
+
+.dropdown-menu {
+  z-index: 1000;
+  background-color: #fff;
+  border: 1px solid #000;
+  border-radius: 5px;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+}
+
+.dropdown-menu li {
+  cursor: pointer;
+  padding: 10px;
+}
+
+.dropdown-menu li:hover {
+  background-color: #f0f0f0;
+}
+
+.dropdown:hover .dropdown-menu {
+  display: block;
+}
+
+.table-container {
+  width: 1400px;
+  margin: 50px 20px 20px 250px;
+  padding: 10px;
+  overflow-x: auto;
+}
+
+table {
+  border-collapse: collapse;
+  background-color: #fff;
+  width: 85%;
+  box-shadow: 0 2px 5px #0000001a;
+}
+
+thead {
+  background-color: #f4f4f4;
+}
+
+thead th {
+  text-align: left;
+  border-bottom: 2px solid #ddd;
+  padding: 10px;
+  font-weight: bold;
+}
+
+tbody td {
+  border-bottom: 1px solid #ddd;
+  padding: 10px;
+}
+
+tbody tr:hover {
+  background-color: #f9f9f9;
+}
+
+.edit-btn i {
+  color: #6b6b6b;
+}
+
+.delete-btn i {
+  color: #dc3545;
+}
+
+.table-status-success {
+  text-align: center;
+  color: #00b69b;
+  background-color: #ccf0eb;
+  border-radius: 6px;
+  width: 160px;
+  height: 35px;
+  padding: 5px;
+  font-family: Nunito Sans, sans-serif;
+  font-weight: 700;
+}
+
+.table-status-shipping {
+  text-align: center;
+  color: #6226ef;
+  background-color: #e0d4fc;
+  border-radius: 6px;
+  width: 160px;
+  height: 25px;
+  padding: 5px;
+  font-family: Nunito Sans, sans-serif;
+  font-weight: 700;
+}
+
+.table-status-fail {
+  text-align: center;
+  color: #ef3826;
+  background-color: #fcd7d4;
+  border-radius: 6px;
+  width: 160px;
+  height: 35px;
+  padding: 5px;
+  font-family: Nunito Sans, sans-serif;
+  font-weight: 700;
+}
+
+/*# sourceMappingURL=src_app_admin_order_order_css_f9ee138c._.single.css.map*/

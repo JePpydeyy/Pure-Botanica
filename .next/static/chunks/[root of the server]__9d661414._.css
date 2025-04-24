@@ -1,0 +1,338 @@
+/* [next]/internal/font/google/gyByhwUxId8gMEwSGFWNOITddY4-s.woff2 (static in css) */
+/* embedded static asset "/_next/static/media/gyByhwUxId8gMEwSGFWNOITddY4-s.81df3a5b.woff2" */
+
+/* [next]/internal/font/google/gyByhwUxId8gMEwcGFWNOITd-s.p.woff2 (static in css) */
+/* embedded static asset "/_next/static/media/gyByhwUxId8gMEwcGFWNOITd-s.p.da1ebef7.woff2" */
+
+/* [next]/internal/font/google/geist_e531dabc.module.css [app-client] (css) */
+@font-face {
+  font-family: Geist;
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("../media/gyByhwUxId8gMEwSGFWNOITddY4-s.81df3a5b.woff2") format("woff2");
+  unicode-range: U+100-2BA, U+2BD-2C5, U+2C7-2CC, U+2CE-2D7, U+2DD-2FF, U+304, U+308, U+329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: Geist;
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("../media/gyByhwUxId8gMEwcGFWNOITd-s.p.da1ebef7.woff2") format("woff2");
+  unicode-range: U+??, U+131, U+152-153, U+2BB-2BC, U+2C6, U+2DA, U+2DC, U+304, U+308, U+329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: Geist Fallback;
+  src: local(Arial);
+  ascent-override: 95.94%;
+  descent-override: 28.16%;
+  line-gap-override: 0.0%;
+  size-adjust: 104.76%;
+}
+
+.geist_e531dabc-module__QGiZLq__className {
+  font-family: Geist, Geist Fallback;
+  font-style: normal;
+}
+
+.geist_e531dabc-module__QGiZLq__variable {
+  --font-geist-sans: "Geist", "Geist Fallback";
+}
+
+
+/* [next]/internal/font/google/or3nQ6H_1_WfwkMZI_qYFrkdmhHkjkotbA-s.woff2 (static in css) */
+/* embedded static asset "/_next/static/media/or3nQ6H_1_WfwkMZI_qYFrkdmhHkjkotbA-s.e32db976.woff2" */
+
+/* [next]/internal/font/google/or3nQ6H_1_WfwkMZI_qYFrcdmhHkjko-s.p.woff2 (static in css) */
+/* embedded static asset "/_next/static/media/or3nQ6H_1_WfwkMZI_qYFrcdmhHkjko-s.p.be19f591.woff2" */
+
+/* [next]/internal/font/google/geist_mono_68a01160.module.css [app-client] (css) */
+@font-face {
+  font-family: Geist Mono;
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("../media/or3nQ6H_1_WfwkMZI_qYFrkdmhHkjkotbA-s.e32db976.woff2") format("woff2");
+  unicode-range: U+100-2BA, U+2BD-2C5, U+2C7-2CC, U+2CE-2D7, U+2DD-2FF, U+304, U+308, U+329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: Geist Mono;
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("../media/or3nQ6H_1_WfwkMZI_qYFrcdmhHkjko-s.p.be19f591.woff2") format("woff2");
+  unicode-range: U+??, U+131, U+152-153, U+2BB-2BC, U+2C6, U+2DA, U+2DC, U+304, U+308, U+329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: Geist Mono Fallback;
+  src: local(Arial);
+  ascent-override: 74.67%;
+  descent-override: 21.92%;
+  line-gap-override: 0.0%;
+  size-adjust: 134.59%;
+}
+
+.geist_mono_68a01160-module__YLcDdW__className {
+  font-family: Geist Mono, Geist Mono Fallback;
+  font-style: normal;
+}
+
+.geist_mono_68a01160-module__YLcDdW__variable {
+  --font-geist-mono: "Geist Mono", "Geist Mono Fallback";
+}
+
+
+/* [project]/src/app/user/globals.css [app-client] (css) */
+* {
+  font-family: Roboto Slab, serif;
+}
+
+body {
+  margin-top: 100px;
+  font-family: Roboto Slab, serif;
+}
+
+header {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  height: 80px;
+  background-color: #fff;
+  border-bottom: 1px solid #eee;
+  font-size: 18px;
+  z-index: 999;
+}
+
+header i {
+  font-size: 20px;
+}
+
+.icons a {
+  color: #000;
+}
+
+.header-container {
+  margin: 0 auto;
+  width: 1290px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  height: 75px;
+}
+
+.logo img {
+  height: 75px;
+}
+
+nav {
+  display: flex;
+  gap: 30px;
+}
+
+nav a {
+  text-decoration: none;
+  color: #333;
+  font-weight: 600;
+  position: relative;
+}
+
+.dropdown i {
+  margin-left: 5px;
+}
+
+.menu-wrapper {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+}
+
+.category-list {
+  position: absolute;
+  display: flex;
+  left: -500px;
+  background-color: #ffffffe6;
+  backdrop-filter: blur(5px);
+  padding: 10px;
+  border-radius: 20px;
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity .2s ease-in-out, transform .2s ease-in-out;
+  pointer-events: none;
+}
+
+.menu-wrapper:hover .category-list, .category-list:hover {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.category-itemm {
+  width: 210px;
+  padding: 0 20px;
+}
+
+.category-itemm h2 {
+  font-family: Segoe UI, Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 20px;
+  padding: 20px 0;
+}
+
+.category-itemm ul {
+  list-style: none;
+  padding: 0;
+}
+
+.category-itemm ul li {
+  padding: 8px 0;
+  font-size: 16px;
+  color: #333;
+}
+
+.icons {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.icon {
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.footer {
+  padding: 20px 0;
+  font-family: Arial, sans-serif;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.footer button {
+  background-color: #357e38;
+}
+
+.footer-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.footer-logo {
+  text-align: center;
+  max-width: 250px;
+}
+
+.footer-logo img {
+  width: 150px;
+}
+
+.footer-slogan {
+  font-size: 14px;
+  color: #555;
+  margin-top: 10px;
+}
+
+.footer-links {
+  display: flex;
+  gap: 40px;
+}
+
+.footer-column h4 {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 15px;
+}
+
+.footer-column ul {
+  list-style: none;
+  padding: 0;
+}
+
+.footer-column ul li {
+  margin-bottom: 8px;
+}
+
+.footer-column ul li a {
+  text-decoration: none;
+  color: #868686;
+  transition: all .3s;
+}
+
+.footer-column ul li a:hover {
+  color: #2d6a4f;
+}
+
+.footer-newsletter {
+  max-width: 450px;
+}
+
+.footer-newsletter h4 {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.footer-newsletter p {
+  font-size: 14px;
+  color: #004c59;
+  margin-bottom: 15px;
+}
+
+.footer-newsletter form {
+  display: flex;
+}
+
+.footer-newsletter input {
+  flex: 1;
+  padding: 15px;
+  border: 1px solid #ccc;
+  border-radius: 10px 0 0 10px;
+}
+
+.footer-newsletter button {
+  background: #357e38;
+  color: #fff;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 0 10px 10px 0;
+  cursor: pointer;
+}
+
+.footer-newsletter button:hover {
+  background: #245726;
+}
+
+.footer-address {
+  margin-top: 15px;
+  font-size: 14px;
+  color: #555;
+}
+
+.footer-payment {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.footer-payment img {
+  height: 35px;
+}
+
+.footer-bottom {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  color: #777;
+  align-items: center;
+}
+
+
+/*# sourceMappingURL=%5Broot%20of%20the%20server%5D__9d661414._.css.map*/

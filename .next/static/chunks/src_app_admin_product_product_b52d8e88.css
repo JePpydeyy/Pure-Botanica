@@ -1,0 +1,223 @@
+/* [project]/src/app/admin/product/product.css [app-client] (css) */
+.title_container {
+  width: 1240px;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  margin: 80px 0 0 280px;
+}
+
+.title_container h1 {
+  color: #004c59;
+  font-size: 30px;
+}
+
+.title_container a {
+  width: 150px;
+  height: 35px;
+  background-color: #004c59;
+  text-align: center;
+  text-decoration: none;
+  color: #fff;
+  border-radius: 5px;
+  line-height: 35px;
+  margin-left: 40px;
+}
+
+.table_container {
+  overflow-x: auto;
+  margin-top: 10px;
+  margin-left: 280px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #fff;
+  box-shadow: 0 2px 5px #0000001a;
+}
+
+thead {
+  background-color: #f4f4f4;
+}
+
+thead th {
+  padding: 10px;
+  text-align: left;
+  font-weight: bold;
+  border-bottom: 2px solid #ddd;
+}
+
+tbody td {
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+}
+
+tbody td a {
+  text-decoration: none;
+}
+
+tbody tr:hover {
+  background-color: #f9f9f9;
+}
+
+td img {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 25px 0;
+  font-family: Segoe UI, Tahoma, Geneva, Verdana, sans-serif;
+  gap: 5px;
+}
+
+.page-link {
+  min-width: 40px;
+  height: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: none;
+  border-radius: 50%;
+  background-color: #f0f0f0;
+  color: #555;
+  font-weight: 500;
+  transition: all .3s;
+  cursor: pointer;
+}
+
+.page-link:hover {
+  background-color: #e0e0e0;
+  transform: translateY(-2px);
+  box-shadow: 0 3px 5px #0000001a;
+}
+
+.page-link.active {
+  background-color: #4caf50;
+  color: #fff;
+  box-shadow: 0 4px 8px #4caf504d;
+}
+
+.page-link:first-child, .page-link:last-child {
+  min-width: 80px;
+  border-radius: 20px;
+  font-weight: 600;
+}
+
+.page-link:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px #4caf504d;
+}
+
+@media (width <= 576px) {
+  .pagination {
+    flex-wrap: wrap;
+  }
+
+  .page-link {
+    min-width: 35px;
+    height: 35px;
+    margin: 2px;
+  }
+
+  .page-link:first-child, .page-link:last-child {
+    min-width: 70px;
+  }
+}
+
+.page_dots {
+  padding: 0 5px;
+  color: #666;
+}
+
+button {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+}
+
+.edit_btn i {
+  color: #6b6b6b;
+}
+
+.delete_btn i {
+  color: #dc3545;
+}
+
+.table-container {
+  overflow-x: auto;
+  margin-top: 10px;
+  margin-left: 280px;
+}
+
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #0006;
+  z-index: 10000;
+}
+
+.modal-content {
+  background-color: #fff;
+  padding: 30px;
+  border-radius: 12px;
+  max-width: 600px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 20px #0000004d;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.confirm-btn, .cancel-btn, .save-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.confirm-btn {
+  background-color: #e74c3c;
+  color: #fff;
+}
+
+.cancel-btn {
+  background-color: #bdc3c7;
+  color: #333;
+}
+
+.save-btn {
+  background-color: #27ae60;
+  color: #fff;
+}
+
+input[type="text"], input[type="number"], textarea, select {
+  width: 100%;
+  padding: 10px;
+  margin-top: 4px;
+  margin-bottom: 16px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 16px;
+}
+
+/*# sourceMappingURL=src_app_admin_product_product_b52d8e88.css.map*/

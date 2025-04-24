@@ -1,0 +1,246 @@
+/* [project]/src/app/user/about/about.css [app-client] (css) */
+* {
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding: 0;
+}
+
+body {
+  margin-top: 100px;
+}
+
+.banner-title {
+  text-align: center;
+  width: 100%;
+  position: relative;
+}
+
+.banner-title img {
+  object-fit: cover;
+  width: 100%;
+  height: auto;
+  max-height: 800px;
+}
+
+.title {
+  color: #fff;
+  text-align: center;
+  background-color: #8d5524;
+  width: 100%;
+  padding: 20px 0;
+  bottom: 0;
+  left: 0;
+}
+
+.title h1 {
+  text-transform: uppercase;
+  font-size: 2.5rem;
+  font-weight: bold;
+}
+
+.main {
+  width: 1290px;
+}
+
+.brand-meaning {
+  text-align: justify;
+}
+
+.title-h2 {
+  justify-content: center;
+  width: 100%;
+  display: flex;
+}
+
+.brand-meaning h2 {
+  text-align: center;
+  text-transform: uppercase;
+  margin-top: 30px;
+  margin-bottom: 30px;
+  font-size: 2.5rem;
+  font-weight: bold;
+}
+
+.brand-meaning p {
+  margin-bottom: 20px;
+  font-size: 1.2rem;
+  line-height: 2;
+}
+
+.brand-meaning p strong {
+  color: #8d5524;
+  font-weight: bold;
+}
+
+.brand-meaning img {
+  border-radius: 10px;
+  max-width: 100%;
+  margin: 40px auto;
+  display: block;
+}
+
+.commitment-action {
+  text-align: justify;
+  max-width: 80%;
+  margin: 60px auto;
+  line-height: 1.8;
+}
+
+.commitment-action h2 {
+  text-align: center;
+  text-transform: uppercase;
+  margin-bottom: 30px;
+  font-size: 2.5rem;
+  font-weight: bold;
+}
+
+.commitment-action p {
+  margin-bottom: 20px;
+  font-size: 1.2rem;
+}
+
+.mission img {
+  border-radius: 10px;
+  max-width: 100%;
+  margin: 40px auto;
+  display: block;
+}
+
+.commitment-action .highlight-text {
+  text-align: center;
+  color: #8d5524;
+  margin-top: 40px;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.brand-value {
+  flex-wrap: wrap;
+  gap: 40px;
+  display: flex;
+}
+
+.brand-value-left {
+  flex: 1;
+  order: 1;
+}
+
+.brand-value-right {
+  flex: 1;
+  order: 2;
+}
+
+.brand-value-bottom {
+  order: 3;
+  width: 100%;
+}
+
+.brand-value .brand-text {
+  text-align: justify;
+  flex: 1;
+  line-height: 1.8;
+}
+
+.brand-value h2 {
+  text-transform: uppercase;
+  text-align: left;
+  margin-bottom: 20px;
+  font-size: 2.5rem;
+  font-weight: bold;
+}
+
+.brand-value p {
+  margin-bottom: 20px;
+  font-size: 1.2rem;
+}
+
+.brand-value .brand-image {
+  flex: 1;
+}
+
+.brand-value img {
+  border-radius: 10px;
+  width: 100%;
+  box-shadow: 0 8px 16px #0000001a;
+}
+
+.section-title {
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 40px;
+  display: flex;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-bold {
+  font-weight: bold;
+}
+
+@media (width <= 768px) {
+  .title h1 {
+    font-size: 2rem;
+  }
+
+  main {
+    max-width: 90%;
+    padding: 30px 10px;
+  }
+
+  .brand-meaning h2, .commitment-action h2, .brand-value h2 {
+    font-size: 2rem;
+  }
+
+  .brand-meaning p, .commitment-action p, .brand-value p {
+    font-size: 1rem;
+  }
+
+  .brand-meaning img, .brand-value img {
+    max-width: 90%;
+  }
+
+  .commitment-action .highlight-text {
+    font-size: 1.2rem;
+  }
+
+  .brand-value {
+    text-align: center;
+    flex-direction: column;
+  }
+
+  .brand-value h2 {
+    text-align: center;
+  }
+}
+
+@media (width <= 480px) {
+  .title h1 {
+    font-size: 1.5rem;
+  }
+
+  main {
+    max-width: 95%;
+  }
+
+  .brand-meaning h2, .commitment-action h2, .brand-value h2 {
+    font-size: 1.5rem;
+  }
+
+  .brand-meaning p, .commitment-action p, .brand-value p {
+    font-size: .9rem;
+  }
+
+  .commitment-action .highlight-text {
+    font-size: 1rem;
+  }
+}
+
+
+/*# sourceMappingURL=src_app_user_about_about_a8f939a2.css.map*/

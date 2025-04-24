@@ -1,0 +1,169 @@
+/* [project]/src/app/admin/customer/customer.module.css [app-client] (css) */
+.customer-module__BQMPrG__link {
+  color: #000;
+  text-decoration: none;
+}
+
+.customer-module__BQMPrG__titleContainer {
+  align-items: center;
+  width: 1240px;
+  height: 100px;
+  margin: 80px 0 0 250px;
+  display: flex;
+}
+
+.customer-module__BQMPrG__titleContainer h1 {
+  color: #004c59;
+  font-size: 30px;
+}
+
+.customer-module__BQMPrG__tableContainer {
+  border-radius: 8px;
+  max-width: 1240px;
+  margin: 10px 0 0 250px;
+  padding: 20px;
+  box-shadow: 0 4px 6px #0000001a;
+}
+
+.customer-module__BQMPrG__tableContainer table {
+  border-collapse: collapse;
+  background: #fff;
+  width: 100%;
+}
+
+.customer-module__BQMPrG__tableContainer th {
+  text-align: left;
+  color: #666;
+  border-bottom: 1px solid #eee;
+  padding: 12px 16px;
+  font-weight: 500;
+}
+
+.customer-module__BQMPrG__tableContainer td {
+  border-bottom: 1px solid #eee;
+  padding: 12px 16px;
+}
+
+.customer-module__BQMPrG__tableContainer tr:hover {
+  background-color: #f8f9fa;
+}
+
+.customer-module__BQMPrG__thIcon {
+  color: #999;
+  cursor: pointer;
+  margin-left: 5px;
+}
+
+.customer-module__BQMPrG__status {
+  align-items: center;
+  gap: 6px;
+  display: inline-flex;
+}
+
+.customer-module__BQMPrG__statusDot {
+  border-radius: 50%;
+  width: 8px;
+  height: 8px;
+}
+
+.customer-module__BQMPrG__statusActive {
+  background-color: #22c55e;
+}
+
+.customer-module__BQMPrG__statusBlocked {
+  background-color: #ef4444;
+}
+
+.customer-module__BQMPrG__statusLocked {
+  background-color: #64748b;
+}
+
+.customer-module__BQMPrG__actionButtons {
+  gap: 8px;
+  display: flex;
+}
+
+.customer-module__BQMPrG__btn {
+  cursor: pointer;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 6px;
+}
+
+.customer-module__BQMPrG__btn:hover {
+  background: #f8f9fa;
+}
+
+.customer-module__BQMPrG__pagination {
+  align-items: center;
+  gap: 4px;
+  margin-top: 16px;
+  display: flex;
+}
+
+.customer-module__BQMPrG__pageItem {
+  cursor: pointer;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+
+.customer-module__BQMPrG__pageItemActive {
+  color: #fff;
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+.customer-module__BQMPrG__itemsPerPage {
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  margin-left: 16px;
+  padding: 8px;
+}
+
+.customer-module__BQMPrG__modal {
+  z-index: 999;
+  background-color: #00000080;
+  justify-content: center;
+  align-items: center;
+  display: flex;
+  position: fixed;
+  inset: 0;
+}
+
+.customer-module__BQMPrG__modalContent {
+  background: #fff;
+  border-radius: 12px;
+  min-width: 300px;
+  padding: 20px;
+  box-shadow: 0 5px 20px #0003;
+}
+
+.customer-module__BQMPrG__modalContent h3 {
+  margin-bottom: 15px;
+}
+
+.customer-module__BQMPrG__modalContent label {
+  margin-bottom: 10px;
+  display: block;
+}
+
+.customer-module__BQMPrG__modalContent select {
+  width: 100%;
+  margin-top: 4px;
+  padding: 8px;
+}
+
+.customer-module__BQMPrG__modalActions {
+  text-align: right;
+  margin-top: 20px;
+}
+
+.customer-module__BQMPrG__modalActions button {
+  margin-left: 8px;
+  padding: 6px 12px;
+}
+
+
+/*# sourceMappingURL=src_app_admin_customer_customer_module_7997b6b1.css.map*/

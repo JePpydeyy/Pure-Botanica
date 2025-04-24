@@ -1,0 +1,93 @@
+/* [project]/src/app/admin/AD_category/category.css [app-client] (css) */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+a {
+  text-decoration: none;
+  color: #fff;
+}
+
+body {
+  width: 100%;
+  color: #004c59;
+  font-family: Arial, sans-serif;
+  overflow-x: hidden;
+}
+
+.container-category {
+  max-width: 1200px;
+  margin-top: 100px;
+  margin-left: 280px;
+  padding: 0 20px;
+}
+
+.form-table-category {
+  width: 100%;
+}
+
+.form-table-category table {
+  width: 100%;
+  margin: 50px 0;
+  text-align: left;
+  font-size: 20px;
+  border-collapse: collapse;
+}
+
+.form-table-category table th, .form-table-category table td {
+  padding: 15px;
+}
+
+.form-table-category table td:last-child {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.btn-edit, .btn-remove {
+  width: 150px;
+  height: 45px;
+  font-size: 16px;
+  display: inline-block;
+}
+
+.btn-edit {
+  width: 150px;
+  height: 45px;
+  border: 1px solid #004c59;
+  font-size: 16px;
+  border-radius: 4px;
+  margin: 10px 20px;
+  background-color: #004c59;
+  color: #fff;
+}
+
+.btn-remove {
+  width: 150px;
+  height: 45px;
+  border: 1px solid #f15e2c;
+  font-size: 16px;
+  border-radius: 4px;
+  background-color: #f15e2c;
+  color: #fff;
+}
+
+.name-table-category span {
+  width: 100%;
+  font-size: 32px;
+  font-weight: bold;
+}
+
+.btn-add-new-category {
+  height: 40px;
+  width: 200px;
+  font-size: 14px;
+  border: 1px solid #004c59;
+  border-radius: 4px;
+  background-color: #004c59;
+  color: #fff;
+}
+
+
+/*# sourceMappingURL=src_app_admin_AD_category_category_af4669a9.css.map*/

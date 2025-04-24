@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 7, "column": 0}, "map": {"version":3,"sources":["file://D%3A/FPOLY/ky5/ASM_Next/Pure-Botanica/src/app/page.tsx"],"sourcesContent":["\"use client\";\r\n\r\nimport { useEffect } from \"react\";\r\nimport { useRouter } from \"next/navigation\";\r\nimport { Html } from \"next/document\";\r\n\r\nexport default function Home() {\r\n  const router = useRouter();\r\n\r\n  useEffect(() => {\r\n    // Chuyển hướng đến /user\r\n    router.push(\"/user\");\r\n  }, [router]);\r\n\r\n  return null; // Không cần render gì trên trang này\r\n}"],"names":[],"mappings":";;;AAEA;AACA;;AAHA;;;AAMe,SAAS;;IACtB,MAAM,SAAS,CAAA,GAAA,qIAAA,CAAA,YAAS,AAAD;IAEvB,CAAA,GAAA,6JAAA,CAAA,YAAS,AAAD;0BAAE;YACR,yBAAyB;YACzB,OAAO,IAAI,CAAC;QACd;yBAAG;QAAC;KAAO;IAEX,OAAO,MAAM,qCAAqC;AACpD;GATwB;;QACP,qIAAA,CAAA,YAAS;;;KADF","debugId":null}},
+    {"offset": {"line": 45, "column": 0}, "map": {"version":3,"sources":["file://D%3A/FPOLY/ky5/ASM_Next/Pure-Botanica/node_modules/next/navigation.js"],"sourcesContent":["module.exports = require('./dist/client/components/navigation')\n"],"names":[],"mappings":"AAAA,OAAO,OAAO","ignoreList":[0],"debugId":null}}]
+}

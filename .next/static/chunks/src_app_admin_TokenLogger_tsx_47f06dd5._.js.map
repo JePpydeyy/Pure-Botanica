@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 7, "column": 0}, "map": {"version":3,"sources":["file://D%3A/FPOLY/ky5/ASM_Next/Pure-Botanica/src/app/admin/TokenLogger.tsx"],"sourcesContent":["\"use client\";\r\nimport { useEffect } from \"react\";\r\n\r\nexport default function TokenLogger() {\r\n  useEffect(() => {\r\n    const token = localStorage.getItem(\"token\");\r\n    console.log(\"Token từ localStorage:\", token);\r\n  }, []);\r\n\r\n  return null; // Không render gì ra UI, chỉ dùng để log\r\n}\r\n"],"names":[],"mappings":";;;AACA;;AADA;;AAGe,SAAS;;IACtB,CAAA,GAAA,6JAAA,CAAA,YAAS,AAAD;iCAAE;YACR,MAAM,QAAQ,aAAa,OAAO,CAAC;YACnC,QAAQ,GAAG,CAAC,0BAA0B;QACxC;gCAAG,EAAE;IAEL,OAAO,MAAM,yCAAyC;AACxD;GAPwB;KAAA","debugId":null}}]
+}

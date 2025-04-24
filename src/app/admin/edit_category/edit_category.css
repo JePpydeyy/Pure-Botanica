@@ -1,0 +1,64 @@
+.edit-container {
+    max-width: 500px;
+    margin: 50px auto;
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    font-family: "Roboto", sans-serif;
+  }
+  
+  .edit-title {
+    text-align: center;
+    font-size: 24px;
+    margin-bottom: 20px;
+    color: #333;
+  }
+  
+  .edit-form label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+  }
+  
+  .edit-form input {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    margin-bottom: 20px;
+    font-size: 16px;
+  }
+  
+  .edit-actions {
+    display: flex;
+    justify-content: space-between;
+  }
+  
+  .btn-save,
+  .btn-cancel {
+    padding: 10px 20px;
+    font-size: 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  
+  .btn-save {
+    background-color: #0070f3;
+    color: white;
+  }
+  
+  .btn-cancel {
+    background-color: #ccc;
+    color: #333;
+  }
+  
+  .edit-loading,
+  .edit-error {
+    text-align: center;
+    margin-top: 50px;
+    font-size: 18px;
+    color: #d00;
+  }
+  

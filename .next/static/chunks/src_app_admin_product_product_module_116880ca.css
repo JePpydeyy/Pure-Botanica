@@ -1,0 +1,325 @@
+/* [project]/src/app/admin/product/product.module.css [app-client] (css) */
+.product-module__MoaqmG__titleContainer {
+  align-items: center;
+  width: 1240px;
+  height: 100px;
+  margin: 80px 0 0 280px;
+  display: flex;
+}
+
+.product-module__MoaqmG__titleContainer h1 {
+  color: #004c59;
+  font-size: 30px;
+}
+
+.product-module__MoaqmG__addProductBtn {
+  z-index: 100;
+  text-align: center;
+  color: #fff;
+  background-color: #004c59;
+  border-radius: 5px;
+  width: 150px;
+  height: 35px;
+  margin-left: 40px;
+  line-height: 35px;
+  text-decoration: none;
+}
+
+.product-module__MoaqmG__tableContainer {
+  border-radius: 8px;
+  margin-top: 10px;
+  margin-left: 280px;
+  overflow-x: auto;
+  box-shadow: 0 2px 8px #0000001a;
+}
+
+.product-module__MoaqmG__productTable {
+  z-index: -1;
+  border-collapse: collapse;
+  background-color: #fff;
+  width: 100%;
+}
+
+.product-module__MoaqmG__productTableThead {
+  background-color: #f4f4f4;
+}
+
+.product-module__MoaqmG__productTableThead th {
+  text-align: left;
+  color: #333;
+  padding: 12px 15px;
+  font-weight: bold;
+}
+
+.product-module__MoaqmG__productTable td {
+  vertical-align: middle;
+  padding: 15px;
+}
+
+.product-module__MoaqmG__productTable tr:hover {
+  background-color: #f9f9f9;
+}
+
+.product-module__MoaqmG__productTableImage {
+  object-fit: cover;
+  border-radius: 4px;
+  width: 50px;
+  height: 50px;
+  box-shadow: 0 2px 4px #0000001a;
+}
+
+.product-module__MoaqmG__productTableQuantity {
+  text-align: center;
+  font-weight: 500;
+}
+
+.product-module__MoaqmG__actionButtons {
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  display: flex;
+}
+
+.product-module__MoaqmG__actionButtons button {
+  cursor: pointer;
+  border: none;
+  border-radius: 4px;
+  min-width: 70px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all .2s;
+  box-shadow: 0 2px 4px #0000001a;
+}
+
+.product-module__MoaqmG__editBtn {
+  color: #fff;
+  background-color: #4caf50;
+}
+
+.product-module__MoaqmG__editBtn:hover {
+  background-color: #3e8e41;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px #0000001a;
+}
+
+.product-module__MoaqmG__editBtn:active {
+  transform: translateY(0);
+}
+
+.product-module__MoaqmG__deleteBtn {
+  color: #fff;
+  background-color: #f44336;
+}
+
+.product-module__MoaqmG__deleteBtn:hover {
+  background-color: #d32f2f;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px #0000001a;
+}
+
+.product-module__MoaqmG__deleteBtn:active {
+  transform: translateY(0);
+}
+
+.product-module__MoaqmG__pagination {
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  margin: 25px 0;
+  font-family: Segoe UI, Tahoma, Geneva, Verdana, sans-serif;
+  display: flex;
+}
+
+.product-module__MoaqmG__pageLink {
+  color: #555;
+  cursor: pointer;
+  background-color: #f0f0f0;
+  border: none;
+  border-radius: 50%;
+  justify-content: center;
+  align-items: center;
+  min-width: 40px;
+  height: 40px;
+  font-weight: 500;
+  transition: all .3s;
+  display: flex;
+}
+
+.product-module__MoaqmG__pageLink:hover {
+  background-color: #e0e0e0;
+  transform: translateY(-2px);
+  box-shadow: 0 3px 5px #0000001a;
+}
+
+.product-module__MoaqmG__pageLinkActive {
+  color: #fff;
+  background-color: #4caf50;
+  box-shadow: 0 4px 8px #4caf504d;
+}
+
+.product-module__MoaqmG__pageLink:disabled {
+  cursor: not-allowed;
+  background-color: #f0f0f0;
+}
+
+.product-module__MoaqmG__modal {
+  z-index: 10000;
+  background-color: #0006;
+  justify-content: center;
+  align-items: center;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  position: fixed;
+  top: 0;
+  left: 0;
+}
+
+.product-module__MoaqmG__modalContent {
+  background-color: #fff;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  padding: 30px;
+  overflow-y: auto;
+  box-shadow: 0 8px 20px #0000004d;
+}
+
+.product-module__MoaqmG__modalActions {
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+  display: flex;
+}
+
+.product-module__MoaqmG__confirmBtn, .product-module__MoaqmG__cancelBtn {
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-weight: 500;
+  transition: all .2s;
+}
+
+.product-module__MoaqmG__confirmBtn {
+  color: #fff;
+  background-color: #4f46e5;
+  border: none;
+}
+
+.product-module__MoaqmG__confirmBtn:hover {
+  background-color: #4338ca;
+}
+
+.product-module__MoaqmG__cancelBtn {
+  color: #4b5563;
+  background-color: #f3f4f6;
+  border: 1px solid #d1d5db;
+}
+
+.product-module__MoaqmG__cancelBtn:hover {
+  background-color: #e5e7eb;
+}
+
+.product-module__MoaqmG__notification {
+  color: #fff;
+  z-index: 1000;
+  border-radius: 4px;
+  padding: 15px 20px;
+  position: fixed;
+  top: 20px;
+  right: 20px;
+}
+
+.product-module__MoaqmG__notification.product-module__MoaqmG__success {
+  background-color: #4caf50;
+}
+
+.product-module__MoaqmG__notification.product-module__MoaqmG__error {
+  background-color: #f44336;
+}
+
+.product-module__MoaqmG__errorContainer {
+  text-align: center;
+  padding: 40px 0;
+}
+
+.product-module__MoaqmG__errorMessage {
+  color: #f44336;
+  margin-bottom: 20px;
+  font-size: 18px;
+}
+
+.product-module__MoaqmG__retryButton {
+  color: #fff;
+  cursor: pointer;
+  background-color: #4caf50;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+}
+
+.product-module__MoaqmG__processingIndicator {
+  color: #fff;
+  z-index: 1000;
+  background-color: #000000b3;
+  border-radius: 4px;
+  padding: 10px 20px;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+@media (width <= 1280px) {
+  .product-module__MoaqmG__titleContainer, .product-module__MoaqmG__tableContainer {
+    width: 90%;
+    margin-left: 5%;
+  }
+}
+
+@media (width <= 768px) {
+  .product-module__MoaqmG__titleContainer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+    height: auto;
+    margin-top: 40px;
+  }
+
+  .product-module__MoaqmG__addProductBtn {
+    margin-left: 0;
+  }
+}
+
+@media (width <= 600px) {
+  .product-module__MoaqmG__actionButtons {
+    flex-direction: row;
+    gap: 6px;
+  }
+
+  .product-module__MoaqmG__actionButtons button {
+    min-width: 60px;
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+
+  .product-module__MoaqmG__productTableThead th, .product-module__MoaqmG__productTable td {
+    padding: 10px 8px;
+    font-size: 14px;
+  }
+
+  .product-module__MoaqmG__pagination {
+    flex-wrap: wrap;
+  }
+
+  .product-module__MoaqmG__pageLink {
+    min-width: 35px;
+    height: 35px;
+    margin: 2px;
+  }
+}
+
+
+/*# sourceMappingURL=src_app_admin_product_product_module_116880ca.css.map*/

@@ -190,11 +190,10 @@ function UserProfile() {
                                 children: "Đơn hàng:"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/user/userinfo/page.tsx",
-                                lineNumber: 58,
-                                columnNumber: 47
+                                lineNumber: 59,
+                                columnNumber: 17
                             }, this),
-                            " ",
-                            user.listOrder.length === 0 ? "Chưa có đơn hàng" : user.listOrder.length + " đơn hàng"
+                            user?.listOrder?.length === 0 ? "Chưa có đơn hàng" : user?.listOrder?.length + " đơn hàng"
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/user/userinfo/page.tsx",
@@ -215,12 +214,12 @@ function UserProfile() {
                     children: "Chỉnh sửa thông tin"
                 }, void 0, false, {
                     fileName: "[project]/src/app/user/userinfo/page.tsx",
-                    lineNumber: 62,
+                    lineNumber: 68,
                     columnNumber: 17
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/src/app/user/userinfo/page.tsx",
-                lineNumber: 61,
+                lineNumber: 67,
                 columnNumber: 13
             }, this)
         ]

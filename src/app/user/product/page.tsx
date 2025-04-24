@@ -10,7 +10,7 @@ const formatPrice = (price: number): string => {
 };
 
 const getImageUrl = (image: string): string => {
-  if (!image) return "/images/placeholder.png"; // Fallback image if none provided
+  if (!image) return "/images/placeholder.png";
   return `https://api-zeal.onrender.com/images/${image}`;
 };
 
@@ -21,19 +21,30 @@ export default function ProductPage() {
   const [categories, setCategories] = useState<string[]>([]);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   const productsPerPage = 9;
 
   // Fetch products
   useEffect(() => {
     const fetchProducts = async () => {
       setIsLoading(true);
+      setError(null);
       try {
         const response = await fetch("https://api-zeal.onrender.com/api/products");
+        if (!response.ok) {
+          throw new Error(`Lỗi tải sản phẩm: ${response.status}`);
+        }
         const data: Product[] = await response.json();
+        console.log("Products:", data);
+        console.log(
+          "Categories in products:",
+          data.map((p) => ({ id: p._id, category: p.category?.name }))
+        );
         setProducts(data);
         setFilteredProducts(data);
       } catch (error) {
         console.error("Error fetching products:", error);
+        setError("Không thể tải sản phẩm. Vui lòng thử lại sau.");
       } finally {
         setIsLoading(false);
       }
@@ -41,28 +52,38 @@ export default function ProductPage() {
     fetchProducts();
   }, []);
 
+  // Fetch categories
   useEffect(() => {
     const fetchCategories = async () => {
       try {
         const res = await fetch("https://api-zeal.onrender.com/api/categories");
+        if (!res.ok) {
+          throw new Error(`Lỗi tải danh mục: ${res.status}`);
+        }
         const data = await res.json();
+        console.log("Categories:", data);
         const categoryNames = data.map((cat: any) => cat.name);
         setCategories(["Tất cả", ...categoryNames]);
       } catch (err) {
         console.error("Error fetching categories:", err);
+        setError("Không thể tải danh mục. Vui lòng thử lại sau.");
       }
     };
     fetchCategories();
   }, []);
 
+  // Filter products by category
   const filterProducts = (category: string) => {
+    console.log("Filtering category:", category);
     if (category === "Tất cả" || activeCategory === category) {
       setFilteredProducts(products);
       setActiveCategory(null);
     } else {
       const filtered = products.filter((product) => {
-        return product.category && product.category === category;
+        if (!product.category || typeof product.category.name !== "string") return false;
+        return product.category.name === category;
       });
+      console.log("Filtered products:", filtered);
       setFilteredProducts(filtered.length > 0 ? filtered : []);
       setActiveCategory(category);
     }
@@ -80,12 +101,13 @@ export default function ProductPage() {
     }
   }, [filteredProducts, currentPage, totalPages]);
 
-  const getRandomProducts = (products: Product[], count: number): Product[] => {
-    const shuffled = [...products].sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, count);
+  // Hàm lấy sản phẩm theo stock cao nhất
+  const getTopStockProducts = (products: Product[], count: number): Product[] => {
+    const sortedProducts = [...products].sort((a, b) => b.stock - a.stock);
+    return sortedProducts.slice(0, count);
   };
 
-  const bestSellingProducts = getRandomProducts(products, 4);
+  const bestSellingProducts = getTopStockProducts(products, 5);
 
   return (
     <div>
@@ -97,48 +119,57 @@ export default function ProductPage() {
         <aside className={styles.productSidebar}>
           <h3 className={styles["sidebar-title"]}>DANH MỤC SẢN PHẨM</h3>
           <ul className={styles["menu-list"]}>
-            {categories.map((category) => (
-              <li
-                key={category}
-                className={styles["menu-list-item"]}
-                onClick={() => filterProducts(category)}
-              >
-                <span
-                  className={styles["menu-title"]}
-                  style={{
-                    color: activeCategory === category ? "#8D5524" : "#357E38",
-                    cursor: "pointer",
+            {categories.length > 0 ? (
+              categories.map((category) => (
+                <li
+                  key={category}
+                  className={styles["menu-list-item"]}
+                  onClick={() => {
+                    console.log("Clicked category:", category);
+                    filterProducts(category);
                   }}
                 >
-                  {category}
-                </span>
-              </li>
-            ))}
+                  <span
+                    className={styles["menu-title"]}
+                    style={{
+                      color: activeCategory === category ? "#8D5524" : "#357E38",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {category}
+                  </span>
+                </li>
+              ))
+            ) : (
+              <li className={styles["no-products"]}>Không có danh mục nào.</li>
+            )}
           </ul>
         </aside>
         <section className={styles.productContainer}>
-          <div className={styles.productGrid}>
-            {isLoading ? (
-              <p className={styles["no-products"]}>Đang tải sản phẩm...</p>
-            ) : currentProducts.length > 0 ? (
-              currentProducts.map((product) => (
+          {error ? (
+            <p className={styles["no-products"]}>{error}</p>
+          ) : isLoading ? (
+            <p className={styles["no-products"]}>Đang tải sản phẩm...</p>
+          ) : currentProducts.length > 0 ? (
+            <div className={styles.productGrid}>
+              {currentProducts.map((product) => (
                 <Link
                   href={`/user/detail/${product._id}`}
                   key={product._id}
                   className={`${styles.productItem} ${styles["product-link"]}`}
                 >
                   <div>
-                  <Image
-                    src={
-                      product.images && product.images.length > 0
-                        ? `https://api-zeal.onrender.com/images/${product.images[0]}`
-                        : "https://via.placeholder.com/300x200?text=No+Image"
-                    }
-                    alt={product.name}
-                    width={300}
-                    height={200}
-                    className={styles["product-image"]}
-                  />
+                    <Image
+                      src={
+                        product.images && product.images.length > 0
+                          ? `https://api-zeal.onrender.com/images/${product.images[0]}`
+                          : "https://via.placeholder.com/300x200?text=No+Image"
+                      }
+                      alt={product.name}
+                      width={300}
+                      height={200}
+                      className={styles["product-image"]}
+                    />
                     <div>
                       <h4 className={styles["product-item-name"]}>{product.name}</h4>
                       <div className={styles["product-card"]}>
@@ -150,15 +181,15 @@ export default function ProductPage() {
                     </div>
                   </div>
                 </Link>
-              ))
-            ) : (
-              <p className={styles["no-products"]}>
-                {activeCategory
-                  ? `Không tìm thấy sản phẩm trong danh mục "${activeCategory}"`
-                  : "Không có sản phẩm nào."}
-              </p>
-            )}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <p className={styles["no-products"]}>
+              {activeCategory
+                ? `Không tìm thấy sản phẩm trong danh mục "${activeCategory}"`
+                : "Không có sản phẩm nào."}
+            </p>
+          )}
           {totalPages > 1 && (
             <div className={styles.productPagination}>
               <button

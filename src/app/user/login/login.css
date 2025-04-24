@@ -61,10 +61,10 @@ h2 {
 
 .form-box form input {
     border-radius: 10px;
-    width: 100%;
+
     padding: 10px 15px;
     border: 1px solid #ccc;
-    border-radius: 0;
+    border-radius: 10px;
     font-size: 14px;
     transition: border-color 0.3s ease;
 }

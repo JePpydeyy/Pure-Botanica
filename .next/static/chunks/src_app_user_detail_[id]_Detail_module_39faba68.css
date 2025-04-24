@@ -290,9 +290,70 @@
   background-color: #7a4a23;
 }
 
+.Detail-module__si58nq__write-review-section {
+  background-color: #fff;
+  border-radius: 8px;
+  margin-bottom: 30px;
+  padding: 50px;
+  box-shadow: 0 2px 8px #0000000d;
+}
+
+.Detail-module__si58nq__write-review-section .Detail-module__si58nq__review-title {
+  color: #333;
+  margin-bottom: 15px;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.Detail-module__si58nq__comment-input {
+  color: #555;
+  resize: vertical;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  outline: none;
+  width: 100%;
+  min-height: 100px;
+  margin-bottom: 15px;
+  padding: 12px;
+  font-size: 16px;
+  transition: border-color .3s;
+}
+
+.Detail-module__si58nq__comment-input:focus {
+  border-color: #8b5a2b;
+}
+
+.Detail-module__si58nq__comment-error {
+  color: #e74c3c;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+.Detail-module__si58nq__submit-comment {
+  color: #fff;
+  cursor: pointer;
+  background-color: #8b5a2b;
+  border: none;
+  border-radius: 5px;
+  padding: 12px 25px;
+  font-size: 16px;
+  font-weight: 500;
+  transition: background-color .3s;
+}
+
+.Detail-module__si58nq__submit-comment:hover {
+  background-color: #7a4a23;
+}
+
+.Detail-module__si58nq__submit-comment:disabled {
+  cursor: not-allowed;
+  background-color: #ccc;
+}
+
 .Detail-module__si58nq__product-contact-section {
   text-align: center;
   background-color: #f9e5e2;
+  margin: 100px 0;
   padding: 60px 20px;
 }
 

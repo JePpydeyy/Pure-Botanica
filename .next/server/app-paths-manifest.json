@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
   "/_not-found/page": "app/_not-found/page.js",
   "/favicon.ico/route": "app/favicon.ico/route.js",
   "/page": "app/page.js",
@@ -7,4 +8,11 @@
   "/user/page": "app/user/page.js",
   "/user/product/page": "app/user/product/page.js",
   "/user/userinfo/page": "app/user/userinfo/page.js"
+=======
+  "/page": "app/page.js",
+  "/user/cart/page": "app/user/cart/page.js",
+  "/user/detail/[id]/page": "app/user/detail/[id]/page.js",
+  "/user/page": "app/user/page.js",
+  "/user/product/page": "app/user/product/page.js"
+>>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
 }

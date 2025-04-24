@@ -3,13 +3,14 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import styles from "./Cart.module.css";
+import Link from "next/link";
 import { Cart, CartItem, Product } from "@/app/components/cart_interface";
 
 export default function CartPage() {
-  const [cart, setCart] = useState<Cart | null>(null);
+  const [cart, setCart] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
+  const [error, setError] = useState(null);
+  const [userId, setUserId] = useState(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -54,25 +55,23 @@ export default function CartPage() {
       if (!cartResponse.ok) {
         throw new Error("Không thể lấy dữ liệu giỏ hàng");
       }
-      const cartData: Cart = await cartResponse.json();
+      const cartData = await cartResponse.json();
       setCart(cartData);
       setLoading(false);
     } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("Đã xảy ra lỗi không xác định");
-      }
+      setError(err.message);
       setLoading(false);
     }
   };
 
+  // Gọi API để lấy giỏ hàng
   useEffect(() => {
     if (!userId) return;
     fetchCart();
   }, [userId]);
 
-  const increaseQuantity = async (productId: string, currentQuantity: number) => {
+  // Hàm tăng số lượng
+  const increaseQuantity = async (productId, currentQuantity) => {
     const newQuantity = currentQuantity + 1;
     try {
       const response = await fetch(`https://api-zeal.onrender.com/api/carts/update`, {
@@ -97,15 +96,12 @@ export default function CartPage() {
 
       await fetchCart();
     } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("Đã xảy ra lỗi không xác định");
-      }
+      setError(err.message);
     }
   };
 
-  const decreaseQuantity = async (productId: string, currentQuantity: number) => {
+  // Hàm giảm số lượng
+  const decreaseQuantity = async (productId, currentQuantity) => {
     if (currentQuantity <= 1) {
       await removeItem(productId);
       return;
@@ -135,27 +131,26 @@ export default function CartPage() {
 
       await fetchCart();
     } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("Đã xảy ra lỗi không xác định");
-      }
+      setError(err.message);
     }
   };
 
-  const removeItem = async (productId: string) => {
+  // Hàm xóa sản phẩm
+  const removeItem = async (productId) => {
     try {
-      const response = await fetch(`https://api-zeal.onrender.com/api/carts/remove`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify({
-          userId,
-          productId,
-        }),
-      });
+      const response = await fetch(
+        `https://api-zeal.onrender.com/api/carts/remove/${productId}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify({
+            userId,
+          }),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -164,16 +159,18 @@ export default function CartPage() {
         );
       }
 
+      // Cập nhật state cục bộ trước khi gọi fetchCart
+      const updatedItems = cart.items.filter(item => item.product._id !== productId);
+      setCart({ ...cart, items: updatedItems });
+
+      // Gọi lại API để lấy dữ liệu giỏ hàng mới nhất
       await fetchCart();
     } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("Đã xảy ra lỗi không xác định");
-      }
+      setError(err.message);
     }
   };
 
+  // Tính tổng cộng
   const calculateTotal = () => {
     if (!cart || !cart.items || cart.items.length === 0) return 0;
     return cart.items.reduce((total, item) => {
@@ -182,7 +179,8 @@ export default function CartPage() {
     }, 0);
   };
 
-  const formatPrice = (price: number) => {
+  // Định dạng giá tiền
+  const formatPrice = (price) => {
     const numericPrice = Number(price) || 0;
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",

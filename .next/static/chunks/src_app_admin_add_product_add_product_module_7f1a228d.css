@@ -1,0 +1,102 @@
+/* [project]/src/app/admin/add_product/add_product.module.css [app-client] (css) */
+.add_product-module__EY_1qq__addProductContainer {
+  max-width: 1100px;
+  margin: 50px 250px auto;
+  padding: 20px;
+}
+
+.add_product-module__EY_1qq__title {
+  color: #4caf50;
+  margin-bottom: 25px;
+  font-size: 24px;
+  font-weight: 500;
+}
+
+.add_product-module__EY_1qq__form {
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  display: grid;
+}
+
+.add_product-module__EY_1qq__formGroup {
+  margin-bottom: 15px;
+}
+
+.add_product-module__EY_1qq__fullWidth {
+  grid-column: span 2;
+}
+
+.add_product-module__EY_1qq__label {
+  color: #333;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  display: block;
+}
+
+.add_product-module__EY_1qq__input, .add_product-module__EY_1qq__textarea, .add_product-module__EY_1qq__select, .add_product-module__EY_1qq__fileInput {
+  box-sizing: border-box;
+  background-color: #f6f9fc;
+  border: 1px solid #e1e1e1;
+  border-radius: 6px;
+  width: 100%;
+  padding: 12px;
+  font-size: 16px;
+}
+
+.add_product-module__EY_1qq__input::placeholder, .add_product-module__EY_1qq__textarea::placeholder {
+  color: #aaa;
+}
+
+.add_product-module__EY_1qq__textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.add_product-module__EY_1qq__submitButton {
+  color: #fff;
+  cursor: pointer;
+  background-color: #4caf50;
+  border: none;
+  border-radius: 4px;
+  grid-column: 1 / -1;
+  width: fit-content;
+  margin: 20px auto 0;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: 500;
+  transition: background-color .2s;
+}
+
+.add_product-module__EY_1qq__submitButton:hover {
+  background-color: #45a049;
+}
+
+.add_product-module__EY_1qq__fileList {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style-type: none;
+}
+
+.add_product-module__EY_1qq__fileItem {
+  color: #666;
+  padding: 5px 0;
+  font-size: 14px;
+}
+
+.add_product-module__EY_1qq__fileInput {
+  padding: 10px;
+}
+
+@media (width <= 768px) {
+  .add_product-module__EY_1qq__form {
+    grid-template-columns: 1fr;
+  }
+
+  .add_product-module__EY_1qq__fullWidth {
+    grid-column: 1;
+  }
+}
+
+
+/*# sourceMappingURL=src_app_admin_add_product_add_product_module_7f1a228d.css.map*/

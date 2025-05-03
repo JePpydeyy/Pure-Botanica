@@ -1,11 +1,43 @@
 {
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+  "/admin/add_category/page": "app/admin/add_category/page.js",
+  "/admin/add_product/page": "app/admin/add_product/page.js",
+  "/admin/admin/page": "app/admin/admin/page.js",
+  "/admin/category/page": "app/admin/category/page.js",
+  "/admin/comment/page": "app/admin/comment/page.js",
+  "/admin/customer/page": "app/admin/customer/page.js",
+  "/admin/edit_product/[id]/page": "app/admin/edit_product/[id]/page.js",
+  "/admin/khuyenmai/page": "app/admin/khuyenmai/page.js",
+  "/admin/order/page": "app/admin/order/page.js",
+  "/admin/page": "app/admin/page.js",
+  "/admin/product/page": "app/admin/product/page.js",
+=======
+<<<<<<< HEAD
+>>>>>>> 4261d9e36523872a9a52b6d1b98306fa8fb2c489
   "/_not-found/page": "app/_not-found/page.js",
+>>>>>>> 37338bcc210a364497f6fb6b2ac1294e0de20174
   "/favicon.ico/route": "app/favicon.ico/route.js",
   "/user/cart/page": "app/user/cart/page.js",
   "/user/contact/page": "app/user/contact/page.js",
   "/user/detail/[id]/page": "app/user/detail/[id]/page.js",
   "/user/login/page": "app/user/login/page.js",
+<<<<<<< HEAD
+  "/user/page": "app/user/page.js"
+=======
   "/user/page": "app/user/page.js",
   "/user/product/page": "app/user/product/page.js",
   "/user/userinfo/page": "app/user/userinfo/page.js"
+<<<<<<< HEAD
+=======
+=======
+  "/page": "app/page.js",
+  "/user/cart/page": "app/user/cart/page.js",
+  "/user/detail/[id]/page": "app/user/detail/[id]/page.js",
+  "/user/page": "app/user/page.js",
+  "/user/product/page": "app/user/product/page.js"
+>>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+>>>>>>> 37338bcc210a364497f6fb6b2ac1294e0de20174
+>>>>>>> 4261d9e36523872a9a52b6d1b98306fa8fb2c489
 }

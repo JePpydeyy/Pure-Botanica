@@ -346,8 +346,23 @@ function ProductPage() {
                                                     className: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$app$2f$user$2f$product$2f$Product$2e$module$2e$css__$5b$app$2d$client$5d$__$28$css__module$29$__["default"]["product-image"]
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/app/user/product/page.tsx",
+<<<<<<< HEAD
                                                     lineNumber: 215,
                                                     columnNumber: 21
+=======
+<<<<<<< HEAD
+                                                    lineNumber: 131,
+                                                    columnNumber: 19
+=======
+<<<<<<< HEAD
+                                                    lineNumber: 162,
+                                                    columnNumber: 21
+=======
+                                                    lineNumber: 131,
+                                                    columnNumber: 19
+>>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+>>>>>>> 37338bcc210a364497f6fb6b2ac1294e0de20174
+>>>>>>> 4261d9e36523872a9a52b6d1b98306fa8fb2c489
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                                     children: [
@@ -356,7 +371,19 @@ function ProductPage() {
                                                             children: product.name
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/user/product/page.tsx",
+<<<<<<< HEAD
                                                             lineNumber: 227,
+=======
+<<<<<<< HEAD
+                                                            lineNumber: 143,
+=======
+<<<<<<< HEAD
+                                                            lineNumber: 174,
+=======
+                                                            lineNumber: 143,
+>>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+>>>>>>> 37338bcc210a364497f6fb6b2ac1294e0de20174
+>>>>>>> 4261d9e36523872a9a52b6d1b98306fa8fb2c489
                                                             columnNumber: 23
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -367,7 +394,19 @@ function ProductPage() {
                                                                     children: formatPrice(product.price)
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/src/app/user/product/page.tsx",
+<<<<<<< HEAD
                                                                     lineNumber: 229,
+=======
+<<<<<<< HEAD
+                                                                    lineNumber: 145,
+=======
+<<<<<<< HEAD
+                                                                    lineNumber: 176,
+=======
+                                                                    lineNumber: 145,
+>>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+>>>>>>> 37338bcc210a364497f6fb6b2ac1294e0de20174
+>>>>>>> 4261d9e36523872a9a52b6d1b98306fa8fb2c489
                                                                     columnNumber: 25
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -377,24 +416,72 @@ function ProductPage() {
                                                                         className: "fas fa-shopping-cart"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/src/app/user/product/page.tsx",
+<<<<<<< HEAD
                                                                         lineNumber: 231,
+=======
+<<<<<<< HEAD
+                                                                        lineNumber: 147,
+=======
+<<<<<<< HEAD
+                                                                        lineNumber: 178,
+=======
+                                                                        lineNumber: 147,
+>>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+>>>>>>> 37338bcc210a364497f6fb6b2ac1294e0de20174
+>>>>>>> 4261d9e36523872a9a52b6d1b98306fa8fb2c489
                                                                         columnNumber: 27
                                                                     }, this)
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/src/app/user/product/page.tsx",
+<<<<<<< HEAD
                                                                     lineNumber: 230,
+=======
+<<<<<<< HEAD
+                                                                    lineNumber: 146,
+=======
+<<<<<<< HEAD
+                                                                    lineNumber: 177,
+=======
+                                                                    lineNumber: 146,
+>>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+>>>>>>> 37338bcc210a364497f6fb6b2ac1294e0de20174
+>>>>>>> 4261d9e36523872a9a52b6d1b98306fa8fb2c489
                                                                     columnNumber: 25
                                                                 }, this)
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/src/app/user/product/page.tsx",
+<<<<<<< HEAD
                                                             lineNumber: 228,
+=======
+<<<<<<< HEAD
+                                                            lineNumber: 144,
+=======
+<<<<<<< HEAD
+                                                            lineNumber: 175,
+=======
+                                                            lineNumber: 144,
+>>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+>>>>>>> 37338bcc210a364497f6fb6b2ac1294e0de20174
+>>>>>>> 4261d9e36523872a9a52b6d1b98306fa8fb2c489
                                                             columnNumber: 23
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/src/app/user/product/page.tsx",
+<<<<<<< HEAD
                                                     lineNumber: 226,
+=======
+<<<<<<< HEAD
+                                                    lineNumber: 142,
+=======
+<<<<<<< HEAD
+                                                    lineNumber: 173,
+=======
+                                                    lineNumber: 142,
+>>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+>>>>>>> 37338bcc210a364497f6fb6b2ac1294e0de20174
+>>>>>>> 4261d9e36523872a9a52b6d1b98306fa8fb2c489
                                                     columnNumber: 21
                                                 }, this)
                                             ]
@@ -431,12 +518,36 @@ function ProductPage() {
                                             className: "fa-solid fa-chevron-left"
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/user/product/page.tsx",
+<<<<<<< HEAD
                                             lineNumber: 253,
+=======
+<<<<<<< HEAD
+                                            lineNumber: 169,
+=======
+<<<<<<< HEAD
+                                            lineNumber: 200,
+=======
+                                            lineNumber: 169,
+>>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+>>>>>>> 37338bcc210a364497f6fb6b2ac1294e0de20174
+>>>>>>> 4261d9e36523872a9a52b6d1b98306fa8fb2c489
                                             columnNumber: 17
                                         }, this)
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/user/product/page.tsx",
+<<<<<<< HEAD
                                         lineNumber: 248,
+=======
+<<<<<<< HEAD
+                                        lineNumber: 164,
+=======
+<<<<<<< HEAD
+                                        lineNumber: 195,
+=======
+                                        lineNumber: 164,
+>>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+>>>>>>> 37338bcc210a364497f6fb6b2ac1294e0de20174
+>>>>>>> 4261d9e36523872a9a52b6d1b98306fa8fb2c489
                                         columnNumber: 15
                                     }, this),
                                     (()=>{
@@ -452,7 +563,19 @@ function ProductPage() {
                                                 children: "..."
                                             }, "start-ellipsis", false, {
                                                 fileName: "[project]/src/app/user/product/page.tsx",
+<<<<<<< HEAD
                                                 lineNumber: 264,
+=======
+<<<<<<< HEAD
+                                                lineNumber: 180,
+=======
+<<<<<<< HEAD
+                                                lineNumber: 211,
+=======
+                                                lineNumber: 180,
+>>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+>>>>>>> 37338bcc210a364497f6fb6b2ac1294e0de20174
+>>>>>>> 4261d9e36523872a9a52b6d1b98306fa8fb2c489
                                                 columnNumber: 21
                                             }, this));
                                         }
@@ -463,7 +586,19 @@ function ProductPage() {
                                                 children: i
                                             }, `page-${i}`, false, {
                                                 fileName: "[project]/src/app/user/product/page.tsx",
+<<<<<<< HEAD
                                                 lineNumber: 271,
+=======
+<<<<<<< HEAD
+                                                lineNumber: 187,
+=======
+<<<<<<< HEAD
+                                                lineNumber: 218,
+=======
+                                                lineNumber: 187,
+>>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+>>>>>>> 37338bcc210a364497f6fb6b2ac1294e0de20174
+>>>>>>> 4261d9e36523872a9a52b6d1b98306fa8fb2c489
                                                 columnNumber: 21
                                             }, this));
                                         }
@@ -473,7 +608,19 @@ function ProductPage() {
                                                 children: "..."
                                             }, "end-ellipsis", false, {
                                                 fileName: "[project]/src/app/user/product/page.tsx",
+<<<<<<< HEAD
                                                 lineNumber: 282,
+=======
+<<<<<<< HEAD
+                                                lineNumber: 198,
+=======
+<<<<<<< HEAD
+                                                lineNumber: 229,
+=======
+                                                lineNumber: 198,
+>>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+>>>>>>> 37338bcc210a364497f6fb6b2ac1294e0de20174
+>>>>>>> 4261d9e36523872a9a52b6d1b98306fa8fb2c489
                                                 columnNumber: 21
                                             }, this));
                                         }
@@ -487,18 +634,54 @@ function ProductPage() {
                                             className: "fa-solid fa-chevron-right"
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/user/product/page.tsx",
+<<<<<<< HEAD
                                             lineNumber: 296,
+=======
+<<<<<<< HEAD
+                                            lineNumber: 212,
+=======
+<<<<<<< HEAD
+                                            lineNumber: 243,
+=======
+                                            lineNumber: 212,
+>>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+>>>>>>> 37338bcc210a364497f6fb6b2ac1294e0de20174
+>>>>>>> 4261d9e36523872a9a52b6d1b98306fa8fb2c489
                                             columnNumber: 17
                                         }, this)
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/user/product/page.tsx",
+<<<<<<< HEAD
                                         lineNumber: 289,
+=======
+<<<<<<< HEAD
+                                        lineNumber: 205,
+=======
+<<<<<<< HEAD
+                                        lineNumber: 236,
+=======
+                                        lineNumber: 205,
+>>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+>>>>>>> 37338bcc210a364497f6fb6b2ac1294e0de20174
+>>>>>>> 4261d9e36523872a9a52b6d1b98306fa8fb2c489
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/user/product/page.tsx",
+<<<<<<< HEAD
                                 lineNumber: 247,
+=======
+<<<<<<< HEAD
+                                lineNumber: 163,
+=======
+<<<<<<< HEAD
+                                lineNumber: 194,
+=======
+                                lineNumber: 163,
+>>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+>>>>>>> 37338bcc210a364497f6fb6b2ac1294e0de20174
+>>>>>>> 4261d9e36523872a9a52b6d1b98306fa8fb2c489
                                 columnNumber: 13
                             }, this)
                         ]
@@ -521,7 +704,19 @@ function ProductPage() {
                         children: "Có thể bạn sẽ thích"
                     }, void 0, false, {
                         fileName: "[project]/src/app/user/product/page.tsx",
+<<<<<<< HEAD
                         lineNumber: 303,
+=======
+<<<<<<< HEAD
+                        lineNumber: 220,
+=======
+<<<<<<< HEAD
+                        lineNumber: 251,
+=======
+                        lineNumber: 220,
+>>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+>>>>>>> 37338bcc210a364497f6fb6b2ac1294e0de20174
+>>>>>>> 4261d9e36523872a9a52b6d1b98306fa8fb2c489
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -537,7 +732,19 @@ function ProductPage() {
                                             children: "Sale"
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/user/product/page.tsx",
+<<<<<<< HEAD
                                             lineNumber: 313,
+=======
+<<<<<<< HEAD
+                                            lineNumber: 230,
+=======
+<<<<<<< HEAD
+                                            lineNumber: 261,
+=======
+                                            lineNumber: 230,
+>>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+>>>>>>> 37338bcc210a364497f6fb6b2ac1294e0de20174
+>>>>>>> 4261d9e36523872a9a52b6d1b98306fa8fb2c489
                                             columnNumber: 19
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -550,12 +757,36 @@ function ProductPage() {
                                                 className: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$app$2f$user$2f$product$2f$Product$2e$module$2e$css__$5b$app$2d$client$5d$__$28$css__module$29$__["default"]["best-selling-product-image"]
                                             }, void 0, false, {
                                                 fileName: "[project]/src/app/user/product/page.tsx",
+<<<<<<< HEAD
                                                 lineNumber: 315,
+=======
+<<<<<<< HEAD
+                                                lineNumber: 232,
+=======
+<<<<<<< HEAD
+                                                lineNumber: 263,
+=======
+                                                lineNumber: 232,
+>>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+>>>>>>> 37338bcc210a364497f6fb6b2ac1294e0de20174
+>>>>>>> 4261d9e36523872a9a52b6d1b98306fa8fb2c489
                                                 columnNumber: 21
                                             }, this)
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/user/product/page.tsx",
+<<<<<<< HEAD
                                             lineNumber: 314,
+=======
+<<<<<<< HEAD
+                                            lineNumber: 231,
+=======
+<<<<<<< HEAD
+                                            lineNumber: 262,
+=======
+                                            lineNumber: 231,
+>>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+>>>>>>> 37338bcc210a364497f6fb6b2ac1294e0de20174
+>>>>>>> 4261d9e36523872a9a52b6d1b98306fa8fb2c489
                                             columnNumber: 19
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -566,7 +797,19 @@ function ProductPage() {
                                                     children: product.name
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/app/user/product/page.tsx",
+<<<<<<< HEAD
                                                     lineNumber: 324,
+=======
+<<<<<<< HEAD
+                                                    lineNumber: 241,
+=======
+<<<<<<< HEAD
+                                                    lineNumber: 272,
+=======
+                                                    lineNumber: 241,
+>>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+>>>>>>> 37338bcc210a364497f6fb6b2ac1294e0de20174
+>>>>>>> 4261d9e36523872a9a52b6d1b98306fa8fb2c489
                                                     columnNumber: 21
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -574,42 +817,126 @@ function ProductPage() {
                                                     children: formatPrice(product.price)
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/app/user/product/page.tsx",
+<<<<<<< HEAD
                                                     lineNumber: 325,
+=======
+<<<<<<< HEAD
+                                                    lineNumber: 242,
+=======
+<<<<<<< HEAD
+                                                    lineNumber: 273,
+=======
+                                                    lineNumber: 242,
+>>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+>>>>>>> 37338bcc210a364497f6fb6b2ac1294e0de20174
+>>>>>>> 4261d9e36523872a9a52b6d1b98306fa8fb2c489
                                                     columnNumber: 21
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/src/app/user/product/page.tsx",
+<<<<<<< HEAD
                                             lineNumber: 323,
+=======
+<<<<<<< HEAD
+                                            lineNumber: 240,
+=======
+<<<<<<< HEAD
+                                            lineNumber: 271,
+=======
+                                            lineNumber: 240,
+>>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+>>>>>>> 37338bcc210a364497f6fb6b2ac1294e0de20174
+>>>>>>> 4261d9e36523872a9a52b6d1b98306fa8fb2c489
                                             columnNumber: 19
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/app/user/product/page.tsx",
+<<<<<<< HEAD
                                     lineNumber: 312,
+=======
+<<<<<<< HEAD
+                                    lineNumber: 229,
+=======
+<<<<<<< HEAD
+                                    lineNumber: 260,
+=======
+                                    lineNumber: 229,
+>>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+>>>>>>> 37338bcc210a364497f6fb6b2ac1294e0de20174
+>>>>>>> 4261d9e36523872a9a52b6d1b98306fa8fb2c489
                                     columnNumber: 17
                                 }, this)
                             }, product._id, false, {
                                 fileName: "[project]/src/app/user/product/page.tsx",
+<<<<<<< HEAD
                                 lineNumber: 307,
+=======
+<<<<<<< HEAD
+                                lineNumber: 224,
+=======
+<<<<<<< HEAD
+                                lineNumber: 255,
+=======
+                                lineNumber: 224,
+>>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+>>>>>>> 37338bcc210a364497f6fb6b2ac1294e0de20174
+>>>>>>> 4261d9e36523872a9a52b6d1b98306fa8fb2c489
                                 columnNumber: 15
                             }, this)) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
                             className: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$app$2f$user$2f$product$2f$Product$2e$module$2e$css__$5b$app$2d$client$5d$__$28$css__module$29$__["default"]["no-products"],
                             children: "Đang tải sản phẩm..."
                         }, void 0, false, {
                             fileName: "[project]/src/app/user/product/page.tsx",
+<<<<<<< HEAD
                             lineNumber: 331,
+=======
+<<<<<<< HEAD
+                            lineNumber: 248,
+=======
+<<<<<<< HEAD
+                            lineNumber: 279,
+=======
+                            lineNumber: 248,
+>>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+>>>>>>> 37338bcc210a364497f6fb6b2ac1294e0de20174
+>>>>>>> 4261d9e36523872a9a52b6d1b98306fa8fb2c489
                             columnNumber: 13
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/app/user/product/page.tsx",
+<<<<<<< HEAD
                         lineNumber: 304,
+=======
+<<<<<<< HEAD
+                        lineNumber: 221,
+=======
+<<<<<<< HEAD
+                        lineNumber: 252,
+=======
+                        lineNumber: 221,
+>>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+>>>>>>> 37338bcc210a364497f6fb6b2ac1294e0de20174
+>>>>>>> 4261d9e36523872a9a52b6d1b98306fa8fb2c489
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/app/user/product/page.tsx",
+<<<<<<< HEAD
                 lineNumber: 302,
+=======
+<<<<<<< HEAD
+                lineNumber: 219,
+=======
+<<<<<<< HEAD
+                lineNumber: 250,
+=======
+                lineNumber: 219,
+>>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+>>>>>>> 37338bcc210a364497f6fb6b2ac1294e0de20174
+>>>>>>> 4261d9e36523872a9a52b6d1b98306fa8fb2c489
                 columnNumber: 7
             }, this)
         ]

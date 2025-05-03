@@ -1,43 +1,165 @@
 /* [project]/src/app/admin/comment/comment.css [app-client] (css) */
-.product-image {
-  object-fit: cover;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  width: 60px;
-  height: 60px;
+.title_container {
+  align-items: center;
+  width: 1240px;
+  height: 100px;
+  margin: 80px 0 0 280px;
+  display: flex;
+}
+
+.title_container h1 {
+  color: #004c59;
+  font-size: 30px;
+  font-weight: bold;
+}
+
+.comments-container {
+  background-color: #fff;
+  border-radius: 8px;
+  width: 1240px;
+  margin-left: 280px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px #0000001a;
+}
+
+.tabs {
+  background-color: #f8f8f8;
+  border-bottom: 1px solid #e0e0e0;
+  margin: 0;
+  padding: 0;
+  list-style-type: none;
+  display: flex;
+}
+
+.tabs li {
+  cursor: pointer;
+  padding: 15px 20px;
+  font-weight: 500;
+  transition: all .2s;
+}
+
+.tabs li:hover {
+  background-color: #f0f0f0;
+}
+
+.tabs li.active {
+  color: #fff;
+  background-color: #004c59;
+  font-weight: bold;
 }
 
 .comments-table {
-  margin-top: 50px;
-  margin-left: 250px;
+  border-collapse: collapse;
+  width: 100%;
 }
 
-.comments-table th, .comments-table td {
-  text-align: left;
-  border: 1px solid #ddd;
-  padding: 10px;
+.comments-table thead {
+  color: #fff;
+  background-color: #357e38;
 }
 
 .comments-table th {
-  background-color: #f4f4f4;
+  text-align: left;
+  color: #fff;
+  padding: 12px 15px;
+  font-weight: bold;
 }
 
-.comments-table tr:hover {
-  background-color: #f9f9f9;
+.comments-table td {
+  vertical-align: middle;
+  border-bottom: 1px solid #f0f0f0;
+  padding: 15px;
+}
+
+.product-image {
+  object-fit: cover;
+  border-radius: 4px;
+  width: 50px;
+  height: 50px;
+  box-shadow: 0 2px 4px #0000001a;
 }
 
 .delete-btn {
-  color: red;
   cursor: pointer;
-  background-color: #0000;
+  color: #fff;
+  background-color: #f44336;
   border: none;
+  border-radius: 4px;
+  min-width: 70px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all .2s;
+  box-shadow: 0 2px 4px #0000001a;
+}
+
+.delete-btn:hover {
+  background-color: #d32f2f;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px #0000001a;
+}
+
+.delete-btn:active {
+  transform: translateY(0);
 }
 
 .loading-message, .error-message {
   text-align: center;
-  color: red;
-  margin-top: 20px;
+  padding: 40px 0;
   font-size: 18px;
+}
+
+.loading-message {
+  color: #004c59;
+}
+
+.error-message {
+  color: #f44336;
+}
+
+@media (width <= 1280px) {
+  .title_container, .comments-container {
+    width: 90%;
+    margin-left: 5%;
+  }
+}
+
+@media (width <= 768px) {
+  .title_container {
+    height: auto;
+    margin-top: 40px;
+  }
+
+  .title_container h1 {
+    font-size: 24px;
+  }
+
+  .comments-table {
+    white-space: nowrap;
+    display: block;
+    overflow-x: auto;
+  }
+
+  .comments-table th, .comments-table td {
+    padding: 10px 8px;
+  }
+}
+
+@media (width <= 480px) {
+  .title_container h1 {
+    font-size: 20px;
+  }
+
+  .tabs li {
+    padding: 10px 15px;
+    font-size: 14px;
+  }
+
+  .delete-btn {
+    min-width: 60px;
+    padding: 6px 10px;
+    font-size: 13px;
+  }
 }
 
 

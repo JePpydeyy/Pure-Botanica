@@ -41,12 +41,13 @@
 }
 
 .product-module__MoaqmG__productTableThead {
-  background-color: #f4f4f4;
+  color: #fff;
+  background-color: #357e38;
 }
 
 .product-module__MoaqmG__productTableThead th {
   text-align: left;
-  color: #333;
+  color: #fff;
   padding: 12px 15px;
   font-weight: bold;
 }
@@ -54,10 +55,6 @@
 .product-module__MoaqmG__productTable td {
   vertical-align: middle;
   padding: 15px;
-}
-
-.product-module__MoaqmG__productTable tr:hover {
-  background-color: #f9f9f9;
 }
 
 .product-module__MoaqmG__productTableImage {

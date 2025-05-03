@@ -1,12 +1,10 @@
-export interface SubCategory {
-  _id: string;
-  name: string;
-  category: string;
-}
-
 export interface Product {
   id: any;
-  category: string;
+  category: {
+    _id: string;
+    name: string;
+    createdAt: string;
+  };
   ingredients: string[];
   usage_instructions: string[];
   special: string[];
@@ -17,5 +15,6 @@ export interface Product {
   description: string;
   images: string[];
   stock: number;
-  sub_category?: SubCategory; // Thêm sub_category
+  createdAt?: string;
+  created_at?: string;
 }

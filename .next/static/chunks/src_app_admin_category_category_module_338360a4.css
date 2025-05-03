@@ -1,74 +1,49 @@
 /* [project]/src/app/admin/category/category.module.css [app-client] (css) */
 .category-module__HfUzIW__containerCategory {
+  background-color: #f9f9f9;
+  border-radius: 10px;
+  width: 100%;
   max-width: 1200px;
-  margin-top: 100px;
-  margin-left: 280px;
-  padding: 0 20px;
+  margin: 100px auto 0 280px;
+  padding: 20px;
+  font-family: Arial, sans-serif;
 }
 
 .category-module__HfUzIW__formTableCategory {
-  width: 100%;
+  background-color: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 4px 8px #0000001a;
 }
 
-.category-module__HfUzIW__categoryTable {
-  text-align: left;
-  border-collapse: collapse;
-  width: 100%;
-  margin: 50px 0;
-  font-size: 20px;
-}
-
-.category-module__HfUzIW__categoryTable th, .category-module__HfUzIW__categoryTable td {
-  padding: 15px;
-}
-
-.category-module__HfUzIW__categoryTableTdLast {
-  text-align: right;
-  white-space: nowrap;
-}
-
-.category-module__HfUzIW__btnEdit, .category-module__HfUzIW__btnRemove {
-  width: 150px;
-  height: 45px;
-  font-size: 16px;
-  display: inline-block;
-}
-
-.category-module__HfUzIW__btnEdit {
-  color: #fff;
-  background-color: #004c59;
-  border: 1px solid #004c59;
-  border-radius: 4px;
-  width: 150px;
-  height: 45px;
-  margin: 10px 20px;
-  font-size: 16px;
-}
-
-.category-module__HfUzIW__btnRemove {
-  color: #fff;
-  background-color: #f15e2c;
-  border: 1px solid #f15e2c;
-  border-radius: 4px;
-  width: 150px;
-  height: 45px;
-  font-size: 16px;
-}
-
-.category-module__HfUzIW__nameTableCategory span {
-  width: 100%;
-  font-size: 32px;
+.category-module__HfUzIW__nameTableCategory {
+  text-align: center;
+  color: #2c3e50;
+  margin-bottom: 15px;
+  font-size: 24px;
   font-weight: bold;
+  display: flex;
+}
+
+.category-module__HfUzIW__span {
+  justify-content: center;
+  align-items: center;
+  margin-right: 10px;
+  display: flex;
+}
+
+.category-module__HfUzIW__formBtnAddNewCategory {
+  margin-left: 15px;
 }
 
 .category-module__HfUzIW__btnAddNewCategory {
   color: #fff;
-  background-color: #004c59;
-  border: 1px solid #004c59;
-  border-radius: 4px;
-  width: 200px;
-  height: 40px;
-  font-size: 14px;
+  cursor: pointer;
+  background-color: #357e38;
+  border: none;
+  border-radius: 5px;
+  padding: 10px 20px;
+  font-size: 16px;
 }
 
 .category-module__HfUzIW__btnAddNewCategory a {
@@ -76,48 +51,77 @@
   text-decoration: none;
 }
 
-.category-module__HfUzIW__editInput {
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  outline: none;
+.category-module__HfUzIW__categoryTable {
+  border-collapse: collapse;
+  border-radius: 12px;
   width: 100%;
-  padding: 8px 12px;
-  font-size: 14px;
-  transition: border-color .2s;
+  margin-top: 20px;
 }
 
-.category-module__HfUzIW__editInput:focus {
-  border-color: #4a90e2;
-  box-shadow: 0 0 0 2px #4a90e21a;
+.category-module__HfUzIW__categoryTable th, .category-module__HfUzIW__categoryTable td {
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+  padding: 12px;
+}
+
+.category-module__HfUzIW__categoryTable th {
+  color: #fff;
+  background-color: #357e38;
+}
+
+.category-module__HfUzIW__categoryTable td {
+  color: #333;
+  font-size: 16px;
+}
+
+.category-module__HfUzIW__categoryTableTdLast {
+  text-align: center;
+}
+
+.category-module__HfUzIW__btnEdit, .category-module__HfUzIW__btnRemove {
+  cursor: pointer;
+  border: none;
+  border-radius: 5px;
+  margin-right: 5px;
+  padding: 6px 12px;
+  font-size: 14px;
+}
+
+.category-module__HfUzIW__btnEdit {
+  color: #fff;
+  background-color: #357e38;
+}
+
+.category-module__HfUzIW__btnRemove {
+  color: #fff;
+  background-color: #e74c3c;
 }
 
 .category-module__HfUzIW__btnSave, .category-module__HfUzIW__btnCancel {
   cursor: pointer;
-  border-radius: 4px;
-  margin-left: 8px;
+  border: none;
+  border-radius: 5px;
+  margin-right: 5px;
   padding: 6px 12px;
-  font-size: 13px;
-  transition: all .2s;
+  font-size: 14px;
 }
 
 .category-module__HfUzIW__btnSave {
   color: #fff;
-  background-color: #4a90e2;
-  border: none;
-}
-
-.category-module__HfUzIW__btnSave:hover {
-  background-color: #3a7fcb;
+  background-color: #357e38;
 }
 
 .category-module__HfUzIW__btnCancel {
-  color: #555;
-  background-color: #fff;
-  border: 1px solid #ddd;
+  color: #fff;
+  background-color: #95a5a6;
 }
 
-.category-module__HfUzIW__btnCancel:hover {
-  background-color: #f5f5f5;
+.category-module__HfUzIW__editInput {
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  width: 100%;
+  padding: 6px 12px;
+  font-size: 16px;
 }
 
 

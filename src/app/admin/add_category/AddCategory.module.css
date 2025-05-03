@@ -1,58 +1,95 @@
 .containerCategory {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 20px;
-  }
-  
-  .addCategoryForm {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    max-width: 400px;
-    margin: 20px auto;
-  }
-  
-  .formGroup {
-    display: flex;
-    flex-direction: column;
-  }
-  
-  .formGroup label {
-    font-weight: bold;
-    margin-bottom: 8px;
-  }
-  
-  .formGroup input {
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 16px;
-  }
-  
-  .formButtons {
-    display: flex;
-    gap: 10px;
-  }
-  
-  .btnAdd {
-    padding: 8px 16px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    background: #28a745;
-    color: white;
-  }
-  
-  .btnAdd:disabled {
-    background: #6c757d;
-    cursor: not-allowed;
-  }
-  
-  .btnCancel {
-    padding: 8px 16px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    background: #6c757d;
-    color: white;
-  }
+  max-width: 600px;
+  margin: 50px auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.title {
+  color: #4CAF50;
+  margin-bottom: 20px;
+  font-weight: 500;
+  font-size: 1.5rem;
+}
+
+.addCategoryForm {
+  background-color: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+  width: 100%;
+  max-width: 450px;
+}
+
+.formGroup {
+  margin-bottom: 20px;
+}
+
+.formGroup label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #333;
+  font-size: 14px;
+}
+
+.formGroup input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #e1e1e1;
+  border-radius: 6px;
+  background-color: #f6f9fc;
+  font-size: 16px;
+  box-sizing: border-box;
+}
+
+.formGroup input::placeholder {
+  color: #aaa;
+}
+
+.formButtons {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 25px;
+}
+
+.btnAdd, .btnCancel {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.btnAdd {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.btnAdd:hover {
+  background-color: #45a049;
+}
+
+.btnAdd:disabled {
+  background-color: #8bc58d;
+  cursor: not-allowed;
+}
+
+.btnCancel {
+  background-color: #f44336;
+  color: white;
+}
+
+.btnCancel:hover {
+  background-color: #e53935;
+}
+
+/* To match the exact styling in the image */
+.btnAdd, .btnCancel {
+  font-size: 14px;
+  padding: 8px 18px;
+}

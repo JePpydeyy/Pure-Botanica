@@ -1,5 +1,18 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
+  "/admin/add_category/page": "app/admin/add_category/page.js",
+  "/admin/add_product/page": "app/admin/add_product/page.js",
+  "/admin/admin/page": "app/admin/admin/page.js",
+  "/admin/category/page": "app/admin/category/page.js",
+  "/admin/comment/page": "app/admin/comment/page.js",
+  "/admin/customer/page": "app/admin/customer/page.js",
+  "/admin/edit_product/[id]/page": "app/admin/edit_product/[id]/page.js",
+  "/admin/khuyenmai/page": "app/admin/khuyenmai/page.js",
+  "/admin/order/page": "app/admin/order/page.js",
+  "/admin/page": "app/admin/page.js",
+  "/admin/product/page": "app/admin/product/page.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js",
   "/page": "app/page.js",
+  "/user/detail/[id]/page": "app/user/detail/[id]/page.js",
+  "/user/login/page": "app/user/login/page.js",
   "/user/page": "app/user/page.js"
 }

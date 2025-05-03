@@ -42,14 +42,15 @@
 }
 
 .productTableThead {
-  background-color: #f4f4f4;
+  background-color: #357E38;
+  color: white;
 }
 
 .productTableThead th {
   padding: 12px 15px;
   text-align: left;
   font-weight: bold;
-  color: #333;
+  color: white;
 }
 
 .productTable td {
@@ -57,9 +58,7 @@
   vertical-align: middle;
 }
 
-.productTable tr:hover {
-  background-color: #f9f9f9;
-}
+
 
 .productTableImage {
   width: 50px;

@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import "../add_product/add_product.css";
+import styles from "./add_product.module.css";
 
 const AddProduct = () => {
   const [categories, setCategories] = useState<any[]>([]);
@@ -94,12 +94,6 @@ const AddProduct = () => {
         productData.append("images", file);
       });
 
-      // Debug log
-      console.log("FormData gửi đi:");
-      for (const [key, value] of productData.entries()) {
-        console.log(`${key}:`, value);
-      }
-
       const response = await fetch("https://api-zeal.onrender.com/api/products", {
         method: "POST",
         body: productData,
@@ -131,62 +125,122 @@ const AddProduct = () => {
   };
 
   return (
-    <div className="add-product-container">
-      <h1>Thêm sản phẩm</h1>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>Tên sản phẩm</label>
-          <input type="text" name="name" value={formData.name} onChange={handleInputChange} required />
+    <div className={styles.addProductContainer}>
+      <h1 className={styles.title}>Thêm sản phẩm</h1>
+      <form onSubmit={handleSubmit} className={styles.form}>
+        <div className={styles.formGroup}>
+          <label className={styles.label}>Tên sản phẩm</label>
+          <input 
+            type="text" 
+            name="name" 
+            value={formData.name} 
+            onChange={handleInputChange} 
+            className={styles.input} 
+            required 
+          />
         </div>
-        <div>
-          <label>Giá</label>
-          <input type="number" name="price" value={formData.price} onChange={handleInputChange} required />
+        <div className={styles.formGroup}>
+          <label className={styles.label}>Giá</label>
+          <input 
+            type="number" 
+            name="price" 
+            value={formData.price} 
+            onChange={handleInputChange} 
+            className={styles.input} 
+            required 
+          />
         </div>
-        <div>
-          <label>Giá khuyến mãi</label>
-          <input type="number" name="discountPrice" value={formData.discountPrice} onChange={handleInputChange} />
+        <div className={styles.formGroup}>
+          <label className={styles.label}>Giá khuyến mãi</label>
+          <input 
+            type="number" 
+            name="discountPrice" 
+            value={formData.discountPrice} 
+            onChange={handleInputChange} 
+            className={styles.input} 
+          />
         </div>
-        <div>
-          <label>Danh mục</label>
-          <select name="category" value={formData.category} onChange={handleSelectChange} required>
+        <div className={styles.formGroup}>
+          <label className={styles.label}>Danh mục</label>
+          <select 
+            name="category" 
+            value={formData.category} 
+            onChange={handleSelectChange} 
+            className={styles.select} 
+            required
+          >
             <option value="">-- Chọn danh mục --</option>
             {categories.map((cat) => (
               <option key={cat._id} value={cat._id}>{cat.name}</option>
             ))}
           </select>
         </div>
-        <div>
-          <label>Mô tả</label>
-          <textarea name="description" value={formData.description} onChange={handleInputChange} required />
+        <div className={styles.formGroup}>
+          <label className={styles.label}>Mô tả</label>
+          <textarea 
+            name="description" 
+            value={formData.description} 
+            onChange={handleInputChange} 
+            className={styles.textarea} 
+            required 
+          />
         </div>
-        <div>
-          <label>Thành phần (mỗi dòng một mục)</label>
-          <textarea name="ingredients" value={formData.ingredients} onChange={handleInputChange} />
+        <div className={styles.formGroup}>
+          <label className={styles.label}>Thành phần (mỗi dòng một mục)</label>
+          <textarea 
+            name="ingredients" 
+            value={formData.ingredients} 
+            onChange={handleInputChange} 
+            className={styles.textarea} 
+          />
         </div>
-        <div>
-          <label>Hướng dẫn sử dụng (mỗi dòng một bước)</label>
-          <textarea name="usage_instructions" value={formData.usage_instructions} onChange={handleInputChange} />
+        <div className={styles.formGroup}>
+          <label className={styles.label}>Hướng dẫn sử dụng (mỗi dòng một bước)</label>
+          <textarea 
+            name="usage_instructions" 
+            value={formData.usage_instructions} 
+            onChange={handleInputChange} 
+            className={styles.textarea} 
+          />
         </div>
-        <div>
-          <label>Đặc điểm nổi bật (mỗi dòng một đặc điểm)</label>
-          <textarea name="special" value={formData.special} onChange={handleInputChange} />
+        <div className={styles.formGroup}>
+          <label className={styles.label}>Đặc điểm nổi bật (mỗi dòng một đặc điểm)</label>
+          <textarea 
+            name="special" 
+            value={formData.special} 
+            onChange={handleInputChange} 
+            className={styles.textarea} 
+          />
         </div>
-        <div>
-          <label>Số lượng</label>
-          <input type="number" name="stock" value={formData.stock} onChange={handleInputChange} required />
+        <div className={styles.formGroup}>
+          <label className={styles.label}>Số lượng</label>
+          <input 
+            type="number" 
+            name="stock" 
+            value={formData.stock} 
+            onChange={handleInputChange} 
+            className={styles.input} 
+            required 
+          />
         </div>
-        <div>
-          <label>Hình ảnh (tối đa 4 ảnh)</label>
-          <input type="file" accept="image/*" multiple onChange={handleFileChange} />
+        <div className={styles.formGroup}>
+          <label className={styles.label}>Hình ảnh (tối đa 4 ảnh)</label>
+          <input 
+            type="file" 
+            accept="image/*" 
+            multiple 
+            onChange={handleFileChange} 
+            className={styles.fileInput} 
+          />
           {formData.images.length > 0 && (
-            <ul>
+            <ul className={styles.fileList}>
               {formData.images.map((img, idx) => (
-                <li key={idx}>{img.name}</li>
+                <li key={idx} className={styles.fileItem}>{img.name}</li>
               ))}
             </ul>
           )}
         </div>
-        <button type="submit">Thêm sản phẩm</button>
+        <button type="submit" className={styles.submitButton}>Thêm sản phẩm</button>
       </form>
     </div>
   );

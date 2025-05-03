@@ -1,168 +1,213 @@
 /* [project]/src/app/admin/customer/customer.module.css [app-client] (css) */
-.customer-module__BQMPrG__link {
-  color: #000;
-  text-decoration: none;
-}
-
 .customer-module__BQMPrG__titleContainer {
   align-items: center;
   width: 1240px;
   height: 100px;
-  margin: 80px 0 0 250px;
+  margin: 80px 0 0 280px;
   display: flex;
 }
 
 .customer-module__BQMPrG__titleContainer h1 {
   color: #004c59;
   font-size: 30px;
+  font-weight: bold;
 }
 
 .customer-module__BQMPrG__tableContainer {
+  background-color: #fff;
   border-radius: 8px;
-  max-width: 1240px;
-  margin: 10px 0 0 250px;
-  padding: 20px;
-  box-shadow: 0 4px 6px #0000001a;
+  width: 1240px;
+  margin-top: 10px;
+  margin-left: 280px;
+  overflow-x: auto;
+  box-shadow: 0 2px 8px #0000001a;
 }
 
 .customer-module__BQMPrG__tableContainer table {
   border-collapse: collapse;
-  background: #fff;
   width: 100%;
+}
+
+.customer-module__BQMPrG__tableContainer thead {
+  color: #fff;
+  background-color: #357e38;
 }
 
 .customer-module__BQMPrG__tableContainer th {
   text-align: left;
-  color: #666;
-  border-bottom: 1px solid #eee;
-  padding: 12px 16px;
-  font-weight: 500;
+  color: #fff;
+  padding: 12px 15px;
+  font-weight: bold;
 }
 
 .customer-module__BQMPrG__tableContainer td {
-  border-bottom: 1px solid #eee;
-  padding: 12px 16px;
-}
-
-.customer-module__BQMPrG__tableContainer tr:hover {
-  background-color: #f8f9fa;
-}
-
-.customer-module__BQMPrG__thIcon {
-  color: #999;
-  cursor: pointer;
-  margin-left: 5px;
-}
-
-.customer-module__BQMPrG__status {
-  align-items: center;
-  gap: 6px;
-  display: inline-flex;
-}
-
-.customer-module__BQMPrG__statusDot {
-  border-radius: 50%;
-  width: 8px;
-  height: 8px;
-}
-
-.customer-module__BQMPrG__statusActive {
-  background-color: #22c55e;
-}
-
-.customer-module__BQMPrG__statusBlocked {
-  background-color: #ef4444;
-}
-
-.customer-module__BQMPrG__statusLocked {
-  background-color: #64748b;
-}
-
-.customer-module__BQMPrG__actionButtons {
-  gap: 8px;
-  display: flex;
+  vertical-align: middle;
+  border-bottom: 1px solid #f0f0f0;
+  padding: 15px;
 }
 
 .customer-module__BQMPrG__btn {
   cursor: pointer;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  padding: 6px;
+  color: #fff;
+  background-color: #4caf50;
+  border: none;
+  border-radius: 4px;
+  min-width: 70px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all .2s;
+  box-shadow: 0 2px 4px #0000001a;
 }
 
 .customer-module__BQMPrG__btn:hover {
-  background: #f8f9fa;
+  background-color: #3e8e41;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px #0000001a;
 }
 
-.customer-module__BQMPrG__pagination {
-  align-items: center;
-  gap: 4px;
-  margin-top: 16px;
-  display: flex;
-}
-
-.customer-module__BQMPrG__pageItem {
-  cursor: pointer;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  padding: 8px 12px;
-}
-
-.customer-module__BQMPrG__pageItemActive {
-  color: #fff;
-  background: #2563eb;
-  border-color: #2563eb;
-}
-
-.customer-module__BQMPrG__itemsPerPage {
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  margin-left: 16px;
-  padding: 8px;
+.customer-module__BQMPrG__btn:active {
+  transform: translateY(0);
 }
 
 .customer-module__BQMPrG__modal {
-  z-index: 999;
+  z-index: 1000;
   background-color: #00000080;
   justify-content: center;
   align-items: center;
+  width: 100%;
+  height: 100%;
   display: flex;
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
 }
 
 .customer-module__BQMPrG__modalContent {
-  background: #fff;
-  border-radius: 12px;
-  min-width: 300px;
-  padding: 20px;
-  box-shadow: 0 5px 20px #0003;
+  background-color: #fff;
+  border-radius: 8px;
+  width: 500px;
+  max-width: 90%;
+  padding: 30px;
+  box-shadow: 0 4px 20px #0003;
 }
 
 .customer-module__BQMPrG__modalContent h3 {
-  margin-bottom: 15px;
+  color: #004c59;
+  margin-top: 0;
+  margin-bottom: 20px;
+  font-size: 22px;
 }
 
 .customer-module__BQMPrG__modalContent label {
-  margin-bottom: 10px;
+  margin-bottom: 20px;
+  font-weight: 500;
   display: block;
 }
 
 .customer-module__BQMPrG__modalContent select {
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
   width: 100%;
-  margin-top: 4px;
-  padding: 8px;
+  margin-top: 5px;
+  padding: 10px;
+  font-size: 16px;
+  display: block;
+}
+
+.customer-module__BQMPrG__modalContent select:focus {
+  border-color: #4caf50;
+  outline: none;
+  box-shadow: 0 0 0 2px #4caf5033;
 }
 
 .customer-module__BQMPrG__modalActions {
-  text-align: right;
-  margin-top: 20px;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 30px;
+  display: flex;
 }
 
-.customer-module__BQMPrG__modalActions button {
-  margin-left: 8px;
-  padding: 6px 12px;
+.customer-module__BQMPrG__modalActions button:first-child {
+  color: #fff;
+  cursor: pointer;
+  background-color: #4caf50;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 20px;
+  font-weight: 500;
+  transition: all .2s;
+}
+
+.customer-module__BQMPrG__modalActions button:first-child:hover {
+  background-color: #3e8e41;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px #0000001a;
+}
+
+.customer-module__BQMPrG__modalActions button:last-child {
+  color: #4b5563;
+  cursor: pointer;
+  background-color: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  padding: 10px 20px;
+  font-weight: 500;
+  transition: all .2s;
+}
+
+.customer-module__BQMPrG__modalActions button:last-child:hover {
+  background-color: #e5e7eb;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px #0000001a;
+}
+
+@media (width <= 1280px) {
+  .customer-module__BQMPrG__titleContainer, .customer-module__BQMPrG__tableContainer {
+    width: 90%;
+    margin-left: 5%;
+  }
+}
+
+@media (width <= 768px) {
+  .customer-module__BQMPrG__titleContainer {
+    height: auto;
+    margin-top: 40px;
+  }
+
+  .customer-module__BQMPrG__titleContainer h1 {
+    font-size: 24px;
+  }
+
+  .customer-module__BQMPrG__modalContent {
+    width: 100%;
+    padding: 20px;
+  }
+
+  .customer-module__BQMPrG__modalContent h3 {
+    font-size: 18px;
+  }
+}
+
+@media (width <= 480px) {
+  .customer-module__BQMPrG__titleContainer h1 {
+    font-size: 20px;
+  }
+
+  .customer-module__BQMPrG__tableContainer td, .customer-module__BQMPrG__tableContainer th {
+    padding: 8px;
+    font-size: 14px;
+  }
+
+  .customer-module__BQMPrG__btn {
+    min-width: 60px;
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+
+  .customer-module__BQMPrG__modalActions button {
+    padding: 8px 15px;
+  }
 }
 
 

@@ -5,23 +5,11 @@
 var { g: global, __dirname } = __turbopack_context__;
 {
 __turbopack_context__.v({
-  "actionButtons": "admin-module__4Q6fFG__actionButtons",
   "btn": "admin-module__4Q6fFG__btn",
-  "itemsPerPage": "admin-module__4Q6fFG__itemsPerPage",
-  "link": "admin-module__4Q6fFG__link",
   "modal": "admin-module__4Q6fFG__modal",
   "modalActions": "admin-module__4Q6fFG__modalActions",
   "modalContent": "admin-module__4Q6fFG__modalContent",
-  "pageItem": "admin-module__4Q6fFG__pageItem",
-  "pageItemActive": "admin-module__4Q6fFG__pageItemActive",
-  "pagination": "admin-module__4Q6fFG__pagination",
-  "status": "admin-module__4Q6fFG__status",
-  "statusActive": "admin-module__4Q6fFG__statusActive",
-  "statusBlocked": "admin-module__4Q6fFG__statusBlocked",
-  "statusDot": "admin-module__4Q6fFG__statusDot",
-  "statusLocked": "admin-module__4Q6fFG__statusLocked",
   "tableContainer": "admin-module__4Q6fFG__tableContainer",
-  "thIcon": "admin-module__4Q6fFG__thIcon",
   "titleContainer": "admin-module__4Q6fFG__titleContainer",
 });
 }}),

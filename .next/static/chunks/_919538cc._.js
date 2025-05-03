@@ -11,6 +11,7 @@ __turbopack_context__.v({
   "containerCategory": "AddCategory-module__ToJEqW__containerCategory",
   "formButtons": "AddCategory-module__ToJEqW__formButtons",
   "formGroup": "AddCategory-module__ToJEqW__formGroup",
+  "title": "AddCategory-module__ToJEqW__title",
 });
 }}),
 "[project]/src/app/admin/add_category/page.tsx [app-client] (ecmascript)": ((__turbopack_context__) => {
@@ -65,8 +66,9 @@ function AddCategory() {
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
         className: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$app$2f$admin$2f$add_category$2f$AddCategory$2e$module$2e$css__$5b$app$2d$client$5d$__$28$css__module$29$__["default"].containerCategory,
         children: [
-            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
-                children: "Thêm Danh Mục Mới"
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h1", {
+                className: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$app$2f$admin$2f$add_category$2f$AddCategory$2e$module$2e$css__$5b$app$2d$client$5d$__$28$css__module$29$__["default"].title,
+                children: "Thêm Danh Mục"
             }, void 0, false, {
                 fileName: "[project]/src/app/admin/add_category/page.tsx",
                 lineNumber: 41,

@@ -37,23 +37,11 @@ module.exports = mod;
 var { g: global, __dirname } = __turbopack_context__;
 {
 __turbopack_context__.v({
-  "actionButtons": "customer-module__BQMPrG__actionButtons",
   "btn": "customer-module__BQMPrG__btn",
-  "itemsPerPage": "customer-module__BQMPrG__itemsPerPage",
-  "link": "customer-module__BQMPrG__link",
   "modal": "customer-module__BQMPrG__modal",
   "modalActions": "customer-module__BQMPrG__modalActions",
   "modalContent": "customer-module__BQMPrG__modalContent",
-  "pageItem": "customer-module__BQMPrG__pageItem",
-  "pageItemActive": "customer-module__BQMPrG__pageItemActive",
-  "pagination": "customer-module__BQMPrG__pagination",
-  "status": "customer-module__BQMPrG__status",
-  "statusActive": "customer-module__BQMPrG__statusActive",
-  "statusBlocked": "customer-module__BQMPrG__statusBlocked",
-  "statusDot": "customer-module__BQMPrG__statusDot",
-  "statusLocked": "customer-module__BQMPrG__statusLocked",
   "tableContainer": "customer-module__BQMPrG__tableContainer",
-  "thIcon": "customer-module__BQMPrG__thIcon",
   "titleContainer": "customer-module__BQMPrG__titleContainer",
 });
 }}),

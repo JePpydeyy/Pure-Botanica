@@ -38,7 +38,7 @@ export default function AddCategory() {
 
   return (
     <div className={styles.containerCategory}>
-      <h2>Thêm Danh Mục Mới</h2>
+      <h1 className={styles.title}>Thêm Danh Mục</h1>
       <form onSubmit={handleSubmit} className={styles.addCategoryForm}>
         <div className={styles.formGroup}>
           <label htmlFor="name">Tên Danh Mục</label>

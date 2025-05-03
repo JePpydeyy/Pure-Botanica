@@ -1,8 +1,7 @@
-// components/UserMenu.tsx
 "use client";
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import "../user/login/login.css"
+import styles from "./menu.module.css"; // Import CSS Module
 
 export default function UserMenu() {
   const [isOpen, setIsOpen] = useState(false);
@@ -13,11 +12,9 @@ export default function UserMenu() {
   useEffect(() => {
     // Kiểm tra token trong localStorage khi component được mount
     const token = localStorage.getItem("token");
-  
-    
-    if (token ) {
+
+    if (token) {
       setIsLoggedIn(true);
-  
     }
 
     // Thêm sự kiện click bên ngoài để đóng dropdown
@@ -34,29 +31,28 @@ export default function UserMenu() {
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("role");
-    
+
     setIsLoggedIn(false);
     window.location.href = "/user";
   };
 
   return (
-    <div className="user-menu-container" ref={dropdownRef}>
-      <div className="user-icon" onClick={() => isLoggedIn && setIsOpen(!isOpen)}>
+    <div className={styles.userMenuContainer} ref={dropdownRef}>
+      <div className={styles.userIcon} onClick={() => isLoggedIn && setIsOpen(!isOpen)}>
         <Link href={isLoggedIn ? "#" : "/user/login"}>
           <i className="fa-solid fa-user"></i>
         </Link>
       </div>
-      
+
       {isLoggedIn && isOpen && (
-        <div className="user-dropdown">
-       
+        <div className={styles.userDropdown}>
           <ul>
             <li>
               <Link href="/user/userinfo">
                 <i className="fa-solid fa-user-circle"></i> Thông tin khách hàng
               </Link>
             </li>
-            <li className="logout-item">
+            <li className={styles.logoutItem}>
               <button onClick={handleLogout}>
                 <i className="fa-solid fa-sign-out-alt"></i> Đăng xuất
               </button>

@@ -3,8 +3,12 @@
   font-family: Roboto Slab, serif;
 }
 
+main {
+  margin-bottom: 100px;
+}
+
 body {
-  margin-top: 100px;
+  margin: 80px 0 auto;
   font-family: Roboto Slab, serif;
 }
 
@@ -68,6 +72,7 @@ nav a {
   pointer-events: none;
   background-color: #ffffffe6;
   border-radius: 20px;
+  justify-content: space-around;
   width: 1290px;
   padding: 10px;
   transition: opacity .2s ease-in-out, transform .2s ease-in-out;
@@ -84,7 +89,6 @@ nav a {
 }
 
 .category-itemm {
-  width: 210px;
   padding: 0 20px;
 }
 
@@ -117,7 +121,7 @@ nav a {
 }
 
 .footer {
-  max-width: 1200px;
+  border-top: 1px solid #868686;
   margin: 0 auto;
   padding: 20px 0;
   font-family: Arial, sans-serif;
@@ -130,6 +134,8 @@ nav a {
 .footer-container {
   justify-content: space-between;
   align-items: flex-start;
+  width: 1290px;
+  margin: 0 auto;
   display: flex;
 }
 
@@ -238,6 +244,8 @@ nav a {
   color: #777;
   justify-content: space-between;
   align-items: center;
+  width: 1290px;
+  margin: 0 auto;
   font-size: 14px;
   display: flex;
 }

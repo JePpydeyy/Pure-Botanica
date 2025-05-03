@@ -31,9 +31,6 @@
 
 .form-box h2 {
   text-align: start;
-}
-
-h2 {
   color: #28a745;
   text-transform: uppercase;
   margin-bottom: 25px;
@@ -42,13 +39,8 @@ h2 {
 }
 
 .form-box form {
-  border-radius: 10px;
   flex-direction: column;
   display: flex;
-}
-
-.form-box form small {
-  text-align: center;
 }
 
 .form-box form input {
@@ -66,36 +58,6 @@ h2 {
 
 .form-box form input::placeholder {
   color: #999;
-}
-
-small {
-  color: #666;
-  margin-top: -10px;
-  margin-bottom: 10px;
-  font-size: 12px;
-}
-
-.policy {
-  color: #dc3545;
-  justify-content: space-between;
-  align-items: center;
-  margin: 20px 0;
-  font-size: 14px;
-  display: flex;
-}
-
-.policy label {
-  align-items: center;
-  gap: 5px;
-  display: flex;
-}
-
-.policy input {
-  cursor: pointer;
-  border-radius: 10px;
-  width: 16px;
-  height: 16px;
-  margin: 0;
 }
 
 .submit-btn {
@@ -224,78 +186,22 @@ small {
   }
 }
 
-.user-menu-container {
-  display: inline-block;
-  position: relative;
-}
+@media (width <= 480px) {
+  .title h1 {
+    font-size: 1.5rem;
+  }
 
-.user-icon {
-  cursor: pointer;
-}
+  .main {
+    max-width: 95%;
+  }
 
-.user-dropdown {
-  z-index: 1000;
-  background-color: #fff;
-  border: 1px solid #e0e0e0;
-  border-radius: 5px;
-  width: 220px;
-  margin-top: 10px;
-  padding: 0;
-  position: absolute;
-  top: 100%;
-  right: 0;
-  box-shadow: 0 2px 10px #0000001a;
-}
+  .form-box h2, .submit-btn, .google-btn {
+    font-size: 1.5rem;
+  }
 
-.user-email {
-  border-bottom: 1px solid #e0e0e0;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 15px;
-  font-weight: 500;
-  display: flex;
-}
-
-.user-email i {
-  font-size: 16px;
-}
-
-.user-dropdown ul {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.user-dropdown li {
-  border-bottom: 1px solid #e0e0e0;
-  padding: 0;
-}
-
-.user-dropdown li:last-child {
-  border-bottom: none;
-}
-
-.user-dropdown li a, .user-dropdown li button {
-  color: #333;
-  text-align: left;
-  cursor: pointer;
-  background: none;
-  border: none;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 10px 15px;
-  font-size: 14px;
-  text-decoration: none;
-  display: flex;
-}
-
-.user-dropdown li a:hover, .user-dropdown li button:hover {
-  background-color: #f5f5f5;
-}
-
-.logout-item button, .logout-item button i {
-  color: #e53935;
+  .form-box form input, .form-box form p {
+    font-size: .9rem;
+  }
 }
 
 /*# sourceMappingURL=src_app_user_login_login_css_f9ee138c._.single.css.map*/

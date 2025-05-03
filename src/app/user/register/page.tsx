@@ -47,7 +47,7 @@ export default function RegisterPage() {
             if (data.user.role === "admin") {
                 router.push("/admin");
             } else {
-                router.push("/user");
+                router.push("/user/login");
             }
         } catch (err: any) {
             console.error("Lỗi đăng ký:", err);
@@ -107,7 +107,7 @@ export default function RegisterPage() {
                             required
                             className={styles.input}
                         />
-                        <small className={styles.small}>Mật khẩu phải có ít nhất 6 ký tự</small>
+                        <small className={styles.small}>Mật khẩu phải có ít nhất 8 ký tự</small>
                         <input
                             type="password"
                             placeholder="Nhập lại mật khẩu"

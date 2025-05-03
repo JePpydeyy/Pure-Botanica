@@ -1,20 +1,21 @@
-import "./about.css";
+import React from "react";
+import styles from "./about.module.css";
 
 export default function AboutPage() {
     return (
-        <div>
+        <div className="main">
             {/* Banner */}
-            <section className="banner-title">
+            <section className={styles.bannerTitle}>
                 <img src="/images/banner.png" alt="Banner Pure-Botanica" />
-                <div className="title">
+                <div className={styles.title}>
                     <h1>Về Chúng Tôi</h1>
                 </div>
             </section>
 
             {/* Nội dung chính */}
-            <section className="main">
+            <section className={styles.main}>
                 {/* Ý Nghĩa Thương Hiệu */}
-                <section className="brand-meaning">
+                <section className={styles.brandMeaning}>
                     <h2>Ý NGHĨA THƯƠNG HIỆU</h2>
                     <p><strong>Pure Botanica</strong> – Tinh túy thiên nhiên, thân thiện chăm sóc vẻ đẹp Việt</p>
 
@@ -45,7 +46,7 @@ export default function AboutPage() {
                 </section>
 
                 {/* Sứ Mệnh */}
-                <section className="mission">
+                <section className={styles.mission}>
                     <h2 style={{ textAlign: "end", fontSize: "48px" }}>SỨ MỆNH</h2>
 
                     <p>
@@ -59,7 +60,7 @@ export default function AboutPage() {
                 </section>
 
                 {/* Cam Kết Luôn Đi Đôi Với Hành Động */}
-                <section className="commitment-action">
+                <section className={styles.commitmentAction}>
                     <h2>CAM KẾT LUÔN ĐI ĐÔI VỚI HÀNH ĐỘNG</h2>
 
                     <p><strong>Pure-Botanica</strong> – Cam kết nhân đạo, thuần chay và không thử nghiệm trên động vật.</p>
@@ -90,14 +91,14 @@ export default function AboutPage() {
                         tại Việt Nam, sử dụng các nguyên liệu bản địa quý giá để tạo ra những sản phẩm mang đậm tinh thần của thiên nhiên Việt.
                     </p>
 
-                    <p className="highlight-text" style={{ textAlign: "start" }}>
+                    <p className={styles.highlightText}>
                         <strong>Pure-Botanica – Cam kết nhân đạo, thuần chay và<br />không thử nghiệm trên động vật</strong>
                     </p>
                 </section>
 
                 {/* Giá Trị Thương Hiệu */}
-                <section className="brand-value">
-                    <div className="brand-value-left">
+                <section className={styles.brandValue}>
+                    <div className={styles.brandValueLeft}>
                         <h2>GIÁ TRỊ THƯƠNG HIỆU</h2>
 
                         <p>
@@ -111,10 +112,10 @@ export default function AboutPage() {
                         </p>
                     </div>
 
-                    <div className="brand-value-right">
+                    <div className={styles.brandValueRight}>
                         <img src="images/suppbanner3.png" alt="Giá Trị Thương Hiệu Pure-Botanica" />
                     </div>
-                    <div className="brand-value-bottom">
+                    <div className={styles.brandValueBottom}>
                         <p>
                             Chúng tôi đang tích cực tham gia các chương trình chứng nhận quốc tế như Leaping Bunny – tiêu chuẩn vàng toàn cầu cho mỹ phẩm không thử nghiệm trên động vật. Chương trình này yêu cầu các thương hiệu phải tuân thủ các quy định nghiêm ngặt, vượt trên cả yêu cầu pháp lý hiện hành, để đảm bảo không có bất kỳ hình thức thử nghiệm trên động vật nào trong toàn bộ chuỗi cung ứng.
                         </p>

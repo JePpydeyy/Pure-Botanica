@@ -72,10 +72,11 @@ nav a {
 }
 
 .category-list {
+  top:50px;
   justify-content: space-around;
   position: absolute;
   display: flex; /* Hiển thị theo hàng */
-  left: -500px;
+  left: -360px;
   /* top: 54px; */
   background-color: rgba(255, 255, 255, 0.9);
   width:1290px;
@@ -130,7 +131,58 @@ nav a {
   font-size: 20px;
   cursor: pointer;
 }
+.search-bar {
+  display: flex;
+  align-items: center;
 
+
+}
+.formtimkiem{
+  display: flex;
+  align-items: center;
+
+  justify-content: center;
+}
+
+.search-input {
+  padding: 8px 12px;
+  padding-right: 40px; /* Chừa chỗ cho nút tìm kiếm */
+  border: none; /* Xóa toàn bộ viền */
+  border-bottom: 1px solid #ccc; /* Chỉ thêm viền dưới */
+  font-size: 14px;
+  width: 200px; /* Điều chỉnh kích thước theo thiết kế */
+  outline: none; /* Xóa viền mặc định khi focus */
+  background: transparent; /* Nền trong suốt để trông tối giản */
+  transition: border-bottom-color 0.3s ease; /* Hiệu ứng chuyển màu viền dưới */
+}
+
+.search-input:focus {
+  border-bottom-color: #007bff; /* Màu viền dưới khi focus */
+}
+
+.search-button {
+  background: none;
+  border: none;
+
+  right: 10px;
+  cursor: pointer;
+  color: #333;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.search-button:hover {
+  color: #007bff; /* Màu icon khi hover */
+}
+
+/* Responsive cho mobile */
+@media (max-width: 768px) {
+  .search-input {
+    width: 150px;
+  }
+}
 /* footer css */
 .footer {
   

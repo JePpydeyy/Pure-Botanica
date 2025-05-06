@@ -7,10 +7,10 @@ import Link from "next/link";
 import { Cart, CartItem, Product } from "@/app/components/cart_interface";
 
 export default function CartPage() {
-  const [cart, setCart] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [userId, setUserId] = useState(null);
+  const [cart, setCart] = useState<Cart | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -44,7 +44,7 @@ export default function CartPage() {
 
   const fetchCart = async () => {
     try {
-      const cartResponse = await fetch(
+      const response = await fetch(
         `https://api-zeal.onrender.com/api/carts?userId=${userId}`,
         {
           headers: {
@@ -52,26 +52,25 @@ export default function CartPage() {
           },
         }
       );
-      if (!cartResponse.ok) {
+      if (!response.ok) {
         throw new Error("Không thể lấy dữ liệu giỏ hàng");
       }
-      const cartData = await cartResponse.json();
-      setCart(cartData);
+      const data: Cart = await response.json();
+      setCart(data);
       setLoading(false);
-    } catch (err) {
+    } catch (err: any) {
       setError(err.message);
       setLoading(false);
     }
   };
 
-  // Gọi API để lấy giỏ hàng
   useEffect(() => {
-    if (!userId) return;
-    fetchCart();
+    if (userId) {
+      fetchCart();
+    }
   }, [userId]);
 
-  // Hàm tăng số lượng
-  const increaseQuantity = async (productId, currentQuantity) => {
+  const increaseQuantity = async (productId: string, currentQuantity: number) => {
     const newQuantity = currentQuantity + 1;
     try {
       const response = await fetch(`https://api-zeal.onrender.com/api/carts/update`, {
@@ -80,28 +79,21 @@ export default function CartPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-        body: JSON.stringify({
-          userId,
-          productId,
-          quantity: newQuantity,
-        }),
+        body: JSON.stringify({ userId, productId, quantity: newQuantity }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(
-          `Không thể cập nhật số lượng: ${errorData.message || response.statusText}`
-        );
+        throw new Error(`Không thể cập nhật số lượng: ${errorData.message || response.statusText}`);
       }
 
       await fetchCart();
-    } catch (err) {
+    } catch (err: any) {
       setError(err.message);
     }
   };
 
-  // Hàm giảm số lượng
-  const decreaseQuantity = async (productId, currentQuantity) => {
+  const decreaseQuantity = async (productId: string, currentQuantity: number) => {
     if (currentQuantity <= 1) {
       await removeItem(productId);
       return;
@@ -115,28 +107,21 @@ export default function CartPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-        body: JSON.stringify({
-          userId,
-          productId,
-          quantity: newQuantity,
-        }),
+        body: JSON.stringify({ userId, productId, quantity: newQuantity }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(
-          `Không thể cập nhật số lượng: ${errorData.message || response.statusText}`
-        );
+        throw new Error(`Không thể cập nhật số lượng: ${errorData.message || response.statusText}`);
       }
 
       await fetchCart();
-    } catch (err) {
+    } catch (err: any) {
       setError(err.message);
     }
   };
 
-  // Hàm xóa sản phẩm
-  const removeItem = async (productId) => {
+  const removeItem = async (productId: string) => {
     try {
       const response = await fetch(
         `https://api-zeal.onrender.com/api/carts/remove/${productId}`,
@@ -146,69 +131,60 @@ export default function CartPage() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
-          body: JSON.stringify({
-            userId,
-          }),
+          body: JSON.stringify({ userId }),
         }
       );
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(
-          `Không thể xóa sản phẩm: ${errorData.message || response.statusText}`
-        );
+        throw new Error(`Không thể xóa sản phẩm: ${errorData.message || response.statusText}`);
       }
 
-      // Cập nhật state cục bộ trước khi gọi fetchCart
-      const updatedItems = cart.items.filter(item => item.product._id !== productId);
-      setCart({ ...cart, items: updatedItems });
+      const updatedItems = cart?.items.filter(item => item.product._id !== productId) || [];
+      setCart({ ...cart!, items: updatedItems });
 
-      // Gọi lại API để lấy dữ liệu giỏ hàng mới nhất
       await fetchCart();
-    } catch (err) {
+    } catch (err: any) {
       setError(err.message);
     }
   };
 
-  // Tính tổng cộng
-  const calculateTotal = () => {
-    if (!cart || !cart.items || cart.items.length === 0) return 0;
+  const calculateTotal = (): number => {
+    if (!cart?.items || cart.items.length === 0) return 0;
     return cart.items.reduce((total, item) => {
       const price = Number(item.product.price) || 0;
       return total + price * item.quantity;
     }, 0);
   };
 
-  // Định dạng giá tiền
-  const formatPrice = (price) => {
-    const numericPrice = Number(price) || 0;
+  const formatPrice = (price: number): string => {
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
       currency: "VND",
-    }).format(numericPrice);
+    }).format(price);
   };
 
   return (
     <div className={styles["cart-container"]}>
+      {/* --- PHẦN BƯỚC --- */}
       <div className={styles["progress-container"]}>
         <div className={`${styles.step} ${styles.active}`}>1</div>
         <span className={styles["progress-label"]}>Giỏ hàng</span>
         <i className="fa-solid fa-chevron-right"></i>
-
         <div className={styles.step}>2</div>
         <span className={styles["progress-label"]}>Chi tiết đơn hàng</span>
         <i className="fa-solid fa-chevron-right"></i>
-
         <div className={styles.step}>3</div>
         <span className={styles["progress-label"]}>Đơn hàng hoàn tất</span>
       </div>
+
       <div className={styles["cart-content"]}>
         <div className={styles["cart-left"]}>
           {loading ? (
             <p>Đang tải giỏ hàng...</p>
           ) : error ? (
             <p className={styles.error}>Lỗi: {error}</p>
-          ) : !cart || !cart.items || cart.items.length === 0 ? (
+          ) : !cart || cart.items.length === 0 ? (
             <p>Giỏ hàng trống</p>
           ) : (
             <table className={styles["cart-table"]}>
@@ -230,16 +206,16 @@ export default function CartPage() {
                     <td className={`${styles["cart-cell"]} ${styles.product}`}>
                       <Image
                         src={
-                          item.product.images && item.product.images.length > 0
+                          item.product.images?.[0]
                             ? `https://api-zeal.onrender.com/images/${item.product.images[0]}`
                             : "https://via.placeholder.com/100x100?text=No+Image"
                         }
-                        alt={item.product.name || "Sản phẩm"}
+                        alt={item.product.name}
                         width={100}
                         height={100}
                         className={styles["cart-image"]}
                       />
-                      <span>{item.product.name || "Sản phẩm không xác định"}</span>
+                      <span>{item.product.name}</span>
                     </td>
                     <td className={styles["cart-cell"]}>{formatPrice(item.product.price)}</td>
                     <td className={`${styles["cart-cell"]} ${styles["quantity-controls"]}`}>
@@ -272,28 +248,19 @@ export default function CartPage() {
               </tbody>
             </table>
           )}
-
           <button className={styles["continue-shopping"]}>← Tiếp tục mua sắm</button>
         </div>
 
         <div className={styles["cart-right"]}>
           <div className={styles.discount}>
-            <input
-              type="text"
-              placeholder="Nhập mã giảm giá"
-              className={styles["discount-input"]}
-            />
-            <button className={`${styles["discount-btn"]} ${styles.apply}`}>
-              Sử dụng
-            </button>
+            <input type="text" placeholder="Nhập mã giảm giá" className={styles["discount-input"]} />
+            <button className={`${styles["discount-btn"]} ${styles.apply}`}>Sử dụng</button>
           </div>
           <div className={styles.summary}>
             <p className={styles["summary-item"]}>
               Tổng: <span>{formatPrice(calculateTotal())}</span>
             </p>
-            <p className={styles["summary-item"]}>
-              Mã giảm: <span>-0đ</span>
-            </p>
+            <p className={styles["summary-item"]}>Mã giảm: <span>-0đ</span></p>
             <div className={`${styles.total} ${styles["summary-total"]}`}>
               <strong className={styles.total2}>
                 Tổng cộng: <span>{formatPrice(calculateTotal())}</span>

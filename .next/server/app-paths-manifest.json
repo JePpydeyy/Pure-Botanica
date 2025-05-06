@@ -6,6 +6,7 @@
   "/admin/order/page": "app/admin/order/page.js",
   "/admin/page": "app/admin/page.js",
   "/admin/product/page": "app/admin/product/page.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js",
   "/page": "app/page.js",
   "/user/contact/page": "app/user/contact/page.js",
   "/user/login/page": "app/user/login/page.js",

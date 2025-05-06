@@ -1,21 +1,11 @@
 /* [project]/src/app/user/about/about.css [app-client] (css) */
-* {
-  box-sizing: border-box;
-  margin: 0 auto;
-  padding: 0;
-}
-
-body {
-  margin-top: 100px;
-}
-
-.banner-title {
+.bannerTitle {
   text-align: center;
   width: 100%;
   position: relative;
 }
 
-.banner-title img {
+.bannerTitle img {
   object-fit: cover;
   width: 100%;
   height: auto;
@@ -42,17 +32,11 @@ body {
   width: 1290px;
 }
 
-.brand-meaning {
+.brandMeaning {
   text-align: justify;
 }
 
-.title-h2 {
-  justify-content: center;
-  width: 100%;
-  display: flex;
-}
-
-.brand-meaning h2 {
+.brandMeaning h2 {
   text-align: center;
   text-transform: uppercase;
   margin-top: 30px;
@@ -61,32 +45,32 @@ body {
   font-weight: bold;
 }
 
-.brand-meaning p {
+.brandMeaning p {
   margin-bottom: 20px;
   font-size: 1.2rem;
   line-height: 2;
 }
 
-.brand-meaning p strong {
+.brandMeaning p strong {
   color: #8d5524;
   font-weight: bold;
 }
 
-.brand-meaning img {
+.brandMeaning img {
   border-radius: 10px;
   max-width: 100%;
   margin: 40px auto;
   display: block;
 }
 
-.commitment-action {
+.commitmentAction {
   text-align: justify;
   max-width: 80%;
   margin: 60px auto;
   line-height: 1.8;
 }
 
-.commitment-action h2 {
+.commitmentAction h2 {
   text-align: center;
   text-transform: uppercase;
   margin-bottom: 30px;
@@ -94,9 +78,17 @@ body {
   font-weight: bold;
 }
 
-.commitment-action p {
+.commitmentAction p {
   margin-bottom: 20px;
   font-size: 1.2rem;
+}
+
+.commitmentAction .highlightText {
+  text-align: center;
+  color: #8d5524;
+  margin-top: 40px;
+  font-size: 1.5rem;
+  font-weight: bold;
 }
 
 .mission img {
@@ -106,42 +98,28 @@ body {
   display: block;
 }
 
-.commitment-action .highlight-text {
-  text-align: center;
-  color: #8d5524;
-  margin-top: 40px;
-  font-size: 1.5rem;
-  font-weight: bold;
-}
-
-.brand-value {
+.brandValue {
   flex-wrap: wrap;
   gap: 40px;
   display: flex;
 }
 
-.brand-value-left {
+.brandValueLeft {
   flex: 1;
   order: 1;
 }
 
-.brand-value-right {
+.brandValueRight {
   flex: 1;
   order: 2;
 }
 
-.brand-value-bottom {
+.brandValueBottom {
   order: 3;
   width: 100%;
 }
 
-.brand-value .brand-text {
-  text-align: justify;
-  flex: 1;
-  line-height: 1.8;
-}
-
-.brand-value h2 {
+.brandValue h2 {
   text-transform: uppercase;
   text-align: left;
   margin-bottom: 20px;
@@ -149,22 +127,18 @@ body {
   font-weight: bold;
 }
 
-.brand-value p {
+.brandValue p {
   margin-bottom: 20px;
   font-size: 1.2rem;
 }
 
-.brand-value .brand-image {
-  flex: 1;
-}
-
-.brand-value img {
+.brandValue img {
   border-radius: 10px;
   width: 100%;
   box-shadow: 0 8px 16px #0000001a;
 }
 
-.section-title {
+.sectionTitle {
   justify-content: center;
   align-items: center;
   margin-bottom: 40px;
@@ -176,11 +150,11 @@ img {
   height: auto;
 }
 
-.text-center {
+.textCenter {
   text-align: center;
 }
 
-.text-bold {
+.textBold {
   font-weight: bold;
 }
 
@@ -189,33 +163,33 @@ img {
     font-size: 2rem;
   }
 
-  main {
+  .main {
     max-width: 90%;
     padding: 30px 10px;
   }
 
-  .brand-meaning h2, .commitment-action h2, .brand-value h2 {
+  .brandMeaning h2, .commitmentAction h2, .brandValue h2 {
     font-size: 2rem;
   }
 
-  .brand-meaning p, .commitment-action p, .brand-value p {
+  .brandMeaning p, .commitmentAction p, .brandValue p {
     font-size: 1rem;
   }
 
-  .brand-meaning img, .brand-value img {
+  .brandMeaning img, .brandValue img {
     max-width: 90%;
   }
 
-  .commitment-action .highlight-text {
+  .commitmentAction .highlightText {
     font-size: 1.2rem;
   }
 
-  .brand-value {
+  .brandValue {
     text-align: center;
     flex-direction: column;
   }
 
-  .brand-value h2 {
+  .brandValue h2 {
     text-align: center;
   }
 }
@@ -225,19 +199,19 @@ img {
     font-size: 1.5rem;
   }
 
-  main {
+  .main {
     max-width: 95%;
   }
 
-  .brand-meaning h2, .commitment-action h2, .brand-value h2 {
+  .brandMeaning h2, .commitmentAction h2, .brandValue h2 {
     font-size: 1.5rem;
   }
 
-  .brand-meaning p, .commitment-action p, .brand-value p {
+  .brandMeaning p, .commitmentAction p, .brandValue p {
     font-size: .9rem;
   }
 
-  .commitment-action .highlight-text {
+  .commitmentAction .highlightText {
     font-size: 1rem;
   }
 }

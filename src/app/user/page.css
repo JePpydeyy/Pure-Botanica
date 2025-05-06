@@ -9,7 +9,7 @@
 }
 
 .banner img {
-  margin-top: 100px;
+  
   object-fit: cover;
 }
 
@@ -113,7 +113,7 @@
   color: #333;
   overflow-wrap: break-word;
   white-space: normal;
-  hyphens: auto; 
+ 
   max-width: 100%;
 }
 
@@ -286,7 +286,7 @@
   color: white;
   padding: 10px;
   cursor: pointer;
-  user-select: none;
+
 }
 
 .arrow.left {

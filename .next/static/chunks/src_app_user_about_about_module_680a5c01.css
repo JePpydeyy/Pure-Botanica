@@ -1,0 +1,162 @@
+/* [project]/src/app/user/about/about.module.css [app-client] (css) */
+.about-module__paDpRW__main {
+  max-width: 1290px;
+  margin: 0 auto;
+  padding: 20px 10px;
+}
+
+.about-module__paDpRW__bannerTitle {
+  text-align: center;
+  width: 100%;
+  position: relative;
+}
+
+.about-module__paDpRW__bannerTitle img {
+  object-fit: cover;
+  width: 100%;
+  height: auto;
+  max-height: 800px;
+}
+
+.about-module__paDpRW__title {
+  color: #fff;
+  text-align: center;
+  background-color: #8d5524;
+  width: 100%;
+  padding: 20px 0;
+  bottom: 0;
+  left: 0;
+}
+
+.about-module__paDpRW__title h1 {
+  text-transform: uppercase;
+  font-size: 2.5rem;
+  font-weight: bold;
+}
+
+.about-module__paDpRW__main {
+  width: 1290px;
+}
+
+.about-module__paDpRW__brandMeaning {
+  text-align: justify;
+}
+
+.about-module__paDpRW__brandMeaning h2 {
+  text-align: center;
+  text-transform: uppercase;
+  margin-top: 30px;
+  margin-bottom: 30px;
+  font-size: 2.5rem;
+  font-weight: bold;
+}
+
+.about-module__paDpRW__brandMeaning p {
+  margin-bottom: 20px;
+  font-size: 1.2rem;
+  line-height: 2;
+}
+
+.about-module__paDpRW__brandMeaning p strong {
+  color: #8d5524;
+  font-weight: bold;
+}
+
+.about-module__paDpRW__brandMeaning .about-module__paDpRW__brandImg {
+  border-radius: 10px;
+  max-width: 100%;
+  margin: 40px auto;
+  display: block;
+}
+
+.about-module__paDpRW__commitmentAction {
+  text-align: justify;
+  margin: 60px auto;
+  line-height: 1.8;
+}
+
+.about-module__paDpRW__commitmentAction h2 {
+  text-align: center;
+  text-transform: uppercase;
+  margin-bottom: 30px;
+  font-size: 2.5rem;
+  font-weight: bold;
+}
+
+.about-module__paDpRW__commitmentAction p {
+  margin-bottom: 20px;
+  font-size: 1.2rem;
+}
+
+.about-module__paDpRW__commitmentAction .about-module__paDpRW__highlightText {
+  text-align: center;
+  color: #8d5524;
+  margin-top: 40px;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.about-module__paDpRW__mission .about-module__paDpRW__missionImg {
+  border-radius: 10px;
+  max-width: 100%;
+  margin: 40px auto;
+  display: block;
+}
+
+.about-module__paDpRW__brandValue {
+  flex-wrap: wrap;
+  gap: 40px;
+  display: flex;
+}
+
+.about-module__paDpRW__brandValueLeft {
+  flex: 1;
+  order: 1;
+}
+
+.about-module__paDpRW__brandValueRight {
+  flex: 1;
+  order: 2;
+}
+
+.about-module__paDpRW__brandValueBottom {
+  order: 3;
+  width: 100%;
+}
+
+.about-module__paDpRW__brandValue h2 {
+  text-transform: uppercase;
+  text-align: left;
+  margin-bottom: 20px;
+  font-size: 2.5rem;
+  font-weight: bold;
+}
+
+.about-module__paDpRW__brandValue p {
+  margin-bottom: 20px;
+  font-size: 1.2rem;
+}
+
+.about-module__paDpRW__brandValue .about-module__paDpRW__brandImg {
+  border-radius: 10px;
+  width: 100%;
+  box-shadow: 0 8px 16px #0000001a;
+}
+
+.about-module__paDpRW__sectionTitle {
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 40px;
+  display: flex;
+}
+
+.about-module__paDpRW__textCenter {
+  text-align: center;
+}
+
+.about-module__paDpRW__textBold {
+  font-weight: bold;
+}
+
+
+/*# sourceMappingURL=src_app_user_about_about_module_680a5c01.css.map*/

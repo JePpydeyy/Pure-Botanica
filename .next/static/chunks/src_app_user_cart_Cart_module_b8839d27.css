@@ -162,8 +162,10 @@
 
 .Cart-module__YIknGG__total2 {
   color: #111;
+  justify-content: space-between;
   font-size: 18px;
   font-weight: 600;
+  display: flex;
 }
 
 .Cart-module__YIknGG__total2 span {

@@ -1,4 +1,6 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# Bỏ qua thư mục node_modules
+/node_modules/
 
-# dependencies
-/node_modules
+# Bỏ qua thư mục build .next
+/.next/
+

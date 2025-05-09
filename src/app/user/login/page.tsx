@@ -1,10 +1,10 @@
 "use client";
 import Link from "next/link";
 import { jwtDecode } from "jwt-decode";
-import "./login.css";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../context/AuthContext"; // Import useAuth
+import styles from './login.module.css'; // Import the module
 
 // Interface định nghĩa kiểu cho payload token
 interface CustomJwtPayload {
@@ -32,7 +32,7 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    setError(""); // Reset error
 
     try {
       const res = await fetch("https://api-zeal.onrender.com/api/users/login", {
@@ -72,17 +72,17 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="containerrr">
-      <div className="form-box">
-        <h2>
+    <div className={styles.container}>
+      <div className={styles["form-box"]}>
+        <h2 className={styles["form-title"]}>
           <strong>ĐĂNG NHẬP</strong>
         </h2>
 
-        <button className="google-btn">
+        <button className={styles["google-btn"]}>
           <img src="/images/icons8-google-48.png" alt="Google Logo" /> Đăng nhập với Google
         </button>
 
-        <div className="divider">
+        <div className={styles.divider}>
           <hr />
           <span>Đăng nhập bằng tài khoản</span>
           <hr />
@@ -94,6 +94,7 @@ export default function LoginPage() {
             placeholder="Myname@gmail.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            className={styles["input-field"]}
             required
           />
           <br />
@@ -102,17 +103,18 @@ export default function LoginPage() {
             placeholder="Mật khẩu"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            className={styles["input-field"]}
             required
           />
 
-          <div className="forgot-password">
+          <div className={styles["forgot-password"]}>
             <a href="#">Quên mật khẩu?</a>
           </div>
 
-          <button type="submit" className="submit-btn">ĐĂNG NHẬP</button>
-          {error && <p className="error-message">{error}</p>}
+          <button type="submit" className={styles["submit-btn"]}>ĐĂNG NHẬP</button>
+          {error && <p className={styles["error-message"]}>{error}</p>}
 
-          <p className="switch-form">
+          <p className={styles["switch-form"]}>
             Chưa có tài khoản? <Link href="/user/register">Đăng ký</Link>
           </p>
         </form>

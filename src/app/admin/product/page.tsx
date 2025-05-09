@@ -214,7 +214,7 @@ export default function ProductPage() {
       <div className={styles.tableContainer}>
         <table className={styles.productTable}>
           <thead className={styles.productTableThead}>
-            <tr>
+            <tr >
               <th>Ảnh</th>
               <th>Tên sản phẩm</th>
               <th>Danh mục</th>

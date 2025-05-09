@@ -1,6 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 1, "column": 0}, "map": {"version":3,"sources":["file://D%3A/FPOLY/ky5/ASM_Next/Pure-Botanica/src/app/admin/comment/comment.css"],"sourcesContent":[".product-image {\r\n    width: 60px;\r\n    height: 60px;\r\n    object-fit: cover;\r\n    border-radius: 4px;\r\n    border: 1px solid #ddd;\r\n  }\r\n  .comments-table {\r\n    margin-left: 250px;\r\n    margin-top: 50px;\r\n  }\r\n  .comments-table th,\r\n  .comments-table td {\r\n    padding: 10px;\r\n    text-align: left;\r\n    border: 1px solid #ddd;\r\n  }\r\n  \r\n  .comments-table th {\r\n    background-color: #f4f4f4;\r\n  }\r\n  \r\n  .comments-table tr:hover {\r\n    background-color: #f9f9f9;\r\n  }\r\n  \r\n  .delete-btn {\r\n    background-color: transparent;\r\n    border: none;\r\n    color: red;\r\n    cursor: pointer;\r\n  }\r\n  \r\n  .loading-message,\r\n  .error-message {\r\n    text-align: center;\r\n    margin-top: 20px;\r\n    font-size: 18px;\r\n    color: red;\r\n  }"],"names":[],"mappings":"AAAA;;;;;;;;AAOE;;;;;AAIA;;;;;;AAOA;;;;AAIA;;;;AAIA;;;;;;;AAOA","debugId":null}}]
-}

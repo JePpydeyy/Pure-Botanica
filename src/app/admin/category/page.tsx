@@ -111,16 +111,17 @@ export default function Category() {
     <div className={styles.containerCategory}>
       <div className={styles.formTableCategory}>
         <div className={styles.nameTableCategory}>
-          <span>Danh Mục Sản Phẩm</span>
-        </div>
-        <div className={styles.formBtnAddNewCategory}>
+          <span className={styles.span}>Danh Mục</span>
+          <div className={styles.formBtnAddNewCategory}>
           <button className={styles.btnAddNewCategory}>
             <a href="/admin/add_category">Thêm danh mục sản phẩm</a>
           </button>
         </div>
+        </div>
+
         <table className={styles.categoryTable}>
-          <thead>
-            <tr>
+          <thead >
+            < tr className={styles.categoryTableTr}>
               <th>Tên Danh Mục</th>
               <th>Hành Động</th>
             </tr>

@@ -3,6 +3,7 @@ import styles from "./Product.module.css";
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Product } from "@/app/components/product_interface";
 
 const formatPrice = (price: number): string => {
@@ -23,6 +24,7 @@ export default function ProductPage() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const productsPerPage = 9;
+  const searchParams = useSearchParams();
 
   // Fetch products
   useEffect(() => {
@@ -38,7 +40,7 @@ export default function ProductPage() {
         console.log("Products:", data);
         console.log(
           "Categories in products:",
-          data.map((p) => ({ id: p._id, category: p.category?.name }))
+          [...new Set(data.map((p) => p.category?.name))].filter(Boolean)
         );
         setProducts(data);
         setFilteredProducts(data);
@@ -61,7 +63,7 @@ export default function ProductPage() {
           throw new Error(`Lỗi tải danh mục: ${res.status}`);
         }
         const data = await res.json();
-        console.log("Categories:", data);
+        console.log("Categories from API:", data.map((cat: any) => cat.name));
         const categoryNames = data.map((cat: any) => cat.name);
         setCategories(["Tất cả", ...categoryNames]);
       } catch (err) {
@@ -72,19 +74,70 @@ export default function ProductPage() {
     fetchCategories();
   }, []);
 
-  // Filter products by category
+  // Apply filter based on URL query parameter
+  useEffect(() => {
+    const categoryFromUrl = searchParams.get("category");
+    console.log("Raw category from URL:", categoryFromUrl);
+
+    // Reset to all products if no category in URL
+    if (!categoryFromUrl) {
+      console.log("No category in URL, resetting to all products");
+      setActiveCategory(null);
+      setFilteredProducts(products);
+      setCurrentPage(1);
+      return;
+    }
+
+    // Wait for products and categories to be loaded
+    if (products.length === 0 || categories.length === 0) {
+      console.log("Waiting for products/categories to load...");
+      return;
+    }
+
+    // Decode the category from URL
+    const decodedCategory = decodeURIComponent(categoryFromUrl);
+    console.log("Decoded category from URL:", decodedCategory);
+
+    // Check if the decoded category exists in the fetched categories
+    if (categories.includes(decodedCategory)) {
+      console.log("Category exists in API categories:", decodedCategory);
+      if (decodedCategory === "Tất cả") {
+        console.log("Category is 'Tất cả', showing all products");
+        setActiveCategory(null);
+        setFilteredProducts(products);
+      } else {
+        console.log("Applying filter for category:", decodedCategory);
+        const filtered = products.filter(
+          (product) => product.category?.name === decodedCategory
+        );
+        console.log("Filtered products count:", filtered.length);
+        console.log("Filtered products:", filtered);
+        setActiveCategory(decodedCategory);
+        setFilteredProducts(filtered);
+      }
+    } else {
+      console.log(
+        "Category not found in API categories, resetting to all products:",
+        decodedCategory
+      );
+      setActiveCategory(null);
+      setFilteredProducts(products);
+    }
+    setCurrentPage(1);
+  }, [searchParams, products, categories]);
+
+  // Filter products by category (for sidebar clicks)
   const filterProducts = (category: string) => {
-    console.log("Filtering category:", category);
-    if (category === "Tất cả" || activeCategory === category) {
+    console.log("Filtering category (sidebar):", category);
+    if (category === "Tất cả") {
       setFilteredProducts(products);
       setActiveCategory(null);
     } else {
-      const filtered = products.filter((product) => {
-        if (!product.category || typeof product.category.name !== "string") return false;
-        return product.category.name === category;
-      });
-      console.log("Filtered products:", filtered);
-      setFilteredProducts(filtered.length > 0 ? filtered : []);
+      const filtered = products.filter(
+        (product) => product.category?.name === category
+      );
+      console.log("Filtered products (sidebar) count:", filtered.length);
+      setFilteredProducts(filtered);
       setActiveCategory(category);
     }
     setCurrentPage(1);
@@ -245,7 +298,6 @@ export default function ProductPage() {
           )}
         </section>
       </div>
-
       <div className={styles["best-selling-products"]}>
         <h3 className={styles["slider-title"]}>Có thể bạn sẽ thích</h3>
         <div className={styles["best-selling-grid"]}>

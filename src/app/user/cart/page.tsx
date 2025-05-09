@@ -53,7 +53,7 @@ export default function CartPage() {
   const fetchCart = async () => {
     if (!userId) return;
     try {
-      const cartResponse = await fetch(
+      const response = await fetch(
         `https://api-zeal.onrender.com/api/carts?userId=${userId}`,
         {
           headers: {
@@ -61,7 +61,7 @@ export default function CartPage() {
           },
         }
       );
-      if (!cartResponse.ok) {
+      if (!response.ok) {
         throw new Error("Không thể lấy dữ liệu giỏ hàng");
       }
       const cartData: Cart = await cartResponse.json();
@@ -75,8 +75,9 @@ export default function CartPage() {
   };
 
   useEffect(() => {
-    if (!userId) return;
-    fetchCart();
+    if (userId) {
+      fetchCart();
+    }
   }, [userId]);
 
   const increaseQuantity = async (productId: string, currentQuantity: number) => {
@@ -88,22 +89,16 @@ export default function CartPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-        body: JSON.stringify({
-          userId,
-          productId,
-          quantity: newQuantity,
-        }),
+        body: JSON.stringify({ userId, productId, quantity: newQuantity }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(
-          `Không thể cập nhật số lượng: ${errorData.message || response.statusText}`
-        );
+        throw new Error(`Không thể cập nhật số lượng: ${errorData.message || response.statusText}`);
       }
 
       await fetchCart();
-    } catch (err) {
+    } catch (err: any) {
       setError(err.message);
     }
   };
@@ -122,22 +117,16 @@ export default function CartPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-        body: JSON.stringify({
-          userId,
-          productId,
-          quantity: newQuantity,
-        }),
+        body: JSON.stringify({ userId, productId, quantity: newQuantity }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(
-          `Không thể cập nhật số lượng: ${errorData.message || response.statusText}`
-        );
+        throw new Error(`Không thể cập nhật số lượng: ${errorData.message || response.statusText}`);
       }
 
       await fetchCart();
-    } catch (err) {
+    } catch (err: any) {
       setError(err.message);
     }
   };
@@ -152,24 +141,20 @@ export default function CartPage() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
-          body: JSON.stringify({
-            userId,
-          }),
+          body: JSON.stringify({ userId }),
         }
       );
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(
-          `Không thể xóa sản phẩm: ${errorData.message || response.statusText}`
-        );
+        throw new Error(`Không thể xóa sản phẩm: ${errorData.message || response.statusText}`);
       }
 
       const updatedItems = cart?.items.filter(item => item.product._id !== productId) || [];
       setCart({ ...cart!, items: updatedItems });
 
       await fetchCart();
-    } catch (err) {
+    } catch (err: any) {
       setError(err.message);
     }
   };
@@ -187,7 +172,7 @@ export default function CartPage() {
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
       currency: "VND",
-    }).format(numericPrice);
+    }).format(price);
   };
 
   const updatePrice = async () => {
@@ -247,25 +232,25 @@ export default function CartPage() {
 
   return (
     <div className={styles["cart-container"]}>
+      {/* --- PHẦN BƯỚC --- */}
       <div className={styles["progress-container"]}>
         <div className={`${styles.step} ${styles.active}`}>1</div>
         <span className={styles["progress-label"]}>Giỏ hàng</span>
         <i className="fa-solid fa-chevron-right"></i>
-
         <div className={styles.step}>2</div>
         <span className={styles["progress-label"]}>Chi tiết đơn hàng</span>
         <i className="fa-solid fa-chevron-right"></i>
-
         <div className={styles.step}>3</div>
         <span className={styles["progress-label"]}>Đơn hàng hoàn tất</span>
       </div>
+
       <div className={styles["cart-content"]}>
         <div className={styles["cart-left"]}>
           {loading ? (
             <p>Đang tải giỏ hàng...</p>
           ) : error ? (
             <p className={styles.error}>Lỗi: {error}</p>
-          ) : !cart || !cart.items || cart.items.length === 0 ? (
+          ) : !cart || cart.items.length === 0 ? (
             <p>Giỏ hàng trống</p>
           ) : (
             <table className={styles["cart-table"]}>
@@ -287,16 +272,16 @@ export default function CartPage() {
                     <td className={`${styles["cart-cell"]} ${styles.product}`}>
                       <Image
                         src={
-                          item.product.images && item.product.images.length > 0
+                          item.product.images?.[0]
                             ? `https://api-zeal.onrender.com/images/${item.product.images[0]}`
                             : "https://via.placeholder.com/100x100?text=No+Image"
                         }
-                        alt={item.product.name || "Sản phẩm"}
+                        alt={item.product.name}
                         width={100}
                         height={100}
                         className={styles["cart-image"]}
                       />
-                      <span>{item.product.name || "Sản phẩm không xác định"}</span>
+                      <span>{item.product.name}</span>
                     </td>
                     <td className={styles["cart-cell"]}>{formatPrice(item.product.price)}</td>
                     <td className={`${styles["cart-cell"]} ${styles["quantity-controls"]}`}>

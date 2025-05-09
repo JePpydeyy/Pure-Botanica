@@ -103,9 +103,7 @@ export default function Comment() {
         <h1>BÌNH LUẬN</h1>
       </div>
       <div className="comments-container">
-        <ul className="tabs">
-          <li className="active">Tất cả bình luận</li>
-        </ul>
+        
         <table className="comments-table">
           <thead>
             <tr>

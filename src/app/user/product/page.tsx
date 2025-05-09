@@ -101,7 +101,6 @@ export default function ProductPage() {
     }
   }, [filteredProducts, currentPage, totalPages]);
 
-  // Hàm lấy sản phẩm theo stock cao nhất
   const getTopStockProducts = (products: Product[], count: number): Product[] => {
     const sortedProducts = [...products].sort((a, b) => b.stock - a.stock);
     return sortedProducts.slice(0, count);

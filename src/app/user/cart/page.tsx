@@ -4,13 +4,21 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import styles from "./Cart.module.css";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Cart, CartItem, Product } from "@/app/components/cart_interface";
+import { useCart } from "../context/CartContext"; 
 
 export default function CartPage() {
-  const [cart, setCart] = useState(null);
+  const [cart, setCart] = useState<Cart | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [userId, setUserId] = useState(null);
+  const [error, setError] = useState<string | null>(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [couponCode, setCouponCode] = useState("");
+  const [discount, setDiscount] = useState(0);
+  const [total, setTotal] = useState(0);
+  const router = useRouter();
+  const { setCheckoutData } = useCart();
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -43,6 +51,7 @@ export default function CartPage() {
   }, []);
 
   const fetchCart = async () => {
+    if (!userId) return;
     try {
       const cartResponse = await fetch(
         `https://api-zeal.onrender.com/api/carts?userId=${userId}`,
@@ -55,23 +64,22 @@ export default function CartPage() {
       if (!cartResponse.ok) {
         throw new Error("Không thể lấy dữ liệu giỏ hàng");
       }
-      const cartData = await cartResponse.json();
+      const cartData: Cart = await cartResponse.json();
       setCart(cartData);
       setLoading(false);
+      updatePrice();
     } catch (err) {
       setError(err.message);
       setLoading(false);
     }
   };
 
-  // Gọi API để lấy giỏ hàng
   useEffect(() => {
     if (!userId) return;
     fetchCart();
   }, [userId]);
 
-  // Hàm tăng số lượng
-  const increaseQuantity = async (productId, currentQuantity) => {
+  const increaseQuantity = async (productId: string, currentQuantity: number) => {
     const newQuantity = currentQuantity + 1;
     try {
       const response = await fetch(`https://api-zeal.onrender.com/api/carts/update`, {
@@ -100,8 +108,7 @@ export default function CartPage() {
     }
   };
 
-  // Hàm giảm số lượng
-  const decreaseQuantity = async (productId, currentQuantity) => {
+  const decreaseQuantity = async (productId: string, currentQuantity: number) => {
     if (currentQuantity <= 1) {
       await removeItem(productId);
       return;
@@ -135,8 +142,7 @@ export default function CartPage() {
     }
   };
 
-  // Hàm xóa sản phẩm
-  const removeItem = async (productId) => {
+  const removeItem = async (productId: string) => {
     try {
       const response = await fetch(
         `https://api-zeal.onrender.com/api/carts/remove/${productId}`,
@@ -159,19 +165,16 @@ export default function CartPage() {
         );
       }
 
-      // Cập nhật state cục bộ trước khi gọi fetchCart
-      const updatedItems = cart.items.filter(item => item.product._id !== productId);
-      setCart({ ...cart, items: updatedItems });
+      const updatedItems = cart?.items.filter(item => item.product._id !== productId) || [];
+      setCart({ ...cart!, items: updatedItems });
 
-      // Gọi lại API để lấy dữ liệu giỏ hàng mới nhất
       await fetchCart();
     } catch (err) {
       setError(err.message);
     }
   };
 
-  // Tính tổng cộng
-  const calculateTotal = () => {
+  const calculateSubtotal = () => {
     if (!cart || !cart.items || cart.items.length === 0) return 0;
     return cart.items.reduce((total, item) => {
       const price = Number(item.product.price) || 0;
@@ -179,13 +182,67 @@ export default function CartPage() {
     }, 0);
   };
 
-  // Định dạng giá tiền
-  const formatPrice = (price) => {
+  const formatPrice = (price: number) => {
     const numericPrice = Number(price) || 0;
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
       currency: "VND",
     }).format(numericPrice);
+  };
+
+  const updatePrice = async () => {
+    if (!userId) return;
+    try {
+      const response = await fetch(`https://api-zeal.onrender.com/api/carts/update-price`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({
+          userId,
+          couponCode,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Không thể cập nhật giá");
+      }
+
+      const data = await response.json();
+      setDiscount(data.discount || 0);
+      setTotal(data.total || calculateSubtotal());
+      setCouponError(null);
+    } catch (err) {
+      setCouponError(err.message);
+      setDiscount(0);
+      setTotal(calculateSubtotal());
+    }
+  };
+
+  const handleApplyCoupon = () => {
+    updatePrice();
+  };
+
+  const handleCheckout = () => {
+    if (!cart || !cart.items || cart.items.length === 0) {
+      setError("Giỏ hàng trống, không thể thanh toán");
+      return;
+    }
+
+    const checkoutData = {
+      cart,
+      userId,
+      couponCode,
+      subtotal: calculateSubtotal(),
+      discount,
+      total,
+    };
+
+    setCheckoutData(checkoutData);
+    console.log("Checkout data saved to Context:", checkoutData);
+    router.push("/user/checkout");
   };
 
   return (
@@ -273,7 +330,9 @@ export default function CartPage() {
             </table>
           )}
 
-          <button className={styles["continue-shopping"]}>← Tiếp tục mua sắm</button>
+          <Link href="/user" className={styles["continue-shopping"]}>
+            ← Tiếp tục mua sắm
+          </Link>
         </div>
 
         <div className={styles["cart-right"]}>
@@ -282,25 +341,37 @@ export default function CartPage() {
               type="text"
               placeholder="Nhập mã giảm giá"
               className={styles["discount-input"]}
+              value={couponCode}
+              onChange={(e) => setCouponCode(e.target.value)}
             />
-            <button className={`${styles["discount-btn"]} ${styles.apply}`}>
+            <button
+              className={`${styles["discount-btn"]} ${styles.apply}`}
+              onClick={handleApplyCoupon}
+            >
               Sử dụng
             </button>
           </div>
+          {couponError && (
+            <p className={styles.error} style={{ color: "red", fontSize: "14px", marginTop: "5px" }}>
+              {couponError}
+            </p>
+          )}
           <div className={styles.summary}>
             <p className={styles["summary-item"]}>
-              Tổng: <span>{formatPrice(calculateTotal())}</span>
+              Tổng: <span>{formatPrice(calculateSubtotal())}</span>
             </p>
             <p className={styles["summary-item"]}>
-              Mã giảm: <span>-0đ</span>
+              Mã giảm: <span>-{formatPrice(discount)}</span>
             </p>
             <div className={`${styles.total} ${styles["summary-total"]}`}>
               <strong className={styles.total2}>
-                Tổng cộng: <span>{formatPrice(calculateTotal())}</span>
+                Tổng cộng: <span>{formatPrice(total)}</span>
               </strong>
             </div>
           </div>
-          <button className={styles.checkout}>Thanh toán</button>
+          <button className={styles.checkout} onClick={handleCheckout}>
+            Thanh toán
+          </button>
         </div>
       </div>
     </div>

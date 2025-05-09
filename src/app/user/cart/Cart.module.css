@@ -190,6 +190,7 @@
   /* Nút tiếp tục mua sắm */
   .continue-shopping {
     background: none;
+    width: 193px;
     border: 1px solid #4a7c59;
     color: #4a7c59;
     font-size: 16px;
@@ -200,4 +201,5 @@
     margin-top: 20px;
     cursor: pointer;
     border-radius: 5px;
+    text-decoration: none;
   }

@@ -156,7 +156,6 @@ function ProductPage() {
         currentPage,
         totalPages
     ]);
-    // Hàm lấy sản phẩm theo stock cao nhất
     const getTopStockProducts = (products, count)=>{
         const sortedProducts = [
             ...products
@@ -174,12 +173,12 @@ function ProductPage() {
                     className: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$app$2f$user$2f$product$2f$Product$2e$module$2e$css__$5b$app$2d$ssr$5d$__$28$css__module$29$__["default"]["banner-image"]
                 }, void 0, false, {
                     fileName: "[project]/src/app/user/product/page.tsx",
-                    lineNumber: 115,
+                    lineNumber: 114,
                     columnNumber: 9
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/src/app/user/product/page.tsx",
-                lineNumber: 114,
+                lineNumber: 113,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h1", {
@@ -187,7 +186,7 @@ function ProductPage() {
                 children: "Danh sách sản phẩm"
             }, void 0, false, {
                 fileName: "[project]/src/app/user/product/page.tsx",
-                lineNumber: 117,
+                lineNumber: 116,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -201,7 +200,7 @@ function ProductPage() {
                                 children: "DANH MỤC SẢN PHẨM"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/user/product/page.tsx",
-                                lineNumber: 120,
+                                lineNumber: 119,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("ul", {
@@ -221,30 +220,30 @@ function ProductPage() {
                                             children: category
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/user/product/page.tsx",
-                                            lineNumber: 132,
+                                            lineNumber: 131,
                                             columnNumber: 19
                                         }, this)
                                     }, category, false, {
                                         fileName: "[project]/src/app/user/product/page.tsx",
-                                        lineNumber: 124,
+                                        lineNumber: 123,
                                         columnNumber: 17
                                     }, this)) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("li", {
                                     className: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$app$2f$user$2f$product$2f$Product$2e$module$2e$css__$5b$app$2d$ssr$5d$__$28$css__module$29$__["default"]["no-products"],
                                     children: "Không có danh mục nào."
                                 }, void 0, false, {
                                     fileName: "[project]/src/app/user/product/page.tsx",
-                                    lineNumber: 144,
+                                    lineNumber: 143,
                                     columnNumber: 15
                                 }, this)
                             }, void 0, false, {
                                 fileName: "[project]/src/app/user/product/page.tsx",
-                                lineNumber: 121,
+                                lineNumber: 120,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/user/product/page.tsx",
-                        lineNumber: 119,
+                        lineNumber: 118,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("section", {
@@ -255,14 +254,14 @@ function ProductPage() {
                                 children: error
                             }, void 0, false, {
                                 fileName: "[project]/src/app/user/product/page.tsx",
-                                lineNumber: 150,
+                                lineNumber: 149,
                                 columnNumber: 13
                             }, this) : isLoading ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
                                 className: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$app$2f$user$2f$product$2f$Product$2e$module$2e$css__$5b$app$2d$ssr$5d$__$28$css__module$29$__["default"]["no-products"],
                                 children: "Đang tải sản phẩm..."
                             }, void 0, false, {
                                 fileName: "[project]/src/app/user/product/page.tsx",
-                                lineNumber: 152,
+                                lineNumber: 151,
                                 columnNumber: 13
                             }, this) : currentProducts.length > 0 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                 className: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$app$2f$user$2f$product$2f$Product$2e$module$2e$css__$5b$app$2d$ssr$5d$__$28$css__module$29$__["default"].productGrid,
@@ -279,13 +278,8 @@ function ProductPage() {
                                                     className: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$app$2f$user$2f$product$2f$Product$2e$module$2e$css__$5b$app$2d$ssr$5d$__$28$css__module$29$__["default"]["product-image"]
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/app/user/product/page.tsx",
-<<<<<<< HEAD
-                                                    lineNumber: 162,
+                                                    lineNumber: 161,
                                                     columnNumber: 21
-=======
-                                                    lineNumber: 131,
-                                                    columnNumber: 19
->>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                                     children: [
@@ -294,11 +288,7 @@ function ProductPage() {
                                                             children: product.name
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/user/product/page.tsx",
-<<<<<<< HEAD
-                                                            lineNumber: 174,
-=======
-                                                            lineNumber: 143,
->>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+                                                            lineNumber: 173,
                                                             columnNumber: 23
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -309,11 +299,7 @@ function ProductPage() {
                                                                     children: formatPrice(product.price)
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/src/app/user/product/page.tsx",
-<<<<<<< HEAD
-                                                                    lineNumber: 176,
-=======
-                                                                    lineNumber: 145,
->>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+                                                                    lineNumber: 175,
                                                                     columnNumber: 25
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -323,74 +309,47 @@ function ProductPage() {
                                                                         className: "fas fa-shopping-cart"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/src/app/user/product/page.tsx",
-<<<<<<< HEAD
-                                                                        lineNumber: 178,
-=======
-                                                                        lineNumber: 147,
->>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+                                                                        lineNumber: 177,
                                                                         columnNumber: 27
                                                                     }, this)
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/src/app/user/product/page.tsx",
-<<<<<<< HEAD
-                                                                    lineNumber: 177,
-=======
-                                                                    lineNumber: 146,
->>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+                                                                    lineNumber: 176,
                                                                     columnNumber: 25
                                                                 }, this)
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/src/app/user/product/page.tsx",
-<<<<<<< HEAD
-                                                            lineNumber: 175,
-=======
-                                                            lineNumber: 144,
->>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+                                                            lineNumber: 174,
                                                             columnNumber: 23
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/src/app/user/product/page.tsx",
-<<<<<<< HEAD
-                                                    lineNumber: 173,
-=======
-                                                    lineNumber: 142,
->>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+                                                    lineNumber: 172,
                                                     columnNumber: 21
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/src/app/user/product/page.tsx",
-                                            lineNumber: 161,
+                                            lineNumber: 160,
                                             columnNumber: 19
                                         }, this)
                                     }, product._id, false, {
                                         fileName: "[project]/src/app/user/product/page.tsx",
-                                        lineNumber: 156,
+                                        lineNumber: 155,
                                         columnNumber: 17
-<<<<<<< HEAD
                                     }, this))
-=======
-                                    }, this)) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
-                                    className: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$app$2f$user$2f$product$2f$Product$2e$module$2e$css__$5b$app$2d$ssr$5d$__$28$css__module$29$__["default"]["no-products"],
-                                    children: activeCategory ? `Không tìm thấy sản phẩm trong danh mục "${activeCategory}"` : "Không có sản phẩm nào."
-                                }, void 0, false, {
-                                    fileName: "[project]/src/app/user/product/page.tsx",
-                                    lineNumber: 155,
-                                    columnNumber: 15
-                                }, this)
->>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
                             }, void 0, false, {
                                 fileName: "[project]/src/app/user/product/page.tsx",
-                                lineNumber: 154,
+                                lineNumber: 153,
                                 columnNumber: 13
                             }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
                                 className: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$app$2f$user$2f$product$2f$Product$2e$module$2e$css__$5b$app$2d$ssr$5d$__$28$css__module$29$__["default"]["no-products"],
                                 children: activeCategory ? `Không tìm thấy sản phẩm trong danh mục "${activeCategory}"` : "Không có sản phẩm nào."
                             }, void 0, false, {
                                 fileName: "[project]/src/app/user/product/page.tsx",
-                                lineNumber: 187,
+                                lineNumber: 186,
                                 columnNumber: 13
                             }, this),
                             totalPages > 1 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -404,20 +363,12 @@ function ProductPage() {
                                             className: "fa-solid fa-chevron-left"
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/user/product/page.tsx",
-<<<<<<< HEAD
-                                            lineNumber: 200,
-=======
-                                            lineNumber: 169,
->>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+                                            lineNumber: 199,
                                             columnNumber: 17
                                         }, this)
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/user/product/page.tsx",
-<<<<<<< HEAD
-                                        lineNumber: 195,
-=======
-                                        lineNumber: 164,
->>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+                                        lineNumber: 194,
                                         columnNumber: 15
                                     }, this),
                                     (()=>{
@@ -433,11 +384,7 @@ function ProductPage() {
                                                 children: "..."
                                             }, "start-ellipsis", false, {
                                                 fileName: "[project]/src/app/user/product/page.tsx",
-<<<<<<< HEAD
-                                                lineNumber: 211,
-=======
-                                                lineNumber: 180,
->>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+                                                lineNumber: 210,
                                                 columnNumber: 21
                                             }, this));
                                         }
@@ -448,11 +395,7 @@ function ProductPage() {
                                                 children: i
                                             }, `page-${i}`, false, {
                                                 fileName: "[project]/src/app/user/product/page.tsx",
-<<<<<<< HEAD
-                                                lineNumber: 218,
-=======
-                                                lineNumber: 187,
->>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+                                                lineNumber: 217,
                                                 columnNumber: 21
                                             }, this));
                                         }
@@ -462,11 +405,7 @@ function ProductPage() {
                                                 children: "..."
                                             }, "end-ellipsis", false, {
                                                 fileName: "[project]/src/app/user/product/page.tsx",
-<<<<<<< HEAD
-                                                lineNumber: 229,
-=======
-                                                lineNumber: 198,
->>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+                                                lineNumber: 228,
                                                 columnNumber: 21
                                             }, this));
                                         }
@@ -480,42 +419,30 @@ function ProductPage() {
                                             className: "fa-solid fa-chevron-right"
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/user/product/page.tsx",
-<<<<<<< HEAD
-                                            lineNumber: 243,
-=======
-                                            lineNumber: 212,
->>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+                                            lineNumber: 242,
                                             columnNumber: 17
                                         }, this)
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/user/product/page.tsx",
-<<<<<<< HEAD
-                                        lineNumber: 236,
-=======
-                                        lineNumber: 205,
->>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+                                        lineNumber: 235,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/user/product/page.tsx",
-<<<<<<< HEAD
-                                lineNumber: 194,
-=======
-                                lineNumber: 163,
->>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+                                lineNumber: 193,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/user/product/page.tsx",
-                        lineNumber: 148,
+                        lineNumber: 147,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/app/user/product/page.tsx",
-                lineNumber: 118,
+                lineNumber: 117,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -526,11 +453,7 @@ function ProductPage() {
                         children: "Có thể bạn sẽ thích"
                     }, void 0, false, {
                         fileName: "[project]/src/app/user/product/page.tsx",
-<<<<<<< HEAD
-                        lineNumber: 251,
-=======
-                        lineNumber: 220,
->>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+                        lineNumber: 250,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -546,11 +469,7 @@ function ProductPage() {
                                             children: "Sale"
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/user/product/page.tsx",
-<<<<<<< HEAD
-                                            lineNumber: 261,
-=======
-                                            lineNumber: 230,
->>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+                                            lineNumber: 260,
                                             columnNumber: 19
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -563,20 +482,12 @@ function ProductPage() {
                                                 className: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$app$2f$user$2f$product$2f$Product$2e$module$2e$css__$5b$app$2d$ssr$5d$__$28$css__module$29$__["default"]["best-selling-product-image"]
                                             }, void 0, false, {
                                                 fileName: "[project]/src/app/user/product/page.tsx",
-<<<<<<< HEAD
-                                                lineNumber: 263,
-=======
-                                                lineNumber: 232,
->>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+                                                lineNumber: 262,
                                                 columnNumber: 21
                                             }, this)
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/user/product/page.tsx",
-<<<<<<< HEAD
-                                            lineNumber: 262,
-=======
-                                            lineNumber: 231,
->>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+                                            lineNumber: 261,
                                             columnNumber: 19
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -587,11 +498,7 @@ function ProductPage() {
                                                     children: product.name
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/app/user/product/page.tsx",
-<<<<<<< HEAD
-                                                    lineNumber: 272,
-=======
-                                                    lineNumber: 241,
->>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+                                                    lineNumber: 271,
                                                     columnNumber: 21
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -599,76 +506,48 @@ function ProductPage() {
                                                     children: formatPrice(product.price)
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/app/user/product/page.tsx",
-<<<<<<< HEAD
-                                                    lineNumber: 273,
-=======
-                                                    lineNumber: 242,
->>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+                                                    lineNumber: 272,
                                                     columnNumber: 21
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/src/app/user/product/page.tsx",
-<<<<<<< HEAD
-                                            lineNumber: 271,
-=======
-                                            lineNumber: 240,
->>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+                                            lineNumber: 270,
                                             columnNumber: 19
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/app/user/product/page.tsx",
-<<<<<<< HEAD
-                                    lineNumber: 260,
-=======
-                                    lineNumber: 229,
->>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+                                    lineNumber: 259,
                                     columnNumber: 17
                                 }, this)
                             }, product._id, false, {
                                 fileName: "[project]/src/app/user/product/page.tsx",
-<<<<<<< HEAD
-                                lineNumber: 255,
-=======
-                                lineNumber: 224,
->>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+                                lineNumber: 254,
                                 columnNumber: 15
                             }, this)) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
                             className: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$app$2f$user$2f$product$2f$Product$2e$module$2e$css__$5b$app$2d$ssr$5d$__$28$css__module$29$__["default"]["no-products"],
                             children: "Đang tải sản phẩm..."
                         }, void 0, false, {
                             fileName: "[project]/src/app/user/product/page.tsx",
-<<<<<<< HEAD
-                            lineNumber: 279,
-=======
-                            lineNumber: 248,
->>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+                            lineNumber: 278,
                             columnNumber: 13
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/app/user/product/page.tsx",
-<<<<<<< HEAD
-                        lineNumber: 252,
-=======
-                        lineNumber: 221,
->>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+                        lineNumber: 251,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/app/user/product/page.tsx",
-<<<<<<< HEAD
-                lineNumber: 250,
-=======
-                lineNumber: 219,
->>>>>>> c9215392f51e2486d4f2e69aee35a053e36b5441
+                lineNumber: 249,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/src/app/user/product/page.tsx",
-        lineNumber: 113,
+        lineNumber: 112,
         columnNumber: 5
     }, this);
 }

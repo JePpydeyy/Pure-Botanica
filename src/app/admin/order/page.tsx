@@ -9,7 +9,7 @@ export default function OrderPage() {
     name: string;
     price: number;
     discountPrice: number | null;
-    images?: string[]; // Trường hình ảnh
+    images?: string[];
   }
 
   interface Order {
@@ -19,7 +19,7 @@ export default function OrderPage() {
       username: string;
     };
     createdAt: string;
-    status: string;
+    paymentStatus: string; // Đổi từ status thành paymentStatus để khớp với backend
     address: string;
     items: { product: Product; quantity: number }[];
   }
@@ -29,20 +29,20 @@ export default function OrderPage() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showPopup, setShowPopup] = useState<boolean>(false);
 
-  // Đối chiếu trạng thái tiếng Anh sang tiếng Việt
+  // Ánh xạ trạng thái từ tiếng Anh (backend) sang tiếng Việt (frontend)
   const statusMapping = {
     pending: "Chờ xử lý",
-    shipped: "Đang giao hàng",
-    delivered: "Đã giao hàng",
-    cancelled: "Đã hủy"
+    completed: "Đã giao hàng",
+    failed: "Thất bại",
+    cancelled: "Đã hủy",
   };
 
-  // Đối chiếu ngược lại từ tiếng Việt sang tiếng Anh
+  // Ánh xạ ngược từ tiếng Việt (frontend) sang tiếng Anh (backend)
   const reverseStatusMapping = {
     "Chờ xử lý": "pending",
-    "Đang giao hàng": "shipped",
-    "Đã giao hàng": "delivered",
-    "Đã hủy": "cancelled"
+    "Đã giao hàng": "completed",
+    "Thất bại": "failed",
+    "Đã hủy": "cancelled",
   };
 
   // Fetch orders from API
@@ -68,14 +68,14 @@ export default function OrderPage() {
   };
 
   // Hiển thị trạng thái bằng tiếng Việt
-  const getVietnameseStatus = (status: string) => {
-    return statusMapping[status as keyof typeof statusMapping] || status;
+  const getVietnameseStatus = (paymentStatus: string) => {
+    return statusMapping[paymentStatus as keyof typeof statusMapping] || paymentStatus;
   };
 
   // Update order status
   const handleStatusChange = async (orderId: string, userId: string, newStatus: string, currentStatus: string) => {
-    // Kiểm tra nếu đơn hàng đã giao hàng thì không cho phép thay đổi
-    if (currentStatus === "delivered") {
+    // Kiểm tra nếu đơn hàng đã hoàn tất thì không cho phép thay đổi
+    if (currentStatus === "completed") {
       toast.error("Không thể thay đổi trạng thái đơn hàng đã giao thành công");
       return;
     }
@@ -83,17 +83,17 @@ export default function OrderPage() {
     try {
       // Chuyển đổi trạng thái tiếng Việt sang tiếng Anh để gửi lên API
       const englishStatus = reverseStatusMapping[newStatus as keyof typeof reverseStatusMapping] || newStatus;
-      
+
       await axios.put(
         `https://api-zeal.onrender.com/api/orders/status/${orderId}?userId=${userId}`,
-        { status: englishStatus }
+        { paymentStatus: englishStatus } // Gửi paymentStatus thay vì status
       );
-      
+
       toast.success("Cập nhật trạng thái thành công");
-      
+
       setOrders((prevOrders) =>
         prevOrders.map((order) =>
-          order._id === orderId ? { ...order, status: englishStatus } : order
+          order._id === orderId ? { ...order, paymentStatus: englishStatus } : order
         )
       );
     } catch (error) {
@@ -104,7 +104,6 @@ export default function OrderPage() {
 
   // Handle click on an order to show the detail popup
   const handleOrderClick = (order: Order, e: React.MouseEvent) => {
-    // Don't open popup if clicking on the status select element
     if ((e.target as HTMLElement).tagName === 'SELECT') {
       return;
     }
@@ -133,7 +132,6 @@ export default function OrderPage() {
     if (product.images && product.images.length > 0) {
       return `https://api-zeal.onrender.com/images/${product.images[0]}`;
     }
-    // Trả về hình ảnh placeholder nếu không có hình ảnh
     return "https://via.placeholder.com/60x60?text=No+Image";
   };
 
@@ -165,17 +163,17 @@ export default function OrderPage() {
                 <td>{formatDate(order.createdAt)}</td>
                 <td>
                   <select
-                    value={getVietnameseStatus(order.status)}
-                    onChange={(e) => 
-                      handleStatusChange(order._id, order.user._id, e.target.value, order.status)
+                    value={getVietnameseStatus(order.paymentStatus)}
+                    onChange={(e) =>
+                      handleStatusChange(order._id, order.user._id, e.target.value, order.paymentStatus)
                     }
-                    className={`status-select ${order.status}`}
+                    className={`status-select ${order.paymentStatus}`}
                     onClick={(e) => e.stopPropagation()}
-                    disabled={order.status === "delivered"} // Vô hiệu hóa nếu đã giao hàng
+                    disabled={order.paymentStatus === "completed"} // Vô hiệu hóa nếu đã hoàn tất
                   >
                     <option value="Chờ xử lý">Chờ xử lý</option>
-                    <option value="Đang giao hàng">Đang giao hàng</option>
                     <option value="Đã giao hàng">Đã giao hàng</option>
+                    <option value="Thất bại">Thất bại</option>
                     <option value="Đã hủy">Đã hủy</option>
                   </select>
                 </td>
@@ -188,7 +186,7 @@ export default function OrderPage() {
       {showPopup && selectedOrder && (
         <div className="popup-overlay" onClick={closePopup}>
           <div className="order-detail" onClick={(e) => e.stopPropagation()}>
-            <button className="close-button" onClick={closePopup}>&times;</button>
+            <button className="close-button" onClick={closePopup}>×</button>
             <h2>Chi Tiết Đơn Hàng</h2>
             <p>
               <strong>Khách hàng:</strong> {selectedOrder.user.username}
@@ -200,18 +198,17 @@ export default function OrderPage() {
               <strong>Ngày:</strong> {formatDate(selectedOrder.createdAt)}
             </p>
             <p>
-              <strong>Trạng thái:</strong> {getVietnameseStatus(selectedOrder.status)}
+              <strong>Trạng thái:</strong> {getVietnameseStatus(selectedOrder.paymentStatus)}
             </p>
             <h3>Sản phẩm trong đơn hàng:</h3>
             <ul>
               {selectedOrder.items.map((item, idx) => (
                 <li key={idx}>
-                  <img 
-                    src={getProductImage(item.product)} 
-                    alt={item.product.name} 
-                    className="product-image" 
+                  <img
+                    src={getProductImage(item.product)}
+                    alt={item.product.name}
+                    className="product-image"
                     onError={(e) => {
-                      // Xử lý khi hình ảnh không tải được
                       (e.target as HTMLImageElement).src = "https://via.placeholder.com/60x60?text=Error";
                     }}
                   />

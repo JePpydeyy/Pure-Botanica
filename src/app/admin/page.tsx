@@ -80,12 +80,14 @@ export default function AD_Home() {
           };
 
           orders.forEach((order) => {
-            const date = new Date(order.createdAt);
-            const day = date.toLocaleString("en-US", { weekday: "long" });
-            const total = order.total || 0;
+            if (order.paymentStatus === "completed") {
+              const date = new Date(order.createdAt);
+              const day = date.toLocaleString("en-US", { weekday: "long" });
+              const total = order.total || 0;
 
-            if (revenueByDay[day as keyof typeof revenueByDay] !== undefined) {
-              revenueByDay[day as keyof typeof revenueByDay] += total;
+              if (revenueByDay[day as keyof typeof revenueByDay] !== undefined) {
+                revenueByDay[day as keyof typeof revenueByDay] += total;
+              }
             }
           });
 
@@ -118,8 +120,10 @@ export default function AD_Home() {
           );
         });
 
-        // Revenue today
-        const revenueToday = ordersToday.reduce((sum: any, order: { total: any; }) => sum + (order.total || 0), 0);
+        // Revenue today (only completed orders)
+        const revenueToday = ordersToday
+          .filter((order: { paymentStatus: string; }) => order.paymentStatus === "completed")
+          .reduce((sum: any, order: { total: any; }) => sum + (order.total || 0), 0);
 
         // New users today
         const newUsers = users.filter((user: { createdAt: string | number | Date; }) => {

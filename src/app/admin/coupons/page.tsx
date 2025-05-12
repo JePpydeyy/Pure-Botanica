@@ -63,7 +63,7 @@ export default function CouponPage() {
     const role = localStorage.getItem("role");
 
     if (!token || role !== "admin") {
-      router.push("/login");
+      router.push("/user/login");
     } else {
       setIsAuthorized(true);
     }

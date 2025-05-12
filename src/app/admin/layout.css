@@ -8,7 +8,7 @@
 
 /* Sidebar styles */
 .sidebar {
-        
+    z-index: 1000;
     width: 250px;
     background: #ffffff;
     height: 100vh;
@@ -29,6 +29,7 @@
 }
 
 .menu {
+    z-index: 1000;
     padding: 15px 0;
     z-index: 1000;
 }

@@ -16,7 +16,7 @@ export default function Comment() {
       name: string;
       price: number;
       images: string[];
-    };
+    } | null; // product có thể là null
     content: string;
     createdAt: string;
     updatedAt?: string;
@@ -75,13 +75,13 @@ export default function Comment() {
       }
 
       await axios.request({
-        url: `https://api-zeal.onrender.com/api/comments/${commentId}`,
+        url: `https://api-zeal.onrender.com/api/comments/${commentId}`,  // Đường dẫn chính xác
         method: "DELETE",
         headers: {
-          Authorization: `Bearer ${token}`, // Gửi token trong header
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        data: { userId }, // Truyền userId trong body
+        data: { userId },
       });
 
       setComments((prevComments) => prevComments.filter((comment) => comment._id !== commentId));
@@ -103,7 +103,6 @@ export default function Comment() {
         <h1>BÌNH LUẬN</h1>
       </div>
       <div className="comments-container">
-        
         <table className="comments-table">
           <thead>
             <tr>
@@ -123,20 +122,24 @@ export default function Comment() {
                 <td>{index + 1}</td>
                 <td>{comment.user.username}</td>
                 <td>{comment.user.email}</td>
-                <td>{comment.product.name}</td>
+                <td>{comment.product ? comment.product.name : 'Không có sản phẩm'}</td>
                 <td>
-                  <img
-                    src={`https://api-zeal.onrender.com/images/${comment.product.images[0]}`}
-                    alt={comment.product.name}
-                    className="product-image"
-                  />
+                  {comment.product && comment.product.images.length > 0 ? (
+                    <img
+                      src={`https://api-zeal.onrender.com/images/${comment.product.images[0]}`}
+                      alt={comment.product.name}
+                      className="product-image"
+                    />
+                  ) : (
+                    <span>Không có hình ảnh</span>
+                  )}
                 </td>
                 <td>{comment.content}</td>
                 <td>{formatDate(comment.createdAt)}</td>
                 <td>
                   <button
                     className="delete-btn"
-                    onClick={() => handleDelete(comment._id, comment.user._id)} // Truyền comment._id và comment.user._id
+                    onClick={() => handleDelete(comment._id, comment.user._id)}
                   >
                     Xóa
                   </button>

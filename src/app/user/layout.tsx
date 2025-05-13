@@ -47,7 +47,7 @@ export default async function RootLayout({
               <div className="container header-container">
                 <div className="logo">
                   <Link href="/user">
-                    <img src="\images\logo.png" alt="Pure Botanica" />
+                    <img src="https://api-zeal.onrender.com/images/logo_web.png" alt="Pure Botanica" />
                   </Link>
                 </div>
                 <nav>

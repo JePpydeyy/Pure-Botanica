@@ -212,7 +212,7 @@ export default function AD_Home() {
         />
       </section>
 
-      <section className="recent-orders">
+      {/* <section className="recent-orders">
         <h3>Đơn hàng gần đây</h3>
         {loading ? (
           <p>Đang tải...</p>
@@ -257,7 +257,7 @@ export default function AD_Home() {
             </tbody>
           </table>
         )}
-      </section>
+      </section> */}
     </div>
   );
 }

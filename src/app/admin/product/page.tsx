@@ -44,7 +44,7 @@ export default function ProductPage() {
     const role = localStorage.getItem("role");
 
     if (!token || role !== "admin") {
-      router.push("/login");
+      router.push("/user/login");
     }
   }, [router]);
 

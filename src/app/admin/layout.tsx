@@ -1,3 +1,4 @@
+import React from "react";
 import "./layout.css";
 
 
@@ -28,7 +29,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <a href="/admin/comment" className="menu-item">
               <span>Bình Luận</span>
             </a>
-            <a href="/admin/khuyenmai" className="menu-item">
+            <a href="/admin/coupons" className="menu-item">
               <span>Khuyến mãi</span>
             </a>
             <a href="/admin/customer" className="menu-item">

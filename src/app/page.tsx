@@ -9,7 +9,7 @@ export default function RedirectPage() {
   useEffect(() => {
     const timer = setTimeout(() => {
       router.push("/user");
-    }, 2000); // Chuyển trang sau 2 giây
+    }, 2); // Chuyển trang sau 2 giây
 
     return () => clearTimeout(timer); // Cleanup nếu component unmount
   }, [router]);

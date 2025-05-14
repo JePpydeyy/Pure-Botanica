@@ -72,32 +72,32 @@ nav a {
 }
 
 .category-list {
-  top:50px;
+  top: 50px;
   justify-content: space-around;
   position: absolute;
-  display: flex; /* Hiển thị theo hàng */
+  display: flex;
   left: -360px;
-  /* top: 54px; */
   background-color: rgba(255, 255, 255, 0.9);
-  width:1290px;
+  width: 1290px;
   padding: 10px;
   border-radius: 20px;
-
-  /* Ẩn menu mặc định */
   opacity: 0;
-  transform: translateY(-10px);
-  transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
-  pointer-events: none;
+  
+  transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+  
 }
 
-/* Khi hover vào menu-wrapper hoặc category-list, menu sẽ hiển thị */
 .menu-wrapper:hover .category-list,
 .category-list:hover {
   opacity: 1;
   transform: translateY(0);
   pointer-events: auto;
+  transition-delay: 0s; /* Hiển thị ngay khi hover */
 }
 
+.menu-wrapper .category-list {
+  transition: opacity 0.3s ease-in-out 0.2s, transform 0.3s ease-in-out 0.2s; /* Delay khi ẩn */
+}
 
 .category-itemm{
  
@@ -153,7 +153,7 @@ nav a {
   width: 200px; /* Điều chỉnh kích thước theo thiết kế */
   outline: none; /* Xóa viền mặc định khi focus */
   background: transparent; /* Nền trong suốt để trông tối giản */
-  transition: border-bottom-color 0.3s ease; /* Hiệu ứng chuyển màu viền dưới */
+  transition: border-bottom-color 0.3s ease; 
 }
 
 .search-input:focus {

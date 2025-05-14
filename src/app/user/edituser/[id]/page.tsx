@@ -1,10 +1,9 @@
-// src/app/user/edituser/[id]/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { use } from "react"; // Import React.use để unwrap params
+import { use } from "react";
 
 // Định nghĩa interface cho User
 interface User {
@@ -12,13 +11,13 @@ interface User {
   username: string;
   email: string;
   phone: string;
+  address?: string;
   status: string;
   listOrder: any[];
   birthday: string | null;
 }
 
 export default function EditUser({ params }: { params: Promise<{ id: string }> }) {
-  // Unwrap params để lấy id
   const { id } = use(params);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -26,17 +25,16 @@ export default function EditUser({ params }: { params: Promise<{ id: string }> }
   const [formData, setFormData] = useState<Partial<User>>({});
   const router = useRouter();
 
-  // Lấy dữ liệu người dùng từ API dựa trên id
+  // Lấy dữ liệu người dùng từ API
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
       setError("Không có token. Vui lòng đăng nhập.");
       setLoading(false);
-      router.push("/login"); // Chuyển hướng đến trang đăng nhập nếu không có token
+      router.push("/login");
       return;
     }
 
-    // Gọi API để lấy thông tin người dùng
     fetch(`https://api-zeal.onrender.com/api/users/userinfo`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -55,6 +53,7 @@ export default function EditUser({ params }: { params: Promise<{ id: string }> }
             username: data.username,
             email: data.email,
             phone: data.phone,
+            address: data.address || "",
             birthday: data.birthday,
           });
         }
@@ -66,13 +65,13 @@ export default function EditUser({ params }: { params: Promise<{ id: string }> }
       });
   }, [id, router]);
 
-  // Xử lý thay đổi input trong form
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Xử lý thay đổi input
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Xử lý gửi form để cập nhật thông tin người dùng
+  // Xử lý gửi form
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const token = localStorage.getItem("token");
@@ -89,11 +88,11 @@ export default function EditUser({ params }: { params: Promise<{ id: string }> }
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData), // Gửi dữ liệu form, không cần _id vì id đã trong URL
+        body: JSON.stringify(formData),
       });
 
       if (response.ok) {
-        router.push("/user/userinfo"); // Chuyển hướng về trang profile sau khi cập nhật thành công
+        router.push("/user/userinfo");
       } else {
         const errorData = await response.json();
         setError(errorData.message || "Lỗi khi cập nhật thông tin.");
@@ -103,7 +102,6 @@ export default function EditUser({ params }: { params: Promise<{ id: string }> }
     }
   };
 
-  // Xử lý giao diện khi đang tải, lỗi hoặc không có dữ liệu
   if (loading) return <p>Đang tải thông tin...</p>;
   if (error) return <p>{error}</p>;
   if (!user) return <p>Không tìm thấy thông tin người dùng.</p>;
@@ -139,6 +137,16 @@ export default function EditUser({ params }: { params: Promise<{ id: string }> }
             name="phone"
             value={formData.phone || ""}
             onChange={handleInputChange}
+          />
+        </div>
+        <div>
+          <label>Địa chỉ:</label>
+          <input
+            type="text"
+            name="address"
+            value={formData.address || ""}
+            onChange={handleInputChange}
+            placeholder="Ví dụ: 391 Tô Ký, Quận 12, TP Hồ Chí Minh"
           />
         </div>
         <div>

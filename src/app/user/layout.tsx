@@ -65,14 +65,22 @@ export default async function RootLayout({
                 </nav>
 
                 <div className="icons">
-                  <Link href="/user/search">
+            <div className="search-bar">
+                <form className="formtimkiem" action="/user/search" method="GET">
+                  <input
+                    type="text"
+                    name="query" // Tên tham số gửi đến URL
+                    placeholder="Tìm kiếm sản phẩm..."
+                    className="search-input"
+                  />
+                  <button type="submit" className="search-button">
                     <i className="fa-solid fa-magnifying-glass"></i>
-                  </Link>
-                  <Link href="/user/cart">
-                    <i className="fa-solid fa-cart-shopping"></i>
-                  </Link>
-                  <UserMenu />
-                </div>
+                  </button>
+                </form>
+              </div>
+              <Link href="/user/cart"><i className="fa-solid fa-cart-shopping"></i></Link>
+              <UserMenu />
+            </div>
               </div>
             </header>
             <main>{children}</main>
@@ -159,5 +167,6 @@ async function getCategories(url: string): Promise<Category[]> {
   return data.map((category: any) => ({
     _id: category._id,
     name: category.name,
+    isHidden: category.isHidden || false, 
   }));
 }

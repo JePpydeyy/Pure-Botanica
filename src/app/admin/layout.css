@@ -45,6 +45,9 @@
     color: #357E38;
     transition: all 0.3s ease;
     cursor: pointer;
+    border: none;
+    background: none;
+    font-size: 16px;
 }
 
 .menu-item:hover {

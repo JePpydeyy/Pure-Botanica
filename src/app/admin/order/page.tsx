@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
-import "./order.css";
+import styles from "./order.module.css"; // Import CSS Module
 
 export default function OrderPage() {
   interface Product {
@@ -19,7 +19,7 @@ export default function OrderPage() {
       username: string;
     };
     createdAt: string;
-    paymentStatus: string; // Đổi từ status thành paymentStatus để khớp với backend
+    paymentStatus: string;
     address: string;
     items: { product: Product; quantity: number }[];
   }
@@ -29,7 +29,6 @@ export default function OrderPage() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showPopup, setShowPopup] = useState<boolean>(false);
 
-  // Ánh xạ trạng thái từ tiếng Anh (backend) sang tiếng Việt (frontend)
   const statusMapping = {
     pending: "Chờ xử lý",
     completed: "Đã giao hàng",
@@ -37,7 +36,6 @@ export default function OrderPage() {
     cancelled: "Đã hủy",
   };
 
-  // Ánh xạ ngược từ tiếng Việt (frontend) sang tiếng Anh (backend)
   const reverseStatusMapping = {
     "Chờ xử lý": "pending",
     "Đã giao hàng": "completed",
@@ -45,7 +43,6 @@ export default function OrderPage() {
     "Đã hủy": "cancelled",
   };
 
-  // Fetch orders from API
   useEffect(() => {
     const fetchOrders = async () => {
       try {
@@ -59,7 +56,6 @@ export default function OrderPage() {
     fetchOrders();
   }, []);
 
-  // Format date
   const formatDate = (dateString: string | number | Date) => {
     const date = new Date(dateString);
     return `${date.getDate().toString().padStart(2, "0")}-${(date.getMonth() + 1)
@@ -67,26 +63,22 @@ export default function OrderPage() {
       .padStart(2, "0")}-${date.getFullYear()}`;
   };
 
-  // Hiển thị trạng thái bằng tiếng Việt
   const getVietnameseStatus = (paymentStatus: string) => {
     return statusMapping[paymentStatus as keyof typeof statusMapping] || paymentStatus;
   };
 
-  // Update order status
   const handleStatusChange = async (orderId: string, userId: string, newStatus: string, currentStatus: string) => {
-    // Kiểm tra nếu đơn hàng đã hoàn tất thì không cho phép thay đổi
     if (currentStatus === "completed") {
       toast.error("Không thể thay đổi trạng thái đơn hàng đã giao thành công");
       return;
     }
 
     try {
-      // Chuyển đổi trạng thái tiếng Việt sang tiếng Anh để gửi lên API
       const englishStatus = reverseStatusMapping[newStatus as keyof typeof reverseStatusMapping] || newStatus;
 
       await axios.put(
         `https://api-zeal.onrender.com/api/orders/status/${orderId}?userId=${userId}`,
-        { paymentStatus: englishStatus } // Gửi paymentStatus thay vì status
+        { paymentStatus: englishStatus }
       );
 
       toast.success("Cập nhật trạng thái thành công");
@@ -102,32 +94,27 @@ export default function OrderPage() {
     }
   };
 
-  // Handle click on an order to show the detail popup
   const handleOrderClick = (order: Order, e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).tagName === 'SELECT') {
+    if ((e.target as HTMLElement).tagName === "SELECT") {
       return;
     }
     setSelectedOrder(order);
     setShowPopup(true);
   };
 
-  // Close the popup
   const closePopup = () => {
     setShowPopup(false);
   };
 
-  // Calculate product total
   const calculateProductTotal = (product: Product, quantity: number) => {
     const price = product.discountPrice || product.price;
     return price * quantity;
   };
 
-  // Calculate order total
   const calculateOrderTotal = (items: { product: Product; quantity: number }[]) => {
     return items.reduce((total, item) => total + calculateProductTotal(item.product, item.quantity), 0);
   };
 
-  // Get product image URL from API
   const getProductImage = (product: Product) => {
     if (product.images && product.images.length > 0) {
       return `https://api-zeal.onrender.com/images/${product.images[0]}`;
@@ -135,16 +122,16 @@ export default function OrderPage() {
     return "https://via.placeholder.com/60x60?text=No+Image";
   };
 
-  if (error) return <div className="error-message">{error}</div>;
-  if (!orders.length) return <div className="loading-message">Đang tải...</div>;
+  if (error) return <div className={styles.errorMessage}>Không thể tải danh sách đơn hàng</div>;
+  if (!orders.length) return <div className={styles.loadingMessage}>Đang tải...</div>;
 
   return (
-    <div className="order-container">
-      <div className="title">
+    <div className={styles.orderContainer}>
+      <div className={styles.title}>
         <h1>Danh Sách Đơn Hàng</h1>
       </div>
-      <div className="table-container">
-        <table>
+      <div className={styles.tableContainer}>
+        <table className={styles.orderTable}>
           <thead>
             <tr>
               <th>ID</th>
@@ -167,9 +154,9 @@ export default function OrderPage() {
                     onChange={(e) =>
                       handleStatusChange(order._id, order.user._id, e.target.value, order.paymentStatus)
                     }
-                    className={`status-select ${order.paymentStatus}`}
+                    className={`${styles.statusSelect} ${styles[order.paymentStatus]}`}
                     onClick={(e) => e.stopPropagation()}
-                    disabled={order.paymentStatus === "completed"} // Vô hiệu hóa nếu đã hoàn tất
+                    disabled={order.paymentStatus === "completed"}
                   >
                     <option value="Chờ xử lý">Chờ xử lý</option>
                     <option value="Đã giao hàng">Đã giao hàng</option>
@@ -184,9 +171,11 @@ export default function OrderPage() {
       </div>
 
       {showPopup && selectedOrder && (
-        <div className="popup-overlay" onClick={closePopup}>
-          <div className="order-detail" onClick={(e) => e.stopPropagation()}>
-            <button className="close-button" onClick={closePopup}>×</button>
+        <div className={styles.popupOverlay} onClick={closePopup}>
+          <div className={styles.orderDetail} onClick={(e) => e.stopPropagation()}>
+            <button className={styles.closeButton} onClick={closePopup}>
+              ×
+            </button>
             <h2>Chi Tiết Đơn Hàng</h2>
             <p>
               <strong>Khách hàng:</strong> {selectedOrder.user.username}
@@ -207,22 +196,22 @@ export default function OrderPage() {
                   <img
                     src={getProductImage(item.product)}
                     alt={item.product.name}
-                    className="product-image"
+                    className={styles.productImage}
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = "https://via.placeholder.com/60x60?text=Error";
                     }}
                   />
-                  <div className="product-info">
-                    <div className="product-name">{item.product.name}</div>
-                    <div className="product-price">
-                      {item.quantity} x {(item.product.discountPrice || item.product.price).toLocaleString()} VND = {" "}
+                  <div className={styles.productInfo}>
+                    <div className={styles.productName}>{item.product.name}</div>
+                    <div className={styles.productPrice}>
+                      {item.quantity} x {(item.product.discountPrice || item.product.price).toLocaleString()} VND ={" "}
                       {calculateProductTotal(item.product, item.quantity).toLocaleString()} VND
                     </div>
                   </div>
                 </li>
               ))}
             </ul>
-            <div className="total">
+            <div className={styles.total}>
               Tổng tiền đơn hàng: {calculateOrderTotal(selectedOrder.items).toLocaleString()} VND
             </div>
           </div>

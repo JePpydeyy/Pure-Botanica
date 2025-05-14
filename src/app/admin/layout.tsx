@@ -1,15 +1,28 @@
+"use client";
+
 import React from "react";
 import "./layout.css";
+import { useRouter } from "next/navigation";
 
+const AdminLayout = ({ children }: { children: React.ReactNode }) => {
+  const router = useRouter();
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    router.push("/user"); // Redirect to the user page after logout
+  };
+
   return (
     <html lang="en">
       <body>
         <div className="sidebar">
           <div className="logo">
             <a href="/admin">
-            <img style={{ width: "200px" }} src="/images/logo.png" alt="Logo" />
+              <img
+                style={{ width: "200px" }}
+                src="https://api-zeal.onrender.com/images/logo_web.png"
+                alt="Logo"
+              />
             </a>
           </div>
 
@@ -38,25 +51,37 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <a href="/admin/admin" className="menu-item active">
               <span>Admin</span>
             </a>
-            <a href="/user" className="menu-item">
+            <button onClick={handleLogout} className="menu-item logout-button">
               <span>Đăng xuất</span>
-            </a>
+            </button>
           </div>
         </div>
 
         <div className="header">
           <div className="search-box">
-            <img style={{ width: "20px", height: "20px" }} src="/images/search.png" alt="Search Icon" />
+            <img
+              style={{ width: "20px", height: "20px" }}
+              src="/images/search.png"
+              alt="Search Icon"
+            />
             <input type="text" placeholder="Search..." />
           </div>
 
-          <div className="user-menu">
+          {/* <div className="user-menu">
             <div className="notification">
-              <img style={{ width: "40px", height: "40px" }} src="/images/notification.png" alt="Notification Icon" />
+              <img
+                style={{ width: "40px", height: "40px" }}
+                src="/images/notification.png"
+                alt="Notification Icon"
+              />
               <span className="notification-badge">2</span>
             </div>
             <div className="language-selector">
-              <img style={{ width: "60px", height: "40px" }} src="/images/vietnam.png" alt="Vietnamese flag" />
+              <img
+                style={{ width: "60px", height: "40px" }}
+                src="/images/vietnam.png"
+                alt="Vietnamese flag"
+              />
               <span>Việt Nam</span>
             </div>
 
@@ -67,7 +92,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </div>
               <div className="user-avatar">👤</div>
             </div>
-          </div>
+          </div> */}
         </div>
 
         {/* Hiển thị nội dung con */}
@@ -75,4 +100,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </body>
     </html>
   );
-}
+};
+
+export default AdminLayout;

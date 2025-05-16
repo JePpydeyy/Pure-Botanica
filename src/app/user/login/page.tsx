@@ -3,8 +3,8 @@ import Link from "next/link";
 import { jwtDecode } from "jwt-decode";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../context/AuthContext"; // Import useAuth
-import styles from './login.module.css'; // Import the module
+import { useAuth } from "../context/AuthContext";
+import styles from "./login.module.css";
 
 // Interface định nghĩa kiểu cho payload token
 interface CustomJwtPayload {
@@ -20,22 +20,20 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const router = useRouter();
-  const { isLoggedIn } = useAuth(); // Sử dụng AuthContext
+  const { isLoggedIn } = useAuth();
 
-  // Sử dụng useEffect để thực hiện chuyển hướng sau khi render
   useEffect(() => {
     if (isLoggedIn) {
-      // Nếu đã đăng nhập, chuyển hướng đến trang chủ (hoặc trang khác tùy thuộc vào vai trò)
       router.push("/user");
     }
-  }, [isLoggedIn, router]); // Thêm dependencies để theo dõi sự thay đổi của isLoggedIn và router
+  }, [isLoggedIn, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(""); // Reset error
+    setError("");
 
     try {
-      const res = await fetch("https://api-zeal.onrender.com/api/users/login", {
+      const res = await fetch("http://localhost:10000/api/users/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -48,7 +46,6 @@ export default function LoginPage() {
         return;
       }
 
-      // Giải mã token
       const decodedToken: CustomJwtPayload = jwtDecode(data.token);
       const userRole = decodedToken.role;
       const userEmail = decodedToken.email;
@@ -58,17 +55,19 @@ export default function LoginPage() {
         return;
       }
 
-      // Lưu thông tin vào localStorage
       localStorage.setItem("token", data.token);
       localStorage.setItem("role", userRole);
       localStorage.setItem("email", userEmail || "");
 
-      // Force refresh để context được cập nhật và chuyển hướng
       window.location.href = userRole === "admin" ? "/admin" : "/user";
     } catch (err: any) {
       console.error("Lỗi đăng nhập:", err);
       setError(err.message || "Có lỗi xảy ra, vui lòng thử lại!");
     }
+  };
+
+  const handleGoogleLogin = () => {
+    window.location.href = "http://localhost:10000/api/users/google";
   };
 
   return (
@@ -78,7 +77,10 @@ export default function LoginPage() {
           <strong>ĐĂNG NHẬP</strong>
         </h2>
 
-        <button className={styles["google-btn"]}>
+        <button
+          className={styles["google-btn"]}
+          onClick={handleGoogleLogin}
+        >
           <img src="/images/icons8-google-48.png" alt="Google Logo" /> Đăng nhập với Google
         </button>
 

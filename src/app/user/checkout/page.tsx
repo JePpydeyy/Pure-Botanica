@@ -12,13 +12,23 @@ export default function CheckoutPage() {
 
   const [formData, setFormData] = useState<{
     fullName: string;
-    address: string;
+    address: {
+      ward: string;
+      district: string;
+      city: string;
+      province: string;
+    };
     sdt: string;
     note: string;
     paymentMethod: string;
   }>({
     fullName: "",
-    address: "",
+    address: {
+      ward: "",
+      district: "",
+      city: "",
+      province: "",
+    },
     sdt: "",
     note: "",
     paymentMethod: "cod",
@@ -28,11 +38,11 @@ export default function CheckoutPage() {
   const [error, setError] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [loadingUser, setLoadingUser] = useState(true);
+  const [hasCheckedOut, setHasCheckedOut] = useState(false); // Thêm trạng thái để theo dõi thanh toán
 
   useEffect(() => {
     setIsMounted(true);
 
-    // Fetch user info
     const token = localStorage.getItem("token");
     if (token) {
       fetch("https://api-zeal.onrender.com/api/users/userinfo", {
@@ -47,7 +57,12 @@ export default function CheckoutPage() {
             ...prev,
             fullName: data.username || "",
             sdt: data.phone || "",
-            address: data.address || "", // Nếu API không có address, để trống
+            address: {
+              ward: data.address?.ward || "",
+              district: data.address?.district || "",
+              city: data.address?.city || "",
+              province: data.address?.province || "",
+            },
           }));
           setLoadingUser(false);
         })
@@ -60,11 +75,12 @@ export default function CheckoutPage() {
   }, []);
 
   useEffect(() => {
-    if (!checkoutData || !checkoutData.cart || !checkoutData.cart.items) {
+    // Chỉ kiểm tra và hiển thị thông báo nếu chưa thanh toán thành công
+    if (!hasCheckedOut && (!checkoutData || !checkoutData.cart || !checkoutData.cart.items)) {
       alert("Không tìm thấy thông tin giỏ hàng! Vui lòng kiểm tra lại giỏ hàng của bạn.");
       router.push("/user/cart");
     }
-  }, [checkoutData, router]);
+  }, [checkoutData, router, hasCheckedOut]);
 
   if (!isMounted || !checkoutData || !checkoutData.cart || !checkoutData.cart.items) {
     return null;
@@ -81,13 +97,23 @@ export default function CheckoutPage() {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    if (["ward", "district", "city", "province"].includes(name)) {
+      setFormData((prev) => ({
+        ...prev,
+        address: { ...prev.address, [name]: value },
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
   };
 
   const handleUseDifferentInfo = (e: React.ChangeEvent<HTMLInputElement>) => {
     setUseDifferentInfo(e.target.checked);
     if (!e.target.checked) {
-      // Reset to user info if unchecked
       const token = localStorage.getItem("token");
       if (token) {
         fetch("https://api-zeal.onrender.com/api/users/userinfo", {
@@ -102,7 +128,12 @@ export default function CheckoutPage() {
               ...formData,
               fullName: data.username || "",
               sdt: data.phone || "",
-              address: data.address || "",
+              address: {
+                ward: data.address?.ward || "",
+                district: data.address?.district || "",
+                city: data.address?.city || "",
+                province: data.address?.province || "",
+              },
             });
           });
       }
@@ -122,35 +153,56 @@ export default function CheckoutPage() {
         throw new Error("Không tìm thấy userId");
       }
 
-      const requestData = {
-        userId: userId,
-        address: formData.address,
-        sdt: formData.sdt,
-        paymentMethod: formData.paymentMethod === "cod" ? "Thanh toán khi nhận hàng" : "Chuyển khoản ngân hàng",
-        note: formData.note || "",
-        couponCode: couponCode || "",
+      const attemptCheckout = async (useCoupon: boolean) => {
+        const requestData = {
+          userId: userId,
+          address: formData.address,
+          sdt: formData.sdt,
+          paymentMethod: formData.paymentMethod === "cod" ? "Thanh toán khi nhận hàng" : "Chuyển khoản ngân hàng",
+          note: formData.note || "",
+          couponCode: useCoupon && couponCode ? couponCode : undefined,
+        };
+
+        console.log("Sending request data:", requestData);
+
+        const response = await fetch(`https://api-zeal.onrender.com/api/carts/checkout`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(requestData),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `Không thể thanh toán: ${response.statusText}`);
+        }
+
+        return await response.json();
       };
 
-      const response = await fetch(`https://api-zeal.onrender.com/api/carts/checkout`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(requestData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Không thể thanh toán: ${response.statusText}`);
+      try {
+        const result = await attemptCheckout(true);
+        setCheckoutData(null);
+        localStorage.removeItem("checkoutData");
+        setHasCheckedOut(true); // Đánh dấu đã thanh toán thành công
+        alert("Đặt hàng thành công!");
+        router.push("/user/");
+      } catch (err) {
+        const errorMessage = (err as Error).message;
+        if (errorMessage.includes("Mã giảm giá") || errorMessage.includes("coupon")) {
+          setError("Mã giảm giá không hợp lệ, đơn hàng sẽ được thanh toán với giá gốc.");
+          const result = await attemptCheckout(false);
+          setCheckoutData(null);
+          localStorage.removeItem("checkoutData");
+          setHasCheckedOut(true); // Đánh dấu đã thanh toán thành công
+          alert("Đặt hàng thành công!");
+          router.push("/user/");
+        } else {
+          throw err;
+        }
       }
-
-      const result = await response.json();
-      setCheckoutData(null);
-      localStorage.removeItem("checkoutData");
-
-      alert("Đặt hàng thành công!");
-      router.push("/user/order-complete");
     } catch (err) {
       setError((err as Error).message);
     }
@@ -202,9 +254,36 @@ export default function CheckoutPage() {
                 />
                 <input
                   type="text"
-                  name="address"
-                  placeholder="Địa chỉ (ví dụ: 391 Tô Ký, Quận 12, TP Hồ Chí Minh)"
-                  value={formData.address}
+                  name="ward"
+                  placeholder="Xã/Phường (ví dụ: 391 Tô Ký)"
+                  value={formData.address.ward}
+                  onChange={handleChange}
+                  required
+                  disabled={!useDifferentInfo && !loadingUser}
+                />
+                <input
+                  type="text"
+                  name="district"
+                  placeholder="Quận/Huyện (ví dụ: Quận 12)"
+                  value={formData.address.district}
+                  onChange={handleChange}
+                  required
+                  disabled={!useDifferentInfo && !loadingUser}
+                />
+                <input
+                  type="text"
+                  name="city"
+                  placeholder="Thành phố (ví dụ: TP Hồ Chí Minh)"
+                  value={formData.address.city}
+                  onChange={handleChange}
+                  required
+                  disabled={!useDifferentInfo && !loadingUser}
+                />
+                <input
+                  type="text"
+                  name="province"
+                  placeholder="Tỉnh (ví dụ: Hồ Chí Minh)"
+                  value={formData.address.province}
                   onChange={handleChange}
                   required
                   disabled={!useDifferentInfo && !loadingUser}

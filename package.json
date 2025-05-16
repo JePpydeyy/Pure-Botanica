@@ -25,9 +25,9 @@
   },
   "devDependencies": {
     "@types/axios": "^0.9.36",
-    "@types/node": "^20",
-    "@types/react": "^19",
+    "@types/node": "20.17.47",
+    "@types/react": "19.1.4",
     "@types/react-dom": "^19",
-    "typescript": "^5"
+    "typescript": "5.8.3"
   }
 }

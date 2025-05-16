@@ -1,0 +1,206 @@
+/* Scoped styles for the OrderPage component in Next.js */
+.orderContainer {
+  max-width: 1000px;
+  margin: 40px auto;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 24px;
+}
+
+.title h1 {
+  font-size: 24px;
+  font-weight: 600;
+  color: #2a7a1a;
+  margin: 0 0 20px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #2a7a1a;
+}
+
+.tableContainer {
+  overflow-x: auto;
+  margin-top: 16px;
+}
+
+.orderTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.orderTable th,
+.orderTable td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 15px;
+}
+
+.orderTable thead th {
+  background-color: #2a7a1a;
+  color: #ffffff;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.orderTable tr:hover {
+  background-color: #f9fafb;
+  cursor: pointer;
+}
+
+.statusSelect {
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: 1px solid #d1d5db;
+  font-size: 14px;
+  font-weight: 500;
+  background-color: #ffffff;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg fill='black' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/><path d='M0 0h24v24H0z' fill='none'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  padding-right: 24px;
+}
+
+.statusSelect:disabled {
+  background-color: #f3f4f6;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.pending {
+  color: #b45309;
+  background-color: #fef3c7;
+  font-weight: 600;
+}
+
+.completed {
+  color: #15803d;
+  background-color: #dcfce7;
+  font-weight: 600;
+}
+
+.failed {
+  color: #b91c1c;
+  background-color: #fee2e2;
+  font-weight: 600;
+}
+
+.cancelled {
+  color: #4b5563;
+  background-color: #e5e7eb;
+  font-weight: 600;
+}
+
+.popupOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.orderDetail {
+  background-color: #ffffff;
+  padding: 24px;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 85vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.closeButton {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  font-size: 20px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #374151;
+  transition: color 0.2s ease;
+}
+
+.closeButton:hover {
+  color: #2a7a1a;
+}
+
+.productImage {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 4px;
+  margin-right: 12px;
+  vertical-align: middle;
+}
+
+.productInfo {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.productName {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 4px;
+}
+
+.productPrice {
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.total {
+  margin-top: 20px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #2a7a1a;
+  text-align: right;
+}
+
+.loadingMessage,
+.errorMessage {
+  text-align: center;
+  margin: 40px auto;
+  font-size: 18px;
+  color: #4b5563;
+}
+
+.errorMessage {
+  color: #b91c1c;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .orderContainer {
+    padding: 16px;
+    margin: 20px auto;
+  }
+
+  .orderDetail {
+    width: 95%;
+    padding: 16px;
+  }
+
+  .orderTable th,
+  .orderTable td {
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+
+  .statusSelect {
+    font-size: 13px;
+    padding: 5px 20px 5px 8px;
+  }
+}

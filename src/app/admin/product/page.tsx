@@ -219,7 +219,7 @@ export default function ProductPage() {
               <th>Tên sản phẩm</th>
               <th>Danh mục</th>
               <th>Giá</th>
-              <th>Số lượng</th>
+              <th>Tồn Kho</th>
               <th>Hành động</th>
             </tr>
           </thead>

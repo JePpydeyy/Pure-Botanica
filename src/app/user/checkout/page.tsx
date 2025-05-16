@@ -13,10 +13,10 @@ export default function CheckoutPage() {
   const [formData, setFormData] = useState<{
     fullName: string;
     address: {
+      addressLine: string; // Địa chỉ cụ thể (số nhà, đường)
       ward: string;
       district: string;
-      city: string;
-      province: string;
+      cityOrProvince: string; // Gộp tỉnh và thành phố
     };
     sdt: string;
     note: string;
@@ -24,10 +24,10 @@ export default function CheckoutPage() {
   }>({
     fullName: "",
     address: {
+      addressLine: "", // Trường địa chỉ cụ thể
       ward: "",
       district: "",
-      city: "",
-      province: "",
+      cityOrProvince: "", // Gộp tỉnh và thành phố
     },
     sdt: "",
     note: "",
@@ -58,10 +58,10 @@ export default function CheckoutPage() {
             fullName: data.username || "",
             sdt: data.phone || "",
             address: {
+              addressLine: data.address?.addressLine || "", // Thêm địa chỉ cụ thể
               ward: data.address?.ward || "",
               district: data.address?.district || "",
-              city: data.address?.city || "",
-              province: data.address?.province || "",
+              cityOrProvince: data.address?.city || data.address?.province || "", // Gộp tỉnh và thành phố vào một trường
             },
           }));
           setLoadingUser(false);
@@ -98,7 +98,7 @@ export default function CheckoutPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    if (["ward", "district", "city", "province"].includes(name)) {
+    if (["addressLine", "ward", "district", "cityOrProvince"].includes(name)) { // Cập nhật addressLine và các trường liên quan
       setFormData((prev) => ({
         ...prev,
         address: { ...prev.address, [name]: value },
@@ -129,10 +129,10 @@ export default function CheckoutPage() {
               fullName: data.username || "",
               sdt: data.phone || "",
               address: {
+                addressLine: data.address?.addressLine || "", // Thêm địa chỉ cụ thể
                 ward: data.address?.ward || "",
                 district: data.address?.district || "",
-                city: data.address?.city || "",
-                province: data.address?.province || "",
+                cityOrProvince: data.address?.city || data.address?.province || "", // Gộp tỉnh và thành phố vào một trường
               },
             });
           });
@@ -254,6 +254,15 @@ export default function CheckoutPage() {
                 />
                 <input
                   type="text"
+                  name="addressLine" // Địa chỉ cụ thể (số nhà, đường)
+                  placeholder="Địa chỉ cụ thể (số nhà, đường)"
+                  value={formData.address.addressLine} // Trường địa chỉ cụ thể
+                  onChange={handleChange}
+                  required
+                  disabled={!useDifferentInfo && !loadingUser}
+                />
+                <input
+                  type="text"
                   name="ward"
                   placeholder="Xã/Phường (ví dụ: 391 Tô Ký)"
                   value={formData.address.ward}
@@ -272,18 +281,9 @@ export default function CheckoutPage() {
                 />
                 <input
                   type="text"
-                  name="city"
-                  placeholder="Thành phố (ví dụ: TP Hồ Chí Minh)"
-                  value={formData.address.city}
-                  onChange={handleChange}
-                  required
-                  disabled={!useDifferentInfo && !loadingUser}
-                />
-                <input
-                  type="text"
-                  name="province"
-                  placeholder="Tỉnh (ví dụ: Hồ Chí Minh)"
-                  value={formData.address.province}
+                  name="cityOrProvince" // Đã thay đổi thành cityOrProvince
+                  placeholder="Tỉnh/Thành phố (ví dụ: TP Hồ Chí Minh)"
+                  value={formData.address.cityOrProvince} // Sử dụng cityOrProvince
                   onChange={handleChange}
                   required
                   disabled={!useDifferentInfo && !loadingUser}

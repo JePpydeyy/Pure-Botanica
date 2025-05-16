@@ -15,7 +15,7 @@ export default function VerifyEmail() {
       if (!token) return;
 
       try {
-        const res = await fetch(`http://localhost:10000/api/users/verify-email/${token}`, {
+        const res = await fetch(`https://api-zeal.onrender.com/api/users/verify-email/${token}`, {
           method: "GET",
         });
 

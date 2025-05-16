@@ -22,7 +22,7 @@ export default function ResetPassword() {
     }
 
     try {
-      const res = await fetch(`http://localhost:10000/api/users/reset-password/${token}`, {
+      const res = await fetch(`https://api-zeal.onrender.com/api/users/reset-password/${token}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ newPassword }),

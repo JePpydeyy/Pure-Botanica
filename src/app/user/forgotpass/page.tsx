@@ -13,7 +13,7 @@ export default function ForgotPassword() {
     setMessage("");
 
     try {
-      const res = await fetch("http://localhost:10000/api/users/forgot-password", {
+      const res = await fetch("https://api-zeal.onrender.com/api/users/forgot-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),

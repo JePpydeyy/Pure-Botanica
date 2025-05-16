@@ -110,7 +110,7 @@ export default function LoginPage() {
           />
 
           <div className={styles["forgot-password"]}>
-            <a href="#">Quên mật khẩu?</a>
+          <Link href="/user/forgotpass">Quên mật Khẩu</Link>
           </div>
 
           <button type="submit" className={styles["submit-btn"]}>ĐĂNG NHẬP</button>

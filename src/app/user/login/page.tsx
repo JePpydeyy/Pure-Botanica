@@ -35,7 +35,7 @@ export default function LoginPage() {
     setError(""); // Reset error
 
     try {
-      const res = await fetch("https://api-zeal.onrender.com/api/users/login", {
+      const res = await fetch("http://localhost:10000/api/users/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -108,7 +108,7 @@ export default function LoginPage() {
           />
 
           <div className={styles["forgot-password"]}>
-            <a href="#">Quên mật khẩu?</a>
+          <Link href="/user/forgotpass">Quên mật Khẩu</Link>
           </div>
 
           <button type="submit" className={styles["submit-btn"]}>ĐĂNG NHẬP</button>

@@ -2,11 +2,12 @@
 
 import Image from "next/image";
 import "./page.css";
-import { useState, useEffect, SetStateAction } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Product } from "@/app/components/product_interface";
 
-// Ánh xạ banner với danh mục (đã cập nhật theo danh sách bạn cung cấp)
+// Ánh xạ banner với danh mục
 const bannerCategoryMap: { [key: string]: string } = {
   "/images/bannernav1.png": "Hương thơm",
   "/images/bannernav2.png": "Chăm sóc tóc",
@@ -21,6 +22,8 @@ export default function Home() {
   const [newProducts, setNewProducts] = useState<Product[]>([]);
   const [bestSellingProducts, setBestSellingProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
   const slides = [
     "/images/bannernav1.png",
@@ -30,6 +33,35 @@ export default function Home() {
     "/images/bannernav5.png",
     "/images/bannernav6.png",
   ];
+
+  // Xử lý reload trang khi có refresh=true
+  useEffect(() => {
+    const refresh = searchParams.get("refresh");
+    console.log("Checking refresh param:", refresh); // Debug log
+
+    // Kiểm tra xem đã reload chưa bằng localStorage
+    const hasReloaded = localStorage.getItem("hasReloadedAfterLogin");
+
+    if (refresh === "true" && !hasReloaded) {
+      console.log("Preparing to reload page..."); // Debug log
+      // Xóa tham số refresh ngay lập tức
+      const newUrl = window.location.pathname;
+      router.replace(newUrl, undefined, { scroll: false });
+      // Đợi một chút để đảm bảo URL được cập nhật
+      setTimeout(() => {
+        localStorage.setItem("hasReloadedAfterLogin", "true");
+        console.log("Reloading page now...");
+        window.location.reload();
+      }, 200); // Tăng delay để đảm bảo router.replace hoàn tất
+    }
+  }, [searchParams, router]);
+
+  // Reset trạng thái hasReloaded khi rời trang
+  useEffect(() => {
+    return () => {
+      localStorage.removeItem("hasReloadedAfterLogin");
+    };
+  }, []);
 
   // Tự động chuyển slide sau mỗi 7 giây
   useEffect(() => {
@@ -44,7 +76,12 @@ export default function Home() {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        const response = await fetch("https://api-zeal.onrender.com/api/products");
+        const response = await fetch("https://api-zeal.onrender.com/api/products", {
+          cache: "no-store",
+        });
+        if (!response.ok) {
+          throw new Error("Không thể lấy dữ liệu sản phẩm");
+        }
         const allProducts: Product[] = await response.json();
 
         // Sắp xếp sản phẩm mới nhất theo _id (timestamp)
@@ -65,8 +102,6 @@ export default function Home() {
 
         const sortedByStock = [...productsWithStock].sort((a, b) => b.stock - a.stock);
         const topStockProducts = sortedByStock.slice(0, 4);
-
-        console.log("Top stock products:", topStockProducts); // Debug log
         setBestSellingProducts(topStockProducts);
 
         setLoading(false);
@@ -86,7 +121,7 @@ export default function Home() {
 
   // Xử lý URL ảnh
   const getImageUrl = (image: string): string => {
-    if (!image) return "/api/placeholder/200/200"; // Ảnh mặc định nếu không có
+    if (!image) return "/api/placeholder/200/200";
     if (image.startsWith("/")) return image;
     return `/images/${image}`;
   };
@@ -102,7 +137,7 @@ export default function Home() {
   };
 
   // Xử lý khi nhấn vào chấm (dot)
-  const goToSlide = (index: SetStateAction<number>) => {
+  const goToSlide = (index: number) => {
     setCurrentSlide(index);
   };
 
@@ -171,7 +206,6 @@ export default function Home() {
         <section className="banner-slideshow">
           {slides.map((slide, index) => {
             const category = bannerCategoryMap[slide];
-            console.log(`Banner ${slide} maps to category: ${category}`); // Debug log
             return (
               <Link
                 key={index}

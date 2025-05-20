@@ -46,7 +46,7 @@ export default function RegisterPage() {
     e.preventDefault();
     setError("");
     try {
-      const res = await fetch("http://localhost:10000/api/users/register", {
+      const res = await fetch("https://api-zeal.onrender.com/api/users/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, email, phone, password }),

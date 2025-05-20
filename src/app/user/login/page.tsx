@@ -1,41 +1,45 @@
 "use client";
 import Link from "next/link";
+import { useState, useEffect, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "../context/AuthContext";
 import { jwtDecode } from "jwt-decode";
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "../context/AuthContext"; // Import useAuth
-import styles from './login.module.css'; // Import the module
-
-// Interface định nghĩa kiểu cho payload token
-interface CustomJwtPayload {
-  id?: string;
-  email?: string;
-  role?: string;
-  iat?: number;
-  exp?: number;
-}
+import styles from "./login.module.css";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const router = useRouter();
-  const { isLoggedIn } = useAuth(); // Sử dụng AuthContext
+  const searchParams = useSearchParams();
+  const { login } = useAuth();
+  const hasProcessedToken = useRef(false);
 
-  // Sử dụng useEffect để thực hiện chuyển hướng sau khi render
   useEffect(() => {
-    if (isLoggedIn) {
-      // Nếu đã đăng nhập, chuyển hướng đến trang chủ (hoặc trang khác tùy thuộc vào vai trò)
-      router.push("/user");
+    const token = searchParams.get("token");
+    if (token && !hasProcessedToken.current) {
+      hasProcessedToken.current = true;
+      console.log("Received token from Google:", token);
+      try {
+        const decoded = jwtDecode(token) as any;
+        console.log("Decoded token:", decoded);
+        login(token).catch((err: unknown) => {
+          console.error("Lỗi xử lý token từ Google:", err);
+          setError(`Có lỗi khi đăng nhập bằng Google, vui lòng thử lại! Chi tiết: ${err instanceof Error ? err.message : "Lỗi không xác định"}`);
+        });
+      } catch (decodeError) {
+        console.error("Lỗi giải mã token:", decodeError);
+        setError("Token không hợp lệ, vui lòng thử lại!");
+      }
     }
-  }, [isLoggedIn, router]); // Thêm dependencies để theo dõi sự thay đổi của isLoggedIn và router
+  }, [searchParams, login]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError(""); // Reset error
+    setError("");
 
     try {
-      const res = await fetch("https://api-zeal.onrender.com/api/users/login", {
+      const res = await fetch("http://localhost:10000/api/users/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -48,27 +52,17 @@ export default function LoginPage() {
         return;
       }
 
-      // Giải mã token
-      const decodedToken: CustomJwtPayload = jwtDecode(data.token);
-      const userRole = decodedToken.role;
-      const userEmail = decodedToken.email;
-
-      if (!userRole) {
-        setError("Không tìm thấy thông tin vai trò người dùng");
-        return;
-      }
-
-      // Lưu thông tin vào localStorage
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("role", userRole);
-      localStorage.setItem("email", userEmail || "");
-
-      // Force refresh để context được cập nhật và chuyển hướng
-      window.location.href = userRole === "admin" ? "/admin" : "/user";
-    } catch (err: any) {
+      console.log("Login response token:", data.token);
+      await login(data.token);
+    } catch (err: unknown) {
       console.error("Lỗi đăng nhập:", err);
-      setError(err.message || "Có lỗi xảy ra, vui lòng thử lại!");
+      setError(err instanceof Error ? err.message : "Có lỗi xảy ra, vui lòng thử lại!");
     }
+  };
+
+  const handleGoogleLogin = () => {
+    console.log("Redirecting to Google:", "http://localhost:10000/api/auth/google");
+    window.location.href = "http://localhost:10000/api/auth/google";
   };
 
   return (
@@ -78,7 +72,7 @@ export default function LoginPage() {
           <strong>ĐĂNG NHẬP</strong>
         </h2>
 
-        <button className={styles["google-btn"]}>
+        <button className={styles["google-btn"]} onClick={handleGoogleLogin}>
           <img src="/images/icons8-google-48.png" alt="Google Logo" /> Đăng nhập với Google
         </button>
 
@@ -108,7 +102,7 @@ export default function LoginPage() {
           />
 
           <div className={styles["forgot-password"]}>
-          <Link href="/user/forgotpass">Quên mật Khẩu</Link>
+            <Link href="/user/forgotpass">Quên mật Khẩu</Link>
           </div>
 
           <button type="submit" className={styles["submit-btn"]}>ĐĂNG NHẬP</button>

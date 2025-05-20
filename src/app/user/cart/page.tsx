@@ -69,7 +69,7 @@ export default function CartPage() {
       setLoading(false);
       updatePrice();
     } catch (err) {
-      setError(err.message);
+        setError((err as Error).message);
       setLoading(false);
     }
   };
@@ -104,7 +104,7 @@ export default function CartPage() {
 
       await fetchCart();
     } catch (err) {
-      setError(err.message);
+     setError((err as Error).message);
     }
   };
 
@@ -138,7 +138,7 @@ export default function CartPage() {
 
       await fetchCart();
     } catch (err) {
-      setError(err.message);
+      setError((err as Error).message);
     }
   };
 
@@ -170,7 +170,7 @@ export default function CartPage() {
 
       await fetchCart();
     } catch (err) {
-      setError(err.message);
+        setError((err as Error).message);
     }
   };
 
@@ -215,7 +215,7 @@ export default function CartPage() {
       setTotal(data.total || calculateSubtotal());
       setCouponError(null);
     } catch (err) {
-      setCouponError(err.message);
+       setError((err as Error).message);
       setDiscount(0);
       setTotal(calculateSubtotal());
     }
@@ -225,30 +225,29 @@ export default function CartPage() {
     updatePrice();
   };
 
-  const handleCheckout = () => {
-    if (!cart || !cart.items || cart.items.length === 0) {
-      setError("Giỏ hàng trống, không thể thanh toán");
-      return;
-    }
+ const handleCheckout = () => {
+  if (!cart || !cart.items || cart.items.length === 0) {
+    setError("Giỏ hàng trống, không thể thanh toán");
+    return;
+  }
 
-    const checkoutData = {
-      cart,
-      userId,
-      couponCode,
-      subtotal: calculateSubtotal(),
-      discount,
-      total,
-    };
-
-    // Lưu vào localStorage trước khi set vào Context
-    if (typeof window !== "undefined") {
-      localStorage.setItem("checkoutData", JSON.stringify(checkoutData));
-    }
-
-    setCheckoutData(checkoutData);
-    console.log("Checkout data saved to Context:", checkoutData);
-    router.push("/user/checkout");
+  const checkoutData = {
+    cart,
+    userId,
+    couponCode,
+    subtotal: calculateSubtotal(),
+    discount,
+    total,
   };
+
+  if (typeof window !== "undefined") {
+    localStorage.setItem("checkoutData", JSON.stringify(checkoutData));
+  }
+
+  setCheckoutData(checkoutData);
+  console.log("Checkout data saved to Context:", checkoutData);
+  router.push("/user/checkout");
+};
 
   return (
     <div className={styles["cart-container"]}>
@@ -374,9 +373,13 @@ export default function CartPage() {
               </strong>
             </div>
           </div>
-          <button className={styles.checkout} onClick={handleCheckout}>
-            Thanh toán
-          </button>
+          <button
+        className={styles.checkout}
+        onClick={handleCheckout}
+        disabled={!cart || !cart.items || cart.items.length === 0}
+      >
+        Thanh toán
+      </button>
         </div>
       </div>
     </div>

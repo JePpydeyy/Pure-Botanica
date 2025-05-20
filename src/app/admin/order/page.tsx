@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
-import styles from "./order.module.css"; // Import CSS Module
+import styles from "./order.module.css";
 
 export default function OrderPage() {
   interface Product {
@@ -10,6 +10,13 @@ export default function OrderPage() {
     price: number;
     discountPrice: number | null;
     images?: string[];
+  }
+
+  interface Address {
+    ward?: string;
+    district?: string;
+    city?: string;
+    province?: string;
   }
 
   interface Order {
@@ -20,7 +27,7 @@ export default function OrderPage() {
     };
     createdAt: string;
     paymentStatus: string;
-    address: string;
+    address: Address | string | null;
     items: { product: Product; quantity: number }[];
   }
 
@@ -41,6 +48,14 @@ export default function OrderPage() {
     "Đã giao hàng": "completed",
     "Thất bại": "failed",
     "Đã hủy": "cancelled",
+  };
+
+  const formatAddress = (address: Address | string | null) => {
+    if (!address || typeof address === "string") {
+      return address || "Chưa có địa chỉ";
+    }
+    const { ward, district, city, province } = address;
+    return [ward, district, city, province].filter(Boolean).join(", ") || "Chưa có địa chỉ";
   };
 
   useEffect(() => {
@@ -146,7 +161,7 @@ export default function OrderPage() {
               <tr key={order._id} onClick={(e) => handleOrderClick(order, e)}>
                 <td>{index + 1}</td>
                 <td>{order.user.username}</td>
-                <td>{order.address || "Chưa có địa chỉ"}</td>
+                <td>{formatAddress(order.address)}</td>
                 <td>{formatDate(order.createdAt)}</td>
                 <td>
                   <select
@@ -181,7 +196,7 @@ export default function OrderPage() {
               <strong>Khách hàng:</strong> {selectedOrder.user.username}
             </p>
             <p>
-              <strong>Địa chỉ:</strong> {selectedOrder.address || "Chưa có địa chỉ"}
+              <strong>Địa chỉ:</strong> {formatAddress(selectedOrder.address)}
             </p>
             <p>
               <strong>Ngày:</strong> {formatDate(selectedOrder.createdAt)}

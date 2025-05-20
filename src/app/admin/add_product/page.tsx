@@ -100,7 +100,7 @@ const AddProduct = () => {
       });
 
       if (response.ok) {
-        alert("✅ Sản phẩm đã được thêm thành công!");
+        alert("Thêm sản phẩm thành công");
         setFormData({
           name: "",
           price: "",
@@ -116,11 +116,11 @@ const AddProduct = () => {
       } else {
         const errorData = await response.json();
         console.error("Server error:", errorData);
-        alert(errorData.message || "❌ Đã xảy ra lỗi khi thêm sản phẩm.");
+        alert(errorData.message || " Đã xảy ra lỗi khi thêm sản phẩm.");
       }
     } catch (error) {
       console.error("Lỗi gửi sản phẩm:", error);
-      alert("❌ Có lỗi xảy ra khi gửi sản phẩm.");
+      alert(" Có lỗi xảy ra khi gửi sản phẩm.");
     }
   };
 

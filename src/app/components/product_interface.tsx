@@ -1,20 +1,19 @@
+import { Category } from "./category_interface";
+
 export interface Product {
-  id: any;
-  category: {
-    _id: string;
-    name: string;
-    createdAt: string;
-  };
-  ingredients: string[];
-  usage_instructions: string[];
-  special: string[];
   _id: string;
   name: string;
   price: number;
-  discountPrice: number;
-  description: string;
+  discountPrice?: number | null;
   images: string[];
+  category: Category;
+  description: string;
+  ingredients: string[];
+  usage_instructions: string[];
+  special: string[];
   stock: number;
-  createdAt?: string;
-  created_at?: string;
+  view: number;
+  color: string | null;
+  createdAt: string;
+  status: string;
 }

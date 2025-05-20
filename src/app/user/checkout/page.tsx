@@ -5,29 +5,19 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import styles from "./checkout.module.css";
 import { useCart } from "../context/CartContext";
+import { FormData, CheckoutData, CartItem } from "@/app/components/checkout_interface"; 
 
 export default function CheckoutPage() {
   const router = useRouter();
   const { checkoutData, setCheckoutData } = useCart();
 
-  const [formData, setFormData] = useState<{
-    fullName: string;
-    address: {
-      addressLine: string; // Địa chỉ cụ thể (số nhà, đường)
-      ward: string;
-      district: string;
-      cityOrProvince: string; // Gộp tỉnh và thành phố
-    };
-    sdt: string;
-    note: string;
-    paymentMethod: string;
-  }>({
+  const [formData, setFormData] = useState<FormData>({
     fullName: "",
     address: {
-      addressLine: "", // Trường địa chỉ cụ thể
+      addressLine: "",
       ward: "",
       district: "",
-      cityOrProvince: "", // Gộp tỉnh và thành phố
+      cityOrProvince: "",
     },
     sdt: "",
     note: "",
@@ -38,14 +28,15 @@ export default function CheckoutPage() {
   const [error, setError] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [loadingUser, setLoadingUser] = useState(true);
-  const [hasCheckedOut, setHasCheckedOut] = useState(false); // Thêm trạng thái để theo dõi thanh toán
+  const [hasCheckedOut, setHasCheckedOut] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
 
     const token = localStorage.getItem("token");
     if (token) {
-      fetch("https://api-zeal.onrender.com/api/users/userinfo", {
+      fetch("http://localhost:10000/api/users/userinfo", {
         headers: { Authorization: `Bearer ${token}` },
       })
         .then((res) => {
@@ -53,15 +44,16 @@ export default function CheckoutPage() {
           return res.json();
         })
         .then((data) => {
+          console.log("User data from API:", data);
           setFormData((prev) => ({
             ...prev,
             fullName: data.username || "",
             sdt: data.phone || "",
             address: {
-              addressLine: data.address?.addressLine || "", // Thêm địa chỉ cụ thể
+              addressLine: data.address?.addressLine || "",
               ward: data.address?.ward || "",
               district: data.address?.district || "",
-              cityOrProvince: data.address?.city || data.address?.province || "", // Gộp tỉnh và thành phố vào một trường
+              cityOrProvince: data.address?.cityOrProvince || "",
             },
           }));
           setLoadingUser(false);
@@ -75,7 +67,6 @@ export default function CheckoutPage() {
   }, []);
 
   useEffect(() => {
-    // Chỉ kiểm tra và hiển thị thông báo nếu chưa thanh toán thành công
     if (!hasCheckedOut && (!checkoutData || !checkoutData.cart || !checkoutData.cart.items)) {
       alert("Không tìm thấy thông tin giỏ hàng! Vui lòng kiểm tra lại giỏ hàng của bạn.");
       router.push("/user/cart");
@@ -86,7 +77,8 @@ export default function CheckoutPage() {
     return null;
   }
 
-  const { cart, couponCode, subtotal, discount, total, userId } = checkoutData;
+  const { cart, couponCode, subtotal, discount, total, userId } = checkoutData as CheckoutData;
+  console.log("Checkout data:", checkoutData);
 
   const formatPrice = (price: number) => {
     const numericPrice = Number(price) || 0;
@@ -98,7 +90,7 @@ export default function CheckoutPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    if (["addressLine", "ward", "district", "cityOrProvince"].includes(name)) { // Cập nhật addressLine và các trường liên quan
+    if (["addressLine", "ward", "district", "cityOrProvince"].includes(name)) {
       setFormData((prev) => ({
         ...prev,
         address: { ...prev.address, [name]: value },
@@ -116,7 +108,7 @@ export default function CheckoutPage() {
     if (!e.target.checked) {
       const token = localStorage.getItem("token");
       if (token) {
-        fetch("https://api-zeal.onrender.com/api/users/userinfo", {
+        fetch("http://localhost:10000/api/users/userinfo", {
           headers: { Authorization: `Bearer ${token}` },
         })
           .then((res) => {
@@ -129,10 +121,10 @@ export default function CheckoutPage() {
               fullName: data.username || "",
               sdt: data.phone || "",
               address: {
-                addressLine: data.address?.addressLine || "", // Thêm địa chỉ cụ thể
+                addressLine: data.address?.addressLine || "",
                 ward: data.address?.ward || "",
                 district: data.address?.district || "",
-                cityOrProvince: data.address?.city || data.address?.province || "", // Gộp tỉnh và thành phố vào một trường
+                cityOrProvince: data.address?.cityOrProvince || "",
               },
             });
           });
@@ -142,69 +134,101 @@ export default function CheckoutPage() {
 
   const handleConfirmOrder = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+    setIsLoading(true);
 
-    try {
+    const phoneRegex = /^[0-9]{10}$/;
+    if (!phoneRegex.test(formData.sdt)) {
+      setError("Số điện thoại không hợp lệ. Vui lòng nhập 10 chữ số.");
+      setIsLoading(false);
+      return;
+    }
+
+    if (
+      !formData.address.addressLine ||
+      !formData.address.ward ||
+      !formData.address.district ||
+      !formData.address.cityOrProvince
+    ) {
+      setError("Vui lòng cung cấp đầy đủ thông tin địa chỉ.");
+      setIsLoading(false);
+      return;
+    }
+
+    if (!formData.paymentMethod) {
+      setError("Vui lòng chọn phương thức thanh toán.");
+      setIsLoading(false);
+      return;
+    }
+
+    if (!cart || !cart.items || cart.items.length === 0) {
+      setError("Giỏ hàng trống. Vui lòng thêm sản phẩm trước khi thanh toán.");
+      setIsLoading(false);
+      return;
+    }
+
+    const attemptCheckout = async (useCoupon: boolean) => {
       const token = localStorage.getItem("token");
       if (!token) {
         throw new Error("Vui lòng đăng nhập để thanh toán");
       }
-
       if (!userId) {
         throw new Error("Không tìm thấy userId");
       }
-
-      const attemptCheckout = async (useCoupon: boolean) => {
-        const requestData = {
-          userId: userId,
-          address: formData.address,
-          sdt: formData.sdt,
-          paymentMethod: formData.paymentMethod === "cod" ? "Thanh toán khi nhận hàng" : "Chuyển khoản ngân hàng",
-          note: formData.note || "",
-          couponCode: useCoupon && couponCode ? couponCode : undefined,
-        };
-
-        console.log("Sending request data:", requestData);
-
-        const response = await fetch(`https://api-zeal.onrender.com/api/carts/checkout`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(requestData),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || `Không thể thanh toán: ${response.statusText}`);
-        }
-
-        return await response.json();
+      const requestData = {
+        userId: userId,
+        address: formData.address,
+        sdt: formData.sdt,
+        paymentMethod: formData.paymentMethod === "cod" ? "cod" : "bank",
+        note: formData.note || "",
+        couponCode: useCoupon && couponCode ? couponCode : undefined,
+        productDetails: cart.items.map((item: CartItem) => ({
+          productId: item.product._id,
+          details: item.details || {},
+        })),
       };
 
-      try {
-        const result = await attemptCheckout(true);
+      console.log("Sending request data:", requestData);
+
+      const response = await fetch(`http://localhost:10000/api/carts/checkout`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(requestData),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || `Không thể thanh toán: ${response.statusText}`);
+      }
+
+      return data;
+    };
+
+    try {
+      const result = await attemptCheckout(true);
+      setCheckoutData(null);
+      localStorage.removeItem("checkoutData");
+      setHasCheckedOut(true);
+      alert("Đặt hàng thành công!");
+      router.push("/user/");
+    } catch (err) {
+      const errorMessage = (err as Error).message;
+      if (errorMessage.includes("Mã giảm giá") || errorMessage.includes("coupon")) {
+        setError("Mã giảm giá không hợp lệ, đơn hàng sẽ được thanh toán với giá gốc.");
+        const result = await attemptCheckout(false);
         setCheckoutData(null);
         localStorage.removeItem("checkoutData");
-        setHasCheckedOut(true); // Đánh dấu đã thanh toán thành công
+        setHasCheckedOut(true);
         alert("Đặt hàng thành công!");
         router.push("/user/");
-      } catch (err) {
-        const errorMessage = (err as Error).message;
-        if (errorMessage.includes("Mã giảm giá") || errorMessage.includes("coupon")) {
-          setError("Mã giảm giá không hợp lệ, đơn hàng sẽ được thanh toán với giá gốc.");
-          const result = await attemptCheckout(false);
-          setCheckoutData(null);
-          localStorage.removeItem("checkoutData");
-          setHasCheckedOut(true); // Đánh dấu đã thanh toán thành công
-          alert("Đặt hàng thành công!");
-          router.push("/user/");
-        } else {
-          throw err;
-        }
+      } else {
+        setError(errorMessage);
       }
-    } catch (err) {
-      setError((err as Error).message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -254,9 +278,9 @@ export default function CheckoutPage() {
                 />
                 <input
                   type="text"
-                  name="addressLine" // Địa chỉ cụ thể (số nhà, đường)
+                  name="addressLine"
                   placeholder="Địa chỉ cụ thể (số nhà, đường)"
-                  value={formData.address.addressLine} // Trường địa chỉ cụ thể
+                  value={formData.address.addressLine}
                   onChange={handleChange}
                   required
                   disabled={!useDifferentInfo && !loadingUser}
@@ -264,7 +288,7 @@ export default function CheckoutPage() {
                 <input
                   type="text"
                   name="ward"
-                  placeholder="Xã/Phường (ví dụ: 391 Tô Ký)"
+                  placeholder="Xã/Phường (ví dụ: Phường Tân Chánh Hiệp)"
                   value={formData.address.ward}
                   onChange={handleChange}
                   required
@@ -281,9 +305,9 @@ export default function CheckoutPage() {
                 />
                 <input
                   type="text"
-                  name="cityOrProvince" // Đã thay đổi thành cityOrProvince
+                  name="cityOrProvince"
                   placeholder="Tỉnh/Thành phố (ví dụ: TP Hồ Chí Minh)"
-                  value={formData.address.cityOrProvince} // Sử dụng cityOrProvince
+                  value={formData.address.cityOrProvince}
                   onChange={handleChange}
                   required
                   disabled={!useDifferentInfo && !loadingUser}
@@ -295,11 +319,13 @@ export default function CheckoutPage() {
                   value={formData.sdt}
                   onChange={handleChange}
                   required
+                  pattern="[0-9]{10}"
+                  title="Số điện thoại phải có 10 chữ số"
                   disabled={!useDifferentInfo && !loadingUser}
                 />
                 <textarea
                   name="note"
-                  placeholder="Ghi chú cho đơn hàng của bạn (ví dụ: Giao nhanh lên cho tao)"
+                  placeholder="Ghi chú cho đơn hàng của bạn (ví dụ: Giao nhanh lên nhé)"
                   value={formData.note}
                   onChange={handleChange}
                 />
@@ -314,7 +340,7 @@ export default function CheckoutPage() {
             <span>Tổng</span>
           </div>
 
-          {cart.items.map((item: any, index: number) => (
+          {cart.items.map((item: CartItem, index: number) => (
             <div key={index} className={styles.cartItem}>
               <div className={styles.cartItemImage}>
                 <Image
@@ -391,11 +417,18 @@ export default function CheckoutPage() {
           </div>
 
           {error && (
-            <p className={styles.errorMessage}>{error}</p>
+            <p className={styles.errorMessage} style={{ color: "red" }}>
+              {error}
+            </p>
           )}
 
-          <button form="checkoutForm" type="submit" className={styles.submitBtn}>
-            Đặt hàng
+          <button
+            form="checkoutForm"
+            type="submit"
+            className={styles.submitBtn}
+            disabled={isLoading}
+          >
+            {isLoading ? "Đang xử lý..." : "Đặt hàng"}
           </button>
 
           <div className={styles.disclaimer}>

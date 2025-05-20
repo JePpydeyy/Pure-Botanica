@@ -15,12 +15,6 @@ export default function LoginPage() {
   const { login } = useAuth();
   const hasProcessedToken = useRef(false);
 
-  // Kiểm tra định dạng email
-  const validateEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
   useEffect(() => {
     const token = searchParams.get("token");
     if (token && !hasProcessedToken.current) {
@@ -29,60 +23,20 @@ export default function LoginPage() {
       try {
         const decoded = jwtDecode(token) as any;
         console.log("Decoded token:", decoded);
-
-        // Gửi token đến API để kiểm tra status
-        fetch("https://api-zeal.onrender.com/api/users/validate-google-token", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token }),
-        })
-          .then((res) => res.json())
-          .then((data) => {
-            if (!res.ok) {
-              setError(data.message || "Đăng nhập bằng Google thất bại");
-              return;
-            }
-            if (data.status === "inactive") {
-              setError("Tài khoản của bạn hiện đang bị khóa. Vui lòng liên hệ quản trị viên!");
-              return;
-            }
-            login(data.token)
-              .then(() => router.push("/"))
-              .catch((err: unknown) => {
-                console.error("Lỗi xử lý token từ Google:", err);
-                setError(
-                  `Có lỗi khi đăng nhập bằng Google, vui lòng thử lại! Chi tiết: ${
-                    err instanceof Error ? err.message : "Lỗi không xác định"
-                  }`
-                );
-              });
-          })
-          .catch((err) => {
-            console.error("Lỗi xác thực token Google:", err);
-            setError("Token không hợp lệ, vui lòng thử lại!");
-          });
+        login(token).catch((err: unknown) => {
+          console.error("Lỗi xử lý token từ Google:", err);
+          setError(`Có lỗi khi đăng nhập bằng Google, vui lòng thử lại! Chi tiết: ${err instanceof Error ? err.message : "Lỗi không xác định"}`);
+        });
       } catch (decodeError) {
         console.error("Lỗi giải mã token:", decodeError);
         setError("Token không hợp lệ, vui lòng thử lại!");
       }
     }
-  }, [searchParams, login, router]);
+  }, [searchParams, login]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
-
-    // Kiểm tra định dạng email
-    if (!validateEmail(email)) {
-      setError("Vui lòng nhập email hợp lệ!");
-      return;
-    }
-
-    // Kiểm tra mật khẩu không rỗng
-    if (!password) {
-      setError("Vui lòng nhập mật khẩu!");
-      return;
-    }
 
     try {
       const res = await fetch("https://api-zeal.onrender.com/api/users/login", {
@@ -98,15 +52,8 @@ export default function LoginPage() {
         return;
       }
 
-      // Kiểm tra trạng thái tài khoản
-      if (data.status === "inactive") {
-        setError("Tài khoản của bạn hiện đang bị khóa. Vui lòng liên hệ quản trị viên!");
-        return;
-      }
-
       console.log("Login response token:", data.token);
       await login(data.token);
-      router.push("/"); // Chuyển hướng về trang chính
     } catch (err: unknown) {
       console.error("Lỗi đăng nhập:", err);
       setError(err instanceof Error ? err.message : "Có lỗi xảy ra, vui lòng thử lại!");
@@ -155,7 +102,7 @@ export default function LoginPage() {
           />
 
           <div className={styles["forgot-password"]}>
-            <Link href="/user/forgotpass">Quên mật khẩu</Link>
+            <Link href="/user/forgotpass">Quên mật Khẩu</Link>
           </div>
 
           <button type="submit" className={styles["submit-btn"]}>ĐĂNG NHẬP</button>

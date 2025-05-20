@@ -85,7 +85,7 @@ export default function LoginPage() {
     }
 
     try {
-      const res = await fetch("http://localhost:10000/api/users/login", {
+      const res = await fetch("https://api-zeal.onrender.com/api/users/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -114,8 +114,8 @@ export default function LoginPage() {
   };
 
   const handleGoogleLogin = () => {
-    console.log("Redirecting to Google:", "http://localhost:10000/api/auth/google");
-    window.location.href = "http://localhost:10000/api/auth/google";
+    console.log("Redirecting to Google:", "https://api-zeal.onrender.com/api/auth/google");
+    window.location.href = "https://api-zeal.onrender.com/api/auth/google";
   };
 
   return (

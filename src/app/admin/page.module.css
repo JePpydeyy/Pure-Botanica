@@ -1,0 +1,274 @@
+/* Modern Admin Dashboard Styles with Enhanced Accessibility and Responsiveness */
+
+/* Base styles and layout */
+.mainContent {
+  margin-left: 250px;
+  padding: 1.5rem 1rem;
+  min-height: 100vh;
+  background: #f9fafb;
+  color: #1f2a44;
+  font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
+  transition: margin-left 0.3s ease;
+}
+
+/* Dashboard header styling */
+.dashboardHeader {
+  padding: 1.5rem 2rem;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  margin-bottom: 1.5rem;
+}
+
+.dashboardHeader h2 {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.2;
+}
+
+.dashboardHeader p {
+  margin: 0.5rem 0 0;
+  color: #6b7280;
+  font-size: 1rem;
+}
+
+/* Stats container styling */
+.statsContainer {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.25rem;
+  padding: 0 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.statBox {
+  background: #ffffff;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  text-align: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border-left: 4px solid #3b82f6;
+}
+
+.statBox:nth-child(2) {
+  border-left-color: #10b981;
+}
+
+.statBox:nth-child(3) {
+  border-left-color: #f59e0b;
+}
+
+.statBox:nth-child(4) {
+  border-left-color: #8b5cf6;
+}
+
+.statBox:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+}
+
+.statBox h3 {
+  margin: 0;
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.statBox p {
+  margin: 0.5rem 0 0;
+  color: #6b7280;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Chart container styling */
+.chartContainer {
+  padding: 1.5rem;
+  background: #ffffff;
+  margin: 0 1.25rem 1.5rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+/* Recent orders section styling */
+.recentOrders {
+  background: #ffffff;
+  margin: 0 1.25rem 1.5rem;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.recentOrders h3 {
+  margin: 0 0 1rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.recentOrders table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.recentOrders .tableCaption {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-bottom: 0.75rem;
+  text-align: left;
+  font-style: italic;
+}
+
+.recentOrders th,
+.recentOrders td {
+  padding: 0.875rem 1rem;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.recentOrders th {
+  background: #f3f4f6;
+  color: #374151;
+  font-weight: 600;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.recentOrders th:first-child {
+  border-top-left-radius: 0.5rem;
+}
+
+.recentOrders th:last-child {
+  border-top-right-radius: 0.5rem;
+}
+
+.recentOrders td {
+  border-bottom: 1px solid #e5e7eb;
+  color: #1f2a44;
+}
+
+.recentOrders td div {
+  margin-bottom: 0.25rem;
+}
+
+.recentOrders tr:last-child td {
+  border-bottom: none;
+}
+
+.recentOrders tr:last-child td:first-child {
+  border-bottom-left-radius: 0.5rem;
+}
+
+.recentOrders tr:last-child td:last-child {
+  border-bottom-right-radius: 0.5rem;
+}
+
+.recentOrders tr:hover td {
+  background: #f9fafb;
+}
+
+/* Status badge styling */
+.statusPending {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  background: #fef3c7;
+  color: #d97706;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.statusCompleted {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  background: #d1fae5;
+  color: #065f46;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.statusDelivering {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  background: #dbeafe;
+  color: #1e40af;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+/* Messages styling */
+.errorMessage {
+  color: #dc2626;
+  padding: 0.75rem;
+  background: #fef2f2;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  border-left: 4px solid #dc2626;
+}
+
+.loadingMessage {
+  color: #6b7280;
+  padding: 0.75rem;
+  text-align: center;
+  font-size: 0.875rem;
+}
+
+.noDataMessage {
+  color: #6b7280;
+  padding: 0.75rem;
+  font-size: 0.875rem;
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 1200px) {
+  .statsContainer {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .mainContent {
+    margin-left: 0;
+    padding: 1rem;
+  }
+
+  .statsContainer {
+    grid-template-columns: 1fr;
+  }
+
+  .chartContainer,
+  .recentOrders {
+    margin: 0 1rem 1.5rem;
+  }
+
+  .recentOrders table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .dashboardHeader {
+    padding: 1rem;
+  }
+
+  .dashboardHeader h2 {
+    font-size: 1.5rem;
+  }
+
+  .statBox h3 {
+    font-size: 1.5rem;
+  }
+}

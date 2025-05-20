@@ -52,7 +52,7 @@ export default function RegisterPage() {
     }
 
     try {
-      const res = await fetch("http://api-zeal.onrender.com/api/users/register", {
+      const res = await fetch("http://localhost:10000/api/users/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, email, phone, password }),
@@ -82,8 +82,8 @@ export default function RegisterPage() {
   };
 
   const handleGoogleRegister = () => {
-    console.log("Redirecting to Google:", "http://api-zeal.onrender.com/api/auth/google");
-    window.location.href = "http://api-zeal.onrender.com/api/auth/google";
+    console.log("Redirecting to Google:", "https://api-zeal.onrender.com/api/auth/google");
+    window.location.href = "https://api-zeal.onrender.com/api/auth/google";
   };
 
   return (

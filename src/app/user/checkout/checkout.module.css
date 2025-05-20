@@ -1,3 +1,6 @@
+/* checkout.module.css */
+
+/* Container cho form */
 .container {
   max-width: 1290px;
   margin: 0 auto;
@@ -95,8 +98,10 @@
   margin-right: 10px;
 }
 
+/* Style chung cho input và select */
 .formSection input[type="text"],
-.formSection textarea {
+.formSection textarea,
+.formSection select {
   width: 100%;
   padding: 12px;
   margin-bottom: 15px;
@@ -104,20 +109,44 @@
   border-radius: 4px;
   font-size: 14px;
   box-sizing: border-box;
+  background-color: #fff;
+  transition: border-color 0.3s ease;
 }
 
+/* Style cụ thể cho input */
 .formSection input[type="text"] {
   height: 50px;
 }
 
-.formSection input:disabled {
+/* Style cụ thể cho select */
+.formSection select {
+  appearance: none; /* Loại bỏ giao diện mặc định của trình duyệt */
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"><path fill="%23333" d="M7 10l5 5 5-5z"/></svg>'); /* Mũi tên dropdown tùy chỉnh */
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 12px;
+  padding-right: 30px; /* Đảm bảo không che mất mũi tên */
+  cursor: pointer;
+}
+
+/* Style khi input hoặc select bị disabled */
+.formSection input:disabled,
+.formSection select:disabled {
   background-color: #e9ecef;
   cursor: not-allowed;
 }
 
+/* Style cho textarea */
 .formSection textarea {
   height: 120px;
   resize: none;
+}
+
+/* Hover và focus cho input và select */
+.formSection input[type="text"]:focus,
+.formSection select:focus {
+  border-color: #3c8a3f;
+  outline: none;
 }
 
 /* Cart styles */
@@ -148,7 +177,7 @@
 }
 
 .cartItemDetails {
-  color: #357E38;
+  color: #357e38;
   flex: 1;
 }
 
@@ -275,5 +304,12 @@
 
   .stepArrow {
     font-size: 30px;
+  }
+
+  .formSection input[type="text"],
+  .formSection select,
+  .formSection textarea {
+    font-size: 13px;
+    padding: 10px;
   }
 }

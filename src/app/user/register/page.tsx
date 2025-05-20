@@ -45,12 +45,6 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-
-    if (password !== confirmPassword) {
-      setError("Mật khẩu không khớp");
-      return;
-    }
-
     try {
       const res = await fetch("http://localhost:10000/api/users/register", {
         method: "POST",

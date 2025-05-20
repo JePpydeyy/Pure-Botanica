@@ -68,3 +68,49 @@
 .editButton:hover {
   background-color: #2980b9;
 }
+.title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+
+.infoRow {
+  color: #6b7280;
+  text-align: center;
+  padding: 1rem;
+}
+
+.tableContainer {
+  overflow-x: auto;
+}
+
+.orderTable {
+  width: 100%;
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-collapse: collapse;
+}
+
+.tableHeader {
+  background-color: #f3f4f6;
+}
+
+.tableCell {
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+  font-size: 0.875rem;
+}
+
+.tableHeader .tableCell {
+  font-weight: 600;
+  color: #374151;
+}
+
+.tableRow {
+  cursor: pointer;
+}
+
+.tableRow:hover {
+  background-color: #f9fafb;
+}

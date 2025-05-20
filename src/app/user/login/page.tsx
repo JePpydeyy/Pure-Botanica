@@ -31,7 +31,7 @@ export default function LoginPage() {
         console.log("Decoded token:", decoded);
 
         // Gửi token đến API để kiểm tra status
-        fetch("http://localhost:10000/api/users/validate-google-token", {
+        fetch("https://api-zeal.onrender.com/api/users/validate-google-token", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ token }),

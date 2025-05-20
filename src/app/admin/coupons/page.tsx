@@ -290,7 +290,7 @@ export default function CouponPage() {
               <th>Giảm giá (%)</th>
               <th>Đơn hàng tối thiểu</th>
               <th>Ngày hết hạn</th>
-              <th>Số lần sử dụng</th>
+              <th>Số lượt sử dụng</th>
               <th>Trạng thái</th>
               <th>Hành động</th>
             </tr>

@@ -2,26 +2,9 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import "./comment.css";
+import type { Comment } from "@/app/components/comment_interface";
 
 export default function Comment() {
-  interface Comment {
-    _id: string;
-    user: {
-      _id: string;
-      username: string;
-      email: string;
-    };
-    product: {
-      _id: string;
-      name: string;
-      price: number;
-      images: string[];
-    } | null; // product có thể là null
-    content: string;
-    createdAt: string;
-    updatedAt?: string;
-  }
-
   const [comments, setComments] = useState<Comment[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -30,7 +13,7 @@ export default function Comment() {
   useEffect(() => {
     const fetchComments = async () => {
       try {
-        const token = localStorage.getItem("token"); // Lấy token từ localStorage
+        const token = localStorage.getItem("token");
         if (!token) {
           setError("Không tìm thấy token. Vui lòng đăng nhập lại.");
           return;
@@ -38,7 +21,7 @@ export default function Comment() {
 
         const response = await axios.get<Comment[]>("https://api-zeal.onrender.com/api/comments/", {
           headers: {
-            Authorization: `Bearer ${token}`, // Gửi token trong header
+            Authorization: `Bearer ${token}`,
           },
         });
 
@@ -68,14 +51,14 @@ export default function Comment() {
     if (!confirmDelete) return;
 
     try {
-      const token = localStorage.getItem("token"); // Lấy token từ localStorage
+      const token = localStorage.getItem("token");
       if (!token) {
         alert("Không tìm thấy token. Vui lòng đăng nhập lại.");
         return;
       }
 
       await axios.request({
-        url: `https://api-zeal.onrender.com/api/comments/${commentId}`,  // Đường dẫn chính xác
+        url: `https://api-zeal.onrender.com/api/comments/${commentId}`,
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,

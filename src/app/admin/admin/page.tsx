@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import styles from "./admin.module.css"; // ✅ import CSS module
+import styles from "./admin.module.css";  
 
 export default function Customer() {
   interface Customer {
@@ -28,7 +28,7 @@ export default function Customer() {
     const role = localStorage.getItem("role");
 
     if (!token || role !== "admin") {
-      router.push("/login");
+      router.push("user/login");
     } else {
       setIsAuthorized(true);
     }
@@ -53,7 +53,7 @@ export default function Customer() {
         if (res.status === 401 || res.status === 403) {
           alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
           localStorage.clear();
-          router.push("/login");
+          router.push("/user/login");
           return null;
         }
         return res.json();

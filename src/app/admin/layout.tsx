@@ -3,7 +3,7 @@
 import React from "react";
 import "./layout.css";
 import { useRouter } from "next/navigation";
-
+import Link from "next/link";
 const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
 
@@ -26,31 +26,31 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
             </a>
           </div>
 
-          <div className="menu">
-            <a href="/admin" className="menu-item">
+           <div className="menu">
+            <Link href="/admin" className="menu-item">
               <span>Dashboard</span>
-            </a>
-            <a href="/admin/category" className="menu-item">
+            </Link>
+            <Link href="/admin/category" className="menu-item">
               <span>Danh mục</span>
-            </a>
-            <a href="/admin/product" className="menu-item">
+            </Link>
+            <Link href="/admin/product" className="menu-item">
               <span>Sản phẩm</span>
-            </a>
-            <a href="/admin/order" className="menu-item">
+            </Link>
+            <Link href="/admin/order" className="menu-item">
               <span>Danh sách oder</span>
-            </a>
-            <a href="/admin/comment" className="menu-item">
+            </Link>
+            <Link href="/admin/comment" className="menu-item">
               <span>Bình Luận</span>
-            </a>
-            <a href="/admin/coupons" className="menu-item">
+            </Link>
+            <Link href="/admin/coupons" className="menu-item">
               <span>Khuyến mãi</span>
-            </a>
-            <a href="/admin/customer" className="menu-item">
+            </Link>
+            <Link href="/admin/customer" className="menu-item">
               <span>Khách hàng</span>
-            </a>
-            <a href="/admin/admin" className="menu-item active">
+            </Link>
+            <Link href="/admin/admin" className="menu-item active">
               <span>Admin</span>
-            </a>
+            </Link>
             <button onClick={handleLogout} className="menu-item logout-button">
               <span>Đăng xuất</span>
             </button>

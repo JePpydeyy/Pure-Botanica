@@ -426,7 +426,7 @@ export default function EditProductPage() {
             <button
               className="cancel-btn"
               type="button"
-              onClick={() => router.push("/admin/products")}
+              onClick={() => router.push("/admin/product")}
               disabled={loading}
             >
               Hủy

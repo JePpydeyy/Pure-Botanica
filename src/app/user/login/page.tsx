@@ -61,8 +61,8 @@ export default function LoginPage() {
   };
 
   const handleGoogleLogin = () => {
-    console.log("Redirecting to Google:", "http://localhost:10000/api/auth/google");
-    window.location.href = "http://localhost:10000/api/auth/google";
+    console.log("Redirecting to Google:", "https://api-zeal.onrender.com/api/auth/google");
+    window.location.href = "https://api-zeal.onrender.com/api/auth/google";
   };
 
   return (

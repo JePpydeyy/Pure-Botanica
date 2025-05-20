@@ -45,23 +45,8 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-
-<<<<<<< HEAD
-        try {
-            const res = await fetch("http://localhost:10000/api/users/register", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username, email, phone, password }),
-            });
-=======
-    if (password !== confirmPassword) {
-      setError("Mật khẩu không khớp");
-      return;
-    }
->>>>>>> 0946f11de6dabe65f1d2c4b9ff0a7c40321e7101
-
     try {
-      const res = await fetch("http://api-zeal.onrender.com/api/users/register", {
+      const res = await fetch("http://localhost:10000/api/users/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, email, phone, password }),
@@ -91,8 +76,8 @@ export default function RegisterPage() {
   };
 
   const handleGoogleRegister = () => {
-    console.log("Redirecting to Google:", "http://api-zeal.onrender.com/api/auth/google");
-    window.location.href = "http://api-zeal.onrender.com/api/auth/google";
+    console.log("Redirecting to Google:", "https://api-zeal.onrender.com/api/auth/google");
+    window.location.href = "https://api-zeal.onrender.com/api/auth/google";
   };
 
   return (

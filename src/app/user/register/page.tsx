@@ -1,143 +1,186 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useAuth } from "../context/AuthContext";
+import { jwtDecode } from "jwt-decode";
 import styles from "./Register.module.css";
 
 export default function RegisterPage() {
-    const [username, setName] = useState("");
-    const [email, setEmail] = useState("");
-    const [phone, setPhone] = useState("");
-    const [password, setPassword] = useState("");
-    const [confirmPassword, setConfirmPassword] = useState("");
-    const [error, setError] = useState("");
-    const router = useRouter();
+  const [username, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { login } = useAuth();
+  const hasProcessedToken = useRef(false);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError("");
+  useEffect(() => {
+    const token = searchParams.get("token");
+    if (token && !hasProcessedToken.current) {
+      hasProcessedToken.current = true;
+      console.log("Received token from Google:", token);
+      try {
+        const decoded = jwtDecode(token) as any;
+        console.log("Decoded token:", decoded);
+        login(token).then(() => {
+          // Assuming the login function handles role-based redirection
+          // If registration-specific logic is needed, adjust here
+          router.push(decoded.role === "admin" ? "/admin" : "/user/login");
+        }).catch((err: unknown) => {
+          console.error("Lỗi xử lý token từ Google:", err);
+          setError(`Có lỗi khi đăng ký bằng Google, vui lòng thử lại! Chi tiết: ${err instanceof Error ? err.message : "Lỗi không xác định"}`);
+        });
+      } catch (decodeError) {
+        console.error("Lỗi giải mã token:", decodeError);
+        setError("Token không hợp lệ, vui lòng thử lại!");
+      }
+    }
+  }, [searchParams, login, router]);
 
-        if (password !== confirmPassword) {
-            setError("Mật khẩu không khớp");
-            return;
-        }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
 
+<<<<<<< HEAD
         try {
             const res = await fetch("http://localhost:10000/api/users/register", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ username, email, phone, password }),
             });
+=======
+    if (password !== confirmPassword) {
+      setError("Mật khẩu không khớp");
+      return;
+    }
+>>>>>>> 0946f11de6dabe65f1d2c4b9ff0a7c40321e7101
 
-            const data = await res.json();
-            console.log("Register API Response:", data);
+    try {
+      const res = await fetch("http://api-zeal.onrender.com/api/users/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, email, phone, password }),
+      });
 
-            if (!res.ok) {
-                setError(data.message || "Đăng ký thất bại");
-                return;
-            }
+      const data = await res.json();
+      console.log("Register API Response:", data);
 
-            // Lưu thông tin người dùng
-            localStorage.setItem("token", data.token);
-            localStorage.setItem("role", data.user.role);
-            localStorage.setItem("email", data.user.email);
+      if (!res.ok) {
+        setError(data.message || "Đăng ký thất bại");
+        return;
+      }
 
-            // Điều hướng theo role
-            if (data.user.role === "admin") {
-                router.push("/admin");
-            } else {
-                router.push("/user/login");
-            }
-        } catch (err: any) {
-            console.error("Lỗi đăng ký:", err);
-            setError(err.message || "Có lỗi xảy ra, vui lòng thử lại!");
-        }
-    };
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("role", data.user.role);
+      localStorage.setItem("email", data.user.email);
 
-    return (
-        <main className={styles.mainContent}>
-            <div className={styles.container}>
-                <div className={styles.formBox}>
-                    <h2 className={styles.title}><strong>ĐĂNG KÝ</strong></h2>
+      if (data.user.role === "admin") {
+        router.push("/admin");
+      } else {
+        router.push("/user/login");
+      }
+    } catch (err: any) {
+      console.error("Lỗi đăng ký:", err);
+      setError(err.message || "Có lỗi xảy ra, vui lòng thử lại!");
+    }
+  };
 
-                    <button className={styles.googleBtn}>
-                        <img src="/images/icons8-google-48.png" alt="Google Logo" /> Đăng ký với Google
-                    </button>
+  const handleGoogleRegister = () => {
+    console.log("Redirecting to Google:", "http://api-zeal.onrender.com/api/auth/google");
+    window.location.href = "http://api-zeal.onrender.com/api/auth/google";
+  };
 
-                    <div className={styles.divider}>
-                        <hr className={styles.dividerLine} />
-                        <span className={styles.dividerText}>Hoặc đăng ký bằng tài khoản</span>
-                        <hr className={styles.dividerLine} />
-                    </div>
+  return (
+    <main className={styles.mainContent}>
+      <div className={styles.container}>
+        <div className={styles.formBox}>
+          <h2 className={styles.title}><strong>ĐĂNG KÝ</strong></h2>
 
-                    <form onSubmit={handleSubmit}>
-                        <input
-                            type="text"
-                            placeholder="Họ và tên"
-                            value={username}
-                            onChange={(e) => setName(e.target.value)}
-                            required
-                            className={styles.input}
-                        />
-                        <small className={styles.small}>Vui lòng nhập họ và tên đầy đủ</small>
-                        <input
-                            type="email"
-                            placeholder="Email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                            className={styles.input}
-                        />
-                        <small className={styles.small}>Ví dụ: example@domain.com</small>
-                        <input
-                            type="tel"
-                            placeholder="Số điện thoại"
-                            value={phone}
-                            onChange={(e) => setPhone(e.target.value)}
-                            required
-                            className={styles.input}
-                        />
-                        <small className={styles.small}>Ví dụ: 0123456789</small>
-                        <input
-                            type="password"
-                            placeholder="Mật khẩu"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                            className={styles.input}
-                        />
-                        <small className={styles.small}>Mật khẩu phải có ít nhất 8 ký tự</small>
-                        <input
-                            type="password"
-                            placeholder="Nhập lại mật khẩu"
-                            value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
-                            required
-                            className={styles.input}
-                        />
-                        <small className={styles.small}>Vui lòng nhập lại mật khẩu giống trên</small>
+          <button
+            className={styles.googleBtn}
+            onClick={handleGoogleRegister}
+          >
+            <img src="/images/icons8-google-48.png" alt="Google Logo" /> Đăng ký với Google
+          </button>
 
-                        <div className={styles.policy}>
-                            <label className={styles.policyLabel}>
-                                <input type="checkbox" required className={styles.policyCheckbox} />
-                                Tôi đồng ý với <a href="/policy" className={styles.policyLink}>chính sách</a>
-                            </label>
-                        </div>
+          <div className={styles.divider}>
+            <hr className={styles.dividerLine} />
+            <span className={styles.dividerText}>Hoặc đăng ký bằng tài khoản</span>
+            <hr className={styles.dividerLine} />
+          </div>
 
-                        <button type="submit" className={styles.submitBtn}>ĐĂNG KÝ</button>
-                        {error && <p className={styles.errorMessage}>{error}</p>}
+          <form onSubmit={handleSubmit}>
+            <input
+              type="text"
+              placeholder="Họ và tên"
+              value={username}
+              onChange={(e) => setName(e.target.value)}
+              required
+              className={styles.input}
+            />
+            <small className={styles.small}>Vui lòng nhập họ và tên đầy đủ</small>
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className={styles.input}
+            />
+            <small className={styles.small}>Ví dụ: example@domain.com</small>
+            <input
+              type="tel"
+              placeholder="Số điện thoại"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              required
+              className={styles.input}
+            />
+            <small className={styles.small}>Ví dụ: 0123456789</small>
+            <input
+              type="password"
+              placeholder="Mật khẩu"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className={styles.input}
+            />
+            <small className={styles.small}>Mật khẩu phải có ít nhất 8 ký tự</small>
+            <input
+              type="password"
+              placeholder="Nhập lại mật khẩu"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              className={styles.input}
+            />
+            <small className={styles.small}>Vui lòng nhập lại mật khẩu giống trên</small>
 
-                        <div className={styles.forgotPassword}>
-                            <Link href="/forgot-password" className={styles.forgotPasswordLink}>Quên mật khẩu?</Link>
-                        </div>
-
-                        <p className={styles.switchForm}>
-                            Đã có tài khoản? <Link href="/user/login" className={styles.switchFormLink}>Đăng nhập</Link>
-                        </p>
-                    </form>
-                </div>
+            <div className={styles.policy}>
+              <label className={styles.policyLabel}>
+                <input type="checkbox" required className={styles.policyCheckbox} />
+                Tôi đồng ý với <a href="/policy" className={styles.policyLink}>chính sách</a>
+              </label>
             </div>
-        </main>
-    );
+
+            <button type="submit" className={styles.submitBtn}>ĐĂNG KÝ</button>
+            {error && <p className={styles.errorMessage}>{error}</p>}
+
+            <div className={styles.forgotPassword}>
+              <Link href="/forgot-password" className={styles.forgotPasswordLink}>Quên mật khẩu?</Link>
+            </div>
+
+            <p className={styles.switchForm}>
+              Đã có tài khoản? <Link href="/user/login" className={styles.switchFormLink}>Đăng nhập</Link>
+            </p>
+          </form>
+        </div>
+      </div>
+    </main>
+  );
 }

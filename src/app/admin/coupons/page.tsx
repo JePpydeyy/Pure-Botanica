@@ -348,23 +348,7 @@ export default function CouponPage() {
         </table>
       </div>
       {/* Pagination */}
-      <div className={styles.pagination}>
-        <button
-          onClick={() => handlePageChange(pagination.page - 1)}
-          disabled={pagination.page === 1}
-        >
-          Previous
-        </button>
-        <span>
-          Page {pagination.page} of {pagination.totalPages}
-        </span>
-        <button
-          onClick={() => handlePageChange(pagination.page + 1)}
-          disabled={pagination.page === pagination.totalPages}
-        >
-          Next
-        </button>
-      </div>
+
       {/* Modal */}
       {showModal && (
         <div className={styles.modalOverlay}>

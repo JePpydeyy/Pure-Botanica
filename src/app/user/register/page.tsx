@@ -38,14 +38,9 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
 
-<<<<<<< HEAD
 
     try {
       const res = await fetch("https://api-zeal.onrender.com/api/users/register", {
-=======
-    try {
-      const res = await fetch("https://api-zeal.onrender.com/api/users/login", {
->>>>>>> 02a7448fb8a83fe53cb03055491a66aa535dc705
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),

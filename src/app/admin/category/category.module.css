@@ -1,128 +1,237 @@
+/* === LAYOUT & CONTAINER === */
 .containerCategory {
   width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
-  font-family: 'Arial', sans-serif;
-  background-color: #f9f9f9;
-  border-radius: 10px;
-  padding: 20px;
-  max-width: 1200px;
-  margin-top: 100px;
-  margin-left: 280px;
+  padding: 0;
+  margin: 0;
 }
 
 .formTableCategory {
-  background-color: white;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  width: 1240px;
+  margin: 80px 0 0 280px;
 }
 
 .nameTableCategory {
-  text-align: center;
+  width: 1240px;
+  height: 100px;
   display: flex;
-  font-size: 24px;
-  font-weight: bold;
-  color: #2c3e50;
-  margin-bottom: 15px;
-}
-.span{
-display: flex;
   align-items: center;
-  justify-content: center;
-  margin-right: 10px;
+  justify-content: space-between;
+  margin-bottom: 10px;
 }
 
+.span {
+  color: #004C59;
+  font-size: 30px;
+  font-weight: bold;
+}
 
 .formBtnAddNewCategory {
-  margin-left: 15px;
+  display: flex;
+  align-items: center;
 }
 
 .btnAddNewCategory {
-  padding: 10px 20px;
-  font-size: 16px;
-  background-color: #357E38;
-  color: white;
+  z-index: 100;
+  width: 200px;
+  height: 35px;
+  background-color: #004C59;
   border: none;
   border-radius: 5px;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .btnAddNewCategory a {
   color: white;
   text-decoration: none;
+  font-weight: 500;
+  font-size: 14px;
+  display: block;
+  line-height: 35px;
+  text-align: center;
 }
 
+.btnAddNewCategory:hover {
+  background-color: #003a44;
+  transform: translateY(-1px);
+}
+
+/* === TABLE STYLING === */
 .categoryTable {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 20px;
-  border-radius: 12px;
+  background-color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
 }
 
-.categoryTable th, .categoryTable td {
-  padding: 12px;
-  text-align: left;
-  border-bottom: 1px solid #ddd;
-}
-
-.categoryTable th {
+.categoryTableTr {
   background-color: #357E38;
+  color: white;
+}
+
+.categoryTableTr th {
+  padding: 12px 15px;
+  text-align: left;
+  font-weight: bold;
   color: white;
 }
 
 .categoryTable td {
-  font-size: 16px;
-  color: #333;
+  padding: 15px;
+  vertical-align: middle;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .categoryTableTdLast {
-  text-align: center;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
 }
 
-.btnEdit, .btnRemove {
-  padding: 6px 12px;
-  font-size: 14px;
-  margin-right: 5px;
+/* === ACTION BUTTONS === */
+.categoryTableTdLast button {
+  min-width: 70px;
+  padding: 8px 16px;
   border: none;
+  border-radius: 4px;
   cursor: pointer;
-  border-radius: 5px;
+  font-weight: 500;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .btnEdit {
-  background-color: #357E38;
+  background-color: #4CAF50;
   color: white;
+}
+
+.btnEdit:hover {
+  background-color: #3e8e41;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.btnEdit:active {
+  transform: translateY(0);
 }
 
 .btnRemove {
-  background-color: #E74C3C;
+  background-color: #f44336;
   color: white;
 }
 
-.btnSave, .btnCancel {
-  padding: 6px 12px;
-  font-size: 14px;
-  margin-right: 5px;
-  border: none;
-  cursor: pointer;
-  border-radius: 5px;
+.btnRemove:hover {
+  background-color: #d32f2f;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.btnRemove:active {
+  transform: translateY(0);
 }
 
 .btnSave {
-  background-color: #357E38;
+  background-color: #2196F3;
   color: white;
+}
+
+.btnSave:hover {
+  background-color: #1976D2;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.btnSave:active {
+  transform: translateY(0);
 }
 
 .btnCancel {
-  background-color: #95a5a6;
+  background-color: #FF9800;
   color: white;
 }
 
+.btnCancel:hover {
+  background-color: #F57C00;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.btnCancel:active {
+  transform: translateY(0);
+}
+
+/* === EDIT INPUT === */
 .editInput {
-  padding: 6px 12px;
-  font-size: 16px;
-  border-radius: 5px;
-  border: 1px solid #ccc;
   width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: border-color 0.2s ease;
+}
+
+.editInput:focus {
+  outline: none;
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 1280px) {
+  .formTableCategory,
+  .nameTableCategory {
+    width: 90%;
+    margin-left: 5%;
+  }
+}
+
+@media (max-width: 768px) {
+  .nameTableCategory {
+    height: auto;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+    margin-top: 40px;
+  }
+
+  .btnAddNewCategory {
+    width: 180px;
+  }
+
+  .categoryTableTdLast {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .categoryTableTdLast button {
+    min-width: 80px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 600px) {
+  .categoryTableTr th {
+    padding: 10px 8px;
+    font-size: 14px;
+  }
+
+  .categoryTable td {
+    padding: 10px 8px;
+    font-size: 14px;
+  }
+
+  .categoryTableTdLast {
+    flex-direction: row;
+    gap: 6px;
+  }
+
+  .categoryTableTdLast button {
+    min-width: 60px;
+    padding: 6px 10px;
+    font-size: 12px;
+  }
 }

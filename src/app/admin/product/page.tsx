@@ -162,6 +162,38 @@ export default function ProductPage() {
     }
   };
 
+  // Tính toán các trang cần hiển thị và kiểm tra có thêm trang không
+  const getPaginationInfo = () => {
+    const visiblePages = [];
+    let showPrevEllipsis = false;
+    let showNextEllipsis = false;
+    
+    if (totalPages <= 3) {
+      // Nếu tổng số trang <= 3, hiển thị tất cả
+      for (let i = 1; i <= totalPages; i++) {
+        visiblePages.push(i);
+      }
+    } else {
+      // Nếu tổng số trang > 3, hiển thị 3 trang xung quanh trang hiện tại
+      if (currentPage === 1) {
+        // Trang đầu tiên
+        visiblePages.push(1, 2, 3);
+        showNextEllipsis = totalPages > 3;
+      } else if (currentPage === totalPages) {
+        // Trang cuối cùng
+        visiblePages.push(totalPages - 2, totalPages - 1, totalPages);
+        showPrevEllipsis = totalPages > 3;
+      } else {
+        // Trang ở giữa
+        visiblePages.push(currentPage - 1, currentPage, currentPage + 1);
+        showPrevEllipsis = currentPage > 2;
+        showNextEllipsis = currentPage < totalPages - 1;
+      }
+    }
+    
+    return { visiblePages, showPrevEllipsis, showNextEllipsis };
+  };
+
   if (loading && products.length === 0) {
     return <p className="text-center py-10">Đang tải danh sách sản phẩm...</p>;
   }
@@ -264,32 +296,64 @@ export default function ProductPage() {
       </div>
       {totalPages > 1 && (
         <div className={styles.pagination}>
-          <button
-            className={styles.pageLink}
-            onClick={() => handlePageChange(currentPage - 1)}
-            disabled={currentPage === 1 || loading}
-          >
-            Trước
-          </button>
-          {Array.from({ length: totalPages }, (_, index) => (
-            <button
-              key={index}
-              className={`${styles.pageLink} ${
-                currentPage === index + 1 ? styles.pageLinkActive : ""
-              }`}
-              onClick={() => handlePageChange(index + 1)}
-              disabled={loading}
-            >
-              {index + 1}
-            </button>
-          ))}
-          <button
-            className={styles.pageLink}
-            onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages || loading}
-          >
-            Sau
-          </button>
+          {(() => {
+            const { visiblePages, showPrevEllipsis, showNextEllipsis } = getPaginationInfo();
+            return (
+              <>
+                {showPrevEllipsis && (
+                  <>
+                    <button
+                      className={`${styles.pageLink} ${styles.firstLastPage}`}
+                      onClick={() => handlePageChange(1)}
+                      disabled={loading}
+                      title="Trang đầu tiên"
+                    >
+                      1
+                    </button>
+                    <div 
+                      className={styles.ellipsis}
+                      onClick={() => handlePageChange(Math.max(1, currentPage - 3))}
+                      title="Trang trước đó"
+                    >
+                      ...
+                    </div>
+                  </>
+                )}
+                {visiblePages.map((page) => (
+                  <button
+                    key={page}
+                    className={`${styles.pageLink} ${
+                      currentPage === page ? styles.pageLinkActive : ""
+                    }`}
+                    onClick={() => handlePageChange(page)}
+                    disabled={loading}
+                    title={`Trang ${page}`}
+                  >
+                    {page}
+                  </button>
+                ))}
+                {showNextEllipsis && (
+                  <>
+                    <div 
+                      className={styles.ellipsis}
+                      onClick={() => handlePageChange(Math.min(totalPages, currentPage + 3))}
+                      title="Trang tiếp theo"
+                    >
+                      ...
+                    </div>
+                    <button
+                      className={`${styles.pageLink} ${styles.firstLastPage}`}
+                      onClick={() => handlePageChange(totalPages)}
+                      disabled={loading}
+                      title="Trang cuối cùng"
+                    >
+                      {totalPages}
+                    </button>
+                  </>
+                )}
+              </>
+            );
+          })()}
         </div>
       )}
       {isTogglingStatus && (

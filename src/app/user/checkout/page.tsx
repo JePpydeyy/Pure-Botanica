@@ -35,7 +35,7 @@ export default function CheckoutPage() {
 
     const token = localStorage.getItem("token");
     if (token) {
-      fetch("http://localhost:10000/api/users/userinfo", {
+      fetch("https://api-zeal.onrender.com/api/users/userinfo", {
         headers: { Authorization: `Bearer ${token}` },
       })
         .then((res) => {
@@ -133,7 +133,7 @@ export default function CheckoutPage() {
     if (!e.target.checked) {
       const token = localStorage.getItem("token");
       if (token) {
-        fetch("http://localhost:10000/api/users/userinfo", {
+        fetch("https://api-zeal.onrender.com/api/users/userinfo", {
           headers: { Authorization: `Bearer ${token}` },
         })
           .then((res) => {

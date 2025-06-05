@@ -1,14 +1,18 @@
 "use client";
-import Link from "next/link";
+
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { useAuth } from "../context/AuthContext";
 import { jwtDecode } from "jwt-decode";
-import styles from "./login.module.css";
+import styles from "./Register.module.css";
 
-export default function LoginPage() {
+export default function RegisterPage() {
+  const [username, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -23,96 +27,145 @@ export default function LoginPage() {
       try {
         const decoded = jwtDecode(token) as any;
         console.log("Decoded token:", decoded);
-        login(token).catch((err: unknown) => {
+        login(token).then(() => {
+          // Assuming the login function handles role-based redirection
+          // If registration-specific logic is needed, adjust here
+          router.push(decoded.role === "admin" ? "/admin" : "/user/login");
+        }).catch((err: unknown) => {
           console.error("Lỗi xử lý token từ Google:", err);
-          setError(`Có lỗi khi đăng nhập bằng Google, vui lòng thử lại! Chi tiết: ${err instanceof Error ? err.message : "Lỗi không xác định"}`);
+          setError(`Có lỗi khi đăng ký bằng Google, vui lòng thử lại! Chi tiết: ${err instanceof Error ? err.message : "Lỗi không xác định"}`);
         });
       } catch (decodeError) {
         console.error("Lỗi giải mã token:", decodeError);
         setError("Token không hợp lệ, vui lòng thử lại!");
       }
     }
-  }, [searchParams, login]);
+  }, [searchParams, login, router]);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-
     try {
-      const res = await fetch("https://api-zeal.onrender.com/api/users/login", {
+      const res = await fetch("https://api-zeal.onrender.com/api/users/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ username, email, phone, password }),
       });
 
       const data = await res.json();
+      console.log("Register API Response:", data);
 
       if (!res.ok) {
-        setError(data.message || "Đăng nhập thất bại");
+        setError(data.message || "Đăng ký thất bại");
         return;
       }
 
-      console.log("Login response token:", data.token);
-      await login(data.token);
-    } catch (err: unknown) {
-      console.error("Lỗi đăng nhập:", err);
-      setError(err instanceof Error ? err.message : "Có lỗi xảy ra, vui lòng thử lại!");
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("role", data.user.role);
+      localStorage.setItem("email", data.user.email);
+
+      if (data.user.role === "admin") {
+        router.push("/admin");
+      } else {
+        router.push("/user/login");
+      }
+    } catch (err: any) {
+      console.error("Lỗi đăng ký:", err);
+      setError(err.message || "Có lỗi xảy ra, vui lòng thử lại!");
     }
   };
 
-  const handleGoogleLogin = () => {
+  const handleGoogleRegister = () => {
     console.log("Redirecting to Google:", "https://api-zeal.onrender.com/api/auth/google");
     window.location.href = "https://api-zeal.onrender.com/api/auth/google";
   };
 
   return (
-    <div className={styles.container}>
-      <div className={styles["form-box"]}>
-        <h2 className={styles["form-title"]}>
-          <strong>ĐĂNG NHẬP</strong>
-        </h2>
+    <main className={styles.mainContent}>
+      <div className={styles.container}>
+        <div className={styles.formBox}>
+          <h2 className={styles.title}><strong>ĐĂNG KÝ</strong></h2>
 
-        <button className={styles["google-btn"]} onClick={handleGoogleLogin}>
-          <img src="/images/icons8-google-48.png" alt="Google Logo" /> Đăng nhập với Google
-        </button>
+          <button
+            className={styles.googleBtn}
+            onClick={handleGoogleRegister}
+          >
+            <img src="/images/icons8-google-48.png" alt="Google Logo" /> Đăng ký với Google
+          </button>
 
-        <div className={styles.divider}>
-          <hr />
-          <span>Đăng nhập bằng tài khoản</span>
-          <hr />
-        </div>
-
-        <form action="#" method="post" onSubmit={handleSubmit}>
-          <input
-            type="email"
-            placeholder="Myname@gmail.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className={styles["input-field"]}
-            required
-          />
-          <br />
-          <input
-            type="password"
-            placeholder="Mật khẩu"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className={styles["input-field"]}
-            required
-          />
-
-          <div className={styles["forgot-password"]}>
-            <Link href="/user/forgotpass">Quên mật Khẩu</Link>
+          <div className={styles.divider}>
+            <hr className={styles.dividerLine} />
+            <span className={styles.dividerText}>Hoặc đăng ký bằng tài khoản</span>
+            <hr className={styles.dividerLine} />
           </div>
 
-          <button type="submit" className={styles["submit-btn"]}>ĐĂNG NHẬP</button>
-          {error && <p className={styles["error-message"]}>{error}</p>}
+          <form onSubmit={handleSubmit}>
+            <input
+              type="text"
+              placeholder="Họ và tên"
+              value={username}
+              onChange={(e) => setName(e.target.value)}
+              required
+              className={styles.input}
+            />
+            <small className={styles.small}>Vui lòng nhập họ và tên đầy đủ</small>
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className={styles.input}
+            />
+            <small className={styles.small}>Ví dụ: example@domain.com</small>
+            <input
+              type="tel"
+              placeholder="Số điện thoại"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              required
+              className={styles.input}
+            />
+            <small className={styles.small}>Ví dụ: 0123456789</small>
+            <input
+              type="password"
+              placeholder="Mật khẩu"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className={styles.input}
+            />
+            <small className={styles.small}>Mật khẩu phải có ít nhất 8 ký tự</small>
+            <input
+              type="password"
+              placeholder="Nhập lại mật khẩu"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              className={styles.input}
+            />
+            <small className={styles.small}>Vui lòng nhập lại mật khẩu giống trên</small>
 
-          <p className={styles["switch-form"]}>
-            Chưa có tài khoản? <Link href="/user/register">Đăng ký</Link>
-          </p>
-        </form>
+            <div className={styles.policy}>
+              <label className={styles.policyLabel}>
+                <input type="checkbox" required className={styles.policyCheckbox} />
+                Tôi đồng ý với <a href="/policy" className={styles.policyLink}>chính sách</a>
+              </label>
+            </div>
+
+            <button type="submit" className={styles.submitBtn}>ĐĂNG KÝ</button>
+            {error && <p className={styles.errorMessage}>{error}</p>}
+
+            <div className={styles.forgotPassword}>
+              <Link href="/forgot-password" className={styles.forgotPasswordLink}>Quên mật khẩu?</Link>
+            </div>
+
+            <p className={styles.switchForm}>
+              Đã có tài khoản? <Link href="/user/login" className={styles.switchFormLink}>Đăng nhập</Link>
+            </p>
+          </form>
+        </div>
       </div>
-    </div>
+    </main>
   );
 }

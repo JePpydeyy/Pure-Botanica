@@ -58,14 +58,14 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
         </div>
 
         <div className="header">
-          <div className="search-box">
+          {/* <div className="search-box">
             <img
               style={{ width: "20px", height: "20px" }}
               src="/images/search.png"
               alt="Search Icon"
             />
             <input type="text" placeholder="Search..." />
-          </div>
+          </div> */}
 
           {/* <div className="user-menu">
             <div className="notification">

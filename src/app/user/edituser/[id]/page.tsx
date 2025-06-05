@@ -35,7 +35,7 @@ export default function EditUser({ params }: { params: Promise<{ id: string }> }
       return;
     }
 
-    fetch(`https://api-zeal.onrender.com/api/users/userinfo`, {
+    fetch(`http://localhost:10000/api/users/userinfo`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => {
@@ -148,7 +148,7 @@ export default function EditUser({ params }: { params: Promise<{ id: string }> }
     }
 
     try {
-      const response = await fetch(`https://api-zeal.onrender.com/api/users/update/${id}`, {
+      const response = await fetch(`http://localhost:10000/api/users/update/${id}`, {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${token}`,

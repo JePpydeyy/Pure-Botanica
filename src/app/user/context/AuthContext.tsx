@@ -61,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       let userData = { id: decoded.id, email: decoded.email, role: decoded.role };
       try {
-        const res = await fetch("https://api-zeal.onrender.com/api/users", {
+        const res = await fetch("http://localhost:10000/api/users", {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.ok) {

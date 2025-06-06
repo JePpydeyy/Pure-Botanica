@@ -1,0 +1,205 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Slab&display=swap');
+
+:global(*) {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Roboto Slab', serif;
+}
+
+:global(body) {
+  background-color: #f5f5f5;
+  color: #333;
+}
+
+.container {
+  max-width: 1290px;
+  width: 90%;
+  margin: 20px auto; /* Center the container horizontally */
+}
+
+.banner {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.namePage {
+  width: 100%;
+  max-width: 1290px; /* Match container width */
+  margin: 0 auto; /* Center the namePage section */
+  text-align: center;
+  background-color: #8D5524;
+  padding: 10px 0;
+  height: 100px;
+}
+
+.nameTagPage {
+  font-size: 64px;
+  color: #ffffff;
+}
+
+.sectionTitle {
+  font-size: 48px;
+  color: #333;
+  text-align: center;
+  margin: 20px 0 10px;
+}
+
+.herro {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 10px 0 30px;
+  text-align: center;
+  font-size: 30px;
+  color: #444;
+}
+
+.sectionDescription {
+  font-size: 20px;
+  color: #333;
+  text-align: start;
+  margin-bottom: 20px;
+}
+
+/* Hot News */
+.hotNewPage {
+  width: 100%;
+  max-width: 1290px; /* Match container width */
+  margin: 0 auto; /* Center the hotNewPage section */
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: center;
+  margin-bottom: 30px;
+}
+
+.hotNewPage :global(a) {
+  flex: 1 1 calc(100% - 20px);
+  text-decoration: none;
+  color: inherit;
+  max-width: 430px;
+}
+
+.hotNew {
+  border-radius: 8px;
+  overflow: hidden;
+  transition: transform 0.3s ease-in-out;
+}
+
+.hotNew:hover {
+  transform: translateY(-10px);
+}
+
+.hotNew :global(img) {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 10px;
+}
+
+.hotNew :global(h2) {
+  font-size: 17px;
+  padding: 15px 15px 5px;
+  color: #222;
+}
+
+/* News Section */
+.newsPost {
+  width: 100%;
+  max-width: 1290px; /* Match container width */
+  margin: 0 auto; /* Center the newsPost section */
+}
+
+.newsPost .news {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  align-items: center;
+  padding: 20px;
+  border-radius: 10px;
+  transition: transform 0.3s ease-in-out;
+}
+
+.news :global(img) {
+  width: 100%;
+  max-width: 350px;
+  border-radius: 8px;
+}
+
+.news .tt {
+  flex: 1;
+  text-align: center;
+}
+
+.tt {
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.news :global(h2) {
+  font-size: 22px;
+  color: #111;
+  margin-bottom: 10px;
+}
+
+.news :global(p) {
+  margin-bottom: 15px;
+  color: #444;
+  padding: 0 10px;
+}
+
+/* Button */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  background-color: #2db36c;
+  color: white;
+  font-weight: bold;
+  font-size: 15px;
+  border-radius: 5px;
+  text-decoration: none;
+  transition: background-color 0.3s ease;
+  width: 150px;
+  height: 50px;
+}
+
+.btn:hover {
+  background-color: #8D5524;
+  transition: all 0.3s ease-in-out; /* Fixed typo in transition property */
+}
+
+/* Đảm bảo icon hiển thị đúng */
+.btn :global(i) {
+  font-size: 16px;
+  line-height: 1;
+}
+
+/* Responsive */
+@media (min-width: 600px) {
+  .hotNewPage :global(a) {
+    flex: 1 1 calc(48% - 20px);
+  }
+}
+
+@media (min-width: 768px) {
+  .hotNewPage :global(a) {
+    flex: 1 1 calc(33.333% - 20px);
+  }
+
+  .newsPost .news {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .news .tt {
+    text-align: left;
+    padding-left: 20px;
+  }
+}

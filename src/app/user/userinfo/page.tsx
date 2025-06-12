@@ -102,7 +102,7 @@ export default function UserProfile() {
 
     const fetchUserInfo = async () => {
       try {
-        const res = await fetch("http://localhost:10000/api/users/userinfo", {
+        const res = await fetch("http:///api/api/users/userinfo", {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) {
@@ -134,7 +134,7 @@ export default function UserProfile() {
     // Lấy danh sách đơn hàng - KHÔNG GỬI TOKEN để server hiểu đây là request lấy theo userId
     const fetchOrders = async (userId: string) => {
       try {
-        const res = await fetch(`http://localhost:10000/api/orders/user/${userId}`, {
+        const res = await fetch(`http:///api/api/orders/user/${userId}`, {
           // KHÔNG gửi Authorization header để server hiểu đây là request theo userId
           // headers: { Authorization: `Bearer ${token}` }, // BỎ DÒNG NÀY
         });
@@ -186,7 +186,7 @@ export default function UserProfile() {
       const res = await fetch(`https://api-zeal.onrender.com//api/orders/order/${orderId}`, {
         headers: { Authorization: `Bearer ${token}` },
 =======
-      const res = await fetch(`http://localhost:10000/api/orders/order/${orderId}`, {
+      const res = await fetch(`http:///api/api/orders/order/${orderId}`, {
         headers: { Authorization: `Bearer ${token}` }, // GỬI TOKEN để server hiểu đây là request theo orderId
 >>>>>>> d875090f1fb9cbbb42515348e6826f865338646d
       });

@@ -20,11 +20,11 @@ export default function CheckoutPage() {
     },
     sdt: "",
     note: "",
-    paymentMethod: "cod", 
+    paymentMethod: "cod",
   });
 
   const [useDifferentInfo, setUseDifferentInfo] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [loadingUser, setLoadingUser] = useState(true);
   const [hasCheckedOut, setHasCheckedOut] = useState(false);
@@ -45,7 +45,6 @@ export default function CheckoutPage() {
         .then((data) => {
           console.log("User data from API:", data);
           
-          // Handle address conversion if it's a string
           let addressObj = {
             addressLine: "",
             ward: "",
@@ -102,16 +101,16 @@ export default function CheckoutPage() {
   const { cart, couponCode, subtotal, discount, total, userId } = checkoutData;
   console.log("Checkout data:", checkoutData);
 
-  const formatPrice = (price) => {
-    const numericPrice = Number(price) || 0;
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    }).format(numericPrice);
-  };
+const formatPrice = (price: number | string) => {
+  const numericPrice = Number(price) || 0;
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+  }).format(numericPrice);
+};
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
+ const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const { name, value } = e.target;
     
     console.log("Form change:", name, value);
     
@@ -128,8 +127,8 @@ export default function CheckoutPage() {
     }
   };
 
-  const handleUseDifferentInfo = (e) => {
-    setUseDifferentInfo(e.target.checked);
+const handleUseDifferentInfo = (e: React.ChangeEvent<HTMLInputElement>) => {
+  setUseDifferentInfo(e.target.checked);
     if (!e.target.checked) {
       const token = localStorage.getItem("token");
       if (token) {
@@ -178,12 +177,11 @@ export default function CheckoutPage() {
     }
   };
 
-  const handleConfirmOrder = async (e) => {
-    e.preventDefault();
+const handleConfirmOrder = async (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
     setError(null);
     setIsLoading(true);
 
-    // Debug: Log toàn bộ formData
     console.log("=== FORM DATA DEBUG ===");
     console.log("Form Data:", JSON.stringify(formData, null, 2));
     console.log("Address object:", formData.address);
@@ -193,7 +191,6 @@ export default function CheckoutPage() {
     console.log("- district:", `"${formData.address.district}"`);
     console.log("- cityOrProvince:", `"${formData.address.cityOrProvince}"`);
 
-    // Validation
     const phoneRegex = /^[0-9]{10}$/;
     if (!phoneRegex.test(formData.sdt)) {
       setError("Số điện thoại không hợp lệ. Vui lòng nhập 10 chữ số.");
@@ -201,7 +198,6 @@ export default function CheckoutPage() {
       return;
     }
 
-    // Check address fields với logging chi tiết
     const { addressLine, ward, district, cityOrProvince } = formData.address;
     
     console.log("=== VALIDATION DEBUG ===");
@@ -210,7 +206,6 @@ export default function CheckoutPage() {
     console.log("district value:", district, "- length:", district?.length);
     console.log("cityOrProvince value:", cityOrProvince, "- length:", cityOrProvince?.length);
     
-    // Check if any field is empty, null, undefined or only whitespace
     const isAddressLineValid = addressLine && addressLine.trim().length > 0;
     const isWardValid = ward && ward.trim().length > 0;
     const isDistrictValid = district && district.trim().length > 0;
@@ -240,7 +235,7 @@ export default function CheckoutPage() {
       return;
     }
 
-    const attemptCheckout = async (useCoupon) => {
+    const attemptCheckout = async (useCoupon: boolean) => {
       const token = localStorage.getItem("token");
       if (!token) {
         throw new Error("Vui lòng đăng nhập để thanh toán");
@@ -249,7 +244,6 @@ export default function CheckoutPage() {
         throw new Error("Không tìm thấy userId");
       }
       
-      // Tạo address object sạch
       const cleanAddress = {
         addressLine: formData.address.addressLine.trim(),
         ward: formData.address.ward.trim(),
@@ -257,9 +251,7 @@ export default function CheckoutPage() {
         cityOrProvince: formData.address.cityOrProvince.trim(),
       };
 
-      // Thử các cách format address khác nhau
       const requestDataOptions = [
-        // Option 1: Gửi address như object (như hiện tại)
         {
           userId: userId,
           address: cleanAddress,
@@ -272,7 +264,6 @@ export default function CheckoutPage() {
             details: item.details || {},
           })),
         },
-        // Option 2: Gửi address như string (maybe backend expect này?)
         {
           userId: userId,
           address: `${cleanAddress.addressLine}, ${cleanAddress.ward}, ${cleanAddress.district}, ${cleanAddress.cityOrProvince}`,
@@ -285,7 +276,6 @@ export default function CheckoutPage() {
             details: item.details || {},
           })),
         },
-        // Option 3: Spread address fields ra ngoài (maybe backend expect này?)
         {
           userId: userId,
           addressLine: cleanAddress.addressLine,
@@ -305,7 +295,6 @@ export default function CheckoutPage() {
 
       console.log("=== TRYING REQUEST OPTIONS ===");
       
-      // Thử từng option
       for (let i = 0; i < requestDataOptions.length; i++) {
         const requestData = requestDataOptions[i];
         
@@ -331,26 +320,21 @@ export default function CheckoutPage() {
             const errorData = await response.json();
             console.log(`Option ${i + 1} FAILED:`, errorData);
             
-            // Nếu là option cuối cùng, throw error
             if (i === requestDataOptions.length - 1) {
               throw new Error(errorData.error || `Không thể thanh toán: ${response.statusText}`);
             }
-            // Nếu không phải option cuối, tiếp tục thử option tiếp theo
             continue;
           }
         } catch (fetchError) {
           console.log(`Option ${i + 1} FETCH ERROR:`, fetchError);
           
-          // Nếu là option cuối cùng, throw error
           if (i === requestDataOptions.length - 1) {
             throw fetchError;
           }
-          // Nếu không phải option cuối, tiếp tục thử option tiếp theo
           continue;
         }
       }
 
-      // Nếu tất cả options đều fail (shouldn't reach here)
       throw new Error("Tất cả các options đều fail");
     };
 
@@ -405,7 +389,6 @@ export default function CheckoutPage() {
       </div>
 
       <div className={styles.content}>
-        {/* Debug section - Tạm thời thêm để xem form data */}
         <div style={{ 
           background: '#f0f0f0', 
           padding: '10px', 

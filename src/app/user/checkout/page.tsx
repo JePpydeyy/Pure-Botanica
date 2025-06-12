@@ -312,7 +312,7 @@ export default function CheckoutPage() {
         console.log(`Trying option ${i + 1}:`, JSON.stringify(requestData, null, 2));
 
         try {
-          const response = await fetch(`http://localhost:10000/api/carts/checkout`, {
+          const response = await fetch(`https://api-zeal.onrender.com//api/carts/checkout`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",

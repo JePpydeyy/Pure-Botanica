@@ -10,6 +10,7 @@ import { Category } from "@/app/components/category_interface";
 
 export default function ProductPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -17,11 +18,13 @@ export default function ProductPage() {
   const [isTogglingStatus, setIsTogglingStatus] = useState(false);
   const [toggleId, setToggleId] = useState<string | null>(null);
   const [notification, setNotification] = useState({ show: false, message: "", type: "" });
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const productsPerPage = 9;
 
   const router = useRouter();
 
-  // Kiểm tra quyền admin
+  // Check admin privileges
   useEffect(() => {
     const token = localStorage.getItem("token");
     const role = localStorage.getItem("role");
@@ -30,7 +33,7 @@ export default function ProductPage() {
     }
   }, [router]);
 
-  // Lấy danh sách sản phẩm và danh mục
+  // Fetch products and categories
   useEffect(() => {
     fetchProducts();
     fetchCategories();
@@ -67,6 +70,7 @@ export default function ProductPage() {
         throw new Error("Dữ liệu sản phẩm không hợp lệ");
       }
       setProducts(data);
+      setFilteredProducts(data);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
       console.error("Lỗi khi tải danh sách sản phẩm:", errorMessage);
@@ -105,6 +109,22 @@ export default function ProductPage() {
     }
   };
 
+  // Handle search and category filter
+  useEffect(() => {
+    const filtered = products.filter((product) => {
+      const matchesSearch =
+        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (product.category && product.category.name
+          ? product.category.name.toLowerCase().includes(searchQuery.toLowerCase())
+          : false);
+      const matchesCategory =
+        selectedCategory === "all" || product.category?._id === selectedCategory;
+      return matchesSearch && matchesCategory;
+    });
+    setFilteredProducts(filtered);
+    setCurrentPage(1);
+  }, [searchQuery, selectedCategory, products]);
+
   const confirmToggleStatus = (id: string, currentStatus: string) => {
     setToggleId(id);
     setIsTogglingStatus(true);
@@ -115,10 +135,13 @@ export default function ProductPage() {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
-      const response = await fetch(`https://api-zeal.onrender.com/api/products/${toggleId}/toggle-visibility`, {
-        method: "PUT",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await fetch(
+        `https://api-zeal.onrender.com/api/products/${toggleId}/toggle-visibility`,
+        {
+          method: "PUT",
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
       if (response.status === 401 || response.status === 403) {
         alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
@@ -135,12 +158,20 @@ export default function ProductPage() {
       }
 
       const { product } = await response.json();
-      setProducts(products.map((p) =>
-        p._id === toggleId ? { ...p, status: product.status } : p
-      ));
+      setProducts(
+        products.map((p) => (p._id === toggleId ? { ...p, status: product.status } : p))
+      );
+      setFilteredProducts(
+        filteredProducts.map((p) =>
+          p._id === toggleId ? { ...p, status: product.status } : p
+        )
+      );
       setIsTogglingStatus(false);
       setToggleId(null);
-      showNotification(`Sản phẩm đã được ${product.status === "show" ? "hiển thị" : "ẩn"}`, "success");
+      showNotification(
+        `Sản phẩm đã được ${product.status === "show" ? "hiển thị" : "ẩn"}`,
+        "success"
+      );
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
       console.error("Lỗi khi thay đổi trạng thái sản phẩm:", errorMessage);
@@ -151,10 +182,10 @@ export default function ProductPage() {
   };
 
   // Pagination
-  const totalPages = Math.ceil(products.length / productsPerPage);
+  const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
   const indexOfLastProduct = currentPage * productsPerPage;
   const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
-  const currentProducts = products.slice(indexOfFirstProduct, indexOfLastProduct);
+  const currentProducts = filteredProducts.slice(indexOfFirstProduct, indexOfLastProduct);
 
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) {
@@ -162,35 +193,29 @@ export default function ProductPage() {
     }
   };
 
-  // Tính toán các trang cần hiển thị và kiểm tra có thêm trang không
   const getPaginationInfo = () => {
     const visiblePages = [];
     let showPrevEllipsis = false;
     let showNextEllipsis = false;
-    
+
     if (totalPages <= 3) {
-      // Nếu tổng số trang <= 3, hiển thị tất cả
       for (let i = 1; i <= totalPages; i++) {
         visiblePages.push(i);
       }
     } else {
-      // Nếu tổng số trang > 3, hiển thị 3 trang xung quanh trang hiện tại
       if (currentPage === 1) {
-        // Trang đầu tiên
         visiblePages.push(1, 2, 3);
         showNextEllipsis = totalPages > 3;
       } else if (currentPage === totalPages) {
-        // Trang cuối cùng
         visiblePages.push(totalPages - 2, totalPages - 1, totalPages);
         showPrevEllipsis = totalPages > 3;
       } else {
-        // Trang ở giữa
         visiblePages.push(currentPage - 1, currentPage, currentPage + 1);
         showPrevEllipsis = currentPage > 2;
         showNextEllipsis = currentPage < totalPages - 1;
       }
     }
-    
+
     return { visiblePages, showPrevEllipsis, showNextEllipsis };
   };
 
@@ -224,6 +249,27 @@ export default function ProductPage() {
       )}
       <div className={styles.titleContainer}>
         <h1>QUẢN LÝ SẢN PHẨM</h1>
+        <div className={styles.filterContainer}>
+          <input
+            type="text"
+            placeholder="Tìm kiếm sản phẩm hoặc danh mục..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className={styles.searchInput}
+          />
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className={styles.categorySelect}
+          >
+            <option value="all">Tất cả danh mục</option>
+            {categories.map((category) => (
+              <option key={category._id} value={category._id}>
+                {category.name}
+              </option>
+            ))}
+          </select>
+        </div>
         <Link href="/admin/add_product" className={styles.addProductBtn}>
           Thêm Sản Phẩm +
         </Link>
@@ -310,7 +356,7 @@ export default function ProductPage() {
                     >
                       1
                     </button>
-                    <div 
+                    <div
                       className={styles.ellipsis}
                       onClick={() => handlePageChange(Math.max(1, currentPage - 3))}
                       title="Trang trước đó"
@@ -334,7 +380,7 @@ export default function ProductPage() {
                 ))}
                 {showNextEllipsis && (
                   <>
-                    <div 
+                    <div
                       className={styles.ellipsis}
                       onClick={() => handlePageChange(Math.min(totalPages, currentPage + 3))}
                       title="Trang tiếp theo"
@@ -357,10 +403,16 @@ export default function ProductPage() {
         </div>
       )}
       {isTogglingStatus && (
-        <div className={styles.modal}>
+        <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
             <h2>Xác nhận thay đổi trạng thái</h2>
-            <p>Bạn có chắc chắn muốn {products.find(p => p._id === toggleId)?.status === "show" ? "ẩn" : "hiển thị"} sản phẩm này?</p>
+            <p>
+              Bạn có chắc chắn muốn{" "}
+              {products.find((p) => p._id === toggleId)?.status === "show"
+                ? "ẩn"
+                : "hiển thị"}{" "}
+              sản phẩm này?
+            </p>
             <div className={styles.modalActions}>
               <button className={styles.confirmBtn} onClick={handleToggleStatus}>
                 Xác nhận

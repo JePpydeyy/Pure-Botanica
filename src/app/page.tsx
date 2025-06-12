@@ -16,7 +16,9 @@ export default function RedirectPage() {
   }, [router, searchParams]);
 
   return (
-    <div
+    <html lang="vi">
+      <body>
+         <div
       style={{
         height: "100vh",
         display: "flex",
@@ -28,5 +30,8 @@ export default function RedirectPage() {
     >
       <p>Đang chuyển trang, vui lòng chờ...</p>
     </div>
+      </body>
+    </html>
+  
   );
 }

@@ -61,7 +61,7 @@ export default async function RootLayout({
                   </div>
                   <Link href="/user/about">Về chúng tôi</Link>
                   <Link href="/user/contact">Liên hệ</Link>
-                  <Link href="#">Tin tức</Link>
+                  <Link href="user/new">Tin tức</Link>
                 </nav>
 
                 <div className="icons">

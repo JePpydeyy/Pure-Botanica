@@ -102,7 +102,7 @@ export default function UserProfile() {
 
     const fetchUserInfo = async () => {
       try {
-        const res = await fetch("https://api-zeal.onrender.com/api/users/userinfo", {
+        const res = await fetch("http://localhost:10000/api/users/userinfo", {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) {
@@ -129,6 +129,28 @@ export default function UserProfile() {
       }
     };
 
+<<<<<<< HEAD
+=======
+    // Lấy danh sách đơn hàng - KHÔNG GỬI TOKEN để server hiểu đây là request lấy theo userId
+    const fetchOrders = async (userId: string) => {
+      try {
+        const res = await fetch(`http://localhost:10000/api/orders/user/${userId}`, {
+          // KHÔNG gửi Authorization header để server hiểu đây là request theo userId
+          // headers: { Authorization: `Bearer ${token}` }, // BỎ DÒNG NÀY
+        });
+        if (!res.ok) throw new Error("Lỗi khi tải danh sách đơn hàng.");
+        const data = await res.json();
+        if (!Array.isArray(data)) {
+          throw new Error("Dữ liệu đơn hàng không hợp lệ.");
+        }
+        setOrders(data);
+      } catch {
+        throw new Error("Lỗi khi tải danh sách đơn hàng.");
+      }
+    };
+
+    // Thực hiện các request
+>>>>>>> d875090f1fb9cbbb42515348e6826f865338646d
     const fetchData = async () => {
       try {
         const userData = await fetchUserInfo();
@@ -160,8 +182,13 @@ export default function UserProfile() {
       setLoading(true);
       setError(null);
 
+<<<<<<< HEAD
       const res = await fetch(`https://api-zeal.onrender.com//api/orders/order/${orderId}`, {
         headers: { Authorization: `Bearer ${token}` },
+=======
+      const res = await fetch(`http://localhost:10000/api/orders/order/${orderId}`, {
+        headers: { Authorization: `Bearer ${token}` }, // GỬI TOKEN để server hiểu đây là request theo orderId
+>>>>>>> d875090f1fb9cbbb42515348e6826f865338646d
       });
 
       if (!res.ok) {

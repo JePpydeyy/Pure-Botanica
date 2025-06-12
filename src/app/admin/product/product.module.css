@@ -1,4 +1,10 @@
 /* === LAYOUT & CONTAINER === */
+.productManagementContainer {
+  padding: 20px;
+  background: #f9fafb;
+  min-height: 100vh;
+}
+
 .titleContainer {
   width: 1240px;
   height: 100px;
@@ -10,6 +16,47 @@
 .titleContainer h1 {
   color: #004C59;
   font-size: 30px;
+  margin: 0;
+}
+
+.filterContainer {
+  margin-left: auto;
+  margin-right: 20px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.searchInput {
+  width: 300px;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #333;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.searchInput:focus {
+  border-color: #4CAF50;
+  box-shadow: 0 0 4px rgba(76, 175, 80, 0.3);
+}
+
+.categorySelect {
+  width: 200px;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #333;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.categorySelect:focus {
+  border-color: #4CAF50;
+  box-shadow: 0 0 4px rgba(76, 175, 80, 0.3);
 }
 
 .addProductBtn {
@@ -23,6 +70,11 @@
   border-radius: 5px;
   line-height: 35px;
   margin-left: 40px;
+  font-weight: 500;
+}
+
+.addProductBtn:hover {
+  background-color: #003a45;
 }
 
 .tableContainer {
@@ -106,21 +158,22 @@
   transform: translateY(0);
 }
 
-.deleteBtn {
-  background-color: #f44336;
+.toggleStatusBtn {
+  background-color: #2196F3;
   color: white;
 }
 
-.deleteBtn:hover {
-  background-color: #d32f2f;
+.toggleStatusBtn:hover {
+  background-color: #1976D2;
   transform: translateY(-2px);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-.deleteBtn:active {
+.toggleStatusBtn:active {
   transform: translateY(0);
 }
 
+/* === PAGINATION === */
 .pagination {
   display: flex;
   justify-content: center;
@@ -163,7 +216,6 @@
   cursor: not-allowed;
 }
 
-/* === ELLIPSIS - SIMPLE === */
 .ellipsis {
   display: flex;
   justify-content: center;
@@ -180,4 +232,177 @@
 
 .ellipsis:hover {
   background-color: #f0f0f0;
+}
+
+/* === MODAL STYLING === */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modalContent {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+}
+
+.modalContent h2 {
+  margin: 0 0 10px;
+  color: #004C59;
+  font-size: 20px;
+}
+
+.modalContent p {
+  margin: 0 0 20px;
+  color: #333;
+}
+
+.modalActions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.confirmBtn,
+.cancelBtn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.confirmBtn {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.confirmBtn:hover {
+  background-color: #3e8e41;
+}
+
+.cancelBtn {
+  background-color: #f44336;
+  color: white;
+}
+
+.cancelBtn:hover {
+  background-color: #d32f2f;
+}
+
+/* === NOTIFICATIONS === */
+.notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 10px 20px;
+  border-radius: 4px;
+  color: white;
+  font-weight: 500;
+  z-index: 1001;
+}
+
+.notification.success {
+  background-color: #4CAF50;
+}
+
+.notification.error {
+  background-color: #f44336;
+}
+
+.processingIndicator {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 10px 20px;
+  background-color: #2196F3;
+  color: white;
+  border-radius: 4px;
+  z-index: 1001;
+}
+
+/* === ERROR CONTAINER === */
+.errorContainer {
+  text-align: center;
+  padding: 20px;
+}
+
+.errorMessage {
+  color: #f44336;
+  font-size: 16px;
+  margin-bottom: 20px;
+}
+
+.retryButton {
+  padding: 8px 16px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.retryButton:hover {
+  background-color: #3e8e41;
+}
+
+/* === RESPONSIVE DESIGN === */
+@media (max-width: 1240px) {
+  .titleContainer {
+    width: 100%;
+    margin-left: 0;
+    padding: 0 20px;
+    flex-wrap: wrap;
+    height: auto;
+  }
+
+  .tableContainer {
+    margin-left: 0;
+    padding: 0 20px;
+  }
+
+  .filterContainer {
+    margin: 10px 0;
+    width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .searchInput,
+  .categorySelect {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .productTable {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .titleContainer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .addProductBtn {
+    margin-left: 0;
+    margin-top: 10px;
+  }
 }

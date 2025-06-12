@@ -11,6 +11,28 @@
   color: #004C59;
   font-size: 30px;
   font-weight: bold;
+  margin: 0;
+}
+
+.searchContainer {
+  margin-left: auto;
+  margin-right: 20px;
+}
+
+.searchInput {
+  width: 300px;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #333;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.searchInput:focus {
+  border-color: #4CAF50;
+  box-shadow: 0 0 4px rgba(76, 175, 80, 0.3);
 }
 
 .tableContainer {
@@ -70,6 +92,67 @@
 
 .btn:active {
   transform: translateY(0);
+}
+
+/* === PAGINATION === */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 25px 0;
+  gap: 8px;
+}
+
+.pageLink {
+  min-width: 40px;
+  height: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background-color: #fff;
+  color: #333;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pageLink:hover {
+  background-color: #f5f5f5;
+  border-color: #4CAF50;
+}
+
+.pageLinkActive {
+  background-color: #4CAF50;
+  color: white;
+  border-color: #4CAF50;
+}
+
+.pageLink:disabled {
+  background-color: #f8f8f8;
+  color: #ccc;
+  border-color: #eee;
+  cursor: not-allowed;
+}
+
+.ellipsis {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 40px;
+  height: 40px;
+  color: #666;
+  font-weight: 500;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+}
+
+.ellipsis:hover {
+  background-color: #f0f0f0;
 }
 
 /* === MODAL === */
@@ -172,23 +255,36 @@
     width: 90%;
     margin-left: 5%;
   }
+
+  .searchContainer {
+    margin: 10px 0;
+    width: 100%;
+  }
+
+  .searchInput {
+    width: 100%;
+  }
 }
 
 @media (max-width: 768px) {
   .titleContainer {
     height: auto;
     margin-top: 40px;
+    flex-direction: column;
+    align-items: flex-start;
   }
-  
-  .titleContainer h1 {
-    font-size: 24px;
+
+  .tableContainer table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
   }
-  
+
   .modalContent {
     width: 100%;
     padding: 20px;
   }
-  
+
   .modalContent h3 {
     font-size: 18px;
   }
@@ -198,20 +294,20 @@
   .titleContainer h1 {
     font-size: 20px;
   }
-  
+
   .tableContainer td,
   .tableContainer th {
     padding: 8px;
     font-size: 14px;
   }
-  
+
   .btn {
     min-width: 60px;
     padding: 6px 10px;
     font-size: 13px;
   }
-  
+
   .modalActions button {
     padding: 8px 15px;
   }
-}
+} 

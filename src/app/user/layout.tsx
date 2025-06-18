@@ -44,45 +44,42 @@ export default async function RootLayout({
         <AuthProvider>
           <CartProvider>
             <header>
-              <div className="container header-container">
-                <div className="logo">
-                  <Link href="/user">
-                    <img src="https://api-zeal.onrender.com/images/logo_web.png" alt="Pure Botanica" />
-                  </Link>
-                </div>
-                <nav>
-                  <Link href="/user">Trang chủ</Link>
-                  <div className="menu-wrapper">
-                    <Link href="/user/product" className="dropdown">
-                      Sản phẩm
-                      {/* <i className="fa-solid fa-chevron-down"></i> */}
-                    </Link>
-                    <CategoryList categories={category} />
-                  </div>
-                  <Link href="/user/about">Về chúng tôi</Link>
-                  <Link href="/user/contact">Liên hệ</Link>
-                  <Link href="/user/new">Tin tức</Link>
-                </nav>
-
-                <div className="icons">
-                  <div className="search-bar">
-                    <form className="formtimkiem" action="/user/search" method="GET">
-                      <input
-                        type="text"
-                        name="query"
-                        placeholder="Tìm kiếm sản phẩm..."
-                        className="search-input"
-                      />
-                      <button type="submit" className="search-button">
-                        <i className="fa-solid fa-magnifying-glass"></i>
-                      </button>
-                    </form>
-                  </div>
-                  <Link href="/user/cart"><i className="fa-solid fa-cart-shopping"></i></Link>
-                  <UserMenu />
-                </div>
-              </div>
-            </header>
+  <div className="container header-container">
+    <div className="logo">
+      <Link href="/user">
+        <img src="https://api-zeal.onrender.com/images/logo_web.png" alt="Pure Botanica" />
+      </Link>
+    </div>
+    <nav>
+      <div className="menu-wrapper">
+        <Link href="/user/product" className="dropdown">
+          Sản phẩm
+        </Link>
+        <CategoryList categories={category} />
+      </div>
+      <Link href="/user/about">Về chúng tôi</Link>
+      <Link href="/user/contact">Liên hệ</Link>
+      <Link href="/user/new">Tin tức</Link>
+    </nav>
+    <div className="icons">
+      <div className="search-bar">
+        <form className="formtimkiem" action="/user/search" method="GET">
+          <input
+            type="text"
+            name="query"
+            placeholder="Tìm kiếm sản phẩm..."
+            className="search-input"
+          />
+          <button type="submit" className="search-button">
+            <i className="fa-solid fa-magnifying-glass"></i>
+          </button>
+        </form>
+      </div>
+      <Link href="/user/cart"><i className="fa-solid fa-cart-shopping"></i></Link>
+      <UserMenu />
+    </div>
+  </div>
+</header>
             <main>{children}</main>
 
             <footer className="footer">

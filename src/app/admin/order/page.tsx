@@ -138,7 +138,6 @@ export default function OrderPage() {
   };
 
   if (error) return <div className={styles.errorMessage}>Không thể tải danh sách đơn hàng</div>;
-  if (!orders.length) return <div className={styles.loadingMessage}>Đang tải...</div>;
 
   return (
     <div className={styles.orderContainer}>
@@ -157,30 +156,38 @@ export default function OrderPage() {
             </tr>
           </thead>
           <tbody>
-            {orders.map((order, index) => (
-              <tr key={order._id} onClick={(e) => handleOrderClick(order, e)}>
-                <td>{index + 1}</td>
-                <td>{order.user.username}</td>
-                <td>{formatAddress(order.address)}</td>
-                <td>{formatDate(order.createdAt)}</td>
-                <td>
-                  <select
-                    value={getVietnameseStatus(order.paymentStatus)}
-                    onChange={(e) =>
-                      handleStatusChange(order._id, order.user._id, e.target.value, order.paymentStatus)
-                    }
-                    className={`${styles.statusSelect} ${styles[order.paymentStatus]}`}
-                    onClick={(e) => e.stopPropagation()}
-                    disabled={order.paymentStatus === "completed"}
-                  >
-                    <option value="Chờ xử lý">Chờ xử lý</option>
-                    <option value="Đã giao hàng">Đã giao hàng</option>
-                    <option value="Thất bại">Thất bại</option>
-                    <option value="Đã hủy">Đã hủy</option>
-                  </select>
+            {orders.length === 0 ? (
+              <tr>
+                <td colSpan={5} style={{ textAlign: "center" }}>
+                  Chưa có đơn hàng nào
                 </td>
               </tr>
-            ))}
+            ) : (
+              orders.map((order, index) => (
+                <tr key={order._id} onClick={(e) => handleOrderClick(order, e)}>
+                  <td>{index + 1}</td>
+                  <td>{order.user.username}</td>
+                  <td>{formatAddress(order.address)}</td>
+                  <td>{formatDate(order.createdAt)}</td>
+                  <td>
+                    <select
+                      value={getVietnameseStatus(order.paymentStatus)}
+                      onChange={(e) =>
+                        handleStatusChange(order._id, order.user._id, e.target.value, order.paymentStatus)
+                      }
+                      className={`${styles.statusSelect} ${styles[order.paymentStatus]}`}
+                      onClick={(e) => e.stopPropagation()}
+                      disabled={order.paymentStatus === "completed"}
+                    >
+                      <option value="Chờ xử lý">Chờ xử lý</option>
+                      <option value="Đã giao hàng">Đã giao hàng</option>
+                      <option value="Thất bại">Thất bại</option>
+                      <option value="Đã hủy">Đã hủy</option>
+                    </select>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

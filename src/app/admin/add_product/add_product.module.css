@@ -12,18 +12,30 @@
 }
 
 .form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.basicInfo {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
 }
 
-.formGroup {
-  margin-bottom: 15px;
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  grid-column: span 2;
 }
 
-/* Make certain fields span full width */
-.fullWidth {
-  grid-column: span 2;
+.formRow:last-child {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+.formGroup {
+  margin-bottom: 15px;
 }
 
 .label {
@@ -35,9 +47,7 @@
 }
 
 .input,
-.textarea,
-.select,
-.fileInput {
+.select {
   width: 100%;
   padding: 12px;
   border: 1px solid #e1e1e1;
@@ -47,59 +57,309 @@
   box-sizing: border-box;
 }
 
-.input::placeholder,
-.textarea::placeholder {
+.input::placeholder {
   color: #aaa;
 }
 
-.textarea {
-  min-height: 100px;
-  resize: vertical;
+/* Rich Text Editor Styles */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px;
+  background-color: #f8f9fa;
+  border: 1px solid #e1e1e1;
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  align-items: center;
+}
+
+.toolbarGroup {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.toolbarBtn {
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  background-color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+  min-width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toolbarBtn:hover {
+  background-color: #f0f0f0;
+}
+
+.toolbarBtn:active {
+  background-color: #e0e0e0;
+}
+
+.toolbarSelect {
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  min-width: 80px;
+}
+
+.colorPicker {
+  width: 32px;
+  height: 32px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 0;
+  background: none;
+}
+
+.editor {
+  min-height: 200px;
+  padding: 15px;
+  border: 1px solid #e1e1e1;
+  border-radius: 0 0 6px 6px;
+  background-color: #fff;
+  outline: none;
+  font-size: 16px;
+  line-height: 1.5;
+  font-family: inherit;
+}
+
+.editor:empty:before {
+  content: attr(data-placeholder);
+  color: #aaa;
+  font-style: italic;
+}
+
+.editor:focus {
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.1);
+}
+
+/* Image Upload Styles */
+.imageUploadArea {
+  margin-bottom: 15px;
+}
+
+.fileInput {
+  display: none;
+}
+
+.uploadLabel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+  border: 2px dashed #e1e1e1;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.uploadLabel:hover {
+  border-color: #4CAF50;
+  background-color: #f0f8f0;
+}
+
+.uploadIcon {
+  font-size: 32px;
+  margin-bottom: 8px;
+  color: #666;
+}
+
+.uploadLabel span {
+  color: #666;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.imagePreview {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 15px;
+  margin-top: 15px;
+}
+
+.imageItem {
+  border: 1px solid #e1e1e1;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.previewImage {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  display: block;
+}
+
+.imageInfo {
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.imageName {
+  font-size: 12px;
+  color: #666;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-right: 8px;
+}
+
+.removeBtn {
+  background: #ff4757;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.removeBtn:hover {
+  background: #ff3742;
 }
 
 .submitButton {
-  grid-column: 1 / -1;
   background-color: #4CAF50;
   color: white;
   border: none;
-  border-radius: 4px;
-  padding: 12px 24px;
+  border-radius: 6px;
+  padding: 15px 30px;
   font-size: 16px;
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s;
   width: fit-content;
   margin: 20px auto 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .submitButton:hover {
   background-color: #45a049;
 }
 
-.fileList {
-  list-style-type: none;
-  padding: 0;
-  margin: 10px 0 0;
+.submitButton span {
+  font-size: 18px;
 }
 
-.fileItem {
-  padding: 5px 0;
-  font-size: 14px;
-  color: #666;
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .addProductContainer {
+    margin: 50px 100px auto;
+  }
 }
 
-/* Style for file input */
-.fileInput {
-  padding: 10px;
-}
-
-/* Make responsive */
 @media (max-width: 768px) {
-  .form {
+  .addProductContainer {
+    margin: 20px;
+    padding: 15px;
+  }
+  
+  .basicInfo {
     grid-template-columns: 1fr;
   }
   
-  .fullWidth {
-    grid-column: 1;
+  .formRow {
+    grid-template-columns: 1fr;
+    grid-column: span 1;
+  }
+  
+  .formRow:last-child {
+    grid-template-columns: 1fr;
+  }
+  
+  .toolbar {
+    padding: 8px;
+    gap: 4px;
+  }
+  
+  .toolbarGroup {
+    gap: 2px;
+  }
+  
+  .toolbarBtn {
+    padding: 4px 6px;
+    min-width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+  
+  .toolbarSelect {
+    min-width: 60px;
+    font-size: 12px;
+  }
+  
+  .colorPicker {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .imagePreview {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+  }
+  
+  .previewImage {
+    height: 120px;
+  }
+}
+
+@media (max-width: 480px) {
+  .title {
+    font-size: 20px;
+    text-align: center;
+  }
+  
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .toolbarGroup {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  
+  .editor {
+    min-height: 150px;
+    font-size: 14px;
+  }
+  
+  .uploadLabel {
+    padding: 20px;
+  }
+  
+  .uploadIcon {
+    font-size: 24px;
+  }
+  
+  .imagePreview {
+    grid-template-columns: 1fr 1fr;
   }
 }

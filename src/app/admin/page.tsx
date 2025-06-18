@@ -18,6 +18,7 @@ interface OrderItem {
 }
 
 interface User {
+  createdAt: string | number | Date;
   _id: string;
   username: string;
   email: string;

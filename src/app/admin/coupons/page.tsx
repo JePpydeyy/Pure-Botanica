@@ -4,17 +4,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./coupon.module.css";
-
-interface Coupon {
-  _id: string;
-  code: string;
-  discountType: string;
-  discountValue: number;
-  minOrderValue: number;
-  expiryDate: string;
-  usageLimit: number | null;
-  isActive: boolean;
-}
+import type { Coupon } from "@/app/components/coupon_interface";
 
 interface Pagination {
   page: number;
@@ -23,16 +13,8 @@ interface Pagination {
   totalPages: number;
 }
 
-interface FormData {
-  _id?: string;
-  code: string;
-  discountType: string;
-  discountValue: number;
-  minOrderValue: number;
-  expiryDate: string;
-  usageLimit: number | null;
-  isActive: boolean;
-}
+// FormData sẽ giống Coupon nhưng _id và usedCount là optional
+type FormData = Omit<Coupon, "_id" | "usedCount"> & { _id?: string };
 
 export default function CouponPage() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -97,12 +79,10 @@ export default function CouponPage() {
         }
 
         const data = await response.json();
-        console.log("API response:", data);
         setCoupons(data.coupons || []);
         setPagination(data.pagination || pagination);
         setLoading(false);
       } catch (err) {
-        console.error("Fetch error:", err);
         setError(
           err instanceof Error
             ? err.message === "Phiên đăng nhập hết hạn"
@@ -114,7 +94,7 @@ export default function CouponPage() {
 
         if (err instanceof Error && err.message === "Phiên đăng nhập hết hạn") {
           localStorage.clear();
-          router.push("/login");
+          router.push("/user/login");
         }
       }
     };
@@ -153,8 +133,6 @@ export default function CouponPage() {
         throw new Error(await response.text());
       }
 
-      const data = await response.json();
-      console.log("Submit response:", data);
       setShowModal(false);
       setFormData({
         code: "",
@@ -181,7 +159,6 @@ export default function CouponPage() {
       };
       fetchCoupons();
     } catch (err) {
-      console.error("Submit error:", err);
       setError(
         err instanceof Error
           ? err.message === "Phiên đăng nhập hết hạn"
@@ -228,8 +205,6 @@ export default function CouponPage() {
         throw new Error(await response.text());
       }
 
-      const data = await response.json();
-      console.log("Delete response:", data);
       // Refresh data
       const fetchCoupons = async () => {
         const response = await fetch(
@@ -246,7 +221,6 @@ export default function CouponPage() {
       };
       fetchCoupons();
     } catch (err) {
-      console.error("Delete error:", err);
       setError(
         err instanceof Error
           ? err.message === "Phiên đăng nhập hết hạn"
@@ -284,7 +258,7 @@ export default function CouponPage() {
         <table className={styles.table}>
           <thead>
             <tr>
-              <th>#</th>
+              <th>STT</th>
               <th>Mã giảm giá</th>
               <th>Loại giảm giá</th>
               <th>Giảm giá (%)</th>
@@ -348,6 +322,7 @@ export default function CouponPage() {
         </table>
       </div>
       {/* Pagination */}
+      {/* ...pagination code nếu có... */}
 
       {/* Modal */}
       {showModal && (
@@ -414,7 +389,7 @@ export default function CouponPage() {
                 <label>Số lần sử dụng:</label>
                 <input
                   type="number"
-                  value={formData.usageLimit || ""}
+                  value={formData.usageLimit ?? ""}
                   onChange={(e) =>
                     setFormData({
                       ...formData,

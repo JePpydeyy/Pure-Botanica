@@ -1,3 +1,4 @@
+
 "use client";
 
 import styles from "./page.module.css";
@@ -6,24 +7,38 @@ import { useState, useEffect, useMemo } from "react";
 
 // Define TypeScript types with stricter definitions
 interface Product {
+  _id: string;
   name: string;
 }
 
 interface OrderItem {
-  product: Product;
+  product: Product | null;
   quantity: number;
+  _id: string;
 }
 
 interface User {
+  _id: string;
   username: string;
-  createdAt: string;
+  email: string;
+}
+
+interface ProductDetail {
+  productId: string;
 }
 
 interface Order {
   _id: string;
   user: User;
   items: OrderItem[];
+  productDetails: ProductDetail[];
+  subtotal: number;
+  discount: number;
   total: number;
+  coupon: string | null;
+  sdt: string;
+  paymentMethod: string;
+  note: string;
   paymentStatus: "pending" | "completed" | "delivering";
   createdAt: string;
 }
@@ -34,6 +49,16 @@ interface Stats {
   revenue: number;
   newComments: number;
 }
+
+// Static product mapping based on provided product data
+const productMap: { [key: string]: string } = {
+  "68162294d9108ca4dbbc6aad": "Dầu dưỡng thể – DƯỠNG ẨM, MƯỚT MỊN, GIẢM MỤN từ dầu hạt và tinh dầu Nhài- dòng Charming 50ml",
+  "68162294d9108ca4dbbc6adc": "Toner Hydrosol Perilla – Lá Tía Tô Mào Gà",
+  "68162294d9108ca4dbbc6aac": "Toner Hydrosol Perilla – Lá Tía Tô Mào Gà",
+  "68162294d9108ca4dbbc6ae6": "Dầu dưỡng thể – DƯỠNG ẨM, MƯỚT MỊN, GIẢM MỤN từ dầu hạt và tinh dầu Nhài- dòng Charming 50ml",
+  "68162294d9108ca4dbbc6aaf": "Toner Hydrosol Perilla – Lá Tía Tô Mào Gà",
+  "68162294d9108ca4dbbc6ab6": "Dầu dưỡng thể – DƯỠNG ẨM, MƯỚT MỊN, GIẢM MỤN từ dầu hạt và tinh dầu Nhài- dòng Charming 50ml",
+};
 
 export default function AD_Home() {
   const [timePeriod, setTimePeriod] = useState<"day" | "month" | "year">("day");
@@ -48,14 +73,12 @@ export default function AD_Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Memoized date for reference
   const today = useMemo(() => {
     const date = new Date();
     date.setHours(0, 0, 0, 0);
     return date;
   }, []);
 
-  // Memoized revenue calculation
   const calculateRevenue = useMemo(() => (orders: Order[], period: string) => {
     if (period === "day") {
       const revenueByDay = {
@@ -100,7 +123,7 @@ export default function AD_Home() {
       ];
     } else {
       const currentYear = today.getFullYear();
-      const revenueByYear = Array(5).fill(0); // Last 5 years
+      const revenueByYear = Array(5).fill(0);
       orders.forEach((order) => {
         if (order.paymentStatus === "completed") {
           const year = new Date(order.createdAt).getFullYear();
@@ -121,9 +144,8 @@ export default function AD_Home() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Parallel API calls
         const [ordersRes, usersRes, commentsRes] = await Promise.all([
-          fetch("https://api-zeal.onrender.com/api/orders/all"),
+          fetch("https://api-zeal.onrender.com/api/orders/admin/all"),
           fetch("https://api-zeal.onrender.com/api/users"),
           fetch("https://api-zeal.onrender.com/api/comments/"),
         ]);
@@ -138,7 +160,8 @@ export default function AD_Home() {
           commentsRes.json(),
         ]);
 
-        // Process data based on time period
+        console.log("Orders:", orders);
+
         const isInPeriod = (date: Date) => {
           if (timePeriod === "day") {
             return (
@@ -156,7 +179,6 @@ export default function AD_Home() {
           }
         };
 
-        // Calculate stats
         const ordersInPeriod = orders.filter((order: Order) =>
           isInPeriod(new Date(order.createdAt))
         );
@@ -168,7 +190,6 @@ export default function AD_Home() {
           isInPeriod(new Date(comment.createdAt))
         );
 
-        // Update states
         setChartData(calculateRevenue(orders, timePeriod));
         setStats({
           orders: ordersInPeriod.length,
@@ -178,6 +199,9 @@ export default function AD_Home() {
         });
         setRecentOrders(
           orders
+            .filter((order: Order) =>
+              order.items.length === order.productDetails.length
+            )
             .sort((a: Order, b: Order) =>
               new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
             )
@@ -294,11 +318,11 @@ export default function AD_Home() {
               recentOrders.map((order) => (
                 <tr key={order._id}>
                   <td>{order._id}</td>
-                  <td>{order.user.username}</td>
+                  <td>{order.user?.username ?? "Không xác định"}</td>
                   <td>
                     {order.items.map((item, index) => (
-                      <div key={index}>
-                        {item.product.name} (x{item.quantity})
+                      <div key={item._id}>
+                        {item.product?.name ?? (order.productDetails[index]?.productId ? productMap[order.productDetails[index].productId] ?? "Sản phẩm không xác định" : "Sản phẩm không xác định")} (x{item.quantity})
                       </div>
                     ))}
                   </td>

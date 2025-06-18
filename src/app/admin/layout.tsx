@@ -48,9 +48,9 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
             <Link href="/admin/customer" className="menu-item">
               <span>Khách hàng</span>
             </Link>
-            <Link href="/admin/admin" className="menu-item active">
+            {/* <Link href="/admin/admin" className="menu-item active">
               <span>Admin</span>
-            </Link>
+            </Link> */}
             <button onClick={handleLogout} className="menu-item logout-button">
               <span>Đăng xuất</span>
             </button>

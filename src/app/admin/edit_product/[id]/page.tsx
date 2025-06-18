@@ -41,7 +41,7 @@ export default function EditProductPage() {
     const role = localStorage.getItem("role");
 
     if (!token || role !== "admin") {
-      router.push("/login");
+      router.push("/admin/login");
     }
   }, [router]);
 
@@ -61,7 +61,7 @@ export default function EditProductPage() {
           localStorage.removeItem("token");
           localStorage.removeItem("role");
           localStorage.removeItem("email");
-          router.push("/login");
+          router.push("/admin/login");
           return;
         }
         if (!res.ok) throw new Error(`Lỗi API: ${res.status} ${res.statusText}`);
@@ -89,7 +89,7 @@ export default function EditProductPage() {
           localStorage.removeItem("token");
           localStorage.removeItem("role");
           localStorage.removeItem("email");
-          router.push("/login");
+          router.push("/admin/login");
           return;
         }
         if (!res.ok) throw new Error(`Lỗi API: ${res.status} ${res.statusText}`);
@@ -182,7 +182,7 @@ export default function EditProductPage() {
       const token = localStorage.getItem("token");
       if (!token) {
         alert("Vui lòng đăng nhập lại!");
-        router.push("/login");
+        router.push("/admin/login");
         return;
       }
 
@@ -224,7 +224,7 @@ export default function EditProductPage() {
         localStorage.removeItem("token");
         localStorage.removeItem("role");
         localStorage.removeItem("email");
-        router.push("/login");
+        router.push("/admin/login");
         return;
       }
 
@@ -236,7 +236,7 @@ export default function EditProductPage() {
 
       await response.json();
       showNotification("Cập nhật sản phẩm thành công", "success");
-      router.push("/admin/products");
+      router.push("/admin/product");
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Có lỗi xảy ra khi cập nhật sản phẩm.";
       console.error("Lỗi cập nhật sản phẩm:", error);

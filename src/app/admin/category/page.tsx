@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import styles from "./category.module.css";
 import type { Category } from "@/app/components/category_interface";
+import Link from "next/link";
 
 export default function Category() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -113,15 +114,15 @@ export default function Category() {
         <div className={styles.nameTableCategory}>
           <span className={styles.span}>Danh Mục</span>
           <div className={styles.formBtnAddNewCategory}>
-          <button className={styles.btnAddNewCategory}>
-            <a href="/admin/add_category">Thêm danh mục sản phẩm</a>
-          </button>
+          <Link href="/admin/add_category" className={styles.btnAddNewCategory}>
+            Thêm danh mục sản phẩm
+          </Link>
         </div>
         </div>
 
         <table className={styles.categoryTable}>
-          <thead >
-            < tr className={styles.categoryTableTr}>
+          <thead>
+            <tr className={styles.categoryTableTr}>
               <th>Tên Danh Mục</th>
               <th>Hành Động</th>
             </tr>

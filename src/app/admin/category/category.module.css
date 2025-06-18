@@ -31,14 +31,17 @@
 }
 
 .btnAddNewCategory {
-  z-index: 100;
-  width: 200px;
+ z-index: 100;
+  width: 150px;
   height: 35px;
   background-color: #004C59;
-  border: none;
+  text-align: center;
+  text-decoration: none;
+  color: white;
   border-radius: 5px;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  line-height: 35px;
+  /* margin-left: 40px; */
+  font-weight: 500;
 }
 
 .btnAddNewCategory a {
@@ -196,10 +199,6 @@
     align-items: flex-start;
     gap: 15px;
     margin-top: 40px;
-  }
-
-  .btnAddNewCategory {
-    width: 180px;
   }
 
   .categoryTableTdLast {

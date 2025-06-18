@@ -61,7 +61,7 @@ export default function OrderPage() {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const response = await axios.get<Order[]>("https://api-zeal.onrender.com/api/orders/all");
+        const response = await axios.get<Order[]>("https://api-zeal.onrender.com/api/orders/admin/all");
         setOrders(response.data);
       } catch (error) {
         console.error("Lỗi khi tải danh sách đơn hàng:", error);

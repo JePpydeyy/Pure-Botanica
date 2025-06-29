@@ -181,7 +181,7 @@ export default function UserProfile() {
 
       const res = await fetch(`https://api-zeal.onrender.com/api/orders/order/${orderId}`, {
         headers: { Authorization: `Bearer ${token}` },
-      });z
+      });
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));

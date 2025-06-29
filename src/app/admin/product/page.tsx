@@ -118,7 +118,7 @@ export default function ProductPage() {
           ? product.category.name.toLowerCase().includes(searchQuery.toLowerCase())
           : false);
       const matchesCategory =
-        selectedCategory === "all" || product.category?._id === selectedCategory;
+        selectedCategory === "all" || (product.category && product.category._id === selectedCategory);
       return matchesSearch && matchesCategory;
     });
     setFilteredProducts(filtered);
@@ -269,10 +269,11 @@ export default function ProductPage() {
               </option>
             ))}
           </select>
-        </div>
-        <Link href="/admin/add_product" className={styles.addProductBtn}>
+           <Link href="/admin/add_product" className={styles.addProductBtn}>
           Thêm Sản Phẩm +
         </Link>
+        </div>
+       
       </div>
       <div className={styles.tableContainer}>
         <table className={styles.productTable}>

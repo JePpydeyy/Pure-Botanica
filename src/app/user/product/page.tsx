@@ -4,22 +4,85 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Product } from "@/app/components/product_interface";
 
-const formatPrice = (price: number): string => {
+// Updated Product interface to match the actual API data structure
+interface ProductOption {
+  _id: string;
+  stock: number;
+  value: string;
+  price: number;
+  discount_price?: number;
+}
+
+interface Product {
+  _id: string;
+  name: string;
+  slug: string;
+  status: string;
+  view: number;
+  id_brand: string;
+  id_category: string;
+  images: string[];
+  short_description: string;
+  description: string;
+  option: ProductOption[];
+  createdAt: string;
+  updatedAt?: string;
+  createdAT?: string;
+  // Optional fields for populated data
+  category?: {
+    _id: string;
+    name: string;
+  };
+  brand?: {
+    _id: string;
+    name: string;
+  };
+  // Computed fields
+  price?: number;
+  stock?: number;
+}
+
+interface Category {
+  _id: string;
+  name: string;
+}
+
+const formatPrice = (price: number | undefined | null): string => {
+  if (price === undefined || price === null || isNaN(price)) {
+    return "0đ";
+  }
   return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "đ";
 };
 
 const getImageUrl = (image: string): string => {
   if (!image) return "/images/placeholder.png";
-  return `https://api-zeal.onrender.com/images/${image}`;
+  // Remove leading slash if present
+  const cleanImage = image.startsWith('/') ? image.substring(1) : image;
+  return `https://api-zeal.onrender.com/${cleanImage}`;
+};
+
+// Helper function to extract price from product options
+const getProductPrice = (product: Product): number => {
+  if (product.option && product.option.length > 0) {
+    return product.option[0].discount_price || product.option[0].price;
+  }
+  return 0;
+};
+
+// Helper function to extract stock from product options
+const getProductStock = (product: Product): number => {
+  if (product.option && product.option.length > 0) {
+    return product.option.reduce((total, opt) => total + opt.stock, 0);
+  }
+  return 0;
 };
 
 export default function ProductPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [categories, setCategories] = useState<string[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,13 +100,17 @@ export default function ProductPage() {
           throw new Error(`Lỗi tải sản phẩm: ${response.status}`);
         }
         const data: Product[] = await response.json();
-        console.log("Products:", data);
-        console.log(
-          "Categories in products:",
-          [...new Set(data.map((p) => p.category?.name))].filter(Boolean)
-        );
-        setProducts(data);
-        setFilteredProducts(data);
+        
+        // Process products to add computed fields
+        const processedProducts = data.map(product => ({
+          ...product,
+          price: getProductPrice(product),
+          stock: getProductStock(product)
+        }));
+        
+        console.log("Products:", processedProducts);
+        setProducts(processedProducts);
+        setFilteredProducts(processedProducts);
       } catch (error) {
         console.error("Error fetching products:", error);
         setError("Không thể tải sản phẩm. Vui lòng thử lại sau.");
@@ -62,10 +129,9 @@ export default function ProductPage() {
         if (!res.ok) {
           throw new Error(`Lỗi tải danh mục: ${res.status}`);
         }
-        const data = await res.json();
-        console.log("Categories from API:", data.map((cat: any) => cat.name));
-        const categoryNames = data.map((cat: any) => cat.name);
-        setCategories(["Tất cả", ...categoryNames]);
+        const data: Category[] = await res.json();
+        console.log("Categories from API:", data);
+        setCategories(data);
       } catch (err) {
         console.error("Error fetching categories:", err);
         setError("Không thể tải danh mục. Vui lòng thử lại sau.");
@@ -98,28 +164,23 @@ export default function ProductPage() {
     const decodedCategory = decodeURIComponent(categoryFromUrl);
     console.log("Decoded category from URL:", decodedCategory);
 
-    // Check if the decoded category exists in the fetched categories
-    if (categories.includes(decodedCategory)) {
-      console.log("Category exists in API categories:", decodedCategory);
-      if (decodedCategory === "Tất cả") {
-        console.log("Category is 'Tất cả', showing all products");
-        setActiveCategory(null);
-        setFilteredProducts(products);
-      } else {
-        console.log("Applying filter for category:", decodedCategory);
-        const filtered = products.filter(
-          (product) => product.category?.name === decodedCategory
-        );
-        console.log("Filtered products count:", filtered.length);
-        console.log("Filtered products:", filtered);
-        setActiveCategory(decodedCategory);
-        setFilteredProducts(filtered);
-      }
-    } else {
-      console.log(
-        "Category not found in API categories, resetting to all products:",
-        decodedCategory
+    // Find category by name
+    const foundCategory = categories.find(cat => cat.name === decodedCategory);
+    
+    if (foundCategory) {
+      console.log("Category found:", foundCategory);
+      const filtered = products.filter(
+        (product) => product.id_category === foundCategory._id
       );
+      console.log("Filtered products count:", filtered.length);
+      setActiveCategory(decodedCategory);
+      setFilteredProducts(filtered);
+    } else if (decodedCategory === "Tất cả") {
+      console.log("Category is 'Tất cả', showing all products");
+      setActiveCategory(null);
+      setFilteredProducts(products);
+    } else {
+      console.log("Category not found, resetting to all products:", decodedCategory);
       setActiveCategory(null);
       setFilteredProducts(products);
     }
@@ -127,18 +188,21 @@ export default function ProductPage() {
   }, [searchParams, products, categories]);
 
   // Filter products by category (for sidebar clicks)
-  const filterProducts = (category: string) => {
-    console.log("Filtering category (sidebar):", category);
-    if (category === "Tất cả") {
+  const filterProducts = (categoryName: string) => {
+    console.log("Filtering category (sidebar):", categoryName);
+    if (categoryName === "Tất cả") {
       setFilteredProducts(products);
       setActiveCategory(null);
     } else {
-      const filtered = products.filter(
-        (product) => product.category?.name === category
-      );
-      console.log("Filtered products (sidebar) count:", filtered.length);
-      setFilteredProducts(filtered);
-      setActiveCategory(category);
+      const foundCategory = categories.find(cat => cat.name === categoryName);
+      if (foundCategory) {
+        const filtered = products.filter(
+          (product) => product.id_category === foundCategory._id
+        );
+        console.log("Filtered products (sidebar) count:", filtered.length);
+        setFilteredProducts(filtered);
+        setActiveCategory(categoryName);
+      }
     }
     setCurrentPage(1);
   };
@@ -155,7 +219,14 @@ export default function ProductPage() {
   }, [filteredProducts, currentPage, totalPages]);
 
   const getTopStockProducts = (products: Product[], count: number): Product[] => {
-    const sortedProducts = [...products].sort((a, b) => b.stock - a.stock);
+    const validProducts = products.filter(product => 
+      product.stock !== undefined && 
+      product.stock !== null && 
+      !isNaN(product.stock) &&
+      product.stock > 0
+    );
+    
+    const sortedProducts = [...validProducts].sort((a, b) => (b.stock || 0) - (a.stock || 0));
     return sortedProducts.slice(0, count);
   };
 
@@ -171,24 +242,38 @@ export default function ProductPage() {
         <aside className={styles.productSidebar}>
           <h3 className={styles["sidebar-title"]}>DANH MỤC SẢN PHẨM</h3>
           <ul className={styles["menu-list"]}>
+            <li
+              className={styles["menu-list-item"]}
+              onClick={() => filterProducts("Tất cả")}
+            >
+              <span
+                className={styles["menu-title"]}
+                style={{
+                  color: activeCategory === null ? "#8D5524" : "#357E38",
+                  cursor: "pointer",
+                }}
+              >
+                Tất cả
+              </span>
+            </li>
             {categories.length > 0 ? (
               categories.map((category) => (
                 <li
-                  key={category}
+                  key={category._id}
                   className={styles["menu-list-item"]}
                   onClick={() => {
-                    console.log("Clicked category:", category);
-                    filterProducts(category);
+                    console.log("Clicked category:", category.name);
+                    filterProducts(category.name);
                   }}
                 >
                   <span
                     className={styles["menu-title"]}
                     style={{
-                      color: activeCategory === category ? "#8D5524" : "#357E38",
+                      color: activeCategory === category.name ? "#8D5524" : "#357E38",
                       cursor: "pointer",
                     }}
                   >
-                    {category}
+                    {category.name}
                   </span>
                 </li>
               ))
@@ -206,7 +291,7 @@ export default function ProductPage() {
             <div className={styles.productGrid}>
               {currentProducts.map((product) => (
                 <Link
-                  href={`/user/detail/${product._id}`}
+                  href={`/user/detail/${product.slug}`}
                   key={product._id}
                   className={`${styles.productItem} ${styles["product-link"]}`}
                 >
@@ -214,18 +299,18 @@ export default function ProductPage() {
                     <Image
                       src={
                         product.images && product.images.length > 0
-                          ? `https://api-zeal.onrender.com/images/${product.images[0]}`
+                          ? getImageUrl(product.images[0])
                           : "https://via.placeholder.com/300x200?text=No+Image"
                       }
-                      alt={product.name}
+                      alt={product?.name || "Sản phẩm"}
                       width={300}
                       height={200}
                       className={styles["product-image"]}
                     />
                     <div>
-                      <h4 className={styles["product-item-name"]}>{product.name}</h4>
+                      <h4 className={styles["product-item-name"]}>{product?.name || "Tên sản phẩm"}</h4>
                       <div className={styles["product-card"]}>
-                        <p className={styles.price}>{formatPrice(product.price)}</p>
+                        <p className={styles.price}>{formatPrice(product?.price)}</p>
                         <span title="Thêm vào Giỏ Hàng" className={styles.cartIcon}>
                           <i className="fas fa-shopping-cart"></i>
                         </span>
@@ -245,6 +330,8 @@ export default function ProductPage() {
           {totalPages > 1 && (
             <div className={styles.productPagination}>
               <button
+                type="button"
+                title="Trang trước"
                 className={`${styles["page-btn"]} ${currentPage === 1 ? styles.disabled : ""}`}
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage(currentPage - 1)}
@@ -286,13 +373,16 @@ export default function ProductPage() {
                 return paginationRange;
               })()}
               <button
+                type="button"
+                title="Trang sau"
                 className={`${styles["page-btn"]} ${
                   currentPage === totalPages ? styles.disabled : ""
                 }`}
                 disabled={currentPage === totalPages}
                 onClick={() => setCurrentPage(currentPage + 1)}
               >
-                <i className="fa-solid fa-chevron-right"></i>
+                <i className="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                <span className="sr-only">Trang sau</span>
               </button>
             </div>
           )}
@@ -304,7 +394,7 @@ export default function ProductPage() {
           {bestSellingProducts.length > 0 ? (
             bestSellingProducts.map((product) => (
               <Link
-                href={`/user/detail/${product._id}`}
+                href={`/user/detail/${product.slug}`}
                 key={product._id}
                 className={styles["best-selling-link"]}
               >
@@ -313,15 +403,15 @@ export default function ProductPage() {
                   <div className={styles["best-selling-image"]}>
                     <Image
                       src={getImageUrl(product.images?.[0] || "")}
-                      alt={product.name}
+                      alt={product?.name || "Sản phẩm"}
                       width={200}
                       height={200}
                       className={styles["best-selling-product-image"]}
                     />
                   </div>
                   <div className={styles["best-selling-details"]}>
-                    <h3 className={styles["best-selling-product-name"]}>{product.name}</h3>
-                    <p className={styles["best-selling-price"]}>{formatPrice(product.price)}</p>
+                    <h3 className={styles["best-selling-product-name"]}>{product?.name || "Tên sản phẩm"}</h3>
+                    <p className={styles["best-selling-price"]}>{formatPrice(product?.price)}</p>
                   </div>
                 </div>
               </Link>

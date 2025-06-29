@@ -413,4 +413,24 @@
     font-weight: 600;
     font-size: 14px;
   }
+  /* Thêm vào Detail.module.css */
+.option-button {
+  border: 1px solid #8D5524;
+  background: #fff;
+  color: #8D5524;
+  padding: 8px 24px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+.option-button-selected {
+  border: 1px solid #357E38;
+  background: #357E38;
+  color: #fff;
+  padding: 8px 24px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+}
   

@@ -1,7 +1,7 @@
 /* Scoped styles for the OrderPage component in Next.js */
 .orderContainer {
   max-width: 1000px;
-  margin: 40px auto;
+  margin: 50px auto;
   font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
   background-color: #ffffff;
   border-radius: 8px;
@@ -107,66 +107,172 @@
   z-index: 1000;
 }
 
+/* Order Detail Popup - Simple Enhancement */
 .orderDetail {
-  background-color: #ffffff;
+  background: #ffffff;
   padding: 24px;
-  border-radius: 8px;
+  border-radius: 12px;
   width: 90%;
   max-width: 600px;
   max-height: 85vh;
   overflow-y: auto;
   position: relative;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
+.orderDetail h2 {
+  font-size: 24px;
+  font-weight: 600;
+  color: #2a7a1a;
+  margin: 0 0 20px 0;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #2a7a1a;
 }
 
 .closeButton {
   position: absolute;
-  top: 12px;
-  right: 16px;
-  font-size: 20px;
-  background: none;
-  border: none;
+  top: 16px;
+  right: 20px;
+  width: 32px;
+  height: 32px;
+  font-size: 18px;
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 50%;
   cursor: pointer;
-  color: #374151;
-  transition: color 0.2s ease;
+  color: #6b7280;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .closeButton:hover {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+/* Customer Info Section */
+.orderDetail > p {
+  margin: 8px 0;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 6px;
+  border-left: 3px solid #2a7a1a;
+  font-size: 14px;
+}
+
+.orderDetail > p strong {
   color: #2a7a1a;
+  font-weight: 600;
+  display: inline-block;
+  min-width: 80px;
+}
+
+/* Products Section */
+.orderDetail h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #2a7a1a;
+  margin: 20px 0 12px 0;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.orderDetail ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.orderDetail li {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.orderDetail li:last-child {
+  border-bottom: none;
 }
 
 .productImage {
-  width: 60px;
-  height: 60px;
+  width: 70px;
+  height: 70px;
   object-fit: cover;
-  border-radius: 4px;
+  border-radius: 8px;
   margin-right: 12px;
-  vertical-align: middle;
+  border: 1px solid #e5e7eb;
 }
 
 .productInfo {
-  display: inline-block;
-  vertical-align: middle;
+  flex: 1;
 }
 
 .productName {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   color: #1f2937;
-  margin-bottom: 4px;
+  margin: 0 0 4px 0;
 }
 
 .productPrice {
   font-size: 13px;
-  color: #4b5563;
+  color: #6b7280;
+  background: #ffffff;
+  padding: 4px 8px;
+  border-radius: 12px;
+  display: inline-block;
 }
 
+/* Total Section */
 .total {
   margin-top: 20px;
+  padding: 16px;
+  background: #2a7a1a;
+  color: white;
+  border-radius: 8px;
   font-size: 16px;
   font-weight: 600;
-  color: #2a7a1a;
-  text-align: right;
+  text-align: center;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .orderDetail {
+    width: 95%;
+    padding: 20px;
+  }
+
+  .orderDetail h2 {
+    font-size: 20px;
+    padding-right: 40px;
+  }
+
+  .orderDetail li {
+    padding: 12px;
+  }
+
+  .productImage {
+    width: 60px;
+    height: 60px;
+  }
+
+  .productName {
+    font-size: 14px;
+  }
+
+  .productPrice {
+    font-size: 12px;
+  }
+
+  .total {
+    font-size: 15px;
+    padding: 14px;
+  }
 }
 
 .loadingMessage,

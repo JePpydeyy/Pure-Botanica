@@ -71,51 +71,91 @@ nav a {
   cursor: pointer;
 }
 
+.dropdown {
+  /* Đảm bảo vùng hover chỉ nằm trong chữ "Sản phẩm" */
+  display: inline-block;
+  padding: 10px; /* Tùy chỉnh nếu cần */
+}
+
 .category-list {
   top: 50px;
-  justify-content: space-around;
   position: absolute;
   display: flex;
-  left: -360px;
+  left: -20px;
   background-color: rgba(255, 255, 255, 0.9);
-  width: 1290px;
-  padding: 10px;
+  width: 200px;
+  flex-direction: column;
   border-radius: 20px;
   opacity: 0;
-  
+  transform: translateY(10px); /* Ban đầu dịch xuống một chút */
+  pointer-events: none; /* Ngăn tương tác khi ẩn */
   transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
-  
+}
+.header-container {
+  display: flex;
+  align-items: center; /* Căn giữa theo chiều dọc */
+  justify-content: space-between; /* Phân bố đều các phần tử */
+
+  max-width: 1290px; /* Giới hạn chiều rộng nếu cần */
+  margin: 0 auto; /* Căn giữa container */
 }
 
-.menu-wrapper:hover .category-list,
-.category-list:hover {
+
+nav {
+  display: flex;
+  align-items: center; /* Căn giữa các liên kết theo chiều dọc */
+  gap: 20px; /* Khoảng cách giữa các liên kết */
+}
+
+.menu-wrapper {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+}
+
+.dropdown {
+  display: inline-block;
+  padding: 10px;
+}
+
+.icons {
+  display: flex;
+  align-items: center; /* Căn giữa các biểu tượng theo chiều dọc */
+  gap: 15px; /* Khoảng cách giữa các biểu tượng */
+}
+
+.search-bar input {
+  padding: 5px;
+  height: 30px; /* Đảm bảo input có chiều cao đồng nhất */
+}
+
+.search-button {
+  height: 30px; /* Đồng nhất chiều cao với input */
+}
+
+/* Chỉ hiện menu khi hover vào .menu-wrapper */
+.menu-wrapper:hover .category-list {
   opacity: 1;
   transform: translateY(0);
-  pointer-events: auto;
-  transition-delay: 0s; /* Hiển thị ngay khi hover */
+  pointer-events: auto; /* Cho phép nhấp vào menu khi hiển thị */
 }
 
-.menu-wrapper .category-list {
-  transition: opacity 0.3s ease-in-out 0.2s, transform 0.3s ease-in-out 0.2s; /* Delay khi ẩn */
-}
-
-.category-itemm{
- 
+.category-itemm {
   padding: 0 20px;
 }
 
-.category-itemm h2{
+.category-itemm h2 {
   font-family: Segoe UI, Tahoma, Geneva, Verdana, sans-serif;
   font-size: 20px;
-  padding: 20px 0;
+  margin: 10px 0;
 }
 
-.category-itemm ul{
+.category-itemm ul {
   list-style: none;
-  padding: 0; 
+  padding: 0;
 }
 
-.category-itemm ul li{
+.category-itemm ul li {
   padding: 8px 0;
   font-size: 16px;
   color: #333;

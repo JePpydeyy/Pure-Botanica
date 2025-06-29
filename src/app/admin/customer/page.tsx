@@ -24,6 +24,7 @@ export default function Customer() {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [roleFilter, setRoleFilter] = useState<"user" | "admin">("user");
   const customersPerPage = 9;
   const router = useRouter();
 
@@ -32,7 +33,7 @@ export default function Customer() {
     const token = localStorage.getItem("token");
     const role = localStorage.getItem("role");
     if (!token || role !== "admin") {
-      router.push("/login");
+      router.push("/user/login");
     } else {
       setIsAuthorized(true);
     }
@@ -45,7 +46,7 @@ export default function Customer() {
     const token = localStorage.getItem("token");
     if (!token) {
       alert("Vui lòng đăng nhập lại!");
-      router.push("/login");
+      router.push("/admin/login");
       return;
     }
 
@@ -58,34 +59,39 @@ export default function Customer() {
         if (res.status === 401 || res.status === 403) {
           alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
           localStorage.clear();
-          router.push("/login");
+          router.push("/user/login");
           return null;
         }
         return res.json();
       })
       .then((data) => {
         if (data) {
-          const filteredData = data.filter((customer: Customer) => customer.role === "user");
-          setCustomers(filteredData);
-          setFilteredCustomers(filteredData);
+          setCustomers(data);
+          setFilteredCustomers(data.filter((customer: Customer) => customer.role === roleFilter));
         }
       })
       .catch((error) => {
         console.error("Fetch error:", error);
         alert("Lỗi khi tải dữ liệu khách hàng!");
       });
-  }, [isAuthorized, router]);
+  }, [isAuthorized, router, roleFilter]);
 
-  // Handle search
+  // Handle search and role filter
   useEffect(() => {
     const filtered = customers.filter(
       (customer) =>
-        customer.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        customer.email.toLowerCase().includes(searchQuery.toLowerCase())
+        customer.role === roleFilter &&
+        (customer.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          customer.email.toLowerCase().includes(searchQuery.toLowerCase()))
     );
     setFilteredCustomers(filtered);
     setCurrentPage(1);
-  }, [searchQuery, customers]);
+  }, [searchQuery, customers, roleFilter]);
+
+  // Toggle role filter
+  const toggleRoleFilter = () => {
+    setRoleFilter((prev) => (prev === "user" ? "admin" : "user"));
+  };
 
   // Pagination
   const totalPages = Math.ceil(filteredCustomers.length / customersPerPage);
@@ -137,7 +143,7 @@ export default function Customer() {
       const token = localStorage.getItem("token");
       if (!token) {
         alert("Vui lòng đăng nhập lại!");
-        router.push("/login");
+        router.push("/user/login");
         return;
       }
 
@@ -159,7 +165,7 @@ export default function Customer() {
       if (res.status === 401 || res.status === 403) {
         alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
         localStorage.clear();
-        router.push("/login");
+        router.push("/user/login");
         return;
       }
 
@@ -188,22 +194,26 @@ export default function Customer() {
   return (
     <>
       <div className={styles.titleContainer}>
-        <h1>KHÁCH HÀNG</h1>
+        <h1>{roleFilter === "user" ? "KHÁCH HÀNG" : "QUẢN TRỊ VIÊN"}</h1>
         <div className={styles.searchContainer}>
           <input
             type="text"
-            placeholder="Tìm kiếm khách hàng theo tên hoặc email..."
+            placeholder={`Tìm kiếm ${roleFilter === "user" ? "khách hàng" : "quản trị viên"} theo tên hoặc email...`}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className={styles.searchInput}
           />
         </div>
+           <button onClick={toggleRoleFilter} className={styles.btn}>
+            {roleFilter === "user" ? "Xem Quản Trị Viên" : "Xem Khách Hàng"}
+          </button>
       </div>
+      
       <div className={styles.tableContainer}>
         <table>
           <thead>
             <tr>
-              <th>ID</th>
+              <th>STT</th>
               <th>Tên</th>
               <th>Email</th>
               <th>SĐT</th>
@@ -234,7 +244,7 @@ export default function Customer() {
             ) : (
               <tr>
                 <td colSpan={8} className="text-center py-4">
-                  Không có khách hàng nào
+                  Không có {roleFilter === "user" ? "khách hàng" : "quản trị viên"} nào
                 </td>
               </tr>
             )}
@@ -303,7 +313,7 @@ export default function Customer() {
       {isModalOpen && selectedCustomer && (
         <div className={styles.modal}>
           <div className={styles.modalContent}>
-            <h3>Chỉnh sửa thông tin khách hàng</h3>
+            <h3>Chỉnh sửa thông tin {roleFilter === "user" ? "khách hàng" : "quản trị viên"}</h3>
             <label>
               Trạng thái:
               <select

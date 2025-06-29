@@ -1,439 +1,552 @@
 "use client";
-import { useEffect, useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
-import "./editproduct.css";
+import styles from "./editproduct.module.css";
 
-interface Category {
-  _id: string;
-  name: string;
-  createdAt: string;
-}
-
-interface Product {
-  _id: string;
-  name: string;
-  price: number;
-  discountPrice?: number;
-  stock: number;
-  images?: string[];
-  category?: Category;
-  description?: string;
-  ingredients?: string[];
-  usage_instructions?: string[];
-  special?: string[];
-  newImages?: File[];
-}
-
-export default function EditProductPage() {
-  const [product, setProduct] = useState<Product | null>(null);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [notification, setNotification] = useState({ show: false, message: "", type: "" });
-  const [newImagePreviews, setNewImagePreviews] = useState<string[]>([]); // Xem trước ảnh mới
+const EditProduct = () => {
   const router = useRouter();
   const params = useParams();
-  const productId = params.id as string;
+  const productId = params.id;
+  
+  const [categories, setCategories] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [existingImages, setExistingImages] = useState<string[]>([]);
+  const [formData, setFormData] = useState({
+    name: "",
+    price: "",
+    discountPrice: "",
+    category: "",
+    description: "",
+    stock: "",
+    images: [] as File[],
+  });
+  
+  const editorRef = useRef<HTMLDivElement>(null);
 
-  // Kiểm tra quyền admin
+  // Load existing product data
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const role = localStorage.getItem("role");
-
-    if (!token || role !== "admin") {
-      router.push("/login");
-    }
-  }, [router]);
-
-  // Lấy dữ liệu sản phẩm và danh mục
-  useEffect(() => {
-    const fetchProduct = async () => {
+    const fetchProductData = async () => {
       try {
         setLoading(true);
-        setError(null);
-        const token = localStorage.getItem("token");
-        const res = await fetch(`https://api-zeal.onrender.com/api/products/${productId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-          cache: "no-store",
-        });
-        if (res.status === 401 || res.status === 403) {
-          alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
-          localStorage.removeItem("token");
-          localStorage.removeItem("role");
-          localStorage.removeItem("email");
-          router.push("/login");
-          return;
+        
+        // Fetch product details
+        const productResponse = await fetch(`https://api-zeal.onrender.com/api/products/${productId}`);
+        if (!productResponse.ok) {
+          throw new Error("Không thể tải thông tin sản phẩm");
         }
-        if (!res.ok) throw new Error(`Lỗi API: ${res.status} ${res.statusText}`);
-        const data = await res.json();
-        setProduct({ ...data, newImages: [] });
+        const productData = await productResponse.json();
+        
+        // Fetch categories
+        const categoriesResponse = await fetch("https://api-zeal.onrender.com/api/categories");
+        const categoriesData = await categoriesResponse.json();
+        setCategories(categoriesData);
+        
+        // Set form data
+        setFormData({
+          name: productData.name || "",
+          price: productData.price?.toString() || "",
+          discountPrice: productData.discountPrice?.toString() || "",
+          category: productData.category?._id || productData.category || "",
+          description: productData.description || "",
+          stock: productData.stock?.toString() || "",
+          images: [], // New images to be uploaded
+        });
+        
+        // Set existing images
+        setExistingImages(productData.images || []);
+        
+        // Set description in editor
+        if (editorRef.current && productData.description) {
+          editorRef.current.innerHTML = productData.description;
+        }
+        
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
-        console.error("Lỗi khi tải sản phẩm:", errorMessage);
-        setError("Không thể tải thông tin sản phẩm. Vui lòng thử lại sau.");
-        showNotification("Không thể tải thông tin sản phẩm", "error");
+        console.error("Lỗi khi tải dữ liệu:", error);
+        alert("Không thể tải thông tin sản phẩm");
+        router.push("/admin/product");
       } finally {
         setLoading(false);
       }
     };
 
-    const fetchCategories = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const res = await fetch("https://api-zeal.onrender.com/api/categories", {
-          headers: { Authorization: `Bearer ${token}` },
-          cache: "no-store",
-        });
-        if (res.status === 401 || res.status === 403) {
-          alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
-          localStorage.removeItem("token");
-          localStorage.removeItem("role");
-          localStorage.removeItem("email");
-          router.push("/login");
-          return;
-        }
-        if (!res.ok) throw new Error(`Lỗi API: ${res.status} ${res.statusText}`);
-        const data = await res.json();
-        if (!Array.isArray(data)) throw new Error("Dữ liệu danh mục không hợp lệ");
-        setCategories(data);
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
-        console.error("Lỗi khi tải danh mục:", errorMessage);
-        showNotification("Không thể tải danh mục", "error");
-      }
-    };
-
-    fetchProduct();
-    fetchCategories();
+    if (productId) {
+      fetchProductData();
+    }
   }, [productId, router]);
 
-  const showNotification = (message: string, type: string) => {
-    setNotification({ show: true, message, type });
-    setTimeout(() => setNotification({ show: false, message: "", type: "" }), 3000);
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prevState) => ({
+      ...prevState,
+      [name]: value,
+    }));
   };
 
-  const validateForm = () => {
-    if (product?.discountPrice != null && product.discountPrice < 0) return "Giá khuyến mãi không hợp lệ";
-    if (!product?.name?.trim()) return "Tên sản phẩm không được để trống";
-    if (product?.price == null || product.price < 0) return "Giá sản phẩm không hợp lệ";
-    if (product?.stock == null || product.stock < 0) return "Số lượng không hợp lệ";
-    if (!product?.category || !product.category._id) return "Vui lòng chọn danh mục";
-    if (product?.newImages && product.newImages.length > 4) return "Chỉ được chọn tối đa 4 ảnh";
-    if ((product?.images?.length || 0) + (product?.newImages?.length || 0) > 4)
-      return "Tổng số ảnh không được vượt quá 4";
-    return null;
+  const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData((prevState) => ({
+      ...prevState,
+      [name]: value,
+    }));
   };
 
-  // Xử lý chọn ảnh mới và xem trước
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files ? Array.from(e.target.files) : [];
-    const validFiles = files.filter((file) => {
-      if (file.size > 5 * 1024 * 1024) {
-        showNotification(`Ảnh ${file.name} vượt quá giới hạn 5MB`, "error");
-        return false;
-      }
-      if (!file.type.match(/image\/(jpg|jpeg|png|gif|webp)/)) {
-        showNotification(`Ảnh ${file.name} không đúng định dạng (jpg, jpeg, png, gif, webp)`, "error");
-        return false;
-      }
-      return true;
-    });
-
-    // Tạo URL xem trước cho ảnh mới
-    const previews = validFiles.map((file) => URL.createObjectURL(file));
-    setNewImagePreviews(previews);
-
-    setProduct({
-      ...product!,
-      newImages: validFiles,
-    });
-  };
-
-  // Xóa ảnh hiện tại
-  const removeCurrentImage = (index: number) => {
-    setProduct({
-      ...product!,
-      images: product!.images?.filter((_, i) => i !== index),
-    });
-  };
-
-  // Xóa ảnh mới
-  const removeNewImage = (index: number) => {
-    setProduct({
-      ...product!,
-      newImages: product!.newImages?.filter((_, i) => i !== index),
-    });
-    setNewImagePreviews((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!product || !product._id) {
-      showNotification("Không tìm thấy sản phẩm để cập nhật", "error");
-      return;
-    }
-    try {
-      setLoading(true);
-      setError(null);
-
-      const validationError = validateForm();
-      if (validationError) throw new Error(validationError);
-
-      const token = localStorage.getItem("token");
-      if (!token) {
-        alert("Vui lòng đăng nhập lại!");
-        router.push("/login");
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const files = Array.from(e.target.files);
+      const totalImages = files.length + formData.images.length + existingImages.length;
+      
+      if (totalImages > 4) {
+        alert("Tổng số ảnh không được vượt quá 4 ảnh.");
         return;
       }
+      
+      setFormData((prevState) => ({
+        ...prevState,
+        images: [...prevState.images, ...files],
+      }));
+    }
+  };
 
-      const formData = new FormData();
-      formData.append("name", product.name || "");
-      formData.append("price", product.price?.toString() || "0");
-      formData.append("stock", product.stock?.toString() || "0");
-      if (product.category?._id) formData.append("category_id", product.category._id);
-      if (product.description) formData.append("description", product.description);
-      if (product.ingredients && product.ingredients.length > 0)
-        formData.append("ingredients", JSON.stringify(product.ingredients));
-      if (product.usage_instructions && product.usage_instructions.length > 0)
-        formData.append("usage_instructions", JSON.stringify(product.usage_instructions));
-      if (product.special && product.special.length > 0)
-        formData.append("special", JSON.stringify(product.special));
-      if (product.discountPrice != null && product.discountPrice !== 0)
-        formData.append("discountPrice", product.discountPrice.toString());
+  const execCommand = (command: string, value?: string) => {
+    document.execCommand(command, false, value);
+    if (editorRef.current) {
+      editorRef.current.focus();
+    }
+  };
 
-      // Gửi danh sách ảnh hiện tại
-      if (product.images && product.images.length > 0) {
-        formData.append("images", JSON.stringify(product.images));
+  const handleDescriptionChange = () => {
+    if (editorRef.current) {
+      setFormData((prevState) => ({
+        ...prevState,
+        description: editorRef.current!.innerHTML,
+      }));
+    }
+  };
+
+  const insertList = (type: 'ul' | 'ol') => {
+    execCommand(`insert${type === 'ul' ? 'UnorderedList' : 'OrderedList'}`);
+  };
+
+  const changeFontSize = (size: string) => {
+    execCommand('fontSize', size);
+  };
+
+  const changeFontFamily = (font: string) => {
+    execCommand('fontName', font);
+  };
+
+  const insertHeading = (level: string) => {
+    execCommand('formatBlock', `<h${level}>`);
+  };
+
+  const changeTextAlign = (align: string) => {
+    execCommand(`justify${align}`);
+  };
+
+  const removeNewImage = (index: number) => {
+    setFormData((prevState) => ({
+      ...prevState,
+      images: prevState.images.filter((_, i) => i !== index),
+    }));
+  };
+
+  const removeExistingImage = (index: number) => {
+    setExistingImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      const productData = new FormData();
+      productData.append("name", formData.name);
+      productData.append("price", formData.price);
+
+      if (formData.discountPrice.trim() !== "") {
+        productData.append("discountPrice", String(Number(formData.discountPrice)));
       }
 
-      // Gửi ảnh mới
-      if (product.newImages && product.newImages.length > 0) {
-        product.newImages.forEach((file) => {
-          formData.append("newImages", file);
-        });
-      }
+      productData.append("category", formData.category);
+      productData.append("description", formData.description);
+      productData.append("stock", formData.stock);
 
-      const response = await fetch(`https://api-zeal.onrender.com/api/products/${product._id}`, {
-        method: "PUT",
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
+      // Add new images
+      formData.images.forEach((file) => {
+        productData.append("images", file);
       });
 
-      if (response.status === 401 || response.status === 403) {
-        alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
-        localStorage.removeItem("token");
-        localStorage.removeItem("role");
-        localStorage.removeItem("email");
-        router.push("/login");
-        return;
-      }
+      // Add existing images that weren't removed
+      productData.append("existingImages", JSON.stringify(existingImages));
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Lỗi API:", errorText);
-        throw new Error(`Lỗi HTTP: ${response.status} - ${errorText}`);
-      }
+      const response = await fetch(`https://api-zeal.onrender.com/api/products/${productId}`, {
+        method: "PUT",
+        body: productData,
+      });
 
-      await response.json();
-      showNotification("Cập nhật sản phẩm thành công", "success");
-      router.push("/admin/products");
+      if (response.ok) {
+        alert("Cập nhật sản phẩm thành công");
+        router.push("/admin/product");
+      } else {
+        const errorData = await response.json();
+        console.error("Server error:", errorData);
+        alert(errorData.message || "Đã xảy ra lỗi khi cập nhật sản phẩm.");
+      }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Có lỗi xảy ra khi cập nhật sản phẩm.";
       console.error("Lỗi cập nhật sản phẩm:", error);
-      setError(errorMessage);
-      showNotification(errorMessage, "error");
-    } finally {
-      setLoading(false);
-      // Dọn dẹp URL xem trước
-      newImagePreviews.forEach((url) => URL.revokeObjectURL(url));
-      setNewImagePreviews([]);
+      alert("Có lỗi xảy ra khi cập nhật sản phẩm.");
     }
   };
 
-  if (loading && !product) {
-    return <p className="text-center py-10">Đang tải thông tin sản phẩm...</p>;
-  }
-
-  if (error && !product) {
+  if (loading) {
     return (
-      <div className="error-container text-center py-10">
-        <p className="error-message">{error}</p>
-        <button
-          className="retry-button mt-4 px-4 py-2 bg-blue-500 text-white rounded"
-          onClick={() => window.location.reload()}
-        >
-          Thử lại
-        </button>
+      <div className={styles.loadingContainer}>
+        <div className={styles.spinner}></div>
+        <p>Đang tải thông tin sản phẩm...</p>
       </div>
     );
   }
 
-  if (!product) {
-    return <p className="text-center py-10">Không tìm thấy sản phẩm.</p>;
-  }
-
   return (
-    <div className="product-management-container">
-      {notification.show && <div className={`notification ${notification.type}`}>{notification.message}</div>}
-      {loading && <div className="processing-indicator">Đang xử lý...</div>}
-      <div className="title_container">
-        <h1>CHỈNH SỬA SẢN PHẨM</h1>
+    <div className={styles.editProductContainer}>
+      <div className={styles.header}>
+        <h1 className={styles.title}>Chỉnh sửa sản phẩm</h1>
+        <button 
+          type="button" 
+          onClick={() => router.push("/admin/product")}
+          className={styles.backButton}
+        >
+          ← Quay lại
+        </button>
       </div>
-      <div className="form-container">
-        {error && <p className="error-message">{error}</p>}
-        <form onSubmit={handleUpdate}>
-          <label>Tên sản phẩm</label>
-          <input
-            type="text"
-            value={product.name || ""}
-            onChange={(e) => setProduct({ ...product, name: e.target.value })}
-            required
-          />
-          <label>Giá</label>
-          <input
-            type="number"
-            value={product.price || 0}
-            onChange={(e) => setProduct({ ...product, price: Number(e.target.value) })}
-            required
-            min="0"
-          />
-          <label>Giá khuyến mãi (nếu có)</label>
-          <input
-            type="number"
-            value={product.discountPrice ?? ""}
-            onChange={(e) =>
-              setProduct({ ...product, discountPrice: Number(e.target.value) || undefined })
-            }
-            min="0"
-          />
-          <label>Số lượng</label>
-          <input
-            type="number"
-            value={product.stock || 0}
-            onChange={(e) => setProduct({ ...product, stock: Number(e.target.value) })}
-            required
-            min="0"
-          />
-          <label>Danh mục</label>
-          <select
-            value={product.category?._id || ""}
-            onChange={(e) =>
-              setProduct({
-                ...product,
-                category: categories.find((cat) => cat._id === e.target.value) || undefined,
-              })
-            }
-            required
-          >
-            <option value="">-- Chọn danh mục --</option>
-            {categories.map((cat) => (
-              <option key={cat._id} value={cat._id}>
-                {cat.name}
-              </option>
-            ))}
-          </select>
-          <label>Mô tả</label>
-          <textarea
-            value={product.description || ""}
-            onChange={(e) => setProduct({ ...product, description: e.target.value })}
-          />
-          <label>Thành phần (phân cách bằng dấu phẩy)</label>
-          <input
-            type="text"
-            value={product.ingredients?.join(", ") || ""}
-            onChange={(e) =>
-              setProduct({
-                ...product,
-                ingredients: e.target.value.split(",").map((item) => item.trim()).filter(Boolean),
-              })
-            }
-          />
-          <label>Hướng dẫn sử dụng (phân cách bằng dấu phẩy)</label>
-          <input
-            type="text"
-            value={product.usage_instructions?.join(", ") || ""}
-            onChange={(e) =>
-              setProduct({
-                ...product,
-                usage_instructions: e.target.value.split(",").map((item) => item.trim()).filter(Boolean),
-              })
-            }
-          />
-          <label>Điểm đặc biệt (phân cách bằng dấu phẩy)</label>
-          <input
-            type="text"
-            value={product.special?.join(", ") || ""}
-            onChange={(e) =>
-              setProduct({
-                ...product,
-                special: e.target.value.split(",").map((item) => item.trim()).filter(Boolean),
-              })
-            }
-          />
-          <label>Ảnh hiện tại</label>
-          <div className="image-preview">
-            {product.images && product.images.length > 0 ? (
-              product.images.map((img, index) => (
-                <div key={index} className="image-container">
-                  <img
-                    src={`https://api-zeal.onrender.com/images/${img}`}
-                    alt={`Ảnh hiện tại ${index + 1}`}
-                    width="100"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = "/images/placeholder.png";
-                    }}
-                  />
-                  <button
-                    type="button"
-                    className="remove-image-btn"
-                    onClick={() => removeCurrentImage(index)}
-                  >
-                    Xóa
-                  </button>
-                </div>
-              ))
-            ) : (
-              <p>Không có ảnh hiện tại</p>
-            )}
+      
+      <form onSubmit={handleSubmit} className={styles.form}>
+        {/* Thông tin cơ bản */}
+        <div className={styles.basicInfo}>
+          <div className={styles.formRow}>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>Tên sản phẩm *</label>
+              <input 
+                type="text" 
+                name="name" 
+                value={formData.name} 
+                onChange={handleInputChange} 
+                className={styles.input} 
+                required 
+                placeholder="Nhập tên sản phẩm"
+              />
+            </div>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>Danh mục *</label>
+              <select 
+                name="category" 
+                value={formData.category} 
+                onChange={handleSelectChange} 
+                className={styles.select} 
+                required
+              >
+                <option value="">-- Chọn danh mục --</option>
+                {categories.map((cat) => (
+                  <option key={cat._id} value={cat._id}>{cat.name}</option>
+                ))}
+              </select>
+            </div>
           </div>
-          <label>Ảnh mới (tối đa 4 ảnh)</label>
-          <input
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={handleImageChange}
+
+          <div className={styles.formRow}>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>Giá gốc *</label>
+              <input 
+                type="number" 
+                name="price" 
+                value={formData.price} 
+                onChange={handleInputChange} 
+                className={styles.input} 
+                required 
+                placeholder="0"
+                min="0"
+              />
+            </div>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>Giá khuyến mãi</label>
+              <input 
+                type="number" 
+                name="discountPrice" 
+                value={formData.discountPrice} 
+                onChange={handleInputChange} 
+                className={styles.input} 
+                placeholder="0"
+                min="0"
+              />
+            </div>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>Số lượng *</label>
+              <input 
+                type="number" 
+                name="stock" 
+                value={formData.stock} 
+                onChange={handleInputChange} 
+                className={styles.input} 
+                required 
+                placeholder="0"
+                min="0"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Rich Text Editor cho mô tả */}
+        <div className={styles.formGroup}>
+          <label className={styles.label}>Mô tả sản phẩm *</label>
+          
+          {/* Toolbar */}
+          <div className={styles.toolbar}>
+            <div className={styles.toolbarGroup}>
+              <select 
+                className={styles.toolbarSelect}
+                onChange={(e) => changeFontFamily(e.target.value)}
+                defaultValue=""
+              >
+                <option value="">Font</option>
+                <option value="Arial">Arial</option>
+                <option value="Times New Roman">Times New Roman</option>
+                <option value="Helvetica">Helvetica</option>
+                <option value="Georgia">Georgia</option>
+                <option value="Verdana">Verdana</option>
+              </select>
+              
+              <select 
+                className={styles.toolbarSelect}
+                onChange={(e) => changeFontSize(e.target.value)}
+                defaultValue=""
+              >
+                <option value="">Size</option>
+                <option value="1">8pt</option>
+                <option value="2">10pt</option>
+                <option value="3">12pt</option>
+                <option value="4">14pt</option>
+                <option value="5">18pt</option>
+                <option value="6">24pt</option>
+                <option value="7">36pt</option>
+              </select>
+
+              <select 
+                className={styles.toolbarSelect}
+                onChange={(e) => insertHeading(e.target.value)}
+                defaultValue=""
+              >
+                <option value="">Heading</option>
+                <option value="1">H1</option>
+                <option value="2">H2</option>
+                <option value="3">H3</option>
+                <option value="4">H4</option>
+                <option value="5">H5</option>
+                <option value="6">H6</option>
+              </select>
+            </div>
+
+            <div className={styles.toolbarGroup}>
+              <button 
+                type="button" 
+                className={styles.toolbarBtn}
+                onClick={() => execCommand('bold')}
+                title="Đậm"
+              >
+                <strong>B</strong>
+              </button>
+              <button 
+                type="button" 
+                className={styles.toolbarBtn}
+                onClick={() => execCommand('italic')}
+                title="Nghiêng"
+              >
+                <em>I</em>
+              </button>
+              <button 
+                type="button" 
+                className={styles.toolbarBtn}
+                onClick={() => execCommand('underline')}
+                title="Gạch chân"
+              >
+                <u>U</u>
+              </button>
+              <button 
+                type="button" 
+                className={styles.toolbarBtn}
+                onClick={() => execCommand('strikeThrough')}
+                title="Gạch ngang"
+              >
+                <s>S</s>
+              </button>
+            </div>
+
+            <div className={styles.toolbarGroup}>
+              <button 
+                type="button" 
+                className={styles.toolbarBtn}
+                onClick={() => changeTextAlign('Left')}
+                title="Căn trái"
+              >
+                ≡
+              </button>
+              <button 
+                type="button" 
+                className={styles.toolbarBtn}
+                onClick={() => changeTextAlign('Center')}
+                title="Căn giữa"
+              >
+                ≣
+              </button>
+              <button 
+                type="button" 
+                className={styles.toolbarBtn}
+                onClick={() => changeTextAlign('Right')}
+                title="Căn phải"
+              >
+                ≡
+              </button>
+              <button 
+                type="button" 
+                className={styles.toolbarBtn}
+                onClick={() => changeTextAlign('Full')}
+                title="Căn ều"
+              >
+                ≣
+              </button>
+            </div>
+
+            <div className={styles.toolbarGroup}>
+              <button 
+                type="button" 
+                className={styles.toolbarBtn}
+                onClick={() => insertList('ul')}
+                title="Danh sách không đánh số"
+              >
+                • List
+              </button>
+              <button 
+                type="button" 
+                className={styles.toolbarBtn}
+                onClick={() => insertList('ol')}
+                title="Danh sách đánh số"
+              >
+                1. List
+              </button>
+            </div>
+          </div>
+
+          {/* Editor Content */}
+          <div 
+            ref={editorRef}
+            className={styles.editor}
+            contentEditable
+            onInput={handleDescriptionChange}
+            data-placeholder="Nhập mô tả sản phẩm chi tiết, thành phần, hướng dẫn sử dụng, đặc điểm nổi bật..."
           />
-          {newImagePreviews.length > 0 && (
-            <div className="image-preview">
-              {newImagePreviews.map((preview, index) => (
-                <div key={index} className="image-container">
-                  <img src={preview} alt={`Ảnh mới ${index + 1}`} width="100" />
-                  <button
-                    type="button"
-                    className="remove-image-btn"
-                    onClick={() => removeNewImage(index)}
-                  >
-                    Xóa
-                  </button>
-                </div>
-              ))}
+        </div>
+
+        {/* Hình ảnh */}
+        <div className={styles.formGroup}>
+          <label className={styles.label}>Hình ảnh sản phẩm</label>
+          
+          {/* Existing Images */}
+          {existingImages.length > 0 && (
+            <div className={styles.imageSection}>
+              <h4 className={styles.sectionTitle}>Ảnh hiện tại:</h4>
+              <div className={styles.imagePreview}>
+                {existingImages.map((img, idx) => (
+                  <div key={idx} className={styles.imageItem}>
+                    <img 
+                      src={`https://api-zeal.onrender.com/images/${img}`}
+                      alt={`Existing ${idx + 1}`}
+                      className={styles.previewImage}
+                    />
+                    <div className={styles.imageInfo}>
+                      <span className={styles.imageName}>Ảnh {idx + 1}</span>
+                      <button 
+                        type="button" 
+                        onClick={() => removeExistingImage(idx)}
+                        className={styles.removeBtn}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
-          <div className="form-actions">
-            <button className="confirm-btn" type="submit" disabled={loading}>
-              Cập nhật
-            </button>
-            <button
-              className="cancel-btn"
-              type="button"
-              onClick={() => router.push("/admin/product")}
-              disabled={loading}
+
+          {/* Upload New Images */}
+          <div className={styles.imageUploadArea}>
+            <input 
+              type="file" 
+              accept="image/*" 
+              multiple 
+              onChange={handleFileChange} 
+              className={styles.fileInput}
+              id="imageInput"
+              disabled={existingImages.length + formData.images.length >= 4}
+            />
+            <label 
+              htmlFor="imageInput" 
+              className={`${styles.uploadLabel} ${
+                existingImages.length + formData.images.length >= 4 ? styles.disabled : ''
+              }`}
             >
-              Hủy
-            </button>
+              <div className={styles.uploadIcon}>📷</div>
+              <span>
+                {existingImages.length + formData.images.length >= 4 
+                  ? 'Đã đạt giới hạn 4 ảnh' 
+                  : 'Thêm ảnh mới'
+                }
+              </span>
+            </label>
           </div>
-        </form>
-      </div>
+          
+          {/* New Images Preview */}
+          {formData.images.length > 0 && (
+            <div className={styles.imageSection}>
+              <h4 className={styles.sectionTitle}>Ảnh mới sẽ thêm:</h4>
+              <div className={styles.imagePreview}>
+                {formData.images.map((img, idx) => (
+                  <div key={idx} className={styles.imageItem}>
+                    <img 
+                      src={URL.createObjectURL(img)} 
+                      alt={`New Preview ${idx + 1}`}
+                      className={styles.previewImage}
+                    />
+                    <div className={styles.imageInfo}>
+                      <span className={styles.imageName}>{img.name}</span>
+                      <button 
+                        type="button" 
+                        onClick={() => removeNewImage(idx)}
+                        className={styles.removeBtn}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className={styles.buttonGroup}>
+          <button 
+            type="button" 
+            onClick={() => router.push("/admin/product")}
+            className={styles.cancelButton}
+          >
+            Hủy
+          </button>
+          <button type="submit" className={styles.submitButton}>
+            <span>✓</span> Cập nhật sản phẩm
+          </button>
+        </div>
+      </form>
     </div>
   );
-}
+};
+
+export default EditProduct;

@@ -31,7 +31,7 @@ export default function EditUser({ params }: { params: Promise<{ id: string }> }
     if (!token) {
       setError("Không có token. Vui lòng đăng nhập.");
       setLoading(false);
-      router.push("/login");
+      router.push("/user/login");
       return;
     }
 
@@ -143,7 +143,7 @@ export default function EditUser({ params }: { params: Promise<{ id: string }> }
     const token = localStorage.getItem("token");
     if (!token) {
       setError("Không có token. Vui lòng đăng nhập.");
-      router.push("/login");
+      router.push("/user/login");
       return;
     }
 

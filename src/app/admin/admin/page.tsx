@@ -32,7 +32,7 @@ export default function Customer() {
     const token = localStorage.getItem("token");
     const role = localStorage.getItem("role");
     if (!token || role !== "admin") {
-      router.push("/login");
+      router.push("/user/login");
     } else {
       setIsAuthorized(true);
     }
@@ -45,7 +45,7 @@ export default function Customer() {
     const token = localStorage.getItem("token");
     if (!token) {
       alert("Vui lòng đăng nhập lại!");
-      router.push("/login");
+      router.push("/user/login");
       return;
     }
 
@@ -58,7 +58,7 @@ export default function Customer() {
         if (res.status === 401 || res.status === 403) {
           alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
           localStorage.clear();
-          router.push("/login");
+          router.push("/user/login");
           return null;
         }
         return res.json();
@@ -137,7 +137,7 @@ export default function Customer() {
       const token = localStorage.getItem("token");
       if (!token) {
         alert("Vui lòng đăng nhập lại!");
-        router.push("/login");
+        router.push("/user/login");
         return;
       }
 
@@ -159,7 +159,7 @@ export default function Customer() {
       if (res.status === 401 || res.status === 403) {
         alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
         localStorage.clear();
-        router.push("/login");
+        router.push("/user/login");
         return;
       }
 

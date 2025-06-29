@@ -4,26 +4,41 @@ import styles from "./page.module.css";
 import { Chart } from "react-google-charts";
 import { useState, useEffect, useMemo } from "react";
 
-// Define TypeScript types with stricter definitions
+// Define TypeScript types
 interface Product {
+  _id: string;
   name: string;
 }
 
 interface OrderItem {
-  product: Product;
+  product: Product | null;
   quantity: number;
+  _id: string;
 }
 
 interface User {
+  _id: string;
   username: string;
+  email: string;
   createdAt: string;
+}
+
+interface ProductDetail {
+  productId: string;
 }
 
 interface Order {
   _id: string;
   user: User;
   items: OrderItem[];
+  productDetails: ProductDetail[];
+  subtotal: number;
+  discount: number;
   total: number;
+  coupon: string | null;
+  sdt: string;
+  paymentMethod: string;
+  note: string;
   paymentStatus: "pending" | "completed" | "delivering";
   createdAt: string;
 }
@@ -48,24 +63,17 @@ export default function AD_Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Memoized date for reference
   const today = useMemo(() => {
     const date = new Date();
     date.setHours(0, 0, 0, 0);
     return date;
   }, []);
 
-  // Memoized revenue calculation
   const calculateRevenue = useMemo(() => (orders: Order[], period: string) => {
     if (period === "day") {
       const revenueByDay = {
-        Monday: 0,
-        Tuesday: 0,
-        Wednesday: 0,
-        Thursday: 0,
-        Friday: 0,
-        Saturday: 0,
-        Sunday: 0,
+        Monday: 100000, Tuesday: 32000, Wednesday: 1000000,
+        Thursday: 0, Friday: 0, Saturday: 0, Sunday: 0,
       };
 
       orders.forEach((order) => {
@@ -100,7 +108,7 @@ export default function AD_Home() {
       ];
     } else {
       const currentYear = today.getFullYear();
-      const revenueByYear = Array(5).fill(0); // Last 5 years
+      const revenueByYear = Array(5).fill(0);
       orders.forEach((order) => {
         if (order.paymentStatus === "completed") {
           const year = new Date(order.createdAt).getFullYear();
@@ -121,9 +129,8 @@ export default function AD_Home() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Parallel API calls
         const [ordersRes, usersRes, commentsRes] = await Promise.all([
-          fetch("https://api-zeal.onrender.com/api/orders/all"),
+          fetch("https://api-zeal.onrender.com/api/orders/admin/all"),
           fetch("https://api-zeal.onrender.com/api/users"),
           fetch("https://api-zeal.onrender.com/api/comments/"),
         ]);
@@ -138,7 +145,6 @@ export default function AD_Home() {
           commentsRes.json(),
         ]);
 
-        // Process data based on time period
         const isInPeriod = (date: Date) => {
           if (timePeriod === "day") {
             return (
@@ -156,7 +162,6 @@ export default function AD_Home() {
           }
         };
 
-        // Calculate stats
         const ordersInPeriod = orders.filter((order: Order) =>
           isInPeriod(new Date(order.createdAt))
         );
@@ -168,7 +173,6 @@ export default function AD_Home() {
           isInPeriod(new Date(comment.createdAt))
         );
 
-        // Update states
         setChartData(calculateRevenue(orders, timePeriod));
         setStats({
           orders: ordersInPeriod.length,
@@ -178,6 +182,7 @@ export default function AD_Home() {
         });
         setRecentOrders(
           orders
+            .filter((order: Order) => order.items.length === order.productDetails.length)
             .sort((a: Order, b: Order) =>
               new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
             )
@@ -195,15 +200,17 @@ export default function AD_Home() {
   }, [timePeriod, today, calculateRevenue]);
 
   const chartOptions = useMemo(
-    () => ({
-      title: `Doanh thu theo ${timePeriod === "day" ? "ngày" : timePeriod === "month" ? "tháng" : "năm"}`,
-      hAxis: { title: timePeriod === "day" ? "Ngày" : timePeriod === "month" ? "Tháng" : "Năm" },
-      vAxis: { title: "Doanh thu (VNĐ)" },
-      legend: "none",
-    }),
-    [timePeriod]
-  );
-
+  () => ({
+    title: `Doanh thu theo ${timePeriod === "day" ? "ngày" : timePeriod === "month" ? "tháng" : "năm"}`,
+    hAxis: { title: timePeriod === "day" ? "Ngày" : timePeriod === "month" ? "Tháng" : "Năm" },
+    vAxis: {
+      title: "Doanh thu (VNĐ)",
+      minValue: 0, // ✅ Không cho phép giá trị âm
+    },
+    legend: "none",
+  }),
+  [timePeriod]
+);
   return (
     <div className={styles.mainContent}>
       <header className={styles.dashboardHeader}>
@@ -213,44 +220,17 @@ export default function AD_Home() {
 
       <div className={styles.controls}>
         <div className={styles.buttonGroup}>
-          <button
-            className={`${styles.timePeriodButton} ${timePeriod === "day" ? styles.active : ""}`}
-            onClick={() => setTimePeriod("day")}
-          >
-            Ngày
-          </button>
-          <button
-            className={`${styles.timePeriodButton} ${timePeriod === "month" ? styles.active : ""}`}
-            onClick={() => setTimePeriod("month")}
-          >
-            Tháng
-          </button>
-          <button
-            className={`${styles.timePeriodButton} ${timePeriod === "year" ? styles.active : ""}`}
-            onClick={() => setTimePeriod("year")}
-          >
-            Năm
-          </button>
+          <button className={`${styles.timePeriodButton} ${timePeriod === "day" ? styles.active : ""}`} onClick={() => setTimePeriod("day")}>Ngày</button>
+          <button className={`${styles.timePeriodButton} ${timePeriod === "month" ? styles.active : ""}`} onClick={() => setTimePeriod("month")}>Tháng</button>
+          <button className={`${styles.timePeriodButton} ${timePeriod === "year" ? styles.active : ""}`} onClick={() => setTimePeriod("year")}>Năm</button>
         </div>
       </div>
 
       <section className={styles.statsContainer}>
-        <div className={styles.statBox}>
-          <h3>{stats.orders.toLocaleString("vi-VN")}</h3>
-          <p>Đơn hàng {timePeriod === "day" ? "hôm nay" : timePeriod === "month" ? "tháng này" : "năm nay"}</p>
-        </div>
-        <div className={styles.statBox}>
-          <h3>{stats.newUsers.toLocaleString("vi-VN")}</h3>
-          <p>Người dùng mới</p>
-        </div>
-        <div className={styles.statBox}>
-          <h3>{stats.revenue.toLocaleString("vi-VN")}</h3>
-          <p>Doanh thu {timePeriod === "day" ? "hôm nay" : timePeriod === "month" ? "tháng này" : "năm nay"} (VNĐ)</p>
-        </div>
-        <div className={styles.statBox}>
-          <h3>{stats.newComments.toLocaleString("vi-VN")}</h3>
-          <p>Bình luận mới</p>
-        </div>
+        <div className={styles.statBox}><h3>{stats.orders.toLocaleString("vi-VN")}</h3><p>Đơn hàng</p></div>
+        <div className={styles.statBox}><h3>{stats.newUsers.toLocaleString("vi-VN")}</h3><p>Người dùng mới</p></div>
+        <div className={styles.statBox}><h3>{stats.revenue.toLocaleString("vi-VN")}</h3><p>Doanh thu (VNĐ)</p></div>
+        <div className={styles.statBox}><h3>{stats.newComments.toLocaleString("vi-VN")}</h3><p>Bình luận mới</p></div>
       </section>
 
       <section className={styles.chartContainer}>
@@ -260,7 +240,7 @@ export default function AD_Home() {
           <p className={styles.errorMessage}>{error}</p>
         ) : (
           <Chart
-            chartType="ColumnChart"
+            chartType="LineChart"
             width="100%"
             height="400px"
             data={chartData}
@@ -286,33 +266,29 @@ export default function AD_Home() {
           <tbody>
             {recentOrders.length === 0 ? (
               <tr>
-                <td colSpan={6} className={styles.noDataMessage}>
-                  Không có đơn hàng nào
-                </td>
+                <td colSpan={6} className={styles.noDataMessage}>Không có đơn hàng nào</td>
               </tr>
             ) : (
               recentOrders.map((order) => (
                 <tr key={order._id}>
                   <td>{order._id}</td>
-                  <td>{order.user.username}</td>
+                  <td>{order.user?.username ?? "Không xác định"}</td>
                   <td>
-                    {order.items.map((item, index) => (
-                      <div key={index}>
-                        {item.product.name} (x{item.quantity})
+                    {order.items.map((item) => (
+                      <div key={item._id}>
+                        {item.product?.name ?? "Sản phẩm không xác định"} (x{item.quantity})
                       </div>
                     ))}
                   </td>
                   <td>{order.total.toLocaleString("vi-VN")}</td>
                   <td>
-                    <span
-                      className={
-                        order.paymentStatus === "pending"
-                          ? styles.statusPending
-                          : order.paymentStatus === "completed"
-                          ? styles.statusCompleted
-                          : styles.statusDelivering
-                      }
-                    >
+                    <span className={
+                      order.paymentStatus === "pending"
+                        ? styles.statusPending
+                        : order.paymentStatus === "completed"
+                        ? styles.statusCompleted
+                        : styles.statusDelivering
+                    }>
                       {order.paymentStatus === "pending"
                         ? "Chờ xử lý"
                         : order.paymentStatus === "completed"
@@ -320,12 +296,10 @@ export default function AD_Home() {
                         : "Đang giao"}
                     </span>
                   </td>
-                  <td>
-                    {new Date(order.createdAt).toLocaleString("vi-VN", {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    })}
-                  </td>
+                  <td>{new Date(order.createdAt).toLocaleString("vi-VN", {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  })}</td>
                 </tr>
               ))
             )}

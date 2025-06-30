@@ -52,6 +52,7 @@ export default function CheckoutPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  const [shippingStatus, setShippingStatus] = useState<string | null>(null); // Thêm trạng thái vận chuyển
 
   useEffect(() => {
     setIsClient(true);
@@ -195,181 +196,184 @@ export default function CheckoutPage() {
   };
 
   const handleConfirmOrder = async (e: React.FormEvent<HTMLFormElement>) => {
-  e.preventDefault();
-  setIsLoading(true);
+    e.preventDefault();
+    setIsLoading(true);
 
-  // Kiểm tra số điện thoại
-  const phoneRegex = /^(03|05|07|08|09)[0-9]{8}$/;
-  if (!phoneRegex.test(formData.sdt)) {
-    toast.error("Số điện thoại không hợp lệ. Vui lòng nhập số điện thoại Việt Nam hợp lệ (bắt đầu bằng 03, 05, 07, 08, 09).");
-    setIsLoading(false);
-    return;
-  }
-
-  // Kiểm tra thông tin địa chỉ
-  const { addressLine, ward, district, cityOrProvince } = formData;
-  const isAddressLineValid = addressLine && addressLine.trim().length > 0;
-  const isWardValid = ward && ward.trim().length > 0;
-  const isDistrictValid = district && district.trim().length > 0;
-  const isCityValid = cityOrProvince && cityOrProvince.trim().length > 0;
-
-  if (!isAddressLineValid || !isWardValid || !isDistrictValid || !isCityValid) {
-    toast.error("Vui lòng cung cấp đầy đủ thông tin địa chỉ.");
-    setIsLoading(false);
-    return;
-  }
-
-  // Kiểm tra phương thức thanh toán
-  if (!formData.paymentMethod) {
-    toast.error("Vui lòng chọn phương thức thanh toán.");
-    setIsLoading(false);
-    return;
-  }
-
-  // Kiểm tra giỏ hàng
-  if (!cart || !cart.items || cart.items.length === 0) {
-    toast.error("Giỏ hàng trống. Vui lòng thêm sản phẩm trước khi thanh toán.");
-    setIsLoading(false);
-    return;
-  }
-
-  // Kiểm tra token
-  const token = localStorage.getItem("token");
-  if (!token) {
-    toast.error("Vui lòng đăng nhập để thanh toán");
-    setIsLoading(false);
-    return;
-  }
-
-  // Kiểm tra userId
-  if (!userId) {
-    toast.error("Không tìm thấy userId");
-    setIsLoading(false);
-    return;
-  }
-
-  // Kiểm tra items
-  for (const item of cart.items) {
-    if (!item.product?._id) {
-      toast.error("Một hoặc nhiều sản phẩm trong giỏ hàng không hợp lệ.");
+    // Kiểm tra số điện thoại
+    const phoneRegex = /^(03|05|07|08|09)[0-9]{8}$/;
+    if (!phoneRegex.test(formData.sdt)) {
+      toast.error("Số điện thoại không hợp lệ. Vui lòng nhập số điện thoại Việt Nam hợp lệ (bắt đầu bằng 03, 05, 07, 08, 09).");
       setIsLoading(false);
       return;
     }
-    if (item.option && !item.option._id) {
-      toast.error("Tùy chọn sản phẩm không hợp lệ.");
+
+    // Kiểm tra thông tin địa chỉ
+    const { addressLine, ward, district, cityOrProvince } = formData;
+    const isAddressLineValid = addressLine && addressLine.trim().length > 0;
+    const isWardValid = ward && ward.trim().length > 0;
+    const isDistrictValid = district && district.trim().length > 0;
+    const isCityValid = cityOrProvince && cityOrProvince.trim().length > 0;
+
+    if (!isAddressLineValid || !isWardValid || !isDistrictValid || !isCityValid) {
+      toast.error("Vui lòng cung cấp đầy đủ thông tin địa chỉ.");
       setIsLoading(false);
       return;
     }
-    if (item.quantity <= 0) {
-      toast.error("Số lượng sản phẩm phải lớn hơn 0.");
+
+    // Kiểm tra phương thức thanh toán
+    if (!formData.paymentMethod) {
+      toast.error("Vui lòng chọn phương thức thanh toán.");
       setIsLoading(false);
       return;
     }
-  }
 
-  // Dữ liệu gửi đi
-  const cleanData = {
-    userId,
-    addressLine: formData.addressLine.trim(),
-    ward: formData.ward.trim(),
-    district: formData.district.trim(),
-    cityOrProvince: formData.cityOrProvince.trim(),
-    sdt: formData.sdt.trim(),
-    paymentMethod: formData.paymentMethod,
-    note: formData.note?.trim() || "",
-  };
+    // Kiểm tra giỏ hàng
+    if (!cart || !cart.items || cart.items.length === 0) {
+      toast.error("Giỏ hàng trống. Vui lòng thêm sản phẩm trước khi thanh toán.");
+      setIsLoading(false);
+      return;
+    }
 
-  console.log("Dữ liệu gửi đến API /carts/checkout:", cleanData);
+    // Kiểm tra token
+    const token = localStorage.getItem("token");
+    if (!token) {
+      toast.error("Vui lòng đăng nhập để thanh toán");
+      setIsLoading(false);
+      return;
+    }
 
-  try {
-    let checkoutResponse = await fetch(`https://api-zeal.onrender.com/api/carts/checkout`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(cleanData),
-    });
+    // Kiểm tra userId
+    if (!userId) {
+      toast.error("Không tìm thấy userId");
+      setIsLoading(false);
+      return;
+    }
 
-    if (!checkoutResponse.ok) {
-      let errorData;
-      try {
-        errorData = await checkoutResponse.json();
-        console.error("Lỗi từ API /carts/checkout:", errorData);
-        if (errorData.message.includes("required")) {
-          toast.error("Thiếu thông tin bắt buộc: " + errorData.message);
-        } else if (errorData.message.includes("invalid")) {
-          toast.error("Dữ liệu không hợp lệ: " + errorData.message);
-        } else {
-          toast.error(errorData.message || "Không thể tạo đơn hàng");
-        }
-      } catch {
-        toast.error("Không thể phân tích phản hồi từ server");
+    // Kiểm tra items
+    for (const item of cart.items) {
+      if (!item.product?._id) {
+        toast.error("Một hoặc nhiều sản phẩm trong giỏ hàng không hợp lệ.");
+        setIsLoading(false);
+        return;
       }
-      throw new Error(errorData?.message || `Không thể tạo đơn hàng: ${checkoutResponse.statusText}`);
+      if (item.option && !item.option._id) {
+        toast.error("Tùy chọn sản phẩm không hợp lệ.");
+        setIsLoading(false);
+        return;
+      }
+      if (item.quantity <= 0) {
+        toast.error("Số lượng sản phẩm phải lớn hơn 0.");
+        setIsLoading(false);
+        return;
+      }
     }
 
-    let checkoutData = await checkoutResponse.json();
-    console.log("Phản hồi từ API /carts/checkout:", checkoutData);
+    // Dữ liệu gửi đi
+    const cleanData = {
+      userId,
+      addressLine: formData.addressLine.trim(),
+      ward: formData.ward.trim(),
+      district: formData.district.trim(),
+      cityOrProvince: formData.cityOrProvince.trim(),
+      sdt: formData.sdt.trim(),
+      paymentMethod: formData.paymentMethod,
+      note: formData.note?.trim() || "",
+      couponCode: couponCode || "", // Thêm couponCode nếu có
+    };
 
-    // Kiểm tra và lấy orderId từ phản hồi
-    let orderId = checkoutData.order?._id;
+    console.log("Dữ liệu gửi đến API /carts/checkout:", cleanData);
 
-    if (!orderId) {
-      throw new Error("Không nhận được orderId từ phản hồi. Kiểm tra cấu trúc API: " + JSON.stringify(checkoutData));
-    }
-
-    if (formData.paymentMethod === "bank") {
-      let paymentResponse = await fetch(`https://api-zeal.onrender.com/api/payments/create`, {
+    try {
+      let checkoutResponse = await fetch(`https://api-zeal.onrender.com/api/carts/checkout`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          orderId,
-          amount: total,
-        }),
+        body: JSON.stringify(cleanData),
       });
 
-      if (!paymentResponse.ok) {
+      if (!checkoutResponse.ok) {
         let errorData;
         try {
-          errorData = await paymentResponse.json();
-          console.error("Lỗi từ API /create:", errorData);
-          toast.error(errorData.message || "Không thể tạo thanh toán");
+          errorData = await checkoutResponse.json();
+          console.error("Lỗi từ API /carts/checkout:", errorData);
+          if (errorData.message.includes("required")) {
+            toast.error("Thiếu thông tin bắt buộc: " + errorData.message);
+          } else if (errorData.message.includes("invalid")) {
+            toast.error("Dữ liệu không hợp lệ: " + errorData.message);
+          } else {
+            toast.error(errorData.message || "Không thể tạo đơn hàng");
+          }
         } catch {
           toast.error("Không thể phân tích phản hồi từ server");
         }
-        throw new Error(errorData?.message || `Không thể tạo thanh toán: ${paymentResponse.statusText}`);
+        throw new Error(errorData?.message || `Không thể tạo đơn hàng: ${checkoutResponse.statusText}`);
       }
 
-      let paymentData = await paymentResponse.json();
-      console.log("Phản hồi từ API /create:", paymentData); // Thêm log để debug
+      let checkoutData = await checkoutResponse.json();
+      console.log("Phản hồi từ API /carts/checkout:", checkoutData);
 
-      // Kiểm tra linh hoạt các trường paymentCode và amount
-      const { paymentCode, amount } = paymentData.data || paymentData || {};
-      if (!paymentCode || !amount) {
-        throw new Error("Thiếu thông tin thanh toán từ server. Kiểm tra phản hồi: " + JSON.stringify(paymentData));
+      // Lấy orderId và shippingStatus từ phản hồi
+      const orderId = checkoutData.order?._id;
+      const initialShippingStatus = checkoutData.order?.shippingStatus || "pending";
+
+      if (!orderId) {
+        throw new Error("Không nhận được orderId từ phản hồi. Kiểm tra cấu trúc API: " + JSON.stringify(checkoutData));
       }
 
-      toast.success("Đã tạo thanh toán! Đang chuyển hướng...");
-      setTimeout(() => {
-        router.push(`/user/payment?paymentCode=${encodeURIComponent(paymentCode)}&amount=${encodeURIComponent(amount)}`);
-      }, 2000);
-    } else {
-      setCheckoutData(null);
-      localStorage.removeItem("checkoutData");
-      setHasCheckedOut(true);
-      toast.success("Đặt hàng thành công!");
-      setTimeout(() => router.push("/user/"), 3000);
+      setShippingStatus(initialShippingStatus); // Cập nhật trạng thái vận chuyển ban đầu
+
+      if (formData.paymentMethod === "bank") {
+        let paymentResponse = await fetch(`https://api-zeal.onrender.com/api/payments/create`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            orderId,
+            amount: total,
+          }),
+        });
+
+        if (!paymentResponse.ok) {
+          let errorData;
+          try {
+            errorData = await paymentResponse.json();
+            console.error("Lỗi từ API /create:", errorData);
+            toast.error(errorData.message || "Không thể tạo thanh toán");
+          } catch {
+            toast.error("Không thể phân tích phản hồi từ server");
+          }
+          throw new Error(errorData?.message || `Không thể tạo thanh toán: ${paymentResponse.statusText}`);
+        }
+
+        let paymentData = await paymentResponse.json();
+        console.log("Phản hồi từ API /create:", paymentData);
+
+        const { paymentCode, amount } = paymentData.data || paymentData || {};
+        if (!paymentCode || !amount) {
+          throw new Error("Thiếu thông tin thanh toán từ server. Kiểm tra phản hồi: " + JSON.stringify(paymentData));
+        }
+
+        toast.success("Đang tạo thanh toán!");
+        setTimeout(() => {
+          router.push(`/user/payment?paymentCode=${encodeURIComponent(paymentCode)}&amount=${encodeURIComponent(amount)}&shippingStatus=${encodeURIComponent(initialShippingStatus)}`);
+        }, 2000);
+      } else {
+        setCheckoutData(null);
+        localStorage.removeItem("checkoutData");
+        setHasCheckedOut(true);
+        toast.success("Đặt hàng thành công! Trạng thái vận chuyển: " + initialShippingStatus);
+        setTimeout(() => router.push("/user/"), 3000);
+      }
+    } catch (err) {
+      console.error("Lỗi chi tiết:", err);
+    } finally {
+      setIsLoading(false);
     }
-  } catch (err) {
-    console.error("Lỗi chi tiết:", err);
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   const getImageUrl = (image: string | undefined): string => {
     if (!image) return "https://via.placeholder.com/50x50?text=No+Image";
@@ -530,6 +534,10 @@ export default function CheckoutPage() {
               <div className={styles.summaryRow}>
                 <span>Mã giảm</span>
                 <span>-{formatPrice(discount)}</span>
+              </div>
+              <div className={styles.summaryRow}>
+                <span>Trạng thái vận chuyển</span>
+                <span>{shippingStatus || "Chưa xác định"}</span>
               </div>
               <div className={`${styles.summaryRow} ${styles.total}`}>
                 <span>Tổng cộng</span>

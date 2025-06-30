@@ -6,7 +6,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import styles from "./PaymentOnline.module.css";
 
-const API_BASE_URL = "https://api-zeal.onrender.com/api"; // Match your backend URL
+const API_BASE_URL = "https://api-zeal.onrender.com/api";
 const PAYMENT_TIMEOUT = 24 * 60 * 60 * 1000; // 24 giờ tính bằng ms
 
 export default function PaymentOnline() {
@@ -19,8 +19,8 @@ export default function PaymentOnline() {
   const searchParams = useSearchParams();
   const intervalRef = useRef(null);
 
-  const paymentCode = searchParams.get("paymentCode") || ""; // Get from URL, default empty
-  const amount = parseFloat(searchParams.get("amount") || "0"); // Get from URL, default 0
+  const paymentCode = searchParams.get("paymentCode") || ""; // Lấy từ URL
+  const amount = parseFloat(searchParams.get("amount") || ""); // Mặc định là 299008 dựa trên Postman
 
   // Hàm format thời gian còn lại
   const formatTimeLeft = (ms) => {
@@ -99,13 +99,13 @@ export default function PaymentOnline() {
 
       // Xử lý chuyển hướng khi hoàn tất
       if (paymentData.status === "success" && paymentData.paymentStatus === "completed") {
-        toast.success("Thanh toán thành công! Đang chuyển hướng...");
+        toast.success("Thanh toán thành công!");
         localStorage.removeItem(`payment_${paymentCode}`);
         localStorage.removeItem(`amount_${paymentCode}`);
         if (intervalRef.current) clearInterval(intervalRef.current);
         setTimeout(() => router.push("/user/"), 2000);
       } else if (paymentData.status === "expired") {
-        toast.warn("Thanh toán đã hết hạn. Đang chuyển hướng...");
+        toast.warn("Thanh toán đã hết hạn.");
         localStorage.removeItem(`payment_${paymentCode}`);
         localStorage.removeItem(`amount_${paymentCode}`);
         if (intervalRef.current) clearInterval(intervalRef.current);

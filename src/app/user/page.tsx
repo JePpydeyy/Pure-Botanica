@@ -5,10 +5,30 @@ import styles from "./page.module.css";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Product } from "@/app/components/product_interface";
+
+interface Product {
+  _id: string;
+  name: string;
+  slug: string;
+  status: string;
+  view: number;
+  id_brand: string;
+  id_category: string;
+  images: string[];
+  short_description: string;
+  description: string;
+  option: {
+    stock: number;
+    value: string;
+    price: number;
+    discount_price?: number;
+    _id: string;
+  }[];
+  createdAt: string;
+  updatedAt: string;
+}
 
 export default function Home() {
-  const [setCurrentSlide] = useState(0);
   const [newProducts, setNewProducts] = useState<Product[]>([]);
   const [bestSellingProducts, setBestSellingProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -18,20 +38,13 @@ export default function Home() {
   // Xử lý reload trang khi có refresh=true
   useEffect(() => {
     const refresh = searchParams.get("refresh");
-    console.log("Checking refresh param:", refresh); // Debug log
-
-    // Kiểm tra xem đã reload chưa bằng localStorage
     const hasReloaded = localStorage.getItem("hasReloadedAfterLogin");
 
     if (refresh === "true" && !hasReloaded) {
-      console.log("Preparing to reload page..."); // Debug log
-      // Xóa tham số refresh ngay lập tức
       const newUrl = window.location.pathname;
-      router.replace(newUrl); // Bỏ tham số thứ 3
-      // Đợi một chút để đảm bảo URL được cập nhật
+      router.replace(newUrl);
       setTimeout(() => {
         localStorage.setItem("hasReloadedAfterLogin", "true");
-        console.log("Reloading page now...");
         window.location.reload();
       }, 200);
     }
@@ -44,7 +57,7 @@ export default function Home() {
     };
   }, []);
 
-  // Lấy dữ liệu sản phẩm mới nhất từ API
+  // Lấy dữ liệu sản phẩm từ API
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -57,11 +70,17 @@ export default function Home() {
         }
         const allProducts: Product[] = await response.json();
 
-        // Sắp xếp sản phẩm mới nhất theo _id (timestamp)
-        const sortedProducts = allProducts.sort((a, b) => {
-          const timestampA = parseInt(a._id.substring(0, 8), 16);
-          const timestampB = parseInt(b._id.substring(0, 8), 16);
-          return timestampB - timestampA;
+        // Filter valid products with valid option data
+        const validProducts = allProducts.filter(
+          (product) =>
+            product.option?.[0] &&
+            typeof product.option[0].price === "number" &&
+            !isNaN(product.option[0].price)
+        );
+
+        // Sắp xếp sản phẩm mới nhất theo createdAt
+        const sortedProducts = validProducts.sort((a, b) => {
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
         });
 
         // Lấy 3 sản phẩm mới nhất
@@ -69,11 +88,12 @@ export default function Home() {
         setNewProducts(latestProducts);
 
         // Lọc và sắp xếp sản phẩm theo stock (giảm dần)
-        const productsWithStock = allProducts.filter(
-          (product) => typeof product.stock === "number" && product.stock > 0
+        const productsWithStock = validProducts.filter(
+          (product) => product.option[0].stock > 0
         );
-
-        const sortedByStock = [...productsWithStock].sort((a, b) => b.stock - a.stock);
+        const sortedByStock = [...productsWithStock].sort(
+          (a, b) => b.option[0].stock - a.option[0].stock
+        );
         const topStockProducts = sortedByStock.slice(0, 4);
         setBestSellingProducts(topStockProducts);
 
@@ -88,15 +108,17 @@ export default function Home() {
   }, []);
 
   // Định dạng giá tiền
-  const formatPrice = (price: number): string => {
+  const formatPrice = (price: number | undefined | null): string => {
+    if (typeof price !== "number" || isNaN(price)) {
+      return "N/A";
+    }
     return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "đ";
   };
 
   // Xử lý URL ảnh
   const getImageUrl = (image: string): string => {
     if (!image) return "/api/placeholder/200/200";
-    if (image.startsWith("/")) return image;
-    return `/images/${image}`;
+    return image.startsWith("http") ? image : `https://api-zeal.onrender.com${image}`;
   };
 
   return (
@@ -104,7 +126,7 @@ export default function Home() {
       <div className={styles.banner}>
         <img src="/images/bannerhome1.png" alt="Main Banner" />
       </div>
-      
+
       <section className={styles.newProductsSection}>
         <div className={styles.productsRow}>
           <div className={styles.textContent}>
@@ -119,15 +141,23 @@ export default function Home() {
                 <p>Đang tải sản phẩm mới...</p>
               ) : newProducts.length > 0 ? (
                 newProducts.map((product) => (
-                  <Link href={`/user/detail/${product._id}`} key={product._id}>
+                  <Link href={`/user/detail/${product.slug}`} key={product._id}>
                     <div className={styles.newProductCard}>
                       <div className={styles.newProductBadge}>New</div>
                       <div className={styles.newProductImage}>
-                        <img src={getImageUrl(product.images?.[0] || "")} alt={product.name} />
+                        <img
+                          src={getImageUrl(product.images?.[0] || "")}
+                          alt={product.name}
+                        />
                       </div>
                       <div className={styles.newProductDetails}>
                         <h3 className={styles.newProductName}>{product.name}</h3>
-                        <p className={styles.newProductPrice}>{formatPrice(product.price)}</p>
+                        <p className={styles.newProductPrice}>
+                          {product.option[0].discount_price
+                            ? formatPrice(product.option[0].discount_price)
+                            : formatPrice(product.option[0].price)}
+                          
+                        </p>
                       </div>
                     </div>
                   </Link>
@@ -138,7 +168,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-        
+
         <div className={styles.featuresSection}>
           <div className={styles.featureCard}>
             <h4 className={styles.featureTitle}>Giao hàng toàn quốc</h4>
@@ -162,13 +192,15 @@ export default function Home() {
           </div>
         </div>
       </section>
-         <div className={styles.bannerContainer}>
-      <img 
-        src="/images/bannersale.png" 
-        alt="Banner Sale"
-        className={styles.bannerImage}
-      />
-    </div>
+
+      <div className={styles.bannerContainer}>
+        <img
+          src="/images/bannersale.png"
+          alt="Banner Sale"
+          className={styles.bannerImage}
+        />
+      </div>
+
       <section className={styles.botanicalGallery}>
         <div className={styles.botanicalFrameLeft}>
           <img
@@ -192,7 +224,7 @@ export default function Home() {
           </div>
         </div>
       </section>
-      
+
       <div className={styles.bestSellingProducts}>
         <h2 className={styles.bestSellingSectionTitle}>Bạn có thể thích</h2>
         <div className={styles.bestSellingGrid}>
@@ -200,15 +232,23 @@ export default function Home() {
             <p>Đang tải sản phẩm đề xuất...</p>
           ) : bestSellingProducts.length > 0 ? (
             bestSellingProducts.map((product) => (
-              <Link href={`/user/detail/${product._id}`} key={product._id}>
+              <Link href={`/user/detail/${product.slug}`} key={product._id}>
                 <div className={styles.bestSellingCard}>
                   <div className={styles.bestSellingBadge}>Hot</div>
                   <div className={styles.bestSellingImage}>
-                    <img src={getImageUrl(product.images?.[0] || "")} alt={product.name} />
+                    <img
+                      src={getImageUrl(product.images?.[0] || "")}
+                      alt={product.name}
+                    />
                   </div>
                   <div className={styles.bestSellingDetails}>
                     <h3 className={styles.bestSellingName}>{product.name}</h3>
-                    <p className={styles.bestSellingPrice}>{formatPrice(product.price)}</p>
+                    <p className={styles.bestSellingPrice}>
+                      {product.option[0].discount_price
+                        ? formatPrice(product.option[0].discount_price)
+                        : formatPrice(product.option[0].price)}
+                     
+                    </p>
                   </div>
                 </div>
               </Link>
@@ -218,7 +258,7 @@ export default function Home() {
           )}
         </div>
       </div>
-      
+
       <div className={styles.brandValueSection}>
         <img
           src="/images/thuonghieu1.png"
@@ -237,7 +277,7 @@ export default function Home() {
           </a>
         </div>
       </div>
-      
+
       <div className={styles.brands}>
         <h2>Thương hiệu nổi bật</h2>
         <div className={styles.brandsGrid}>

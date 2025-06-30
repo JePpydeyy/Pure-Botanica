@@ -1,19 +1,22 @@
 import { Category } from "./category_interface";
+import { Brand } from "./Brand_interface";
 
 export interface Product {
-  _id: string;
+  _id: string ;
+  id_category: Category;
+  id_brand: Brand;
   name: string;
-  price: number;
-  discountPrice?: number | null;
-  images: string[];
-  category: Category;
-  description: string;
-  ingredients: string[];
-  usage_instructions: string[];
-  special: string[];
-  stock: number;
-  view: number;
-  color: string | null;
-  createdAt: string;
+  slug: string;
+  short_description?: string;
+  description?: string;
+  images?: string[];
   status: string;
+  view: number;
+  option?: {
+    stock: number;
+    value: string;
+    price: number;
+    discount_price?: number;
+  }[];
+  createdAT: string | { $date: string };
 }

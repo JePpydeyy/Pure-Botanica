@@ -3,35 +3,63 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import styles from "./checkout.module.css";
 import { useCart } from "../context/CartContext";
+import { CartItem, Cart } from "../../components/cart_interface";
+import { CheckoutData } from "../../components/checkout_interface";
+
+interface FormData {
+  fullName: string;
+  addressLine: string;
+  ward: string;
+  district: string;
+  cityOrProvince: string;
+  sdt: string;
+  note: string;
+  paymentMethod: "bank" | "cod";
+}
+
+interface UserInfo {
+  username: string;
+  phone: string;
+  addressLine: string;
+  ward: string;
+  district: string;
+  cityOrProvince: string;
+}
 
 export default function CheckoutPage() {
   const router = useRouter();
   const { checkoutData, setCheckoutData } = useCart();
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     fullName: "",
-    address: {
-      addressLine: "",
-      ward: "",
-      district: "",
-      cityOrProvince: "",
-    },
+    addressLine: "",
+    ward: "",
+    district: "",
+    cityOrProvince: "",
     sdt: "",
     note: "",
     paymentMethod: "cod",
   });
 
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [useDifferentInfo, setUseDifferentInfo] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isMounted, setIsMounted] = useState(false);
   const [loadingUser, setLoadingUser] = useState(true);
   const [hasCheckedOut, setHasCheckedOut] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+  const [shippingStatus, setShippingStatus] = useState<string | null>(null); // Thêm trạng thái vận chuyển
 
   useEffect(() => {
-    setIsMounted(true);
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isClient) return;
 
     const token = localStorage.getItem("token");
     if (token) {
@@ -43,334 +71,319 @@ export default function CheckoutPage() {
           return res.json();
         })
         .then((data) => {
-          console.log("User data from API:", data);
-          
-          let addressObj = {
-            addressLine: "",
-            ward: "",
-            district: "",
-            cityOrProvince: "",
-          };
+          let addressLine = "";
+          let ward = "";
+          let district = "";
+          let cityOrProvince = "";
 
           if (data.address) {
             if (typeof data.address === "string") {
               const parts = data.address.split(", ");
-              addressObj = {
-                addressLine: parts[0] || "",
-                ward: parts[1] || "",
-                district: parts[2] || "",
-                cityOrProvince: parts[3] || "",
-              };
+              addressLine = parts[0] || "";
+              ward = parts[1] || "";
+              district = parts[2] || "";
+              cityOrProvince = parts[3] || "";
             } else if (typeof data.address === "object") {
-              addressObj = {
-                addressLine: data.address.addressLine || "",
-                ward: data.address.ward || "",
-                district: data.address.district || "",
-                cityOrProvince: data.address.cityOrProvince || "",
-              };
+              addressLine = data.address.addressLine || "";
+              ward = data.address.ward || "";
+              district = data.address.district || "";
+              cityOrProvince = data.address.cityOrProvince || "";
             }
           }
 
+          const userData: UserInfo = {
+            username: data.username || "",
+            phone: data.phone || "",
+            addressLine,
+            ward,
+            district,
+            cityOrProvince,
+          };
+
+          setUserInfo(userData);
           setFormData((prev) => ({
             ...prev,
-            fullName: data.username || "",
-            sdt: data.phone || "",
-            address: addressObj,
+            fullName: userData.username,
+            addressLine: userData.addressLine,
+            ward: userData.ward,
+            district: userData.district,
+            cityOrProvince: userData.cityOrProvince,
+            sdt: userData.phone,
           }));
           setLoadingUser(false);
         })
-        .catch(() => {
+        .catch((err) => {
+          toast.error("Lỗi khi lấy thông tin người dùng: " + err.message);
           setLoadingUser(false);
         });
     } else {
+      toast.error("Vui lòng đăng nhập để tiếp tục");
       setLoadingUser(false);
+      setTimeout(() => router.push("/user/login"), 3000);
     }
-  }, []);
+  }, [router, isClient]);
 
   useEffect(() => {
-    if (!hasCheckedOut && (!checkoutData || !checkoutData.cart || !checkoutData.cart.items)) {
-      alert("Không tìm thấy thông tin giỏ hàng! Vui lòng kiểm tra lại giỏ hàng của bạn.");
-      router.push("/user/cart");
+    if (!isClient || hasCheckedOut) return;
+    if (!checkoutData || !checkoutData.cart || !checkoutData.cart.items) {
+      toast.error("Không tìm thấy thông tin giỏ hàng! Vui lòng kiểm tra lại.");
+      setTimeout(() => router.push("/user/cart"), 3000);
     }
-  }, [checkoutData, router, hasCheckedOut]);
+  }, [checkoutData, router, hasCheckedOut, isClient]);
 
-  if (!isMounted || !checkoutData || !checkoutData.cart || !checkoutData.cart.items) {
+  if (!isClient || !checkoutData || !checkoutData.cart || !checkoutData.cart.items) {
     return null;
   }
 
-  const { cart, couponCode, subtotal, discount, total, userId } = checkoutData;
-  console.log("Checkout data:", checkoutData);
+  const { cart, couponCode, subtotal, discount, total, userId } = checkoutData as CheckoutData;
 
-const formatPrice = (price: number | string) => {
-  const numericPrice = Number(price) || 0;
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-  }).format(numericPrice);
-};
+  const formatPrice = (price: number | string) => {
+    const numericPrice = Number(price) || 0;
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+    }).format(numericPrice);
+  };
 
- const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-  const { name, value } = e.target;
-    
-    console.log("Form change:", name, value);
-    
-    if (["addressLine", "ward", "district", "cityOrProvince"].includes(name)) {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    if (name === "paymentMethod" && value !== "bank" && value !== "cod") return;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleUseDifferentInfo = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setUseDifferentInfo(e.target.checked);
+    if (!e.target.checked && userInfo) {
       setFormData((prev) => ({
         ...prev,
-        address: { ...prev.address, [name]: value },
+        fullName: userInfo.username,
+        addressLine: userInfo.addressLine,
+        ward: userInfo.ward,
+        district: userInfo.district,
+        cityOrProvince: userInfo.cityOrProvince,
+        sdt: userInfo.phone,
       }));
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
+      setIsEditing(false);
     }
   };
 
-const handleUseDifferentInfo = (e: React.ChangeEvent<HTMLInputElement>) => {
-  setUseDifferentInfo(e.target.checked);
-    if (!e.target.checked) {
-      const token = localStorage.getItem("token");
-      if (token) {
-        fetch("https://api-zeal.onrender.com/api/users/userinfo", {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-          .then((res) => {
-            if (!res.ok) throw new Error("Không thể lấy thông tin người dùng");
-            return res.json();
-          })
-          .then((data) => {
-            let addressObj = {
-              addressLine: "",
-              ward: "",
-              district: "",
-              cityOrProvince: "",
-            };
-
-            if (data.address) {
-              if (typeof data.address === "string") {
-                const parts = data.address.split(", ");
-                addressObj = {
-                  addressLine: parts[0] || "",
-                  ward: parts[1] || "",
-                  district: parts[2] || "",
-                  cityOrProvince: parts[3] || "",
-                };
-              } else if (typeof data.address === "object") {
-                addressObj = {
-                  addressLine: data.address.addressLine || "",
-                  ward: data.address.ward || "",
-                  district: data.address.district || "",
-                  cityOrProvince: data.address.cityOrProvince || "",
-                };
-              }
-            }
-
-            setFormData({
-              ...formData,
-              fullName: data.username || "",
-              sdt: data.phone || "",
-              address: addressObj,
-            });
-          });
-      }
-    }
+  const handleEditToggle = () => {
+    setIsEditing(!isEditing);
   };
 
-const handleConfirmOrder = async (e: React.FormEvent<HTMLFormElement>) => {
-  e.preventDefault();
-    setError(null);
+  const handleSaveChanges = () => {
+    setUserInfo(formData as unknown as UserInfo);
+    setIsEditing(false);
+    toast.success("Thông tin đã được cập nhật!");
+  };
+
+  const handleCancelEdit = () => {
+    if (userInfo) {
+      setFormData({
+        ...formData,
+        fullName: userInfo.username,
+        addressLine: userInfo.addressLine,
+        ward: userInfo.ward,
+        district: userInfo.district,
+        cityOrProvince: userInfo.cityOrProvince,
+        sdt: userInfo.phone,
+      });
+    }
+    setIsEditing(false);
+  };
+
+  const handleConfirmOrder = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     setIsLoading(true);
 
-    console.log("=== FORM DATA DEBUG ===");
-    console.log("Form Data:", JSON.stringify(formData, null, 2));
-    console.log("Address object:", formData.address);
-    console.log("Each address field:");
-    console.log("- addressLine:", `"${formData.address.addressLine}"`);
-    console.log("- ward:", `"${formData.address.ward}"`);
-    console.log("- district:", `"${formData.address.district}"`);
-    console.log("- cityOrProvince:", `"${formData.address.cityOrProvince}"`);
-
-    const phoneRegex = /^[0-9]{10}$/;
+    // Kiểm tra số điện thoại
+    const phoneRegex = /^(03|05|07|08|09)[0-9]{8}$/;
     if (!phoneRegex.test(formData.sdt)) {
-      setError("Số điện thoại không hợp lệ. Vui lòng nhập 10 chữ số.");
+      toast.error("Số điện thoại không hợp lệ. Vui lòng nhập số điện thoại Việt Nam hợp lệ (bắt đầu bằng 03, 05, 07, 08, 09).");
       setIsLoading(false);
       return;
     }
 
-    const { addressLine, ward, district, cityOrProvince } = formData.address;
-    
-    console.log("=== VALIDATION DEBUG ===");
-    console.log("addressLine value:", addressLine, "- length:", addressLine?.length);
-    console.log("ward value:", ward, "- length:", ward?.length);
-    console.log("district value:", district, "- length:", district?.length);
-    console.log("cityOrProvince value:", cityOrProvince, "- length:", cityOrProvince?.length);
-    
+    // Kiểm tra thông tin địa chỉ
+    const { addressLine, ward, district, cityOrProvince } = formData;
     const isAddressLineValid = addressLine && addressLine.trim().length > 0;
     const isWardValid = ward && ward.trim().length > 0;
     const isDistrictValid = district && district.trim().length > 0;
     const isCityValid = cityOrProvince && cityOrProvince.trim().length > 0;
 
-    console.log("Validation results:");
-    console.log("- addressLine valid:", isAddressLineValid);
-    console.log("- ward valid:", isWardValid);
-    console.log("- district valid:", isDistrictValid);
-    console.log("- city valid:", isCityValid);
-
     if (!isAddressLineValid || !isWardValid || !isDistrictValid || !isCityValid) {
-      setError("Vui lòng cung cấp đầy đủ thông tin địa chỉ. Tất cả các trường địa chỉ đều bắt buộc.");
+      toast.error("Vui lòng cung cấp đầy đủ thông tin địa chỉ.");
       setIsLoading(false);
       return;
     }
 
+    // Kiểm tra phương thức thanh toán
     if (!formData.paymentMethod) {
-      setError("Vui lòng chọn phương thức thanh toán.");
+      toast.error("Vui lòng chọn phương thức thanh toán.");
       setIsLoading(false);
       return;
     }
 
+    // Kiểm tra giỏ hàng
     if (!cart || !cart.items || cart.items.length === 0) {
-      setError("Giỏ hàng trống. Vui lòng thêm sản phẩm trước khi thanh toán.");
+      toast.error("Giỏ hàng trống. Vui lòng thêm sản phẩm trước khi thanh toán.");
       setIsLoading(false);
       return;
     }
 
-    const attemptCheckout = async (useCoupon: boolean) => {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        throw new Error("Vui lòng đăng nhập để thanh toán");
+    // Kiểm tra token
+    const token = localStorage.getItem("token");
+    if (!token) {
+      toast.error("Vui lòng đăng nhập để thanh toán");
+      setIsLoading(false);
+      return;
+    }
+
+    // Kiểm tra userId
+    if (!userId) {
+      toast.error("Không tìm thấy userId");
+      setIsLoading(false);
+      return;
+    }
+
+    // Kiểm tra items
+    for (const item of cart.items) {
+      if (!item.product?._id) {
+        toast.error("Một hoặc nhiều sản phẩm trong giỏ hàng không hợp lệ.");
+        setIsLoading(false);
+        return;
       }
-      if (!userId) {
-        throw new Error("Không tìm thấy userId");
+      if (item.option && !item.option._id) {
+        toast.error("Tùy chọn sản phẩm không hợp lệ.");
+        setIsLoading(false);
+        return;
       }
-      
-      const cleanAddress = {
-        addressLine: formData.address.addressLine.trim(),
-        ward: formData.address.ward.trim(),
-        district: formData.address.district.trim(),
-        cityOrProvince: formData.address.cityOrProvince.trim(),
-      };
-
-      const requestDataOptions = [
-        {
-          userId: userId,
-          address: cleanAddress,
-          sdt: formData.sdt.trim(),
-          paymentMethod: formData.paymentMethod === "cod" ? "cod" : "bank",
-          note: formData.note?.trim() || "",
-          couponCode: useCoupon && couponCode ? couponCode : undefined,
-          productDetails: cart.items.map((item) => ({
-            productId: item.product._id,
-            details: item.details || {},
-          })),
-        },
-        {
-          userId: userId,
-          address: `${cleanAddress.addressLine}, ${cleanAddress.ward}, ${cleanAddress.district}, ${cleanAddress.cityOrProvince}`,
-          sdt: formData.sdt.trim(),
-          paymentMethod: formData.paymentMethod === "cod" ? "cod" : "bank",
-          note: formData.note?.trim() || "",
-          couponCode: useCoupon && couponCode ? couponCode : undefined,
-          productDetails: cart.items.map((item) => ({
-            productId: item.product._id,
-            details: item.details || {},
-          })),
-        },
-        {
-          userId: userId,
-          addressLine: cleanAddress.addressLine,
-          ward: cleanAddress.ward,
-          district: cleanAddress.district,
-          cityOrProvince: cleanAddress.cityOrProvince,
-          sdt: formData.sdt.trim(),
-          paymentMethod: formData.paymentMethod === "cod" ? "cod" : "bank",
-          note: formData.note?.trim() || "",
-          couponCode: useCoupon && couponCode ? couponCode : undefined,
-          productDetails: cart.items.map((item) => ({
-            productId: item.product._id,
-            details: item.details || {},
-          })),
-        }
-      ];
-
-      console.log("=== TRYING REQUEST OPTIONS ===");
-      
-      for (let i = 0; i < requestDataOptions.length; i++) {
-        const requestData = requestDataOptions[i];
-        
-        console.log(`Trying option ${i + 1}:`, JSON.stringify(requestData, null, 2));
-
-        try {
-          const response = await fetch(`https://api-zeal.onrender.com/api/carts/checkout`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify(requestData),
-          });
-
-          console.log(`Option ${i + 1} response:`, response.status, response.statusText);
-
-          if (response.ok) {
-            const data = await response.json();
-            console.log(`Option ${i + 1} SUCCESS:`, data);
-            return data;
-          } else {
-            const errorData = await response.json();
-            console.log(`Option ${i + 1} FAILED:`, errorData);
-            
-            if (i === requestDataOptions.length - 1) {
-              throw new Error(errorData.error || `Không thể thanh toán: ${response.statusText}`);
-            }
-            continue;
-          }
-        } catch (fetchError) {
-          console.log(`Option ${i + 1} FETCH ERROR:`, fetchError);
-          
-          if (i === requestDataOptions.length - 1) {
-            throw fetchError;
-          }
-          continue;
-        }
+      if (item.quantity <= 0) {
+        toast.error("Số lượng sản phẩm phải lớn hơn 0.");
+        setIsLoading(false);
+        return;
       }
+    }
 
-      throw new Error("Tất cả các options đều fail");
+    // Dữ liệu gửi đi
+    const cleanData = {
+      userId,
+      addressLine: formData.addressLine.trim(),
+      ward: formData.ward.trim(),
+      district: formData.district.trim(),
+      cityOrProvince: formData.cityOrProvince.trim(),
+      sdt: formData.sdt.trim(),
+      paymentMethod: formData.paymentMethod,
+      note: formData.note?.trim() || "",
+      couponCode: couponCode || "", // Thêm couponCode nếu có
     };
 
+    console.log("Dữ liệu gửi đến API /carts/checkout:", cleanData);
+
     try {
-      const result = await attemptCheckout(true);
-      setCheckoutData(null);
-      localStorage.removeItem("checkoutData");
-      setHasCheckedOut(true);
-      alert("Đặt hàng thành công!");
-      router.push("/user/");
-    } catch (err) {
-      const errorMessage = err.message;
-      console.log("Final error:", errorMessage);
-      
-      if (errorMessage.includes("Mã giảm giá") || errorMessage.includes("coupon")) {
-        setError("Mã giảm giá không hợp lệ, đơn hàng sẽ được thanh toán với giá gốc.");
+      let checkoutResponse = await fetch(`https://api-zeal.onrender.com/api/carts/checkout`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(cleanData),
+      });
+
+      if (!checkoutResponse.ok) {
+        let errorData;
         try {
-          const result = await attemptCheckout(false);
-          setCheckoutData(null);
-          localStorage.removeItem("checkoutData");
-          setHasCheckedOut(true);
-          alert("Đặt hàng thành công!");
-          router.push("/user/");
-        } catch (err2) {
-          setError(err2.message);
+          errorData = await checkoutResponse.json();
+          console.error("Lỗi từ API /carts/checkout:", errorData);
+          if (errorData.message.includes("required")) {
+            toast.error("Thiếu thông tin bắt buộc: " + errorData.message);
+          } else if (errorData.message.includes("invalid")) {
+            toast.error("Dữ liệu không hợp lệ: " + errorData.message);
+          } else {
+            toast.error(errorData.message || "Không thể tạo đơn hàng");
+          }
+        } catch {
+          toast.error("Không thể phân tích phản hồi từ server");
         }
-      } else {
-        setError(errorMessage);
+        throw new Error(errorData?.message || `Không thể tạo đơn hàng: ${checkoutResponse.statusText}`);
       }
+
+      let checkoutData = await checkoutResponse.json();
+      console.log("Phản hồi từ API /carts/checkout:", checkoutData);
+
+      // Lấy orderId và shippingStatus từ phản hồi
+      const orderId = checkoutData.order?._id;
+      const initialShippingStatus = checkoutData.order?.shippingStatus || "pending";
+
+      if (!orderId) {
+        throw new Error("Không nhận được orderId từ phản hồi. Kiểm tra cấu trúc API: " + JSON.stringify(checkoutData));
+      }
+
+      setShippingStatus(initialShippingStatus); // Cập nhật trạng thái vận chuyển ban đầu
+
+      if (formData.paymentMethod === "bank") {
+        let paymentResponse = await fetch(`https://api-zeal.onrender.com/api/payments/create`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            orderId,
+            amount: total,
+          }),
+        });
+
+        if (!paymentResponse.ok) {
+          let errorData;
+          try {
+            errorData = await paymentResponse.json();
+            console.error("Lỗi từ API /create:", errorData);
+            toast.error(errorData.message || "Không thể tạo thanh toán");
+          } catch {
+            toast.error("Không thể phân tích phản hồi từ server");
+          }
+          throw new Error(errorData?.message || `Không thể tạo thanh toán: ${paymentResponse.statusText}`);
+        }
+
+        let paymentData = await paymentResponse.json();
+        console.log("Phản hồi từ API /create:", paymentData);
+
+        const { paymentCode, amount } = paymentData.data || paymentData || {};
+        if (!paymentCode || !amount) {
+          throw new Error("Thiếu thông tin thanh toán từ server. Kiểm tra phản hồi: " + JSON.stringify(paymentData));
+        }
+
+        toast.success("Đang tạo thanh toán!");
+        setTimeout(() => {
+          router.push(`/user/payment?paymentCode=${encodeURIComponent(paymentCode)}&amount=${encodeURIComponent(amount)}&shippingStatus=${encodeURIComponent(initialShippingStatus)}`);
+        }, 2000);
+      } else {
+        setCheckoutData(null);
+        localStorage.removeItem("checkoutData");
+        setHasCheckedOut(true);
+        toast.success("Đặt hàng thành công! Trạng thái vận chuyển: " + initialShippingStatus);
+        setTimeout(() => router.push("/user/"), 3000);
+      }
+    } catch (err) {
+      console.error("Lỗi chi tiết:", err);
     } finally {
       setIsLoading(false);
     }
   };
 
+  const getImageUrl = (image: string | undefined): string => {
+    if (!image) return "https://via.placeholder.com/50x50?text=No+Image";
+    const baseUrl = "https://api-zeal.onrender.com/";
+    return `${baseUrl}${image}`;
+  };
+
   return (
     <div className={styles.container}>
+      <ToastContainer position="top-right" autoClose={3000} />
       <div className={styles.steps}>
         <div className={styles.step}>
           <div className={styles.stepNumber}>1</div>
@@ -389,24 +402,6 @@ const handleConfirmOrder = async (e: React.FormEvent<HTMLFormElement>) => {
       </div>
 
       <div className={styles.content}>
-        <div style={{ 
-          background: '#f0f0f0', 
-          padding: '10px', 
-          margin: '10px 0', 
-          borderRadius: '5px',
-          fontSize: '12px'
-        }}>
-          <strong>Debug Info:</strong>
-          <pre>{JSON.stringify(formData, null, 2)}</pre>
-          <button 
-            type="button" 
-            onClick={() => console.log("Current form state:", formData)}
-            style={{ margin: '5px', padding: '5px' }}
-          >
-            Log Form State
-          </button>
-        </div>
-
         <form onSubmit={handleConfirmOrder} className={styles.mainForm}>
           <div className={styles.formSection}>
             <h3 className={styles.formTitle}>Nhập thông tin giao hàng</h3>
@@ -422,7 +417,7 @@ const handleConfirmOrder = async (e: React.FormEvent<HTMLFormElement>) => {
                   />
                   Gửi đến thông tin khác (người thân, bạn bè)
                 </label>
-                
+
                 <input
                   type="text"
                   name="fullName"
@@ -430,49 +425,49 @@ const handleConfirmOrder = async (e: React.FormEvent<HTMLFormElement>) => {
                   value={formData.fullName}
                   onChange={handleChange}
                   required
-                  disabled={!useDifferentInfo && !loadingUser}
+                  disabled={!useDifferentInfo && !isEditing}
                 />
-                
+
                 <input
                   type="text"
                   name="addressLine"
                   placeholder="Địa chỉ cụ thể (số nhà, đường) *"
-                  value={formData.address.addressLine}
+                  value={formData.addressLine}
                   onChange={handleChange}
                   required
-                  disabled={!useDifferentInfo && !loadingUser}
+                  disabled={!useDifferentInfo && !isEditing}
                 />
-                
+
                 <input
                   type="text"
                   name="ward"
                   placeholder="Xã/Phường (ví dụ: Phường Tân Chánh Hiệp) *"
-                  value={formData.address.ward}
+                  value={formData.ward}
                   onChange={handleChange}
                   required
-                  disabled={!useDifferentInfo && !loadingUser}
+                  disabled={!useDifferentInfo && !isEditing}
                 />
-                
+
                 <input
                   type="text"
                   name="district"
                   placeholder="Quận/Huyện (ví dụ: Quận 12) *"
-                  value={formData.address.district}
+                  value={formData.district}
                   onChange={handleChange}
                   required
-                  disabled={!useDifferentInfo && !loadingUser}
+                  disabled={!useDifferentInfo && !isEditing}
                 />
-                
+
                 <input
                   type="text"
                   name="cityOrProvince"
                   placeholder="Tỉnh/Thành phố (ví dụ: TP Hồ Chí Minh) *"
-                  value={formData.address.cityOrProvince}
+                  value={formData.cityOrProvince}
                   onChange={handleChange}
                   required
-                  disabled={!useDifferentInfo && !loadingUser}
+                  disabled={!useDifferentInfo && !isEditing}
                 />
-                
+
                 <input
                   type="text"
                   name="sdt"
@@ -482,9 +477,9 @@ const handleConfirmOrder = async (e: React.FormEvent<HTMLFormElement>) => {
                   required
                   pattern="[0-9]{10}"
                   title="Số điện thoại phải có 10 chữ số"
-                  disabled={!useDifferentInfo && !loadingUser}
+                  disabled={!useDifferentInfo && !isEditing}
                 />
-                
+
                 <textarea
                   name="note"
                   placeholder="Ghi chú cho đơn hàng của bạn (ví dụ: Giao nhanh lên nhé)"
@@ -501,29 +496,35 @@ const handleConfirmOrder = async (e: React.FormEvent<HTMLFormElement>) => {
               <span>Tổng</span>
             </div>
 
-            {cart.items.map((item, index) => (
-              <div key={index} className={styles.cartItem}>
-                <div className={styles.cartItemImage}>
-                  <Image
-                    src={
-                      item.product.images && item.product.images.length > 0
-                        ? `https://api-zeal.onrender.com/images/${item.product.images[0]}`
-                        : "https://via.placeholder.com/50x50?text=No+Image"
-                    }
-                    alt={item.product.name || "Sản phẩm"}
-                    width={50}
-                    height={50}
-                  />
+            {cart.items.map((item: CartItem, index: number) => {
+              const itemPrice = item.option?.discount_price || item.option?.price || 0;
+              const imageUrl = getImageUrl(item.product.images?.[0]);
+              return (
+                <div key={index} className={styles.cartItem}>
+                  <div className={styles.cartItemImage}>
+                    <Image
+                      src={imageUrl}
+                      alt={item.product.name || "Sản phẩm"}
+                      width={50}
+                      height={50}
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = "https://via.placeholder.com/50x50?text=Error";
+                      }}
+                    />
+                  </div>
+                  <div className={styles.cartItemDetails}>
+                    <div className={styles.cartItemName}>{item.product.name || "Sản phẩm không xác định"}</div>
+                    <div className={styles.cartItemDesc}>Số lượng: {item.quantity}</div>
+                    {item.option && (
+                      <div className={styles.cartItemDesc}>Tùy chọn: {item.option.value}</div>
+                    )}
+                  </div>
+                  <div className={styles.cartItemPrice}>
+                    {formatPrice(itemPrice * item.quantity)}
+                  </div>
                 </div>
-                <div className={styles.cartItemDetails}>
-                  <div className={styles.cartItemName}>{item.product.name || "Sản phẩm không xác định"}</div>
-                  <div className={styles.cartItemDesc}>Số lượng: {item.quantity}</div>
-                </div>
-                <div className={styles.cartItemPrice}>
-                  {formatPrice(item.product.price * item.quantity)}
-                </div>
-              </div>
-            ))}
+              );
+            })}
 
             <div className={styles.cartSummary}>
               <div className={styles.summaryRow}>
@@ -533,6 +534,10 @@ const handleConfirmOrder = async (e: React.FormEvent<HTMLFormElement>) => {
               <div className={styles.summaryRow}>
                 <span>Mã giảm</span>
                 <span>-{formatPrice(discount)}</span>
+              </div>
+              <div className={styles.summaryRow}>
+                <span>Trạng thái vận chuyển</span>
+                <span>{shippingStatus || "Chưa xác định"}</span>
               </div>
               <div className={`${styles.summaryRow} ${styles.total}`}>
                 <span>Tổng cộng</span>
@@ -574,12 +579,6 @@ const handleConfirmOrder = async (e: React.FormEvent<HTMLFormElement>) => {
                 </div>
               </div>
             </div>
-
-            {error && (
-              <p className={styles.errorMessage} style={{ color: "red" }}>
-                {error}
-              </p>
-            )}
 
             <button
               type="submit"

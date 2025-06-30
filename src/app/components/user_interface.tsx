@@ -13,8 +13,6 @@ export interface User {
   listOrder: any[];
   birthday: string | null;
 }
-
-
  export interface Option {
   code: number;
   name: string;

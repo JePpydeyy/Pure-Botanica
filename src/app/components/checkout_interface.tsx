@@ -1,3 +1,4 @@
+import { Cart } from "./cart_interface";
 
 export interface Address {
   addressLine: string;
@@ -6,32 +7,20 @@ export interface Address {
   cityOrProvince: string;
 }
 
-export interface FormData {
+// Interface cho dữ liệu form
+ export interface FormData {
   fullName: string;
   address: Address;
   sdt: string;
   note: string;
-  paymentMethod: string;
+  paymentMethod: "cod" | "bank";
 }
-
-export interface CartItem {
-  product: {
-    _id: string;
-    name: string;
-    price: number;
-    images?: string[];
-  };
-  quantity: number;
-  details?: Record<string, any>;
-}
-
-export interface CheckoutData {
-  cart: {
-    items: CartItem[];
-  };
+// Interface cho dữ liệu thanh toán
+ export interface CheckoutData {
+  cart: Cart;
   couponCode?: string;
   subtotal: number;
   discount: number;
   total: number;
-  userId?: string;
+  userId: string;
 }

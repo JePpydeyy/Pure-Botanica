@@ -50,6 +50,7 @@ export default async function RootLayout({
               <div className="container header-container">
                 <div className="logo">
                   <Link href="/user">
+<<<<<<< HEAD
                     <img
                       src="https://api-zeal.onrender.com/images/logo_web.png"
                       alt="Pure Botanica"
@@ -60,6 +61,17 @@ export default async function RootLayout({
                   <div className="menu-wrapper">
                     <Link href="/user/product" className="dropdown">
                       Sản phẩm
+=======
+                    <img src="https://api-zeal.onrender.com/images/logo_web.png" alt="Pure Botanica" />
+                  </Link>
+                </div>
+                <nav>
+                 
+                  <div className="menu-wrapper">
+                    <Link href="/user/product" className="dropdown">
+                      Sản phẩm
+                      {/* <i className="fa-solid fa-chevron-down"></i> */}
+>>>>>>> 69712e640b4ced7a6c9f8ff5113edaa6e9c633f1
                     </Link>
                     <CategoryList categories={category} />
                   </div>
@@ -67,6 +79,7 @@ export default async function RootLayout({
                   <Link href="/user/contact">Liên hệ</Link>
                   <Link href="/user/new">Tin tức</Link>
                 </nav>
+<<<<<<< HEAD
                 <div className="icons">
                   <div className="search-bar">
                     <form
@@ -74,6 +87,12 @@ export default async function RootLayout({
                       action="/user/search"
                       method="GET"
                     >
+=======
+
+                <div className="icons">
+                  <div className="search-bar">
+                    <form className="formtimkiem" action="/user/search" method="GET">
+>>>>>>> 69712e640b4ced7a6c9f8ff5113edaa6e9c633f1
                       <input
                         type="text"
                         name="query"
@@ -85,15 +104,22 @@ export default async function RootLayout({
                       </button>
                     </form>
                   </div>
+<<<<<<< HEAD
                   <Link href="/user/cart">
                     <i className="fa-solid fa-cart-shopping"></i>
                   </Link>
+=======
+                  <Link href="/user/cart"><i className="fa-solid fa-cart-shopping"></i></Link>
+>>>>>>> 69712e640b4ced7a6c9f8ff5113edaa6e9c633f1
                   <UserMenu />
                 </div>
               </div>
             </header>
+<<<<<<< HEAD
 
             {/* Main content */}
+=======
+>>>>>>> 69712e640b4ced7a6c9f8ff5113edaa6e9c633f1
             <main>{children}</main>
 
             {/* Footer */}

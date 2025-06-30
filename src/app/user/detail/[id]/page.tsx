@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import styles from "./Detail.module.css";
 import Image from "next/image";
+import ToastNotification from "../../ToastNotification/ToastNotification";
 
 interface Product {
   _id: string;
@@ -39,7 +40,8 @@ const formatPrice = (price: number): string => {
 
 const getImageUrl = (image: string): string => {
   if (!image) return "/images/placeholder.png";
-  return image.startsWith("http") ? image : `https://api-zeal.onrender.com${image}`;
+  const cleanImage = image.startsWith("images/") ? image : `images/${image}`;
+  return `https://api-zeal.onrender.com/${cleanImage}`;
 };
 
 export default function DetailPage() {
@@ -51,13 +53,12 @@ export default function DetailPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [username, setUsername] = useState<string>("Người dùng");
   const [addingToCart, setAddingToCart] = useState(false);
-  const [cartMessage, setCartMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [cartMessage, setCartMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
   const [commentError, setCommentError] = useState<string | null>(null);
   const [submittingComment, setSubmittingComment] = useState(false);
 
-  // Thêm state để chọn option
   const [selectedOptionIndex, setSelectedOptionIndex] = useState(0);
 
   useEffect(() => {
@@ -89,111 +90,115 @@ export default function DetailPage() {
     getUserInfoFromToken();
   }, []);
 
- useEffect(() => {
-  const fetchProduct = async () => {
-    try {
-      const res = await fetch(`https://api-zeal.onrender.com/api/products/${id}`);
-      if (!res.ok) throw new Error("Không thể tải sản phẩm");
-      const data = await res.json();
-      setProduct(data);
-      setLoading(false);
-    } catch (error) {
-      console.error("Lỗi khi tải chi tiết sản phẩm:", error);
-      setLoading(false);
-    }
-  };
-
-  const fetchComments = async () => {
-    try {
-      const res = await fetch(`https://api-zeal.onrender.com/api/comments/product/${id}`);
-      if (!res.ok) {
-        // Nếu lỗi 404 hoặc không có bình luận thì set rỗng, không throw
-        setComments([]);
-        return;
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        const res = await fetch(`https://api-zeal.onrender.com/api/products/${id}`);
+        if (!res.ok) throw new Error("Không thể tải sản phẩm");
+        const data = await res.json();
+        setProduct(data);
+        setLoading(false);
+      } catch (error) {
+        console.error("Lỗi khi tải chi tiết sản phẩm:", error);
+        setLoading(false);
       }
-      const data = await res.json();
-      setComments(Array.isArray(data) ? data : []);
-    } catch (error) {
-      // Nếu lỗi mạng hoặc lỗi khác, cũng set rỗng, không throw
-      setComments([]);
-      console.error("Lỗi khi lấy bình luận:", error);
-    }
-  };
+    };
 
-  if (id) {
-    fetchProduct();
-    fetchComments();
-  }
-}, [id]);
+    const fetchComments = async () => {
+      try {
+        const res = await fetch(`https://api-zeal.onrender.com/api/comments/product/${product?._id || ""}`);
+        if (!res.ok) {
+          setComments([]);
+          return;
+        }
+        const data = await res.json();
+        setComments(Array.isArray(data) ? data : []);
+      } catch (error) {
+        setComments([]);
+        console.error("Lỗi khi lấy bình luận:", error);
+      }
+    };
+
+    if (id) {
+      fetchProduct();
+      if (product?._id) fetchComments();
+    }
+  }, [id, product?._id]);
 
   const increaseQty = () => setQuantity((prev) => prev + 1);
   const decreaseQty = () => setQuantity((prev) => (prev > 1 ? prev - 1 : 1));
 
   const addToCart = async () => {
-    if (!product || !product.option[selectedOptionIndex]) return;
+    if (!product || !product.option.length || !product.option[selectedOptionIndex]) return;
+
+    const selectedOption = product.option[selectedOptionIndex];
+    if (selectedOption.stock < quantity) {
+      setCartMessage({
+        type: "error",
+        text: "Số lượng vượt quá tồn kho!",
+      });
+      return;
+    }
 
     if (!userId) {
       setCartMessage({
-        type: 'error',
-        text: 'Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng'
+        type: "error",
+        text: "Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng",
       });
-
       const cartItems = JSON.parse(localStorage.getItem("cart") || "[]");
-      const existingItemIndex = cartItems.findIndex((item: any) => item.id === product._id);
-
+      const existingItemIndex = cartItems.findIndex((item: any) => item.id === product._id && item.optionId === selectedOption._id);
       if (existingItemIndex !== -1) {
         cartItems[existingItemIndex].quantity += quantity;
       } else {
         cartItems.push({
           id: product._id,
           name: product.name,
-          price: product.option[selectedOptionIndex].discount_price || product.option[selectedOptionIndex].price,
+          optionId: selectedOption._id,
+          price: selectedOption.discount_price || selectedOption.price,
           image: product.images?.[0] || "",
           quantity,
         });
       }
-
       localStorage.setItem("cart", JSON.stringify(cartItems));
-      alert("Đã thêm vào giỏ hàng (localStorage)!");
+      setCartMessage({
+        type: "success",
+        text: "Đã thêm vào giỏ hàng (localStorage)!",
+      });
+      setTimeout(() => setCartMessage(null), 3000);
       return;
     }
 
     setAddingToCart(true);
 
     try {
-      const productId = product._id;
-      if (!productId) throw new Error("ID sản phẩm không hợp lệ");
-
-      const response = await fetch(
-        `https://api-zeal.onrender.com/api/carts/add`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            userId: userId,
-            productId: productId,
-            quantity: quantity
-          }),
-        }
-      );
+      const response = await fetch(`https://api-zeal.onrender.com/api/carts/add`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId,
+          productId: product._id,
+          optionIds: [selectedOption._id],
+          quantity,
+        }),
+      });
 
       const responseData = await response.json();
       if (!response.ok) throw new Error(responseData.message || "Không thể thêm sản phẩm vào giỏ hàng");
 
       setCartMessage({
-        type: 'success',
-        text: 'Đã thêm sản phẩm vào giỏ hàng!'
+        type: "success",
+        text: "Đã thêm sản phẩm vào giỏ hàng!",
       });
-
       setTimeout(() => setCartMessage(null), 3000);
     } catch (error: any) {
       console.error("Lỗi khi thêm vào giỏ hàng:", error);
       setCartMessage({
-        type: 'error',
-        text: `Lỗi: ${error.message}`
+        type: "error",
+        text: `Lỗi: ${error.message}`,
       });
+      setTimeout(() => setCartMessage(null), 3000);
     } finally {
       setAddingToCart(false);
     }
@@ -202,11 +207,19 @@ export default function DetailPage() {
   const submitComment = async () => {
     if (!userId) {
       setCommentError("Vui lòng đăng nhập để viết bình luận.");
+      setTimeout(() => setCommentError(null), 3000); // Auto-clear after 3 seconds
       return;
     }
 
-    if (!newComment.trim()) {
-      setCommentError("Bình luận không được để trống.");
+    if (!newComment.trim() || newComment.length < 3) {
+      setCommentError("Bình luận phải có ít nhất 3 ký tự.");
+      setTimeout(() => setCommentError(null), 3000); // Auto-clear after 3 seconds
+      return;
+    }
+
+    if (!product || !product._id || !/^[a-f\d]{24}$/i.test(product._id)) {
+      setCommentError("ID sản phẩm không hợp lệ.");
+      setTimeout(() => setCommentError(null), 3000); // Auto-clear after 3 seconds
       return;
     }
 
@@ -214,39 +227,63 @@ export default function DetailPage() {
     setCommentError(null);
 
     try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Không tìm thấy token đăng nhập.");
+      }
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10-second timeout
+
+      const headers = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      };
+
+      console.log("Sending comment request:", { userId, productId: product._id, content: newComment });
+
       const response = await fetch(`https://api-zeal.onrender.com/api/comments`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify({
-          userId: userId,
-          productId: id,
+          userId,
+          productId: product._id,
           content: newComment,
         }),
+        signal: controller.signal,
       });
 
+      clearTimeout(timeoutId);
+
       const responseData = await response.json();
-      if (!response.ok) throw new Error(responseData.message || "Không thể gửi bình luận.");
+      console.log("API Response:", responseData);
 
-      setComments((prev) => [
-        {
-          _id: responseData._id,
-          user: { username: username },
-          content: newComment,
-          createdAt: new Date().toISOString(),
-        },
-        ...prev,
-      ]);
-      setNewComment("");
-
-      const res = await fetch(`https://api-zeal.onrender.com/api/comments/product/${id}`);
-      if (res.ok) {
-        const updatedComments = await res.json();
-        setComments(Array.isArray(updatedComments) ? updatedComments : []);
+      if (!response.ok) {
+        throw new Error(
+          responseData.message ||
+          `Lỗi: ${response.status} - ${response.statusText || "Không rõ"}`
+        );
       }
+
+      const updatedCommentsRes = await fetch(`https://api-zeal.onrender.com/api/comments/product/${product._id}`);
+      if (updatedCommentsRes.ok) {
+        const updatedCommentsData = await updatedCommentsRes.json();
+        setComments(Array.isArray(updatedCommentsData) ? updatedCommentsData : []);
+      }
+
+      setNewComment("");
     } catch (error: any) {
-      setCommentError(`Lỗi: ${error.message}`);
+      console.error("Comment submission error:", error, error.response?.data || error.message);
+      setCommentError(
+        error.name === "AbortError"
+          ? "Yêu cầu hết thời gian, vui lòng thử lại."
+          : error.message.includes("401")
+          ? "Phiên đăng nhập hết hạn, vui lòng đăng nhập lại."
+          : error.message.includes("400")
+          ? "Dữ liệu không hợp lệ, vui lòng kiểm tra lại."
+          : `Lỗi: ${error.message || "Không thể gửi bình luận"}`
+      );
+      setTimeout(() => setCommentError(null), 3000); // Auto-clear after 3 seconds
     } finally {
       setSubmittingComment(false);
     }
@@ -255,7 +292,7 @@ export default function DetailPage() {
   if (loading) return <p className="text-center py-10">Đang tải chi tiết sản phẩm...</p>;
   if (!product) return <p className="text-center py-10">Không tìm thấy sản phẩm.</p>;
 
-  const selectedOption = product.option[selectedOptionIndex];
+  const selectedOption = product.option[selectedOptionIndex] || product.option[0];
 
   return (
     <>
@@ -268,20 +305,14 @@ export default function DetailPage() {
                 className={`${styles.thumbnail} ${index === currentImageIndex ? styles.active : ""}`}
                 onClick={() => setCurrentImageIndex(index)}
               >
-                <img
-                  src={getImageUrl(image)}
-                  alt={`${product.name} thumbnail ${index + 1}`}
-                />
+                <img src={getImageUrl(image)} alt={`${product.name} thumbnail ${index + 1}`} />
               </div>
             ))}
           </div>
 
           <div className={styles["product-image-container"]}>
             <div className={styles["product-main-image"]}>
-              <img
-                src={getImageUrl(product.images?.[currentImageIndex] || "")}
-                alt={product.name}
-              />
+              <img src={getImageUrl(product.images?.[currentImageIndex] || "")} alt={product.name} />
             </div>
             <div className={styles["product-dots"]}>
               {product.images?.map((_, index) => (
@@ -296,19 +327,13 @@ export default function DetailPage() {
 
           <div className={styles["product-info"]}>
             <h1 className={styles["product-title"]}>{product.name}</h1>
-            {/* Nút chọn dung tích */}
-           
 
             {selectedOption && (
               <p className={styles["product-price"]}>
                 {selectedOption.discount_price ? (
                   <>
-                    <span className={styles["discount-price"]}>
-                      {formatPrice(selectedOption.discount_price)}
-                    </span>
-                    <span className={styles["original-price"]}>
-                      {formatPrice(selectedOption.price)}
-                    </span>
+                    <span className={styles["discount-price"]}>{formatPrice(selectedOption.discount_price)}</span>
+                    <span className={styles["original-price"]}>{formatPrice(selectedOption.price)}</span>
                     <span className={styles["discount-percent"]}>
                       {`-${Math.round(
                         ((selectedOption.price - selectedOption.discount_price) / selectedOption.price) * 100
@@ -318,10 +343,9 @@ export default function DetailPage() {
                 ) : (
                   <>{formatPrice(selectedOption.price)}</>
                 )}
-                
               </p>
             )}
-             {product.option.length > 0 && (
+            {product.option.length > 0 && (
               <div style={{ margin: "16px 0" }}>
                 <span style={{ fontWeight: 500 }}>Lựa chọn dung tích:</span>
                 <div style={{ display: "flex", gap: 12, margin: "12px 0" }}>
@@ -329,14 +353,11 @@ export default function DetailPage() {
                     <button
                       key={opt._id}
                       type="button"
-                      className={
-                        idx === selectedOptionIndex
-                          ? styles["option-button-selected"]
-                          : styles["option-button"]
-                      }
+                      className={idx === selectedOptionIndex ? styles["option-button-selected"] : styles["option-button"]}
                       onClick={() => setSelectedOptionIndex(idx)}
+                      disabled={!opt.stock}
                     >
-                      {opt.value}
+                      {opt.value} {opt.stock <= 0 && "(Hết hàng)"}
                     </button>
                   ))}
                 </div>
@@ -349,29 +370,30 @@ export default function DetailPage() {
                 <button className={`${styles["quantity-btn"]} ${styles.decrease}`} onClick={decreaseQty}>
                   −
                 </button>
-                <input
-                  type="text"
-                  className={styles["quantity-input"]}
-                  value={quantity}
-                  readOnly
-                />
+                <input type="text" className={styles["quantity-input"]} value={quantity} readOnly />
                 <button className={`${styles["quantity-btn"]} ${styles.increase}`} onClick={increaseQty}>
                   +
                 </button>
               </div>
-              <button 
-                className={styles["add-to-cart"]} 
+              <button
+                className={styles["add-to-cart"]}
                 onClick={addToCart}
-                disabled={addingToCart || !selectedOption?.stock}
+                disabled={addingToCart || !selectedOption?.stock || selectedOption.stock < quantity}
               >
-                {addingToCart ? 'Đang thêm...' : selectedOption?.stock ? 'Thêm vào giỏ hàng' : 'Hết hàng'}
+                {addingToCart
+                  ? "Đang thêm..."
+                  : !selectedOption?.stock || selectedOption.stock < quantity
+                  ? "Hết hàng"
+                  : "Thêm vào giỏ hàng"}
               </button>
             </div>
 
             {cartMessage && (
-              <div className={`${styles["cart-message"]} ${styles[cartMessage.type]}`}>
-                {cartMessage.text}
-              </div>
+              <ToastNotification
+                message={cartMessage.text}
+                type={cartMessage.type}
+                onClose={() => setCartMessage(null)}
+              />
             )}
           </div>
         </section>
@@ -396,7 +418,11 @@ export default function DetailPage() {
               rows={4}
             />
             {commentError && (
-              <p className={styles["comment-error"]}>{commentError}</p>
+              <ToastNotification
+                message={commentError}
+                type="error"
+                onClose={() => setCommentError(null)}
+              />
             )}
             <button
               className={styles["submit-comment"]}

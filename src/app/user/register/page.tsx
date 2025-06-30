@@ -17,7 +17,7 @@ export default function RegisterPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login } = useAuth();
-  const hasProcessedToken = useRef(false);
+  const hasProcessedToken = useRef(false);  
 
   useEffect(() => {
     const token = searchParams.get("token");
@@ -28,8 +28,6 @@ export default function RegisterPage() {
         const decoded = jwtDecode(token) as any;
         console.log("Decoded token:", decoded);
         login(token).then(() => {
-          // Assuming the login function handles role-based redirection
-          // If registration-specific logic is needed, adjust here
           router.push(decoded.role === "admin" ? "/admin" : "/user/login");
         }).catch((err: unknown) => {
           console.error("Lỗi xử lý token từ Google:", err);
@@ -86,12 +84,6 @@ export default function RegisterPage() {
         <div className={styles.formBox}>
           <h2 className={styles.title}><strong>ĐĂNG KÝ</strong></h2>
 
-          <button
-            className={styles.googleBtn}
-            onClick={handleGoogleRegister}
-          >
-            <img src="/images/icons8-google-48.png" alt="Google Logo" /> Đăng ký với Google
-          </button>
 
           <div className={styles.divider}>
             <hr className={styles.dividerLine} />

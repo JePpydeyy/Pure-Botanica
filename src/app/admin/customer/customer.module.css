@@ -5,6 +5,7 @@
   display: flex;
   align-items: center;
   margin: 80px 0 0 280px;
+  gap: 20px; /* Added for better spacing between elements */
 }
 
 .titleContainer h1 {
@@ -17,22 +18,28 @@
 .searchContainer {
   margin-left: auto;
   margin-right: 20px;
+  flex: 1; /* Allow search container to take available space */
+  max-width: 300px; /* Limit search input width */
 }
 
 .searchInput {
-  width: 300px;
+  width: 100%;
   padding: 8px 12px;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 14px;
   color: #333;
   outline: none;
-  transition: border-color 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .searchInput:focus {
   border-color: #4CAF50;
   box-shadow: 0 0 4px rgba(76, 175, 80, 0.3);
+}
+
+.searchInput:invalid {
+  border-color: #e74c3c; /* Visual feedback for invalid input */
 }
 
 .tableContainer {
@@ -71,7 +78,7 @@
 
 /* === BUTTON STYLING === */
 .btn {
-  min-width: 70px;
+  min-width: 120px; /* Increased min-width for consistency */
   padding: 8px 16px;
   border: none;
   border-radius: 4px;
@@ -82,6 +89,7 @@
   background-color: #4CAF50;
   color: white;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-align: center; /* Ensure text is centered */
 }
 
 .btn:hover {
@@ -189,8 +197,10 @@
   display: block;
   margin-bottom: 20px;
   font-weight: 500;
+  color: #333;
 }
 
+.modalContent input,
 .modalContent select {
   display: block;
   width: 100%;
@@ -199,12 +209,24 @@
   border: 1px solid #d1d5db;
   border-radius: 4px;
   font-size: 16px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
+.modalContent input:focus,
 .modalContent select:focus {
   outline: none;
   border-color: #4CAF50;
   box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+}
+
+.modalContent input:invalid:not(:placeholder-shown) {
+  border-color: #e74c3c; /* Red border for invalid input */
+  box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.2);
+}
+
+.modalContent input::placeholder {
+  color: #999;
+  font-style: italic;
 }
 
 .modalActions {
@@ -258,7 +280,7 @@
 
   .searchContainer {
     margin: 10px 0;
-    width: 100%;
+    max-width: none; /* Allow search input to take full width */
   }
 
   .searchInput {
@@ -272,6 +294,12 @@
     margin-top: 40px;
     flex-direction: column;
     align-items: flex-start;
+    gap: 15px; /* Adjusted gap for better spacing */
+  }
+
+  .titleContainer .btn {
+    width: 100%; /* Full-width buttons on smaller screens */
+    max-width: 200px; /* Limit button width */
   }
 
   .tableContainer table {
@@ -281,12 +309,17 @@
   }
 
   .modalContent {
-    width: 100%;
+    width: 90%;
     padding: 20px;
   }
 
   .modalContent h3 {
     font-size: 18px;
+  }
+
+  .modalContent input,
+  .modalContent select {
+    font-size: 14px;
   }
 }
 
@@ -302,12 +335,18 @@
   }
 
   .btn {
-    min-width: 60px;
+    min-width: 100px; /* Smaller min-width for buttons */
     padding: 6px 10px;
     font-size: 13px;
   }
 
+  .modalActions {
+    flex-direction: column; /* Stack buttons vertically on small screens */
+    gap: 10px;
+  }
+
   .modalActions button {
+    width: 100%;
     padding: 8px 15px;
   }
 }

@@ -1,4 +1,3 @@
-// app/coupons/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -13,8 +12,8 @@ interface Pagination {
   totalPages: number;
 }
 
-// FormData sẽ giống Coupon nhưng _id và usedCount là optional
-type FormData = Omit<Coupon, "_id" | "usedCount"> & { _id?: string };
+// FormData includes usedCount as optional
+type FormData = Omit<Coupon, "_id" | "usedCount"> & { _id?: string; usedCount?: number };
 
 export default function CouponPage() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -36,6 +35,7 @@ export default function CouponPage() {
     expiryDate: "",
     usageLimit: null,
     isActive: true,
+    usedCount: 0,
   });
   const router = useRouter();
 
@@ -116,17 +116,29 @@ export default function CouponPage() {
         : `https://api-zeal.onrender.com/api/coupons`;
       const method = formData._id ? "PUT" : "POST";
 
+      // Exclude code when updating
+      const bodyData = formData._id
+        ? {
+            discountType: formData.discountType,
+            discountValue: formData.discountValue,
+            minOrderValue: formData.minOrderValue,
+            expiryDate: formData.expiryDate || undefined,
+            usageLimit: formData.usageLimit || null,
+            isActive: formData.isActive,
+          }
+        : {
+            ...formData,
+            expiryDate: formData.expiryDate || undefined,
+            usageLimit: formData.usageLimit || null,
+          };
+
       const response = await fetch(url, {
         method,
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          ...formData,
-          expiryDate: formData.expiryDate || undefined,
-          usageLimit: formData.usageLimit || null,
-        }),
+        body: JSON.stringify(bodyData),
       });
 
       if (!response.ok) {
@@ -142,6 +154,7 @@ export default function CouponPage() {
         expiryDate: "",
         usageLimit: null,
         isActive: true,
+        usedCount: 0,
       });
       // Refresh data
       const fetchCoupons = async () => {
@@ -177,9 +190,12 @@ export default function CouponPage() {
       discountType: coupon.discountType,
       discountValue: coupon.discountValue,
       minOrderValue: coupon.minOrderValue,
-      expiryDate: coupon.expiryDate,
+      expiryDate: coupon.expiryDate
+        ? new Date(coupon.expiryDate).toISOString().split("T")[0]
+        : "",
       usageLimit: coupon.usageLimit,
       isActive: coupon.isActive,
+      usedCount: coupon.usedCount,
     });
     setShowModal(true);
   };
@@ -261,10 +277,11 @@ export default function CouponPage() {
               <th>STT</th>
               <th>Mã giảm giá</th>
               <th>Loại giảm giá</th>
-              <th>Giảm giá (%)</th>
+              <th>Giá trị giảm</th>
               <th>Đơn hàng tối thiểu</th>
               <th>Ngày hết hạn</th>
               <th>Số lượt sử dụng</th>
+              <th>Số lượt đã dùng</th>
               <th>Trạng thái</th>
               <th>Hành động</th>
             </tr>
@@ -275,8 +292,12 @@ export default function CouponPage() {
                 <tr key={coupon._id}>
                   <td>{(pagination.page - 1) * pagination.limit + index + 1}</td>
                   <td>{coupon.code}</td>
-                  <td>{coupon.discountType}</td>
-                  <td>{coupon.discountValue}%</td>
+                  <td>{coupon.discountType === "percentage" ? "Phần trăm" : "Cố định"}</td>
+                  <td>
+                    {coupon.discountType === "percentage"
+                      ? `${coupon.discountValue}%`
+                      : `${coupon.discountValue.toLocaleString()} VNĐ`}
+                  </td>
                   <td>{(coupon.minOrderValue || 0).toLocaleString()} VNĐ</td>
                   <td>
                     {coupon.expiryDate
@@ -284,6 +305,7 @@ export default function CouponPage() {
                       : "N/A"}
                   </td>
                   <td>{coupon.usageLimit ?? "Không giới hạn"}</td>
+                  <td>{coupon.usedCount ?? 0}</td>
                   <td>
                     <span
                       className={
@@ -313,7 +335,7 @@ export default function CouponPage() {
               ))
             ) : (
               <tr>
-                <td colSpan={9} className={styles.emptyState}>
+                <td colSpan={10} className={styles.emptyState}>
                   Không có mã giảm giá nào.
                 </td>
               </tr>
@@ -322,7 +344,23 @@ export default function CouponPage() {
         </table>
       </div>
       {/* Pagination */}
-      {/* ...pagination code nếu có... */}
+      <div className={styles.pagination}>
+        <button
+          disabled={pagination.page === 1}
+          onClick={() => handlePageChange(pagination.page - 1)}
+        >
+          Trước
+        </button>
+        <span>
+          Trang {pagination.page} / {pagination.totalPages}
+        </span>
+        <button
+          disabled={pagination.page === pagination.totalPages}
+          onClick={() => handlePageChange(pagination.page + 1)}
+        >
+          Sau
+        </button>
+      </div>
 
       {/* Modal */}
       {showModal && (
@@ -337,6 +375,7 @@ export default function CouponPage() {
                   value={formData.code}
                   onChange={(e) => setFormData({ ...formData, code: e.target.value })}
                   required
+                  disabled={!!formData._id} // Disable when editing
                 />
               </div>
               <div className={styles.formGroup}>
@@ -348,8 +387,8 @@ export default function CouponPage() {
                   }
                   required
                 >
-                  <option value="percentage">Percentage</option>
-                  <option value="fixed">Fixed</option>
+                  <option value="percentage">Phần trăm</option>
+                  <option value="fixed">Cố định</option>
                 </select>
               </div>
               <div className={styles.formGroup}>
@@ -400,6 +439,14 @@ export default function CouponPage() {
                 />
               </div>
               <div className={styles.formGroup}>
+                <label>Số lượt đã dùng:</label>
+                <input
+                  type="number"
+                  value={formData.usedCount ?? 0}
+                  disabled
+                />
+              </div>
+              <div className={styles.formGroup}>
                 <label>Trạng thái:</label>
                 <input
                   type="checkbox"
@@ -426,6 +473,7 @@ export default function CouponPage() {
                       expiryDate: "",
                       usageLimit: null,
                       isActive: true,
+                      usedCount: 0,
                     });
                   }}
                 >

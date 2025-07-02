@@ -146,7 +146,7 @@ const EditProduct = () => {
       } catch (error) {
         console.error("Lỗi khi tải dữ liệu:", error);
         showNotification("Không thể tải thông tin sản phẩm hoặc danh mục/thương hiệu", "error");
-        router.push("/admin/products");
+        router.push("/admin/product");
       } finally {
         setLoading(false);
       }
@@ -300,7 +300,7 @@ const EditProduct = () => {
       }
 
       showNotification("Cập nhật sản phẩm thành công", "success");
-      router.push("/admin/products");
+      router.push("/admin/product");
     } catch (error) {
       console.error("Lỗi cập nhật sản phẩm:", error);
       showNotification("Đã xảy ra lỗi khi cập nhật sản phẩm", "error");

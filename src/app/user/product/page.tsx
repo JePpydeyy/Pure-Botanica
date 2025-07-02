@@ -106,6 +106,9 @@ export default function ProductPage() {
   const productsPerPage = 9;
   const searchParams = useSearchParams();
 
+  // Lấy query tìm kiếm từ URL
+  const searchQuery = searchParams.get("query")?.toLowerCase() || "";
+
   // Fetch brands
   useEffect(() => {
     const fetchBrands = async () => {
@@ -171,7 +174,7 @@ export default function ProductPage() {
     fetchCategories();
   }, []);
 
-  // Apply filter based on URL query parameter
+  // Apply filter based on URL query parameter (category)
   useEffect(() => {
     const categoryFromUrl = searchParams.get("category");
     if (!categoryFromUrl) {
@@ -232,22 +235,33 @@ export default function ProductPage() {
     setCurrentPage(1);
   }, [products, activeCategory, selectedBrands, selectedPriceRange, categories]);
 
-const filterProducts = (categoryName: string) => {
-  if (activeCategory === categoryName) {
-    setActiveCategory(null);
-    setFilteredProducts(products);
-  } else {
-    const foundCategory = categories.find(cat => cat.name === categoryName);
-    if (foundCategory) {
-      const filtered = products.filter(
-        (product) => product.id_category === foundCategory._id
+  // Lọc sản phẩm theo từ khóa tìm kiếm (nếu có)
+  useEffect(() => {
+    if (searchQuery) {
+      const filtered = products.filter(product =>
+        product.name?.toLowerCase().includes(searchQuery)
       );
       setFilteredProducts(filtered);
-      setActiveCategory(categoryName);
+      setCurrentPage(1);
     }
-  }
-  setCurrentPage(1);
-};
+  }, [searchQuery, products]);
+
+  const filterProducts = (categoryName: string) => {
+    if (activeCategory === categoryName) {
+      setActiveCategory(null);
+      setFilteredProducts(products);
+    } else {
+      const foundCategory = categories.find(cat => cat.name === categoryName);
+      if (foundCategory) {
+        const filtered = products.filter(
+          (product) => product.id_category === foundCategory._id
+        );
+        setFilteredProducts(filtered);
+        setActiveCategory(categoryName);
+      }
+    }
+    setCurrentPage(1);
+  };
 
   const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
   const indexOfLastProduct = currentPage * productsPerPage;
@@ -403,9 +417,11 @@ const filterProducts = (categoryName: string) => {
             </div>
           ) : (
             <p className={styles["no-products"]}>
-              {activeCategory
-                ? `Không tìm thấy sản phẩm trong danh mục "${activeCategory}"`
-                : "Không có sản phẩm nào."}
+              {searchQuery
+                ? `Không tìm thấy sản phẩm với từ khóa "${searchQuery}"`
+                : activeCategory
+                  ? `Không tìm thấy sản phẩm trong danh mục "${activeCategory}"`
+                  : "Không có sản phẩm nào."}
             </p>
           )}
           {totalPages > 1 && (
@@ -488,7 +504,7 @@ const filterProducts = (categoryName: string) => {
                       width={200}
                       height={200}
                       className={styles["best-selling-product-image"]}
-                    />
+                    />  
                   </div>
                   <div className={styles["best-selling-details"]}>
                     <h3 className={styles["best-selling-product-name"]}>{product?.name || "Tên sản phẩm"}</h3>
@@ -498,8 +514,8 @@ const filterProducts = (categoryName: string) => {
               </Link>
             ))
           ) : (
-            <p className={styles["no-products"]}>Đang tải sản phẩm...</p>
-          )}
+              <p className={styles["no-products"]}>Đang tải sản phẩm...</p>
+            )}
         </div>
       </div>
     </div>

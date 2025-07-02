@@ -7,7 +7,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import styles from "./checkout.module.css";
 import { useCart } from "../context/CartContext";
-import { CartItem, Cart } from "../../components/cart_interface";
+import { CartItem } from "../../components/cart_interface";
 import { CheckoutData } from "../../components/checkout_interface";
 
 interface FormData {
@@ -28,6 +28,14 @@ interface UserInfo {
   ward: string;
   district: string;
   cityOrProvince: string;
+  addresses?: Array<{
+    fullName: string;
+    sdt: string;
+    addressLine: string;
+    ward: string;
+    district: string;
+    cityOrProvince: string;
+  }>;
 }
 
 export default function CheckoutPage() {
@@ -46,13 +54,26 @@ export default function CheckoutPage() {
   });
 
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
-  const [useDifferentInfo, setUseDifferentInfo] = useState(false);
   const [loadingUser, setLoadingUser] = useState(true);
   const [hasCheckedOut, setHasCheckedOut] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const [shippingStatus, setShippingStatus] = useState<string | null>(null);
+
+  // Popup state
+  const [showAddressPopup, setShowAddressPopup] = useState(false);
+  const [addressTab, setAddressTab] = useState<"saved" | "new">("saved");
+  const [newAddress, setNewAddress] = useState({
+    fullName: "",
+    sdt: "",
+    addressLine: "",
+    ward: "",
+    district: "",
+    cityOrProvince: "",
+  });
+  const [cities, setCities] = useState<any[]>([]);
+  const [districts, setDistricts] = useState<any[]>([]);
+  const [wards, setWards] = useState<any[]>([]);
 
   useEffect(() => {
     setIsClient(true);
@@ -91,6 +112,8 @@ export default function CheckoutPage() {
             }
           }
 
+          const addresses = Array.isArray(data.addresses) ? data.addresses : [];
+
           const userData: UserInfo = {
             username: data.username || "",
             phone: data.phone || "",
@@ -98,6 +121,7 @@ export default function CheckoutPage() {
             ward,
             district,
             cityOrProvince,
+            addresses,
           };
 
           setUserInfo(userData);
@@ -122,6 +146,42 @@ export default function CheckoutPage() {
       setTimeout(() => router.push("/user/login"), 3000);
     }
   }, [router, isClient]);
+
+  // Lấy danh sách tỉnh/thành cho form địa chỉ mới
+  useEffect(() => {
+    fetch("https://provinces.open-api.vn/api/?depth=1")
+      .then((res) => res.json())
+      .then((data) => setCities(data));
+  }, []);
+
+  // Lấy quận/huyện khi chọn tỉnh/thành
+  useEffect(() => {
+    if (newAddress.cityOrProvince) {
+      const selectedCity = cities.find((c) => c.name === newAddress.cityOrProvince);
+      if (selectedCity) {
+        fetch(`https://provinces.open-api.vn/api/p/${selectedCity.code}?depth=2`)
+          .then((res) => res.json())
+          .then((data) => setDistricts(data.districts || []));
+      }
+    } else {
+      setDistricts([]);
+    }
+    setWards([]);
+  }, [newAddress.cityOrProvince, cities]);
+
+  // Lấy phường/xã khi chọn quận/huyện
+  useEffect(() => {
+    if (newAddress.district) {
+      const selectedDistrict = districts.find((d) => d.name === newAddress.district);
+      if (selectedDistrict) {
+        fetch(`https://provinces.open-api.vn/api/d/${selectedDistrict.code}?depth=2`)
+          .then((res) => res.json())
+          .then((data) => setWards(data.wards || []));
+      }
+    } else {
+      setWards([]);
+    }
+  }, [newAddress.district, districts]);
 
   useEffect(() => {
     if (!isClient || hasCheckedOut) return;
@@ -154,45 +214,41 @@ export default function CheckoutPage() {
     }));
   };
 
-  const handleUseDifferentInfo = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setUseDifferentInfo(e.target.checked);
-    if (!e.target.checked && userInfo) {
-      setFormData((prev) => ({
-        ...prev,
-        fullName: userInfo.username,
-        addressLine: userInfo.addressLine,
-        ward: userInfo.ward,
-        district: userInfo.district,
-        cityOrProvince: userInfo.cityOrProvince,
-        sdt: userInfo.phone,
-      }));
-      setIsEditing(false);
-    }
+  // Chọn địa chỉ đã lưu
+  const handleSelectAddress = (address: any) => {
+    setFormData((prev) => ({
+      ...prev,
+      fullName: address.fullName || "",
+      addressLine: address.addressLine || "",
+      ward: address.ward || "",
+      district: address.district || "",
+      cityOrProvince: address.cityOrProvince || "",
+      sdt: address.sdt || "",
+    }));
+    setShowAddressPopup(false);
   };
 
-  const handleEditToggle = () => {
-    setIsEditing(!isEditing);
-  };
-
-  const handleSaveChanges = () => {
-    setUserInfo(formData as unknown as UserInfo);
-    setIsEditing(false);
-    toast.success("Thông tin đã được cập nhật!");
-  };
-
-  const handleCancelEdit = () => {
-    if (userInfo) {
-      setFormData({
-        ...formData,
-        fullName: userInfo.username,
-        addressLine: userInfo.addressLine,
-        ward: userInfo.ward,
-        district: userInfo.district,
-        cityOrProvince: userInfo.cityOrProvince,
-        sdt: userInfo.phone,
-      });
-    }
-    setIsEditing(false);
+  // Lưu địa chỉ mới
+  const handleSaveNewAddress = () => {
+    setFormData((prev) => ({
+      ...prev,
+      fullName: newAddress.fullName,
+      sdt: newAddress.sdt,
+      addressLine: newAddress.addressLine,
+      ward: newAddress.ward,
+      district: newAddress.district,
+      cityOrProvince: newAddress.cityOrProvince,
+    }));
+    setShowAddressPopup(false);
+    setAddressTab("saved");
+    setNewAddress({
+      fullName: "",
+      sdt: "",
+      addressLine: "",
+      ward: "",
+      district: "",
+      cityOrProvince: "",
+    });
   };
 
   const handleConfirmOrder = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -281,8 +337,6 @@ export default function CheckoutPage() {
       couponCode: couponCode || "",
     };
 
-    console.log("Dữ liệu gửi đến API /carts/checkout:", cleanData);
-
     try {
       let checkoutResponse = await fetch(`https://api-zeal.onrender.com/api/carts/checkout`, {
         method: "POST",
@@ -297,7 +351,6 @@ export default function CheckoutPage() {
         let errorData;
         try {
           errorData = await checkoutResponse.json();
-          console.error("Lỗi từ API /carts/checkout:", errorData);
           if (errorData.message.includes("required")) {
             toast.error("Thiếu thông tin bắt buộc: " + errorData.message);
           } else if (errorData.message.includes("invalid")) {
@@ -312,7 +365,6 @@ export default function CheckoutPage() {
       }
 
       let checkoutData = await checkoutResponse.json();
-      console.log("Phản hồi từ API /carts/checkout:", checkoutData);
 
       // Lấy orderId và shippingStatus từ phản hồi
       const orderId = checkoutData.order?._id;
@@ -341,7 +393,6 @@ export default function CheckoutPage() {
           let errorData;
           try {
             errorData = await paymentResponse.json();
-            console.error("Lỗi từ API /create:", errorData);
             toast.error(errorData.message || "Không thể tạo thanh toán");
           } catch {
             toast.error("Không thể phân tích phản hồi từ server");
@@ -350,7 +401,6 @@ export default function CheckoutPage() {
         }
 
         let paymentData = await paymentResponse.json();
-        console.log("Phản hồi từ API /create:", paymentData);
 
         const { paymentCode, amount } = paymentData.data || paymentData || {};
         if (!paymentCode || !amount) {
@@ -369,6 +419,7 @@ export default function CheckoutPage() {
         setTimeout(() => router.push("/user/"), 3000);
       }
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.error("Lỗi chi tiết:", err);
     } finally {
       setIsLoading(false);
@@ -409,14 +460,120 @@ export default function CheckoutPage() {
               <p>Đang tải thông tin...</p>
             ) : (
               <>
-                <label className={styles.checkboxLabel}>
-                  <input
-                    type="checkbox"
-                    checked={useDifferentInfo}
-                    onChange={handleUseDifferentInfo}
-                  />
-                  Gửi đến thông tin khác (người thân, bạn bè)
-                </label>
+                <button
+                  type="button"
+                  className={styles.selectAddressBtn}
+                  onClick={() => setShowAddressPopup(true)}
+                  style={{ marginBottom: 12 }}
+                >
+                  Chọn địa chỉ giao hàng
+                </button>
+
+                {/* Popup chọn địa chỉ với 2 tab */}
+                {showAddressPopup && (
+                  <div className={styles.popupOverlay}>
+                    <div className={styles.popupContent}>
+                      <h3>Chọn địa chỉ giao hàng</h3>
+                      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+                        <button
+                          type="button"
+                          className={addressTab === "saved" ? styles.activeTab : ""}
+                          onClick={() => setAddressTab("saved")}
+                        >
+                          Địa chỉ của tôi
+                        </button>
+                        <button
+                          type="button"
+                          className={addressTab === "new" ? styles.activeTab : ""}
+                          onClick={() => setAddressTab("new")}
+                        >
+                          Địa chỉ mới
+                        </button>
+                      </div>
+                      {addressTab === "saved" ? (
+                        <>
+                          {(userInfo?.addresses || []).length === 0 && (
+                            <div>Chưa có địa chỉ nào.</div>
+                          )}
+                          {(userInfo?.addresses || []).map((address, idx) => (
+                            <div key={idx} className={styles.addressItem}>
+                              <div>
+                                {address.fullName} - {address.sdt}<br />
+                                {address.addressLine}, {address.ward}, {address.district}, {address.cityOrProvince}
+                              </div>
+                              <button type="button" onClick={() => handleSelectAddress(address)}>
+                                Chọn
+                              </button>
+                            </div>
+                          ))}
+                        </>
+                      ) : (
+                        <div>
+                          <input
+                            type="text"
+                            placeholder="Họ và tên"
+                            value={newAddress.fullName}
+                            onChange={e => setNewAddress(f => ({ ...f, fullName: e.target.value }))}
+                            required
+                          />
+                          <input
+                            type="text"
+                            placeholder="Số điện thoại"
+                            value={newAddress.sdt}
+                            onChange={e => setNewAddress(f => ({ ...f, sdt: e.target.value }))}
+                            required
+                          />
+                          <input
+                            type="text"
+                            placeholder="Địa chỉ cụ thể"
+                            value={newAddress.addressLine}
+                            onChange={e => setNewAddress(f => ({ ...f, addressLine: e.target.value }))}
+                            required
+                          />
+                          <select
+                            name="cityOrProvince"
+                            value={newAddress.cityOrProvince}
+                            onChange={e => setNewAddress(f => ({ ...f, cityOrProvince: e.target.value, district: "", ward: "" }))}
+                            required
+                          >
+                            <option value="">Chọn tỉnh/thành phố</option>
+                            {cities.map((city) => (
+                              <option key={city.code} value={city.name}>{city.name}</option>
+                            ))}
+                          </select>
+                          <select
+                            name="district"
+                            value={newAddress.district}
+                            onChange={e => setNewAddress(f => ({ ...f, district: e.target.value, ward: "" }))}
+                            required
+                            disabled={!newAddress.cityOrProvince}
+                          >
+                            <option value="">Chọn quận/huyện</option>
+                            {districts.map((district) => (
+                              <option key={district.code} value={district.name}>{district.name}</option>
+                            ))}
+                          </select>
+                          <select
+                            name="ward"
+                            value={newAddress.ward}
+                            onChange={e => setNewAddress(f => ({ ...f, ward: e.target.value }))}
+                            required
+                            disabled={!newAddress.district}
+                          >
+                            <option value="">Chọn phường/xã</option>
+                            {wards.map((ward) => (
+                              <option key={ward.code} value={ward.name}>{ward.name}</option>
+                            ))}
+                          </select>
+                          <button type="button" onClick={handleSaveNewAddress}>Lưu địa chỉ</button>
+                        </div>
+                      )}
+                      <button type="button" onClick={() => setShowAddressPopup(false)}>
+                        Đóng
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 <input
                   type="text"
@@ -425,7 +582,6 @@ export default function CheckoutPage() {
                   value={formData.fullName}
                   onChange={handleChange}
                   required
-                  disabled={!useDifferentInfo && !isEditing}
                 />
 
                 <input
@@ -435,7 +591,6 @@ export default function CheckoutPage() {
                   value={formData.addressLine}
                   onChange={handleChange}
                   required
-                  disabled={!useDifferentInfo && !isEditing}
                 />
 
                 <input
@@ -445,7 +600,6 @@ export default function CheckoutPage() {
                   value={formData.ward}
                   onChange={handleChange}
                   required
-                  disabled={!useDifferentInfo && !isEditing}
                 />
 
                 <input
@@ -455,7 +609,6 @@ export default function CheckoutPage() {
                   value={formData.district}
                   onChange={handleChange}
                   required
-                  disabled={!useDifferentInfo && !isEditing}
                 />
 
                 <input
@@ -465,7 +618,6 @@ export default function CheckoutPage() {
                   value={formData.cityOrProvince}
                   onChange={handleChange}
                   required
-                  disabled={!useDifferentInfo && !isEditing}
                 />
 
                 <input
@@ -477,7 +629,6 @@ export default function CheckoutPage() {
                   required
                   pattern="[0-9]{10}"
                   title="Số điện thoại phải có 10 chữ số"
-                  disabled={!useDifferentInfo && !isEditing}
                 />
 
                 <textarea
@@ -487,42 +638,42 @@ export default function CheckoutPage() {
                   onChange={handleChange}
                 />
 
-            <div className={styles.paymentMethods}>
-              <div className={styles.paymentTitle} style={{ fontWeight: "bold", marginBottom: 8 }}>
-                Chọn hình thức thanh toán
-              </div>
-              <div className={styles.paymentMethodWrapper}>
-                <div className={styles.paymentMethod}>
-                  <input
-                    type="radio"
-                    id="bank"
-                    name="paymentMethod"
-                    value="bank"
-                    checked={formData.paymentMethod === "bank"}
-                    onChange={handleChange}
-                  />
-                  <label htmlFor="bank" style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <img src="https://img.icons8.com/?size=100&id=VbL8v3mm1qyp&format=png&color=000000" alt="Bank" width={22} height={22} />
-                    Chuyển khoản ngân hàng
-                  </label>
+                <div className={styles.paymentMethods}>
+                  <div className={styles.paymentTitle} >
+                    Chọn hình thức thanh toán
+                  </div>
+                  <div className={styles.paymentMethodWrapper}>
+                    <div className={styles.paymentMethod}>
+                      <input
+                        type="radio"
+                        id="bank"
+                        name="paymentMethod"
+                        value="bank"
+                        checked={formData.paymentMethod === "bank"}
+                        onChange={handleChange}
+                      />
+                      <label htmlFor="bank" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <img src="https://img.icons8.com/?size=100&id=VbL8v3mm1qyp&format=png&color=000000" alt="Bank" width={40} height={40} />
+                        Chuyển khoản ngân hàng
+                      </label>
+                    </div>
+                    <hr />
+                    <div className={styles.paymentMethod}>
+                      <input
+                        type="radio"
+                        id="cod"
+                        name="paymentMethod"
+                        value="cod"
+                        checked={formData.paymentMethod === "cod"}
+                        onChange={handleChange}
+                      />
+                      <label htmlFor="cod" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <img src="https://img.icons8.com/?size=100&id=76948&format=png&color=000000" alt="Tiền mặt" width={40} height={40} />
+                        Thanh toán khi nhận hàng
+                      </label>
+                    </div>
+                  </div>
                 </div>
-                  <hr/>
-                <div className={styles.paymentMethod}>
-                  <input
-                    type="radio"
-                    id="cod"
-                    name="paymentMethod"
-                    value="cod"
-                    checked={formData.paymentMethod === "cod"}
-                    onChange={handleChange}
-                  />
-                  <label htmlFor="cod" style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <img src="https://img.icons8.com/?size=100&id=76948&format=png&color=000000" alt="Tiền mặt" width={22} height={22} />
-                    Thanh toán khi nhận hàng
-                  </label>
-                </div>
-              </div>
-            </div>
               </>
             )}
           </div>
@@ -539,16 +690,16 @@ export default function CheckoutPage() {
               return (
                 <div key={index} className={styles.cartItem}>
                   <div className={styles.cartItemImage}>
-                   <img
-                  src={imageUrl}
-                  alt={item.product.name || "Sản phẩm"}
-                  width={70}
-                  height={70}
-                  className={styles.cartItemImage}
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).src = "https://via.placeholder.com/50x50?text=No+Image";
-                  }}
-                />
+                    <img
+                      src={imageUrl}
+                      alt={item.product.name || "Sản phẩm"}
+                      width={70}
+                      height={70}
+                      className={styles.cartItemImage}
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).src = "https://via.placeholder.com/50x50?text=No+Image";
+                      }}
+                    />
                   </div>
                   <div className={styles.cartItemDetails}>
                     <div className={styles.cartItemName}>{item.product.name || "Sản phẩm không xác định"}</div>
@@ -573,10 +724,6 @@ export default function CheckoutPage() {
                 <span>Mã giảm</span>
                 <span>-{formatPrice(discount)}</span>
               </div>
-              <div className={styles.summaryRow}>
-                <span>Trạng thái vận chuyển</span>
-                <span>{shippingStatus || "Chưa xác định"}</span>
-              </div>
               <div className={`${styles.summaryRow} ${styles.total}`}>
                 <span>Tổng cộng</span>
                 <span>{formatPrice(total)}</span>
@@ -585,8 +732,6 @@ export default function CheckoutPage() {
                 (Tổng giá áp dụng giá giao hàng của bạn, bao gồm tất cả các loại thuế và phí)
               </div>
             </div>
-
-            {/* Payment methods removed from here */}
 
             <button
               type="submit"

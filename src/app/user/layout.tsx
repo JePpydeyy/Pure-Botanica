@@ -8,7 +8,12 @@ import CategoryList from "../components/category_list";
 import UserMenu from "../components/Usermenu";
 import { CartProvider } from "./context/CartContext";
 
-const geistSans = Geist({
+import SearchBar from "../components/Searchbar";
+
+// Import SearchBar as a client component
+
+
+const geistSans = Geist({ 
   variable: "--font-geist-sans",
   subsets: ["latin"],
 });
@@ -69,21 +74,7 @@ export default async function RootLayout({
                 </nav>
                 <div className="icons">
                   <div className="search-bar">
-                    <form
-                      className="formtimkiem"
-                      action="/user/search"
-                      method="GET"
-                    >
-                      <input
-                        type="text"
-                        name="query"
-                        placeholder="Tìm kiếm sản phẩm..."
-                        className="search-input"
-                      />
-                      <button type="submit" className="search-button">
-                        <i className="fa-solid fa-magnifying-glass"></i>
-                      </button>
-                    </form>
+                    <SearchBar />
                   </div>
                   <Link href="/user/cart">
                     <i className="fa-solid fa-cart-shopping"></i>

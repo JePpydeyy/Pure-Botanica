@@ -344,13 +344,7 @@ export default function EditUser({ params }: { params: Promise<{ id: string }> }
           </div>
         </form>
       )}
-      <h2 id="result" className={styles.result}>
-        {(formData.address as any)?.cityOrProvince &&
-        (formData.address as any)?.district &&
-        (formData.address as any)?.ward
-          ? `${(formData.address as any).cityOrProvince} | ${(formData.address as any).district} | ${(formData.address as any).ward}`
-          : ''}
-      </h2>
+    
     </div>
   );
 }

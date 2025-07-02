@@ -1,4 +1,6 @@
-/* Scoped styles for the OrderPage component in Next.js */
+/* Order Page Component Styles - CSS Modules */
+
+/* Base Container */
 .orderContainer {
   max-width: 1000px;
   margin: 50px auto;
@@ -7,6 +9,11 @@
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   padding: 24px;
+}
+
+/* Header Section */
+.title {
+  margin-bottom: 20px;
 }
 
 .title h1 {
@@ -18,6 +25,7 @@
   border-bottom: 2px solid #2a7a1a;
 }
 
+/* Table Styles */
 .tableContainer {
   overflow-x: auto;
   margin-top: 16px;
@@ -49,6 +57,26 @@
   cursor: pointer;
 }
 
+/* Address truncation */
+.addressCell {
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.addressCell:hover {
+  white-space: normal;
+  overflow: visible;
+  background-color: #f0f9ff;
+  position: relative;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 8px 12px;
+  border-radius: 4px;
+}
+
+/* Status Select */
 .statusSelect {
   padding: 6px 12px;
   border-radius: 4px;
@@ -70,6 +98,7 @@
   opacity: 0.6;
 }
 
+/* Status Colors - Original */
 .pending {
   color: #b45309;
   background-color: #fef3c7;
@@ -94,6 +123,7 @@
   font-weight: 600;
 }
 
+/* Popup Modal */
 .popupOverlay {
   position: fixed;
   top: 0;
@@ -107,7 +137,6 @@
   z-index: 1000;
 }
 
-/* Order Detail Popup - Simple Enhancement */
 .orderDetail {
   background: #ffffff;
   padding: 24px;
@@ -153,7 +182,7 @@
 }
 
 /* Customer Info Section */
-.orderDetail > p {
+.orderDetail p {
   margin: 8px 0;
   padding: 12px;
   background: #f8fafc;
@@ -162,7 +191,7 @@
   font-size: 14px;
 }
 
-.orderDetail > p strong {
+.orderDetail p strong {
   color: #2a7a1a;
   font-weight: 600;
   display: inline-block;
@@ -240,11 +269,29 @@
   text-align: center;
 }
 
+/* Message States */
+.loadingMessage,
+.errorMessage {
+  text-align: center;
+  margin: 40px auto;
+  font-size: 18px;
+  color: #4b5563;
+}
+
+.errorMessage {
+  color: #b91c1c;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
+  .orderContainer {
+    padding: 16px;
+    margin: 20px auto;
+  }
+
   .orderDetail {
     width: 95%;
-    padding: 20px;
+    padding: 16px;
   }
 
   .orderDetail h2 {
@@ -273,31 +320,6 @@
     font-size: 15px;
     padding: 14px;
   }
-}
-
-.loadingMessage,
-.errorMessage {
-  text-align: center;
-  margin: 40px auto;
-  font-size: 18px;
-  color: #4b5563;
-}
-
-.errorMessage {
-  color: #b91c1c;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .orderContainer {
-    padding: 16px;
-    margin: 20px auto;
-  }
-
-  .orderDetail {
-    width: 95%;
-    padding: 16px;
-  }
 
   .orderTable th,
   .orderTable td {
@@ -308,5 +330,10 @@
   .statusSelect {
     font-size: 13px;
     padding: 5px 20px 5px 8px;
+  }
+
+  /* Address cell mobile responsive */
+  .addressCell {
+    max-width: 120px;
   }
 }

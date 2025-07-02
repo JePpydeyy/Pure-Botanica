@@ -4,6 +4,7 @@ import React from "react";
 import "./layout.css";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+
 const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
 
@@ -26,7 +27,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
             </a>
           </div>
 
-           <div className="menu">
+          <div className="menu">
             <Link href="/admin" className="menu-item">
               <span>Dashboard</span>
             </Link>
@@ -48,9 +49,6 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
             <Link href="/admin/customer" className="menu-item">
               <span>Khách hàng</span>
             </Link>
-            {/* <Link href="/admin/admin" className="menu-item active">
-              <span>Admin</span>
-            </Link> */}
             <button onClick={handleLogout} className="menu-item logout-button">
               <span>Đăng xuất</span>
             </button>

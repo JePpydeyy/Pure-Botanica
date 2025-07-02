@@ -1,3 +1,4 @@
+
 "use client";
 import { useEffect, useState } from "react";
 import styles from "./product.module.css";
@@ -5,26 +6,78 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import Head from "next/head";
-import { Product } from "@/app/components/product_interface";
-import { Category } from "@/app/components/category_interface";
+import React from "react";
+
+// Định nghĩa các giao diện TypeScript
+interface Option {
+  _id: string;
+  value: string;
+  price: number;
+  stock: number;
+  discount_price?: number;
+}
+
+interface Product {
+  _id: string;
+  name: string;
+  slug: string;
+  status: "show" | "hidden";
+  view: number;
+  id_brand: string;
+  id_category: string;
+  images: string[];
+  short_description: string;
+  description: string;
+  option: Option[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface Category {
+  _id: string;
+  name: string;
+  createdAt: string;
+}
+
+interface Brand {
+  _id: string;
+  name: string;
+  status: "show" | "hidden";
+}
+
+interface Notification {
+  show: boolean;
+  message: string;
+  type: "success" | "error";
+}
 
 export default function ProductPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [isTogglingStatus, setIsTogglingStatus] = useState(false);
-  const [toggleId, setToggleId] = useState<string | null>(null);
-  const [notification, setNotification] = useState({ show: false, message: "", type: "" });
-  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [isTogglingStatus, setIsTogglingStatus] = useState<boolean>(false);
+  const [toggleSlug, setToggleSlug] = useState<string | null>(null);
+  const [expandedProductId, setExpandedProductId] = useState<string | null>(null);
+  const [notification, setNotification] = useState<Notification>({ show: false, message: "", type: "success" });
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const productsPerPage = 9;
 
   const router = useRouter();
 
-  // Check admin privileges
+  // Chuẩn hóa URL hình ảnh
+  const normalizeImageUrl = (path: string): string => {
+    return path.startsWith("/images/")
+      ? `https://api-zeal.onrender.com${path}`
+      : `https://api-zeal.onrender.com/images/${path.replace(/^images\//, "")}`;
+  };
+
+  // Kiểm tra quyền admin
   useEffect(() => {
     const token = localStorage.getItem("token");
     const role = localStorage.getItem("role");
@@ -33,17 +86,17 @@ export default function ProductPage() {
     }
   }, [router]);
 
-  // Fetch products and categories
+  // Lấy dữ liệu sản phẩm, danh mục và thương hiệu
   useEffect(() => {
     fetchProducts();
     fetchCategories();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    fetchBrands();
   }, []);
 
-  const showNotification = (message: string, type: string) => {
+  const showNotification = (message: string, type: "success" | "error") => {
     setNotification({ show: true, message, type });
     setTimeout(() => {
-      setNotification({ show: false, message: "", type: "" });
+      setNotification({ show: false, message: "", type: "success" });
     }, 3000);
   };
 
@@ -52,20 +105,22 @@ export default function ProductPage() {
       setLoading(true);
       setError(null);
       const token = localStorage.getItem("token");
-      const res = await fetch("https://api-zeal.onrender.com/api/products", {
+      const res = await fetch("https://api-zeal.onrender.com/api/products?status=all", {
         headers: { Authorization: `Bearer ${token}` },
         cache: "no-store",
       });
       if (res.status === 401 || res.status === 403) {
         alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
         localStorage.removeItem("token");
+        localStorage.removeItem("role");
+        localStorage.removeItem("email");
         router.push("/user/login");
         return;
       }
       if (!res.ok) {
         throw new Error(`Lỗi API: ${res.status} ${res.statusText}`);
       }
-      const data = await res.json();
+      const data: Product[] = await res.json();
       if (!Array.isArray(data)) {
         throw new Error("Dữ liệu sản phẩm không hợp lệ");
       }
@@ -83,7 +138,7 @@ export default function ProductPage() {
 
   const fetchCategories = async () => {
     try {
-      const token = localStorage.getItem("token");
+const token = localStorage.getItem("token");
       const res = await fetch("https://api-zeal.onrender.com/api/categories", {
         headers: { Authorization: `Bearer ${token}` },
         cache: "no-store",
@@ -97,7 +152,7 @@ export default function ProductPage() {
       if (!res.ok) {
         throw new Error(`Lỗi API: ${res.status} ${res.statusText}`);
       }
-      const data = await res.json();
+      const data: Category[] = await res.json();
       if (!Array.isArray(data)) {
         throw new Error("Dữ liệu danh mục không hợp lệ");
       }
@@ -109,34 +164,60 @@ export default function ProductPage() {
     }
   };
 
-  // Handle search and category filter
+  const fetchBrands = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("https://api-zeal.onrender.com/api/brands", {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+      });
+      if (res.status === 401 || res.status === 403) {
+        alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
+        localStorage.removeItem("token");
+        router.push("/user/login");
+        return;
+      }
+      if (!res.ok) {
+        throw new Error(`Lỗi API: ${res.status} ${res.statusText}`);
+      }
+      const data: Brand[] = await res.json();
+      if (!Array.isArray(data)) {
+        throw new Error("Dữ liệu thương hiệu không hợp lệ");
+      }
+      setBrands(data);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
+      console.error("Lỗi khi tải thương hiệu:", errorMessage);
+      showNotification("Không thể tải thương hiệu", "error");
+    }
+  };
+
+  // Xử lý tìm kiếm và lọc theo danh mục và trạng thái
   useEffect(() => {
     const filtered = products.filter((product) => {
-      const matchesSearch =
-        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (product.category && product.category.name
-          ? product.category.name.toLowerCase().includes(searchQuery.toLowerCase())
-          : false);
+      const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory =
-        selectedCategory === "all" || (product.category && product.category._id === selectedCategory);
-      return matchesSearch && matchesCategory;
+        selectedCategory === "all" || product.id_category === selectedCategory;
+      const matchesStatus =
+        selectedStatus === "all" || product.status === selectedStatus;
+      return matchesSearch && matchesCategory && matchesStatus;
     });
     setFilteredProducts(filtered);
     setCurrentPage(1);
-  }, [searchQuery, selectedCategory, products]);
+  }, [searchQuery, selectedCategory, selectedStatus, products]);
 
-  const confirmToggleStatus = (id: string, currentStatus: string) => {
-    setToggleId(id);
+  const confirmToggleStatus = (slug: string) => {
+    setToggleSlug(slug);
     setIsTogglingStatus(true);
   };
 
   const handleToggleStatus = async () => {
-    if (!toggleId) return;
+    if (!toggleSlug) return;
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
       const response = await fetch(
-        `https://api-zeal.onrender.com/api/products/${toggleId}/toggle-visibility`,
+        `https://api-zeal.onrender.com/api/products/${toggleSlug}/toggle-visibility`,
         {
           method: "PUT",
           headers: { Authorization: `Bearer ${token}` },
@@ -157,17 +238,17 @@ export default function ProductPage() {
         throw new Error(`Lỗi HTTP: ${response.status} - ${errorText}`);
       }
 
-      const { product } = await response.json();
+      const { product }: { product: Product } = await response.json();
       setProducts(
-        products.map((p) => (p._id === toggleId ? { ...p, status: product.status } : p))
+        products.map((p) => (p.slug === toggleSlug ? { ...p, status: product.status } : p))
       );
       setFilteredProducts(
         filteredProducts.map((p) =>
-          p._id === toggleId ? { ...p, status: product.status } : p
+          p.slug === toggleSlug ? { ...p, status: product.status } : p
         )
       );
       setIsTogglingStatus(false);
-      setToggleId(null);
+      setToggleSlug(null);
       showNotification(
         `Sản phẩm đã được ${product.status === "show" ? "hiển thị" : "ẩn"}`,
         "success"
@@ -181,7 +262,12 @@ export default function ProductPage() {
     }
   };
 
-  // Pagination
+  // Hàm xử lý nhấp để mở rộng/thu gọn chi tiết sản phẩm
+  const handleToggleDetails = (productId: string) => {
+    setExpandedProductId(expandedProductId === productId ? null : productId);
+  };
+
+  // Phân trang
   const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
   const indexOfLastProduct = currentPage * productsPerPage;
   const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
@@ -190,11 +276,12 @@ export default function ProductPage() {
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
+      setExpandedProductId(null); // Đóng tất cả chi tiết khi đổi trang
     }
   };
 
   const getPaginationInfo = () => {
-    const visiblePages = [];
+    const visiblePages: number[] = [];
     let showPrevEllipsis = false;
     let showNextEllipsis = false;
 
@@ -269,11 +356,19 @@ export default function ProductPage() {
               </option>
             ))}
           </select>
-           <Link href="/admin/add_product" className={styles.addProductBtn}>
-          Thêm Sản Phẩm +
-        </Link>
+          <select
+            value={selectedStatus}
+            onChange={(e) => setSelectedStatus(e.target.value)}
+            className={styles.categorySelect}
+          >
+            <option value="all">Tất cả trạng thái</option>
+            <option value="show">Hiển thị</option>
+            <option value="hidden">Ẩn</option>
+          </select>
+          <Link href="/admin/add_product" className={styles.addProductBtn}>
+            Thêm Sản Phẩm +
+          </Link>
         </div>
-       
       </div>
       <div className={styles.tableContainer}>
         <table className={styles.productTable}>
@@ -282,8 +377,7 @@ export default function ProductPage() {
               <th>Ảnh</th>
               <th>Tên sản phẩm</th>
               <th>Danh mục</th>
-              <th>Giá</th>
-              <th>Tồn Kho</th>
+              <th>Brand</th>
               <th>Trạng thái</th>
               <th>Hành động</th>
             </tr>
@@ -291,49 +385,102 @@ export default function ProductPage() {
           <tbody>
             {currentProducts.length > 0 ? (
               currentProducts.map((product) => (
-                <tr key={product._id}>
-                  <td>
-                    <Image
-                      src={
-                        product.images && product.images.length > 0
-                          ? `https://api-zeal.onrender.com/images/${product.images[0]}`
-                          : "/images/placeholder.png"
-                      }
-                      alt={product.name}
-                      width={50}
-                      height={50}
-                      className={styles.productTableImage}
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = "/images/placeholder.png";
-                      }}
-                    />
-                  </td>
-                  <td>{product.name}</td>
-                  <td>{product.category?.name || "Chưa phân loại"}</td>
-                  <td>{product.price.toLocaleString()}₫</td>
-                  <td className={styles.productTableQuantity}>{product.stock}</td>
-                  <td>{product.status === "show" ? "Hiển thị" : "Ẩn"}</td>
-                  <td className={styles.actionButtons}>
-                    <button
-                      className={styles.editBtn}
-                      onClick={() => router.push(`/admin/edit_product/${product._id}`)}
-                      disabled={loading}
-                    >
-                      Sửa
-                    </button>
-                    <button
-                      className={styles.toggleStatusBtn}
-                      onClick={() => confirmToggleStatus(product._id, product.status || "show")}
-                      disabled={loading}
-                    >
-                      {product.status === "show" ? "Ẩn" : "Hiển thị"}
-                    </button>
-                  </td>
-                </tr>
+                <React.Fragment key={product._id}>
+                  <tr
+                    onClick={() => handleToggleDetails(product._id)}
+                    className={`${styles.productRow} ${
+                      expandedProductId === product._id ? styles.productRowActive : ""
+                    }`}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <td>
+                      <Image
+                        src={
+                          product.images && product.images.length > 0
+                            ? normalizeImageUrl(product.images[0])
+                            : "/images/placeholder.png"
+                        }
+                        alt={product.name}
+                        width={50}
+                        height={50}
+                        className={styles.productTableImage}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = "/images/placeholder.png";
+                        }}
+                      />
+                    </td>
+                    <td>{product.name}</td>
+                    <td>{categories.find((cat) => cat._id === product.id_category)?.name || "Chưa phân loại"}</td>
+                    <td>{brands.find((brand) => brand._id === product.id_brand)?.name || "Chưa phân loại"}</td>
+                    <td>{product.status === "show" ? "Hiển thị" : "Ẩn"}</td>
+                    <td className={styles.actionButtons}>
+                      <button
+                        className={styles.editBtn}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/admin/edit_product/${product.slug}`);
+                        }}
+                        disabled={loading}
+                      >
+                        Sửa
+                      </button>
+                      <button
+                        className={styles.toggleStatusBtn}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          confirmToggleStatus(product.slug);
+                        }}
+                        disabled={loading}
+                      >
+                        {product.status === "show" ? "Ẩn" : "Hiển thị"}
+                      </button>
+                    </td>
+                  </tr>
+                  {expandedProductId === product._id && (
+                    <tr className={styles.detailsRow}>
+                      <td colSpan={6}>
+                        <div className={styles.productDetails}>
+                          <h3>Chi tiết sản phẩm</h3>
+                          <p><strong>Tên sản phẩm:</strong> {product.name}</p>
+                          <p><strong>Slug:</strong> {product.slug}</p>
+                          <p><strong>Danh mục:</strong> {categories.find((cat) => cat._id === product.id_category)?.name || "Chưa phân loại"}</p>
+                          <p><strong>Brand:</strong> {brands.find((brand) => brand._id === product.id_brand)?.name || "Chưa phân loại"}</p>
+                          <p><strong>Mô tả ngắn:</strong> {product.short_description}</p>
+                          <p><strong>Mô tả chi tiết:</strong></p>
+                          <div dangerouslySetInnerHTML={{ __html: product.description }} />
+                          <p><strong>Giá:</strong> {product.option[0]?.price.toLocaleString()}₫</p>
+                          <p><strong>Giá khuyến mãi:</strong> {product.option[0]?.discount_price ? product.option[0].discount_price.toLocaleString() + "₫" : "Không có"}</p>
+                          <p><strong>Tồn kho:</strong> {product.option[0]?.stock}</p>
+                          <p><strong>Kích thước:</strong> {product.option[0]?.value}</p>
+                          <p><strong>Trạng thái:</strong> {product.status === "show" ? "Hiển thị" : "Ẩn"}</p>
+                          <p><strong>Lượt xem:</strong> {product.view}</p>
+                          <p><strong>Ngày tạo:</strong> {new Date(product.createdAt).toLocaleString()}</p>
+                          <p><strong>Ngày cập nhật:</strong> {new Date(product.updatedAt).toLocaleString()}</p>
+                          <p><strong>Hình ảnh:</strong></p>
+                          <div className={styles.imageGallery}>
+                            {product.images.map((img, index) => (
+                              <Image
+                                key={index}
+                                src={normalizeImageUrl(img)}
+                                alt={`${product.name} hình ${index + 1}`}
+                                width={100}
+                                height={100}
+                                className={styles.detailImage}
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = "/images/placeholder.png";
+                                }}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
               ))
             ) : (
               <tr>
-                <td colSpan={7} className="text-center py-4">
+                <td colSpan={6} className="text-center py-4">
                   Không có sản phẩm nào
                 </td>
               </tr>
@@ -409,7 +556,7 @@ export default function ProductPage() {
             <h2>Xác nhận thay đổi trạng thái</h2>
             <p>
               Bạn có chắc chắn muốn{" "}
-              {products.find((p) => p._id === toggleId)?.status === "show"
+              {products.find((p) => p.slug === toggleSlug)?.status === "show"
                 ? "ẩn"
                 : "hiển thị"}{" "}
               sản phẩm này?

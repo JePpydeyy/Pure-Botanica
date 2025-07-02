@@ -21,10 +21,12 @@ export default function Customer() {
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCreateAdminModalOpen, setIsCreateAdminModalOpen] = useState(false); // New state for create admin modal
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [roleFilter, setRoleFilter] = useState<"user" | "admin">("user");
+  const [newAdmin, setNewAdmin] = useState({ username: "", email: "", phone: "", password: "" }); // State for new admin form
   const customersPerPage = 9;
   const router = useRouter();
 
@@ -189,6 +191,74 @@ export default function Customer() {
     }
   };
 
+  // Function to handle admin account creation
+  const createAdminAccount = async () => {
+    // Client-side validation
+    if (!newAdmin.username || !newAdmin.email || !newAdmin.phone || !newAdmin.password) {
+      alert("Vui lòng điền đầy đủ tất cả các trường!");
+      return;
+    }
+
+    if (newAdmin.password.length < 8) {
+      alert("Mật khẩu phải có ít nhất 8 ký tự!");
+      return;
+    }
+
+    // Basic email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newAdmin.email)) {
+      alert("Email không hợp lệ!");
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        alert("Vui lòng đăng nhập lại!");
+        router.push("/user/login");
+        return;
+      }
+
+      const res = await fetch("https://api-zeal.onrender.com/api/users/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ...newAdmin,
+          role: "admin", // luôn là admin
+          status: "active",
+          address: "",
+          birthday: null,
+          listOrder: [],
+        }),
+      });
+
+      if (res.status === 401 || res.status === 403) {
+        alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
+        localStorage.clear();
+        router.push("/user/login");
+        return;
+      }
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Tạo tài khoản admin thất bại");
+      }
+
+      const newUser = await res.json();
+      setCustomers((prev) => [...prev, newUser.user]);
+      setFilteredCustomers((prev) => [...prev, newUser.user]);
+      setIsCreateAdminModalOpen(false);
+      setNewAdmin({ username: "", email: "", phone: "", password: "" }); // Reset form
+      alert("Tạo tài khoản admin thành công!");
+    } catch (err: any) {
+      console.error("Error:", err);
+      alert(err.message || "Có lỗi xảy ra, vui lòng thử lại!");
+    }
+  };
+
   if (!isAuthorized) return null;
 
   return (
@@ -204,11 +274,17 @@ export default function Customer() {
             className={styles.searchInput}
           />
         </div>
-           <button onClick={toggleRoleFilter} className={styles.btn}>
-            {roleFilter === "user" ? "Xem Quản Trị Viên" : "Xem Khách Hàng"}
-          </button>
+        <button onClick={toggleRoleFilter} className={styles.btn}>
+          {roleFilter === "user" ? "Xem Quản Trị Viên" : "Xem Khách Hàng"}
+        </button>
+        <button
+          onClick={() => setIsCreateAdminModalOpen(true)}
+          className={styles.btn}
+        >
+          Tạo Tài Khoản Admin
+        </button>
       </div>
-      
+
       <div className={styles.tableContainer}>
         <table>
           <thead>
@@ -251,6 +327,7 @@ export default function Customer() {
           </tbody>
         </table>
       </div>
+
       {totalPages > 1 && (
         <div className={styles.pagination}>
           {(() => {
@@ -310,6 +387,8 @@ export default function Customer() {
           })()}
         </div>
       )}
+
+      {/* Modal for editing customer */}
       {isModalOpen && selectedCustomer && (
         <div className={styles.modal}>
           <div className={styles.modalContent}>
@@ -341,6 +420,64 @@ export default function Customer() {
             <div className={styles.modalActions}>
               <button onClick={updateCustomerInfo}>Lưu</button>
               <button onClick={() => setIsModalOpen(false)}>Hủy</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal for creating admin account */}
+      {isCreateAdminModalOpen && (
+        <div className={styles.modal}>
+          <div className={styles.modalContent}>
+            <h3>Tạo Tài Khoản Admin</h3>
+            <label>
+              Tên:
+              <input
+                type="text"
+                required
+                value={newAdmin.username}
+                onChange={(e) =>
+                  setNewAdmin({ ...newAdmin, username: e.target.value })
+                }
+                placeholder="Nhập tên"
+              />
+            </label>
+            <label>
+              Email:
+              <input
+                type="email"
+                required
+                value={newAdmin.email}
+                onChange={(e) => setNewAdmin({ ...newAdmin, email: e.target.value })}
+                placeholder="Nhập email"
+              />
+            </label>
+            <label>
+              Số điện thoại:
+              <input
+                type="text"
+                required
+                value={newAdmin.phone}
+                onChange={(e) => setNewAdmin({ ...newAdmin, phone: e.target.value })}
+                placeholder="Nhập số điện thoại"
+              />
+            </label>
+            <label>
+              Mật khẩu:
+              <input
+                type="password"
+                required
+                minLength={8}
+                value={newAdmin.password}
+                onChange={(e) =>
+                  setNewAdmin({ ...newAdmin, password: e.target.value })
+                }
+                placeholder="Nhập mật khẩu (tối thiểu 8 ký tự)"
+              />
+            </label>
+            <div className={styles.modalActions}>
+              <button onClick={createAdminAccount}>Tạo</button>
+              <button onClick={() => setIsCreateAdminModalOpen(false)}>Hủy</button>
             </div>
           </div>
         </div>

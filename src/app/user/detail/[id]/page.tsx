@@ -61,6 +61,11 @@ export default function DetailPage() {
 
   const [selectedOptionIndex, setSelectedOptionIndex] = useState(0);
 
+  // Reset quantity to 1 when option changes
+  useEffect(() => {
+    setQuantity(1);
+  }, [selectedOptionIndex]);
+
   useEffect(() => {
     const getUserInfoFromToken = () => {
       const token = localStorage.getItem("token");
@@ -370,7 +375,14 @@ export default function DetailPage() {
                 <button className={`${styles["quantity-btn"]} ${styles.decrease}`} onClick={decreaseQty}>
                   −
                 </button>
-                <input type="text" className={styles["quantity-input"]} value={quantity} readOnly />
+                <input
+                  type="text"
+                  className={styles["quantity-input"]}
+                  value={quantity}
+                  readOnly
+                  aria-label="Số lượng sản phẩm"
+                  placeholder="Số lượng"
+                />
                 <button className={`${styles["quantity-btn"]} ${styles.increase}`} onClick={increaseQty}>
                   +
                 </button>

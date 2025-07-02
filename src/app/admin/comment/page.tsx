@@ -107,16 +107,21 @@ export default function Comment() {
                 <td>{comment.user.email}</td>
                 <td>{comment.product ? comment.product.name : 'Không có sản phẩm'}</td>
                 <td>
-                  {comment.product && comment.product.images.length > 0 ? (
-                    <img
-                      src={`https://api-zeal.onrender.com/images/${comment.product.images[0]}`}
-                      alt={comment.product.name}
-                      className="product-image"
-                    />
-                  ) : (
-                    <span>Không có hình ảnh</span>
-                  )}
-                </td>
+  {comment.product && comment.product.images.length > 0 ? (
+    <img
+      src={
+        comment.product.images[0].startsWith("images/")
+          ? `https://api-zeal.onrender.com/${comment.product.images[0]}`
+          : `https://api-zeal.onrender.com/images/${comment.product.images[0]}`
+      }
+      alt={comment.product.name}
+      className="product-image"
+      onError={e => (e.currentTarget.src = "https://via.placeholder.com/60x60?text=No+Image")}
+    />
+  ) : (
+    <span>Không có hình ảnh</span>
+  )}
+</td>
                 <td>{comment.content}</td>
                 <td>{formatDate(comment.createdAt)}</td>
                 <td>

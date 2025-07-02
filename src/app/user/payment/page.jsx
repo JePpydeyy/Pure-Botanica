@@ -203,11 +203,7 @@ export default function PaymentOnline() {
             <img src={qrUrl} alt="QR Code" onError={() => setError("Không tải được mã QR")} />
           </div>
         </div>
-        {timeLeft > 0 && (
-          <p className={styles.timer}>
-            Thời gian còn lại: {formatTimeLeft(timeLeft)}
-          </p>
-        )}
+
         <p className={styles.note}>Vui lòng thanh toán trong vòng 24 giờ để hoàn tất giao dịch.</p>
         <div className={styles.buttonGroup}>
           <button

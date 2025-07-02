@@ -64,9 +64,9 @@
   flex: 1;
   max-width: 550px;
   padding: 20px;
-  background-color: #f9f9f9;
+
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+ 
 }
 
 /* Cart section */
@@ -74,9 +74,8 @@
   flex: 1;
   max-width: 550px;
   padding: 20px;
-  background-color: #ffffff;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  
 }
 
 /* Form styles */
@@ -98,6 +97,11 @@
   margin-right: 10px;
 }
 
+.mainForm{
+  display: flex;
+  flex-direction: row;
+  gap: 15px;
+}
 /* Style chung cho input và select */
 .formSection input[type="text"],
 .formSection textarea,

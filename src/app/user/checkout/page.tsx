@@ -52,7 +52,7 @@ export default function CheckoutPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isClient, setIsClient] = useState(false);
-  const [shippingStatus, setShippingStatus] = useState<string | null>(null); // Thêm trạng thái vận chuyển
+  const [shippingStatus, setShippingStatus] = useState<string | null>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -278,7 +278,7 @@ export default function CheckoutPage() {
       sdt: formData.sdt.trim(),
       paymentMethod: formData.paymentMethod,
       note: formData.note?.trim() || "",
-      couponCode: couponCode || "", // Thêm couponCode nếu có
+      couponCode: couponCode || "",
     };
 
     console.log("Dữ liệu gửi đến API /carts/checkout:", cleanData);
@@ -322,7 +322,7 @@ export default function CheckoutPage() {
         throw new Error("Không nhận được orderId từ phản hồi. Kiểm tra cấu trúc API: " + JSON.stringify(checkoutData));
       }
 
-      setShippingStatus(initialShippingStatus); // Cập nhật trạng thái vận chuyển ban đầu
+      setShippingStatus(initialShippingStatus);
 
       if (formData.paymentMethod === "bank") {
         let paymentResponse = await fetch(`https://api-zeal.onrender.com/api/payments/create`, {
@@ -486,6 +486,43 @@ export default function CheckoutPage() {
                   value={formData.note}
                   onChange={handleChange}
                 />
+
+            <div className={styles.paymentMethods}>
+              <div className={styles.paymentTitle} style={{ fontWeight: "bold", marginBottom: 8 }}>
+                Chọn hình thức thanh toán
+              </div>
+              <div className={styles.paymentMethodWrapper}>
+                <div className={styles.paymentMethod}>
+                  <input
+                    type="radio"
+                    id="bank"
+                    name="paymentMethod"
+                    value="bank"
+                    checked={formData.paymentMethod === "bank"}
+                    onChange={handleChange}
+                  />
+                  <label htmlFor="bank" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <img src="https://img.icons8.com/?size=100&id=VbL8v3mm1qyp&format=png&color=000000" alt="Bank" width={22} height={22} />
+                    Chuyển khoản ngân hàng
+                  </label>
+                </div>
+                  <hr/>
+                <div className={styles.paymentMethod}>
+                  <input
+                    type="radio"
+                    id="cod"
+                    name="paymentMethod"
+                    value="cod"
+                    checked={formData.paymentMethod === "cod"}
+                    onChange={handleChange}
+                  />
+                  <label htmlFor="cod" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <img src="https://img.icons8.com/?size=100&id=76948&format=png&color=000000" alt="Tiền mặt" width={22} height={22} />
+                    Thanh toán khi nhận hàng
+                  </label>
+                </div>
+              </div>
+            </div>
               </>
             )}
           </div>
@@ -502,15 +539,16 @@ export default function CheckoutPage() {
               return (
                 <div key={index} className={styles.cartItem}>
                   <div className={styles.cartItemImage}>
-                    <Image
-                      src={imageUrl}
-                      alt={item.product.name || "Sản phẩm"}
-                      width={50}
-                      height={50}
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = "https://via.placeholder.com/50x50?text=Error";
-                      }}
-                    />
+                   <img
+                  src={imageUrl}
+                  alt={item.product.name || "Sản phẩm"}
+                  width={70}
+                  height={70}
+                  className={styles.cartItemImage}
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = "https://via.placeholder.com/50x50?text=No+Image";
+                  }}
+                />
                   </div>
                   <div className={styles.cartItemDetails}>
                     <div className={styles.cartItemName}>{item.product.name || "Sản phẩm không xác định"}</div>
@@ -548,37 +586,7 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            <div className={styles.paymentMethods}>
-              <div className={styles.paymentMethod}>
-                <input
-                  type="radio"
-                  id="bank"
-                  name="paymentMethod"
-                  value="bank"
-                  checked={formData.paymentMethod === "bank"}
-                  onChange={handleChange}
-                />
-                <label htmlFor="bank">Chuyển khoản ngân hàng</label>
-                <div className={styles.paymentDescription}>
-                  Thực hiện thanh toán vào ngay tài khoản ngân hàng của chúng tôi. Vui lòng sử dụng Mã đơn hàng của bạn trong phần Nội dung thanh toán. Đơn hàng sẽ được giao sau khi tiền đã chuyển.
-                </div>
-              </div>
-
-              <div className={styles.paymentMethod}>
-                <input
-                  type="radio"
-                  id="cod"
-                  name="paymentMethod"
-                  value="cod"
-                  checked={formData.paymentMethod === "cod"}
-                  onChange={handleChange}
-                />
-                <label htmlFor="cod">Thanh toán khi nhận hàng</label>
-                <div className={styles.paymentDescription}>
-                  Thanh toán khi nhận hàng
-                </div>
-              </div>
-            </div>
+            {/* Payment methods removed from here */}
 
             <button
               type="submit"

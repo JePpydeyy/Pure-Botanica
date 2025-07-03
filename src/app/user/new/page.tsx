@@ -1,13 +1,43 @@
 "use client";
-import image from "next/image";
+import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
-import styles from "./new.module.css"; // Đảm bảo file này đã chuyển sang dạng module như hướng dẫn
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faEye, faCalendarDays } from "@fortawesome/free-solid-svg-icons";
+import styles from "./new.module.css";
+
+interface NewsItem {
+  _id: string;
+  title: string;
+  slug: string;
+  thumbnailUrl: string;
+  thumbnailCaption: string;
+  content: string;
+  views?: number;
+  publishedAt?: string;
+}
 
 export default function NewsPage() {
+  const [news, setNews] = useState<NewsItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("https://api-zeal.onrender.com/api/news")
+      .then((res) => res.json())
+      .then((data) => {
+        setNews(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Error fetching news:", err);
+        setLoading(false);
+      });
+  }, []);
+
   return (
     <>
       <img
-        src="/images/banner.png" 
+        src="/images/banner.png"
         alt="Banner"
         width={1600}
         height={400}
@@ -30,19 +60,25 @@ export default function NewsPage() {
           Pure Botanica
         </p>
 
+        {/* Hot News */}
         <section className={styles.hotNewPage}>
-          {[1, 2, 3].map((_, idx) => (
-            <Link href="/details-hot-new" key={idx}>
+          {news.slice(0, 3).map((item) => (
+            <Link href={`/user/newdetail/${item.slug}`} key={item._id}>
               <div className={styles.hotNew}>
                 <img
-                  src="/images/image161.png"
-                  alt="Nấm da đầu do dầu"
+                  src={item.thumbnailUrl}
+                  alt={item.thumbnailCaption}
                   width={430}
                   height={250}
                 />
-                <p className={styles.sectionDescription}>
-                  <strong>10 cách trị nấm da đầu hiệu quả</strong>
-                </p>
+                <div className={styles.hotNewInfo}>
+                  <p className={styles.hotNewTitle}>
+                    <strong>{item.title}</strong>
+                  </p>
+                  <p className={styles.views}>
+                    <FontAwesomeIcon icon={faEye} /> {item.views ?? 0} lượt xem
+                  </p>
+                </div>
               </div>
             </Link>
           ))}
@@ -52,30 +88,55 @@ export default function NewsPage() {
           <strong>Tin Tức Hữu Ích</strong>
         </h1>
 
+        {/* News Post */}
         <section className={styles.newsPost}>
-          {[1, 2, 3, 4].map((_, idx) => (
-            <div className={styles.news} key={idx}>
-              <img
-                src="/images/image159.png"
-                alt="Vitamin E"
-                width={350}
-                height={220}
-              />
-              <div className={styles.tt}>
-                <h2>
-                  <strong>Bôi Vitamin E lên mặt có tác dụng gì ?</strong>
-                </h2>
-                <p className={styles.sectionDescription}>
-                  Vitamin E từ lâu đã được biết đến là một chất có công dụng tuyệt vời đối với sức khoẻ và làn da. Tuy nhiên công dụng khi bôi vitamin E lên mặt có lẽ nhiều người còn chưa biết.
-                  <br />
-                  Hãy cùng tham khảo bài viết dưới đây để tìm hiểu nhé.
-                </p>
-                <Link href="/user/newdetail" className={styles.btn}>
-                  Xem Thêm <i className="fa-solid fa-arrow-right"></i>
-                </Link>
+          {loading ? (
+            <p>Đang tải dữ liệu...</p>
+          ) : (
+            news.map((item) => (
+              <div className={styles.news} key={item._id}>
+                <img
+                  src={item.thumbnailUrl}
+                  alt={item.thumbnailCaption}
+                  width={350}
+                  height={220}
+                />
+                <div className={styles.tt}>
+                  <h2>
+                    <strong>{item.title}</strong>
+                  </h2>
+
+                  <div className={styles.metaInfo}>
+                    <span>
+                      <FontAwesomeIcon icon={faCalendarDays} />{" "}
+                      {item.publishedAt
+                        ? new Date(item.publishedAt).toLocaleDateString("vi-VN")
+                        : "Chưa rõ"}
+                    </span>
+                    <span>
+                      <FontAwesomeIcon icon={faEye} /> {item.views ?? 0} lượt xem
+                    </span>
+                  </div>
+
+                  <p
+                    className={styles.sectionDescription}
+                    dangerouslySetInnerHTML={{
+                      __html:
+                        item.content
+                          .replace(/<(?!\/?(b|strong)\b)[^>]*>/gi, "")
+                          .slice(0, 200) + "..."
+                    }}
+                  />
+                  <Link
+                    href={`/user/newdetail/${item.slug}`}
+                    className={styles.btn}
+                  >
+                    Xem Thêm <i className="fa-solid fa-arrow-right"></i>
+                  </Link>
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </section>
       </section>
     </>

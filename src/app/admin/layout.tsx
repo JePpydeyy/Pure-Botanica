@@ -43,6 +43,9 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
             <Link href="/admin/comment" className="menu-item">
               <span>Bình Luận</span>
             </Link>
+            <Link href="/admin/news" className="menu-item">
+              <span>Tin tức</span>
+            </Link>
             <Link href="/admin/coupons" className="menu-item">
               <span>Khuyến mãi</span>
             </Link>

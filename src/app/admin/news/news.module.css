@@ -1,0 +1,211 @@
+/* === LAYOUT & CONTAINER === */
+.NewManagementContainer {
+  padding: 20px;
+  background: #f9fafb;
+  min-height: 100vh;
+}
+
+.titleContainer {
+  width: 1240px;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  margin: 80px 0 0 280px;
+}
+
+.titleContainer h1 {
+  color: #004C59;
+  font-size: 30px;
+  margin: 0;
+}
+
+.filterContainer {
+  margin-left: auto;
+  margin-right: 20px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.searchInput {
+  width: 300px;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #333;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.searchInput:focus {
+  border-color: #4CAF50;
+  box-shadow: 0 0 4px rgba(76, 175, 80, 0.3);
+}
+
+.categorySelect {
+  width: 200px;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #333;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.categorySelect:focus {
+  border-color: #4CAF50;
+  box-shadow: 0 0 4px rgba(76, 175, 80, 0.3);
+}
+
+.addProductBtn {
+  z-index: 100;
+  width: 150px;
+  height: 35px;
+  background-color: #004C59;
+  text-align: center;
+  text-decoration: none;
+  color: white;
+  border-radius: 5px;
+  line-height: 35px;
+  font-weight: 500;
+}
+
+.addProductBtn:hover {
+  background-color: #003a45;
+}
+
+.tableContainer {
+  overflow-x: auto;
+  margin-top: 10px;
+  margin-left: 280px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+}
+
+/* === TABLE STYLING === */
+.productTable {
+  z-index: -1;
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #fff;
+}
+
+.productTableThead {
+  background-color: #357E38;
+  color: white;
+}
+
+.productTableThead th {
+  padding: 12px 15px;
+  text-align: left;
+  font-weight: bold;
+  color: white;
+}
+
+.productTable td {
+  padding: 15px;
+  vertical-align: middle;
+}
+
+.productRow {
+  transition: background-color 0.2s ease;
+}
+
+.productRow:hover {
+  background-color: #f5f5f5;
+}
+
+/* === ACTION BUTTONS === */
+.actionButtons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
+}
+
+.editBtn,
+.toggleStatusBtn,
+.cancelBtn {
+  min-width: 35px;
+  height: 35px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.2s ease;
+  background-color: none; /* Màu chung cho tất cả các nút */
+  color: rgb(0, 0, 0);
+}
+/* === STATUS STYLING === */
+.statusShow {
+  background-color: #e6f4ea;
+  color: #2e7d32;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.statusHidden {
+  background-color: #fce8e6;
+  color: #c62828;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.errorContainer {
+  text-align: center;
+  padding: 20px;
+  color: #c62828;
+  font-weight: 500;
+}
+
+@media (max-width: 1240px) {
+  .titleContainer {
+    width: 100%;
+    margin-left: 0;
+    padding: 0 20px;
+    flex-wrap: wrap;
+    height: auto;
+  }
+
+  .tableContainer {
+    margin-left: 0;
+    padding: 0 20px;
+  }
+
+  .filterContainer {
+    margin: 10px 0;
+    width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .searchInput,
+  .categorySelect {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .productTable {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .titleContainer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .addProductBtn {
+    margin-left: 0;
+    margin-top: 10px;
+  }
+}

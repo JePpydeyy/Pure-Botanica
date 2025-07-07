@@ -21,12 +21,12 @@ export default function Customer() {
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isCreateAdminModalOpen, setIsCreateAdminModalOpen] = useState(false); // New state for create admin modal
+  const [isCreateAdminModalOpen, setIsCreateAdminModalOpen] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [roleFilter, setRoleFilter] = useState<"user" | "admin">("user");
-  const [newAdmin, setNewAdmin] = useState({ username: "", email: "", phone: "", password: "" }); // State for new admin form
+  const [newAdmin, setNewAdmin] = useState({ username: "", email: "", phone: "", password: "" });
   const customersPerPage = 9;
   const router = useRouter();
 
@@ -227,7 +227,7 @@ export default function Customer() {
         },
         body: JSON.stringify({
           ...newAdmin,
-          role: "admin", // luôn là admin
+          role: "admin", // Explicitly set role to admin
           status: "active",
           address: "",
           birthday: null,
@@ -251,7 +251,7 @@ export default function Customer() {
       setCustomers((prev) => [...prev, newUser.user]);
       setFilteredCustomers((prev) => [...prev, newUser.user]);
       setIsCreateAdminModalOpen(false);
-      setNewAdmin({ username: "", email: "", phone: "", password: "" }); // Reset form
+      setNewAdmin({ username: "", email: "", phone: "", password: "" });
       alert("Tạo tài khoản admin thành công!");
     } catch (err: any) {
       console.error("Error:", err);
@@ -429,7 +429,7 @@ export default function Customer() {
       {isCreateAdminModalOpen && (
         <div className={styles.modal}>
           <div className={styles.modalContent}>
-            <h3>Tạo Tài Khoản Admin</h3>
+            <h3>Tạo Tài Khoản Quản Trị Viên</h3>
             <label>
               Tên:
               <input
@@ -475,6 +475,8 @@ export default function Customer() {
                 placeholder="Nhập mật khẩu (tối thiểu 8 ký tự)"
               />
             </label>
+            
+            <p>Vai trò: Quản trị viên</p> {/* Display role as admin */}
             <div className={styles.modalActions}>
               <button onClick={createAdminAccount}>Tạo</button>
               <button onClick={() => setIsCreateAdminModalOpen(false)}>Hủy</button>

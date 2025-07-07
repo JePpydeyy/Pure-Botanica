@@ -324,7 +324,7 @@ const EditProduct = () => {
         <h1 className={styles.title}>Chỉnh sửa sản phẩm</h1>
         <button
           type="button"
-          onClick={() => router.push("/admin/products")}
+          onClick={() => router.push("/admin/product")}
           className={styles.backButton}
         >
           ← Quay lại

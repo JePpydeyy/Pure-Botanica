@@ -344,7 +344,7 @@ export default function CouponPage() {
         </table>
       </div>
       {/* Pagination */}
-      <div className={styles.pagination}>
+      {/* <div className={styles.pagination}>
         <button
           disabled={pagination.page === 1}
           onClick={() => handlePageChange(pagination.page - 1)}
@@ -360,7 +360,7 @@ export default function CouponPage() {
         >
           Sau
         </button>
-      </div>
+      </div> */}
 
       {/* Modal */}
       {showModal && (

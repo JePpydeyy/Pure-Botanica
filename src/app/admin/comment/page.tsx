@@ -1,137 +1,136 @@
 "use client";
-import { useState, useEffect } from "react";
-import axios from "axios";
-import "./comment.css";
-import type { Comment } from "@/app/components/comment_interface";
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
-export default function Comment() {
+interface User {
+  _id: string;
+  username: string;
+  email: string;
+}
+
+interface Product {
+  _id: string;
+  name: string;
+  price: number;
+  images: string[];
+}
+
+interface Comment {
+  _id: string;
+  content: string;
+  status: "show" | "hidden";
+  createdAt: string;
+  updatedAt: string;
+  user: User;
+  product: Product;
+}
+
+const CommentPage: React.FC = () => {
   const [comments, setComments] = useState<Comment[]>([]);
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [authChecked, setAuthChecked] = useState<boolean>(false);
+  const router = useRouter();
 
-  // Fetch comments from API
   useEffect(() => {
     const fetchComments = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          setError("Không tìm thấy token. Vui lòng đăng nhập lại.");
-          return;
-        }
+      const token = localStorage.getItem("token");
+      const role = localStorage.getItem("role");
 
-        const response = await axios.get<Comment[]>("https://api-zeal.onrender.com/api/comments/", {
+      if (!token || role !== "admin") {
+        setAuthChecked(false);
+        router.push("/user/login");
+        return;
+      }
+
+      try {
+        const res = await fetch("https://api-zeal.onrender.com/api/comments", {
+          method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
           },
         });
 
-        setComments(response.data);
-        setLoading(false);
+        if (res.status === 401 || res.status === 403) {
+          alert("Bạn không có quyền truy cập. Vui lòng đăng nhập lại.");
+          localStorage.removeItem("token");
+          localStorage.removeItem("role");
+          router.push("/user/login");
+          return;
+        }
+
+        if (!res.ok) {
+          throw new Error(`Lỗi HTTP! Trạng thái: ${res.status}`);
+        }
+
+        const data: Comment[] = await res.json();
+        setComments(data);
       } catch (error) {
-        console.error("Lỗi khi tải danh sách bình luận:", error);
-        setError("Không thể tải danh sách bình luận");
+        console.error("Lỗi khi tải bình luận:", error);
+        alert("Không thể tải bình luận. Vui lòng thử lại sau.");
+      } finally {
         setLoading(false);
+        setAuthChecked(true);
       }
     };
 
     fetchComments();
-  }, []);
+  }, [router]);
 
-  // Format date
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return `${date.getDate().toString().padStart(2, "0")}-${(date.getMonth() + 1)
-      .toString()
-      .padStart(2, "0")}-${date.getFullYear()}`;
-  };
+  if (!authChecked) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <p className="text-lg font-semibold text-gray-600">Đang kiểm tra quyền truy cập...</p>
+      </div>
+    );
+  }
 
-  // Handle delete comment
-  const handleDelete = async (commentId: string, userId: string) => {
-    const confirmDelete = window.confirm("Bạn có chắc chắn muốn xóa bình luận này?");
-    if (!confirmDelete) return;
-
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        alert("Không tìm thấy token. Vui lòng đăng nhập lại.");
-        return;
-      }
-
-      await axios.request({
-        url: `https://api-zeal.onrender.com/api/comments/${commentId}`,
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        data: { userId },
-      });
-
-      setComments((prevComments) => prevComments.filter((comment) => comment._id !== commentId));
-      alert("Xóa bình luận thành công!");
-    } catch (error: any) {
-      console.error("Lỗi khi xóa bình luận:", error);
-      const errorMessage =
-        error.response?.data?.error || "Không thể xóa bình luận. Vui lòng thử lại.";
-      alert(errorMessage);
-    }
-  };
-
-  if (loading) return <div className="loading-message">Đang tải...</div>;
-  if (error) return <div className="error-message">{error}</div>;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <p className="text-lg font-semibold text-gray-600">Đang tải bình luận...</p>
+      </div>
+    );
+  }
 
   return (
-    <>
-      <div className="title_container">
-        <h1>BÌNH LUẬN</h1>
-      </div>
-      <div className="comments-container">
-        <table className="comments-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Tên</th>
-              <th>Email</th>
-              <th>Sản Phẩm</th>
-              <th>Hình Ảnh</th>
-              <th>Nội Dung</th>
-              <th>Ngày</th>
-              <th>Hành Động</th>
-            </tr>
-          </thead>
-          <tbody>
-            {comments.map((comment, index) => (
-              <tr key={comment._id}>
-                <td>{index + 1}</td>
-                <td>{comment.user.username}</td>
-                <td>{comment.user.email}</td>
-                <td>{comment.product ? comment.product.name : 'Không có sản phẩm'}</td>
-                <td>
-                  {comment.product && comment.product.images.length > 0 ? (
-                    <img
-                      src={`https://api-zeal.onrender.com/images/${comment.product.images[0]}`}
-                      alt={comment.product.name}
-                      className="product-image"
-                    />
-                  ) : (
-                    <span>Không có hình ảnh</span>
-                  )}
-                </td>
-                <td>{comment.content}</td>
-                <td>{formatDate(comment.createdAt)}</td>
-                <td>
-                  <button
-                    className="delete-btn"
-                    onClick={() => handleDelete(comment._id, comment.user._id)}
-                  >
-                    Xóa
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </>
+    <div className="container mx-auto p-6 bg-white shadow-md rounded-lg">
+      <h1 className="text-2xl font-bold mb-6 text-gray-800">Quản lý bình luận</h1>
+      {comments.length === 0 ? (
+        <p className="text-gray-600">Không có bình luận nào.</p>
+      ) : (
+        <ul className="space-y-4">
+          {comments.map((comment) => (
+            <li
+              key={comment._id}
+              className="p-4 border border-gray-200 rounded-md shadow-sm hover:shadow-md transition-shadow"
+            >
+              <p>
+                <strong className="text-gray-700">User:</strong>{" "}
+                {comment.user.username} ({comment.user.email})
+              </p>
+              <p>
+                <strong className="text-gray-700">Sản phẩm:</strong>{" "}
+                {comment.product.name}
+              </p>
+              <p>
+                <strong className="text-gray-700">Nội dung:</strong>{" "}
+                {comment.content}
+              </p>
+              <p>
+                <strong className="text-gray-700">Trạng thái:</strong>{" "}
+                {comment.status === "show" ? "Hiển thị" : "Ẩn"}
+              </p>
+              <p>
+                <strong className="text-gray-700">Ngày:</strong>{" "}
+                {new Date(comment.createdAt).toLocaleString("vi-VN")}
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
-}
+};
+
+export default CommentPage;

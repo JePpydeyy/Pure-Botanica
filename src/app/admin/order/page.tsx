@@ -36,6 +36,7 @@ interface Order {
   } | null;
   createdAt: string;
   paymentStatus: string;
+  shippingStatus: string;
   address: Address | null;
   items: { product: Product | null; optionId: string; quantity: number; images?: string[] }[];
 }
@@ -45,20 +46,49 @@ export default function OrderPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showPopup, setShowPopup] = useState<boolean>(false);
+  const [showConfirm, setShowConfirm] = useState<{
+    orderId: string;
+    userId: string;
+    newStatus: string;
+    currentStatus: string;
+  } | null>(null);
 
-  const statusMapping = {
+  const paymentStatusMapping = {
     pending: "Chờ xử lý",
-    completed: "Đã giao hàng",
+    completed: "Đã thanh toán",
     failed: "Thất bại",
     cancelled: "Đã hủy",
   };
 
-  const reverseStatusMapping = {
-    "Chờ xử lý": "pending",
-    "Đã giao hàng": "completed",
-    "Thất bại": "failed",
-    "Đã hủy": "cancelled",
+  const shippingStatusMapping = {
+    pending: "Chờ xử lý",
+    in_transit: "Đang vận chuyển",
+    delivered: "Đã giao hàng",
+    returned: "Đã hoàn",
   };
+
+  const reverseShippingStatusMapping = {
+    "Chờ xử lý": "pending",
+    "Đang vận chuyển": "in_transit",
+    "Đã giao hàng": "delivered",
+    "Đã hoàn": "returned",
+  };
+
+  // Define valid next statuses for progressive updates
+  const statusProgression: { [key: string]: string[] } = {
+    pending: ["in_transit"],
+    in_transit: ["delivered"],
+    delivered: ["returned"],
+    returned: [],
+  };
+
+  // All possible statuses for the dropdown
+  const allStatuses = [
+    { value: "pending", label: "Chờ xử lý" },
+    { value: "in_transit", label: "Đang vận chuyển" },
+    { value: "delivered", label: "Đã giao hàng" },
+    { value: "returned", label: "Đã hoàn" },
+  ];
 
   const formatAddress = (address: Address | null) => {
     if (!address) return "Chưa có địa chỉ";
@@ -70,7 +100,7 @@ export default function OrderPage() {
     const fetchOrders = async () => {
       try {
         const response = await axios.get<Order[]>("https://api-zeal.onrender.com/api/orders/admin/all");
-        console.log("API Response:", response.data); // Log để kiểm tra dữ liệu
+        console.log("API Response:", response.data);
         setOrders(response.data);
       } catch (error) {
         console.error("Lỗi khi tải danh sách đơn hàng:", error);
@@ -89,35 +119,80 @@ export default function OrderPage() {
           .padStart(2, "0")}-${date.getFullYear()}`;
   };
 
-  const getVietnameseStatus = (paymentStatus: string) => {
-    return statusMapping[paymentStatus as keyof typeof statusMapping] || paymentStatus;
+  const getVietnamesePaymentStatus = (paymentStatus: string) => {
+    return paymentStatusMapping[paymentStatus as keyof typeof paymentStatusMapping] || paymentStatus;
   };
 
-  const handleStatusChange = async (orderId: string, userId: string, newStatus: string, currentStatus: string) => {
-    if (currentStatus === "completed") {
-      toast.error("Không thể thay đổi trạng thái đơn hàng đã giao thành công");
+  const getVietnameseShippingStatus = (shippingStatus: string) => {
+    return shippingStatusMapping[shippingStatus as keyof typeof shippingStatusMapping] || shippingStatus;
+  };
+
+  const handleShippingStatusChange = async (orderId: string, userId: string, newStatus: string, currentStatus: string) => {
+    if (currentStatus === "returned") {
+      toast.error("Không thể thay đổi trạng thái đơn hàng Đã hoàn");
       return;
     }
 
+    const englishStatus = reverseShippingStatusMapping[newStatus as keyof typeof reverseShippingStatusMapping] || newStatus;
+
+    // Prevent invalid status transitions
+    if (!statusProgression[currentStatus].includes(englishStatus)) {
+      toast.error("Trạng thái không hợp lệ hoặc không thể chuyển về trạng thái trước đó");
+      return;
+    }
+
+    // Show confirmation modal for 'delivered' or 'returned'
+    setShowConfirm({ orderId, userId, newStatus, currentStatus });
+  };
+
+  const confirmStatusChange = async () => {
+    if (!showConfirm) return;
+
+    const { orderId, userId, newStatus, currentStatus } = showConfirm;
+    const englishStatus = reverseShippingStatusMapping[newStatus as keyof typeof reverseShippingStatusMapping] || newStatus;
+
     try {
-      const englishStatus = reverseStatusMapping[newStatus as keyof typeof reverseStatusMapping] || newStatus;
+      // Prepare update payload
+      const updatePayload: { shippingStatus: string; paymentStatus?: string } = {
+        shippingStatus: englishStatus,
+      };
+
+      // Update paymentStatus based on shippingStatus
+      if (englishStatus === "delivered") {
+        updatePayload.paymentStatus = "completed";
+      } else if (englishStatus === "returned") {
+        updatePayload.paymentStatus = "cancelled";
+      }
 
       await axios.put(
-        `https://api-zeal.onrender.com/api/orders/status/${orderId}?userId=${userId}`,
-        { paymentStatus: englishStatus }
+        `https://api-zeal.onrender.com/api/orders/update/${orderId}?userId=${userId}`,
+        updatePayload
       );
 
-      toast.success("Cập nhật trạng thái thành công");
+      toast.success("Cập nhật trạng thái vận chuyển thành công");
 
       setOrders((prevOrders) =>
         prevOrders.map((order) =>
-          order._id === orderId ? { ...order, paymentStatus: englishStatus } : order
+          order._id === orderId
+            ? {
+                ...order,
+                shippingStatus: englishStatus,
+                paymentStatus:
+                  englishStatus === "delivered" ? "completed" : englishStatus === "returned" ? "cancelled" : order.paymentStatus,
+              }
+            : order
         )
       );
     } catch (error) {
-      console.error("Lỗi cập nhật trạng thái:", error);
-      toast.error("Không thể cập nhật trạng thái");
+      console.error("Lỗi cập nhật trạng thái vận chuyển:", error);
+      toast.error("Không thể cập nhật trạng thái vận chuyển");
+    } finally {
+      setShowConfirm(null);
     }
+  };
+
+  const cancelConfirm = () => {
+    setShowConfirm(null);
   };
 
   const handleOrderClick = (order: Order, e: React.MouseEvent) => {
@@ -183,14 +258,15 @@ export default function OrderPage() {
               <th>Tên</th>
               <th>Địa Chỉ</th>
               <th>Ngày</th>
-              <th>Trạng Thái</th>
-              <th>Phương thức thanh toán</th> {/* Thêm cột này */}
+              <th>Trạng Thái Thanh Toán</th>
+              <th>Trạng Thái Vận Chuyển</th>
+              <th>Phương Thức Thanh Toán</th>
             </tr>
           </thead>
           <tbody>
             {orders.length === 0 ? (
               <tr>
-                <td colSpan={6} style={{ textAlign: "center" }}>
+                <td colSpan={7} style={{ textAlign: "center" }}>
                   Chưa có đơn hàng nào
                 </td>
               </tr>
@@ -201,25 +277,35 @@ export default function OrderPage() {
                   <td>{order.user?.username || "Không xác định"}</td>
                   <td>{formatAddress(order.address)}</td>
                   <td>{formatDate(order.createdAt)}</td>
+                  <td>{getVietnamesePaymentStatus(order.paymentStatus)}</td>
                   <td>
                     <select
-                      value={getVietnameseStatus(order.paymentStatus)}
+                      value={getVietnameseShippingStatus(order.shippingStatus)}
                       onChange={(e) =>
-                        handleStatusChange(
+                        handleShippingStatusChange(
                           order._id,
                           order.user?._id || "",
                           e.target.value,
-                          order.paymentStatus
+                          order.shippingStatus
                         )
                       }
-                      className={`${styles.statusSelect} ${styles[order.paymentStatus]}`}
+                      className={styles.statusSelect}
                       onClick={(e) => e.stopPropagation()}
-                      disabled={order.paymentStatus === "completed"}
+                      disabled={order.shippingStatus === "returned"}
                     >
-                      <option value="Chờ xử lý">Chờ xử lý</option>
-                      <option value="Đã giao hàng">Đã giao hàng</option>
-                      <option value="Thất bại">Thất bại</option>
-                      <option value="Đã hủy">Đã hủy</option>
+                      {allStatuses.map((status) => (
+                        <option
+                          key={status.value}
+                          value={status.label}
+                          disabled={
+                            order.shippingStatus === "returned" ||
+                            (!statusProgression[order.shippingStatus].includes(status.value) &&
+                              status.value !== order.shippingStatus)
+                          }
+                        >
+                          {status.label}
+                        </option>
+                      ))}
                     </select>
                   </td>
                   <td>
@@ -253,7 +339,10 @@ export default function OrderPage() {
               <strong>Ngày:</strong> {formatDate(selectedOrder.createdAt)}
             </p>
             <p>
-              <strong>Trạng thái:</strong> {getVietnameseStatus(selectedOrder.paymentStatus)}
+              <strong>Trạng thái thanh toán:</strong> {getVietnamesePaymentStatus(selectedOrder.paymentStatus)}
+            </p>
+            <p>
+              <strong>Trạng thái vận chuyển:</strong> {getVietnameseShippingStatus(selectedOrder.shippingStatus)}
             </p>
             <h3>Sản phẩm trong đơn hàng:</h3>
             <ul>
@@ -283,6 +372,29 @@ export default function OrderPage() {
             </ul>
             <div className={styles.total}>
               Tổng tiền đơn hàng: {calculateOrderTotal(selectedOrder.items).toLocaleString()} VND
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showConfirm && (
+        <div className={styles.popupOverlay} onClick={cancelConfirm}>
+          <div className={styles.confirmModal} onClick={(e) => e.stopPropagation()}>
+            <h2>Xác nhận thay đổi trạng thái</h2>
+            <p>
+              {showConfirm.newStatus === "Đã giao hàng"
+                ? `Xác nhận chuyển trạng thái sang 'Đã giao hàng'? 
+                Trạng thái thanh toán sẽ được cập nhật thành 'Đã thanh toán'.`
+                : `Xác nhận chuyển trạng thái sang 'Đã hoàn'? 
+                Trạng thái thanh toán sẽ được cập nhật thành 'Đã hủy'.`}
+            </p>
+            <div className={styles.confirmButtons}>
+              <button className={styles.confirmButton} onClick={confirmStatusChange}>
+                Xác nhận
+              </button>
+              <button className={styles.cancelButton} onClick={cancelConfirm}>
+                Hủy
+              </button>
             </div>
           </div>
         </div>

@@ -72,25 +72,35 @@
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+
 }
 
 .submitButton {
-  background-color: #007bff;
+  border: none;
+  width: 150px;
+  height: 40px;
+  background-color: #357E38;
   color: #fff;
 }
 
 .submitButton:hover {
-  background-color: #0056b3;
+  background-color: #fff  ;
+  border: 1px solid #357E38;
+  color: #357E38;
 }
 
 .cancelButton {
-  background-color: #6c757d;
+  border: none;
+  width: 150px;
+  height: 40px;
+  background-color: #8D5524;
   color: #fff;
 }
 
 .cancelButton:hover {
-  background-color: #5a6268;
+    background-color: #fff  ;
+  border: 1px solid #8D5524;
+  color: #8D5524;
 }
 
 .result {
@@ -115,6 +125,7 @@
   color: #555;
   text-align: center;
 }
+
 
 /* Responsive Design */
 @media (max-width: 600px) {

@@ -6,10 +6,10 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Product } from "@/app/components/product_interface";
 
-const formatPrice = (price: number): string => {
+const formatPrice = (price: number | undefined | null): string => {
+  if (typeof price !== "number" || isNaN(price)) return "0đ";
   return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "đ";
 };
-
 const getImageUrl = (image: string): string => {
   if (!image) return "/images/placeholder.png";
   return `https://api-zeal.onrender.com/images/${image}`;

@@ -9,11 +9,15 @@ export interface Address {
 
 // Interface cho dữ liệu form
  export interface FormData {
+
   fullName: string;
-  address: Address;
+  addressLine: string;
+  ward: string;
+  district: string;
+  cityOrProvince: string;
   sdt: string;
   note: string;
-  paymentMethod: "cod" | "bank";
+  paymentMethod: "bank" | "cod";
 }
 // Interface cho dữ liệu thanh toán
  export interface CheckoutData {

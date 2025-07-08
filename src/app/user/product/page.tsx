@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
-// Updated Product interface to match the actual API data structure
+// Product interfaces
 interface ProductOption {
   _id: string;
   stock: number;
@@ -41,12 +41,26 @@ interface Product {
   // Computed fields
   price?: number;
   stock?: number;
+  brandName?: string;
 }
 
 interface Category {
   _id: string;
   name: string;
 }
+
+interface Brand {
+  _id: string;
+  name: string;
+  status: string;
+}
+
+const PRICE_RANGES = [
+  { label: "50 - 100.000 VND", value: "50-100" },
+  { label: "101 - 300.000 VND", value: "101-300" },
+  { label: "301 - 500.000 VND", value: "301-500" },
+  { label: "Trên 500.000 VND", value: "500+" },
+];
 
 const formatPrice = (price: number | undefined | null): string => {
   if (price === undefined || price === null || isNaN(price)) {
@@ -57,12 +71,10 @@ const formatPrice = (price: number | undefined | null): string => {
 
 const getImageUrl = (image: string): string => {
   if (!image) return "/images/placeholder.png";
-  // Remove leading slash if present
-  const cleanImage = image.startsWith('/') ? image.substring(1) : image;
+  const cleanImage = image.startsWith("/") ? image.substring(1) : image;
   return `https://api-zeal.onrender.com/${cleanImage}`;
 };
 
-// Helper function to extract price from product options
 const getProductPrice = (product: Product): number => {
   if (product.option && product.option.length > 0) {
     return product.option[0].discount_price || product.option[0].price;
@@ -70,7 +82,6 @@ const getProductPrice = (product: Product): number => {
   return 0;
 };
 
-// Helper function to extract stock from product options
 const getProductStock = (product: Product): number => {
   if (product.option && product.option.length > 0) {
     return product.option.reduce((total, opt) => total + opt.stock, 0);
@@ -83,14 +94,39 @@ export default function ProductPage() {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Filter states
+  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
+  const [selectedPriceRange, setSelectedPriceRange] = useState<string>("");
+
   const productsPerPage = 9;
   const searchParams = useSearchParams();
 
-  // Fetch products
+  // Lấy query tìm kiếm từ URL
+  const searchQuery = searchParams.get("query")?.toLowerCase() || "";
+
+  // Fetch brands
   useEffect(() => {
+    const fetchBrands = async () => {
+      try {
+        const res = await fetch("https://api-zeal.onrender.com/api/brands");
+        if (!res.ok) throw new Error("Lỗi tải thương hiệu");
+        const data: Brand[] = await res.json();
+        setBrands(data);
+      } catch {
+        setBrands([]);
+      }
+    };
+    fetchBrands();
+  }, []);
+
+  // Fetch products (chờ brands)
+  useEffect(() => {
+    if (brands.length === 0) return;
     const fetchProducts = async () => {
       setIsLoading(true);
       setError(null);
@@ -100,26 +136,26 @@ export default function ProductPage() {
           throw new Error(`Lỗi tải sản phẩm: ${response.status}`);
         }
         const data: Product[] = await response.json();
-        
-        // Process products to add computed fields
-        const processedProducts = data.map(product => ({
-          ...product,
-          price: getProductPrice(product),
-          stock: getProductStock(product)
-        }));
-        
-        console.log("Products:", processedProducts);
+        // Gán brandName cho từng sản phẩm
+        const processedProducts = data.map(product => {
+          const brandObj = brands.find(b => b._id === product.id_brand);
+          return {
+            ...product,
+            price: getProductPrice(product),
+            stock: getProductStock(product),
+            brandName: brandObj ? brandObj.name : "",
+          };
+        });
         setProducts(processedProducts);
         setFilteredProducts(processedProducts);
       } catch (error) {
-        console.error("Error fetching products:", error);
         setError("Không thể tải sản phẩm. Vui lòng thử lại sau.");
       } finally {
         setIsLoading(false);
       }
     };
     fetchProducts();
-  }, []);
+  }, [brands]);
 
   // Fetch categories
   useEffect(() => {
@@ -130,76 +166,96 @@ export default function ProductPage() {
           throw new Error(`Lỗi tải danh mục: ${res.status}`);
         }
         const data: Category[] = await res.json();
-        console.log("Categories from API:", data);
         setCategories(data);
       } catch (err) {
-        console.error("Error fetching categories:", err);
         setError("Không thể tải danh mục. Vui lòng thử lại sau.");
       }
     };
     fetchCategories();
   }, []);
 
-  // Apply filter based on URL query parameter
+  // Apply filter based on URL query parameter (category)
   useEffect(() => {
     const categoryFromUrl = searchParams.get("category");
-    console.log("Raw category from URL:", categoryFromUrl);
-
-    // Reset to all products if no category in URL
     if (!categoryFromUrl) {
-      console.log("No category in URL, resetting to all products");
       setActiveCategory(null);
       setFilteredProducts(products);
       setCurrentPage(1);
       return;
     }
-
-    // Wait for products and categories to be loaded
     if (products.length === 0 || categories.length === 0) {
-      console.log("Waiting for products/categories to load...");
       return;
     }
-
-    // Decode the category from URL
     const decodedCategory = decodeURIComponent(categoryFromUrl);
-    console.log("Decoded category from URL:", decodedCategory);
-
-    // Find category by name
     const foundCategory = categories.find(cat => cat.name === decodedCategory);
-    
     if (foundCategory) {
-      console.log("Category found:", foundCategory);
       const filtered = products.filter(
         (product) => product.id_category === foundCategory._id
       );
-      console.log("Filtered products count:", filtered.length);
       setActiveCategory(decodedCategory);
       setFilteredProducts(filtered);
     } else if (decodedCategory === "Tất cả") {
-      console.log("Category is 'Tất cả', showing all products");
       setActiveCategory(null);
       setFilteredProducts(products);
     } else {
-      console.log("Category not found, resetting to all products:", decodedCategory);
       setActiveCategory(null);
       setFilteredProducts(products);
     }
     setCurrentPage(1);
   }, [searchParams, products, categories]);
 
-  // Filter products by category (for sidebar clicks)
+  // Lọc sản phẩm theo bộ lọc sidebar (category, brand, price)
+  useEffect(() => {
+    let filtered = [...products];
+    // Lọc theo danh mục
+    if (activeCategory) {
+      const foundCategory = categories.find(cat => cat.name === activeCategory);
+      if (foundCategory) {
+        filtered = filtered.filter((product) => product.id_category === foundCategory._id);
+      }
+    }
+    // Lọc theo thương hiệu
+    if (selectedBrands.length > 0) {
+      filtered = filtered.filter(
+        (product) => selectedBrands.includes(product.brandName || "")
+      );
+    }
+    // Lọc theo giá
+    if (selectedPriceRange) {
+      filtered = filtered.filter((product) => {
+        const price = product.price || 0;
+        if (selectedPriceRange === "50-100") return price >= 50000 && price <= 100000;
+        if (selectedPriceRange === "101-300") return price >= 101000 && price <= 300000;
+        if (selectedPriceRange === "301-500") return price >= 301000 && price <= 500000;
+        if (selectedPriceRange === "500+") return price > 500000;
+        return true;
+      });
+    }
+    setFilteredProducts(filtered);
+    setCurrentPage(1);
+  }, [products, activeCategory, selectedBrands, selectedPriceRange, categories]);
+
+  // Lọc sản phẩm theo từ khóa tìm kiếm (nếu có)
+  useEffect(() => {
+    if (searchQuery) {
+      const filtered = products.filter(product =>
+        product.name?.toLowerCase().includes(searchQuery)
+      );
+      setFilteredProducts(filtered);
+      setCurrentPage(1);
+    }
+  }, [searchQuery, products]);
+
   const filterProducts = (categoryName: string) => {
-    console.log("Filtering category (sidebar):", categoryName);
-    if (categoryName === "Tất cả") {
-      setFilteredProducts(products);
+    if (activeCategory === categoryName) {
       setActiveCategory(null);
+      setFilteredProducts(products);
     } else {
       const foundCategory = categories.find(cat => cat.name === categoryName);
       if (foundCategory) {
         const filtered = products.filter(
           (product) => product.id_category === foundCategory._id
         );
-        console.log("Filtered products (sidebar) count:", filtered.length);
         setFilteredProducts(filtered);
         setActiveCategory(categoryName);
       }
@@ -225,12 +281,20 @@ export default function ProductPage() {
       !isNaN(product.stock) &&
       product.stock > 0
     );
-    
     const sortedProducts = [...validProducts].sort((a, b) => (b.stock || 0) - (a.stock || 0));
     return sortedProducts.slice(0, count);
   };
 
   const bestSellingProducts = getTopStockProducts(products, 5);
+
+  // Xoá bộ lọc
+  const handleClearFilters = () => {
+    setSelectedBrands([]);
+    setSelectedPriceRange("");
+    setActiveCategory(null);
+    setFilteredProducts(products);
+    setCurrentPage(1);
+  };
 
   return (
     <div>
@@ -242,29 +306,12 @@ export default function ProductPage() {
         <aside className={styles.productSidebar}>
           <h3 className={styles["sidebar-title"]}>DANH MỤC SẢN PHẨM</h3>
           <ul className={styles["menu-list"]}>
-            <li
-              className={styles["menu-list-item"]}
-              onClick={() => filterProducts("Tất cả")}
-            >
-              <span
-                className={styles["menu-title"]}
-                style={{
-                  color: activeCategory === null ? "#8D5524" : "#357E38",
-                  cursor: "pointer",
-                }}
-              >
-                Tất cả
-              </span>
-            </li>
             {categories.length > 0 ? (
               categories.map((category) => (
                 <li
                   key={category._id}
                   className={styles["menu-list-item"]}
-                  onClick={() => {
-                    console.log("Clicked category:", category.name);
-                    filterProducts(category.name);
-                  }}
+                  onClick={() => filterProducts(category.name)}
                 >
                   <span
                     className={styles["menu-title"]}
@@ -281,6 +328,54 @@ export default function ProductPage() {
               <li className={styles["no-products"]}>Không có danh mục nào.</li>
             )}
           </ul>
+
+          {/* Bộ lọc thương hiệu */}
+          <h3 className={styles["sidebar-title"]} style={{ marginTop: 32 }}>THƯƠNG HIỆU</h3>
+          <hr />
+          <ul style={{ listStyle: "none", padding: 0, marginBottom: 18 }}>
+            {brands.map((brand) => (
+              <li key={brand._id} style={{ marginBottom: 8 }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+                  <input
+                    type="checkbox"
+                    checked={selectedBrands.includes(brand.name)}
+                  onChange={() => {
+                    setSelectedBrands((prev) =>
+                      prev.includes(brand.name)
+                        ? prev.filter((b) => b !== brand.name) // Bỏ lọc nếu đã chọn
+                        : [...prev, brand.name]
+                    );
+                  }}
+                  />
+                  <span style={{ color: "#357E38", fontWeight: 500 }}>{brand.name}</span>
+                </label>
+              </li>
+            ))}
+          </ul>
+
+          {/* Bộ lọc phân khúc giá */}
+          <h3 className={styles["sidebar-title"]}>PHÂN KHÚC SẢN PHẨM</h3>
+          <hr />
+        <ul style={{ listStyle: "none", padding: 0 }}>
+          {PRICE_RANGES.map((range) => (
+            <li key={range.value} style={{ marginBottom: 8 }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+                <input
+                  type="radio"
+                  name="priceRange"
+                  checked={selectedPriceRange === range.value}
+                  onChange={() => {
+                    setSelectedPriceRange(
+                      selectedPriceRange === range.value ? "" : range.value
+                    );
+                  }}
+                />
+                <span style={{ color: "#357E38", fontWeight: 500 }}>{range.label}</span>
+              </label>
+            </li>
+          ))}
+        </ul>
+       
         </aside>
         <section className={styles.productContainer}>
           {error ? (
@@ -322,9 +417,11 @@ export default function ProductPage() {
             </div>
           ) : (
             <p className={styles["no-products"]}>
-              {activeCategory
-                ? `Không tìm thấy sản phẩm trong danh mục "${activeCategory}"`
-                : "Không có sản phẩm nào."}
+              {searchQuery
+                ? `Không tìm thấy sản phẩm với từ khóa "${searchQuery}"`
+                : activeCategory
+                  ? `Không tìm thấy sản phẩm trong danh mục "${activeCategory}"`
+                  : "Không có sản phẩm nào."}
             </p>
           )}
           {totalPages > 1 && (
@@ -407,7 +504,7 @@ export default function ProductPage() {
                       width={200}
                       height={200}
                       className={styles["best-selling-product-image"]}
-                    />
+                    />  
                   </div>
                   <div className={styles["best-selling-details"]}>
                     <h3 className={styles["best-selling-product-name"]}>{product?.name || "Tên sản phẩm"}</h3>
@@ -417,8 +514,8 @@ export default function ProductPage() {
               </Link>
             ))
           ) : (
-            <p className={styles["no-products"]}>Đang tải sản phẩm...</p>
-          )}
+              <p className={styles["no-products"]}>Đang tải sản phẩm...</p>
+            )}
         </div>
       </div>
     </div>

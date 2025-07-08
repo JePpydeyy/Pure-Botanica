@@ -2,22 +2,34 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image"; // Thêm import Image
+import Image from "next/image";
 import styles from "./Userinfo.module.css";
 import { User } from "@/app/components/user_interface";
 
 interface Order {
   _id: string;
   createdAt: string;
-  price: number ;
+  price: number;
   total: number;
   paymentStatus: string;
+  shippingStatus: string;
   paymentMethod?: string;
-  couponCode?: string; // Thêm trường couponCode
-  discount?: number; // Thêm trường discount
-  subtotal?: number; // Thêm trường subtotal
-  items: { product: { _id: string; name?: string; price?: number; images?: string[] }; quantity: number }[];
+  couponCode?: string;
+  discount?: number;
+  subtotal?: number;
+  paymentCode?: string;
+  items: {
+    product: { _id: string; name?: string; price?: number; images?: string[]; option?: any[] };
+    optionId?: string;
+    quantity: number;
+  }[];
 }
+
+const getImageUrl = (image: string): string => {
+  if (!image) return "/images/placeholder.png";
+  const cleanImage = image.startsWith("images/") ? image : `images/${image}`;
+  return `https://api-zeal.onrender.com/${cleanImage}`;
+};
 
 export default function UserProfile() {
   const [user, setUser] = useState<User | null>(null);
@@ -28,48 +40,39 @@ export default function UserProfile() {
   const [error, setError] = useState<string | null>(null);
   const [ordersLoading, setOrdersLoading] = useState<boolean>(false);
   const [ordersError, setOrdersError] = useState<string | null>(null);
+  const [paymentMap, setPaymentMap] = useState<Record<string, string>>({});
+
+  const getProductPrice = (product: any, optionId?: string) => {
+    if (!product) return 0;
+    if (optionId && Array.isArray(product.option)) {
+      const opt = product.option.find((o: any) => o._id === optionId);
+      if (opt) return opt.discount_price && opt.discount_price > 0 ? opt.discount_price : opt.price;
+    }
+    return product.price || 0;
+  };
 
   // Lấy danh sách đơn hàng
   const fetchOrders = async (userId: string) => {
     if (!userId || userId.trim() === "") {
-      console.warn("User ID is empty, skipping orders fetch");
       setOrders([]);
       return;
     }
-
     setOrdersLoading(true);
     setOrdersError(null);
-
     try {
       const token = localStorage.getItem("token");
-      console.log(`Fetching orders for user: ${userId}`);
-
       const res = await fetch(`https://api-zeal.onrender.com/api/orders/user/${userId}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-
-      console.log(`Orders API response status: ${res.status}`);
-
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        console.error(`Lỗi ${res.status}:`, errorData);
-
         if (res.status === 404) {
-          console.log("No orders found for user (404), setting empty array");
           setOrders([]);
           return;
-        } else if (res.status === 401) {
-          throw new Error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
-        } else if (res.status === 403) {
-          throw new Error("Bạn không có quyền truy cập danh sách đơn hàng.");
         } else {
-          throw new Error(errorData.message || `HTTP ${res.status}: Lỗi khi tải danh sách đơn hàng.`);
+          throw new Error("Lỗi khi tải danh sách đơn hàng.");
         }
       }
-
       const data = await res.json();
-      console.log("Orders data:", data);
-
       let ordersData: Order[] = [];
       if (Array.isArray(data)) {
         ordersData = data;
@@ -78,15 +81,33 @@ export default function UserProfile() {
       } else if (data && Array.isArray(data.data)) {
         ordersData = data.data;
       } else {
-        console.warn("Unexpected orders data format:", data);
         ordersData = [];
       }
-
       setOrders(ordersData);
+
+      // Lấy paymentCode cho từng order
+      const paymentRes = await fetch("https://api-zeal.onrender.com/api/payments/get-by-user", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ userId }),
+      });
+      if (paymentRes.ok) {
+        const paymentData = await paymentRes.json();
+        if (paymentData && Array.isArray(paymentData.data)) {
+          const map: Record<string, string> = {};
+          paymentData.data.forEach((p: any) => {
+            if (p.orderId && p.paymentCode) {
+              map[p.orderId] = p.paymentCode;
+            }
+          });
+          setPaymentMap(map);
+        }
+      }
     } catch (err: any) {
-      console.error("Error fetching orders:", err);
-      const errorMessage = err.message || "Lỗi khi tải danh sách đơn hàng.";
-      setOrdersError(errorMessage);
+      setOrdersError(err.message || "Lỗi khi tải danh sách đơn hàng.");
     } finally {
       setOrdersLoading(false);
     }
@@ -106,12 +127,9 @@ export default function UserProfile() {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) {
-          const errorData = await res.json().catch(() => ({}));
-          throw new Error(errorData.message || `HTTP ${res.status}: Lỗi khi tải thông tin người dùng.`);
+          throw new Error("Lỗi khi tải thông tin người dùng.");
         }
         const data = await res.json();
-        console.log("User data:", data);
-
         if (data.address && typeof data.address === "string") {
           const addressParts = data.address.split(", ").map((part: string) => part.trim());
           data.address = {
@@ -124,42 +142,19 @@ export default function UserProfile() {
         setUser(data);
         return data;
       } catch (err: any) {
-        console.error("Error fetching user info:", err);
         throw new Error(err.message || "Lỗi khi tải thông tin người dùng.");
       }
     };
 
-    // Lấy danh sách đơn hàng - KHÔNG GỬI TOKEN để server hiểu đây là request lấy theo userId
-    const fetchOrders = async (userId: string) => {
-      try {
-        const res = await fetch(`https://api-zeal.onrender.com/api/orders/user/${userId}`, {
-          // KHÔNG gửi Authorization header để server hiểu đây là request theo userId
-          // headers: { Authorization: `Bearer ${token}` }, // BỎ DÒNG NÀY
-        });
-        if (!res.ok) throw new Error("Lỗi khi tải danh sách đơn hàng.");
-        const data = await res.json();
-        if (!Array.isArray(data)) {
-          throw new Error("Dữ liệu đơn hàng không hợp lệ.");
-        }
-        setOrders(data);
-      } catch {
-        throw new Error("Lỗi khi tải danh sách đơn hàng.");
-      }
-    };
-
-    // Thực hiện các request
     const fetchData = async () => {
       try {
         const userData = await fetchUserInfo();
         if (userData?._id) {
-          console.log("User ID found:", userData._id);
           await fetchOrders(userData._id);
         } else {
-          console.warn("No user ID found in user data");
           setOrders([]);
         }
       } catch (err: any) {
-        console.error("Error in fetchData:", err);
         setError(err.message || "Lỗi khi tải dữ liệu.");
       } finally {
         setLoading(false);
@@ -169,6 +164,7 @@ export default function UserProfile() {
     fetchData();
   }, []);
 
+  // Lấy chi tiết đơn hàng và truyền paymentCode vào selectedOrder
   const fetchOrderById = async (orderId: string) => {
     try {
       const token = localStorage.getItem("token");
@@ -184,15 +180,10 @@ export default function UserProfile() {
       });
 
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
         if (res.status === 404) {
           throw new Error("Không tìm thấy đơn hàng.");
-        } else if (res.status === 401) {
-          throw new Error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
-        } else if (res.status === 403) {
-          throw new Error("Bạn không có quyền xem đơn hàng này.");
         } else {
-          throw new Error(errorData.message || `HTTP ${res.status}: Lỗi khi tải chi tiết đơn hàng.`);
+          throw new Error("Lỗi khi tải chi tiết đơn hàng.");
         }
       }
 
@@ -200,9 +191,11 @@ export default function UserProfile() {
       if (!data || !data._id || !data.items || !Array.isArray(data.items)) {
         throw new Error("Dữ liệu đơn hàng không hợp lệ.");
       }
-      setSelectedOrder(data);
+
+      // Lấy paymentCode từ paymentMap
+      const paymentCode = paymentMap[data._id];
+      setSelectedOrder({ ...data, paymentCode });
     } catch (err: any) {
-      console.error("Error fetching order details:", err);
       setError(err.message || "Lỗi khi tải chi tiết đơn hàng.");
     } finally {
       setLoading(false);
@@ -215,13 +208,57 @@ export default function UserProfile() {
     }
   };
 
-  const formatPrice = (price) => {
+  const formatPrice = (price: number) => {
     const numericPrice = Number(price) || 0;
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
       currency: "VND",
     }).format(numericPrice);
   };
+
+  const renderOrderStatus = (order: Order) => (
+    <div className={styles.statusGroup}>
+      <span
+        className={`${styles.statusButton} ${
+          order.paymentStatus === "pending"
+            ? styles.pending
+            : order.paymentStatus === "completed"
+            ? styles.completed
+            : order.paymentStatus === "cancelled"
+            ? styles.cancelled
+            : styles.failed
+        }`}
+      >
+        {order.paymentStatus === "pending"
+          ? "Chờ thanh toán"
+          : order.paymentStatus === "completed"
+          ? "Đã thanh toán"
+          : order.paymentStatus === "cancelled"
+          ? "Đã hủy"
+          : "Thanh toán lỗi"}
+      </span>
+      <span
+        className={`${styles.statusButton} ${
+          order.shippingStatus === "pending"
+            ? styles.pending
+            : order.shippingStatus === "in_transit"
+            ? styles.intransit
+            : order.shippingStatus === "delivered"
+            ? styles.delivered
+            : styles.returned
+        }`}
+        style={{ marginLeft: 8 }}
+      >
+        {order.shippingStatus === "pending"
+          ? "Chờ giao hàng"
+          : order.shippingStatus === "in_transit"
+          ? "Đang giao"
+          : order.shippingStatus === "delivered"
+          ? "Đã giao"
+          : "Đã trả hàng"}
+      </span>
+    </div>
+  );
 
   if (loading) return <p className={styles.loading}>Đang tải thông tin...</p>;
   if (error) return <p className={styles.error}>{error}</p>;
@@ -230,7 +267,7 @@ export default function UserProfile() {
   return (
     <div className={styles.container}>
       <div className={styles.sidebar}>
-        <h3 className={styles.greeting}>Xin chào, <br></br> {user.username}</h3>
+        <h3 className={styles.greeting}>Xin chào, <br /> {user.username}</h3>
         <ul className={styles.menu}>
           <li
             className={`${styles.menuItem} ${selectedSection === "profile" ? styles.active : ""}`}
@@ -304,25 +341,7 @@ export default function UserProfile() {
                       <div key={order._id} className={styles.orderCard}>
                         <div className={styles.orderHeader}>
                           <span>Mã đơn hàng: {order._id}</span>
-                          <button
-                            className={`${styles.statusButton} ${
-                              order.paymentStatus === "pending"
-                                ? styles.pending
-                                : order.paymentStatus === "completed"
-                                ? styles.completed
-                                : order.paymentStatus === "cancelled"
-                                ? styles.cancelled
-                                : styles.failed
-                            }`}
-                          >
-                            {order.paymentStatus === "pending"
-                              ? "Chờ xác nhận"
-                              : order.paymentStatus === "completed"
-                              ? "Đã giao"
-                              : order.paymentStatus === "cancelled"
-                              ? "Đã hủy"
-                              : "Đang xử lý"}
-                          </button>
+                          {renderOrderStatus(order)}
                         </div>
                         <p>Ngày đặt: {new Date(order.createdAt).toLocaleDateString()}</p>
                         <p>Tổng tiền: {order.total.toLocaleString()}đ</p>
@@ -353,29 +372,40 @@ export default function UserProfile() {
                   <span>Sản phẩm</span>
                   <span>Tổng</span>
                 </div>
-                {selectedOrder.items.map((item, index) => (
-                  <div key={index} className={styles.productItem}>
-                    <div className={styles.cartItemImage}>
-                     <Image
-                        src={
-                          item.product.images && item.product.images.length > 0
-                            ? `https://api-zeal.onrender.com/images/${item.product.images[0]}`
-                            : "https://via.placeholder.com/100x100?text=No+Image"
-                        }
-                        alt={item.product.name || "Sản phẩm"}
-                        width={100}
-                        height={100}
-                      />
+                {selectedOrder.items.map((item, index) => {
+                  const price = getProductPrice(item.product, item.optionId);
+                  let optionValue = "";
+                  if (item.product.option && item.optionId) {
+                    const opt = item.product.option.find((o: any) => o._id === item.optionId);
+                    if (opt && opt.value) optionValue = opt.value;
+                  }
+                  return (
+                    <div key={index} className={styles.productItem}>
+                      <div className={styles.cartItemImage}>
+                        <Image
+                          src={
+                            item.product.images && item.product.images.length > 0
+                              ? getImageUrl(item.product.images[0])
+                              : "https://via.placeholder.com/100x100?text=No+Image"
+                          }
+                          alt={item.product.name || "Sản phẩm"}
+                          width={100}
+                          height={100}
+                        />
+                      </div>
+                      <div className={styles.productInfo}>
+                        <div className={styles.cartItemName}>
+                          {item.product.name}
+                          {optionValue && <span style={{ color: "#888", fontWeight: 400 }}> ({optionValue})</span>}
+                        </div>
+                        <div className={styles.cartItemDesc}>Số lượng: {item.quantity}</div>
+                      </div>
+                      <div className={styles.productPrice}>
+                        {formatPrice(price * item.quantity)}
+                      </div>
                     </div>
-                    <div className={styles.productInfo}>
-                      <div className={styles.cartItemName}>{item.product.name || `Sản phẩm ${item.product._id}`}</div>
-                      <div className={styles.cartItemDesc}>Số lượng: {item.quantity}</div>
-                    </div>
-                    <div className={styles.productPrice}>
-                      {formatPrice(item.product.price * item.quantity)}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
                 <div className={styles.cartSummary}>
                   <div className={styles.summaryRow}>
                     <span>Tổng</span>
@@ -393,6 +423,30 @@ export default function UserProfile() {
                     (Tổng giá bao gồm tất cả các loại thuế và phí)
                   </div>
                 </div>
+                {/* Hiển thị nút thanh toán online nếu là bank và chưa thanh toán */}
+                {selectedOrder.paymentMethod === "bank" && selectedOrder.paymentStatus === "pending" && selectedOrder.paymentCode && (
+                  <div className={styles.paymentNotice}>
+                    <p style={{ color: "#e67e22", margin: "12px 0" }}>
+                      Đơn hàng của bạn chưa được thanh toán. Vui lòng thanh toán online để hoàn tất đơn hàng.
+                    </p>
+                    <a
+                      href={`/user/payment?paymentCode=${encodeURIComponent(selectedOrder.paymentCode)}&amount=${selectedOrder.total}`}
+                      className={styles.paymentLink}
+                      style={{
+                        display: "inline-block",
+                        background: "#2d8cf0",
+                        color: "#fff",
+                        padding: "8px 20px",
+                        borderRadius: 6,
+                        textDecoration: "none",
+                        fontWeight: 500,
+                        marginBottom: 16,
+                      }}
+                    >
+                      Thanh toán ngay
+                    </a>
+                  </div>
+                )}
                 <div className={styles.addressSection}>
                   <h3>Địa chỉ nhận hàng</h3>
                   <p><strong>Tên:</strong> {user.username}</p>

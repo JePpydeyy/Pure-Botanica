@@ -64,9 +64,9 @@
   flex: 1;
   max-width: 550px;
   padding: 20px;
-  background-color: #f9f9f9;
+
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+ 
 }
 
 /* Cart section */
@@ -74,14 +74,13 @@
   flex: 1;
   max-width: 550px;
   padding: 20px;
-  background-color: #ffffff;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  
 }
 
 /* Form styles */
 .formTitle {
-  font-size: 18px;
+  font-size: 24px;
   margin-bottom: 20px;
   font-weight: bold;
   color: #333;
@@ -98,6 +97,11 @@
   margin-right: 10px;
 }
 
+.mainForm{
+  display: flex;
+  flex-direction: row;
+  gap: 15px;
+}
 /* Style chung cho input và select */
 .formSection input[type="text"],
 .formSection textarea,
@@ -157,7 +161,7 @@
   display: flex;
   justify-content: space-between;
   font-weight: bold;
-  font-size: 16px;
+  font-size: 20px;
 }
 
 .cartItem {
@@ -221,6 +225,16 @@
   margin-top: 5px;
   margin-bottom: 12px;
 }
+.paymentMethodWrapper{
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 16px;
+}
+.paymentTitle{
+  font-size: 24px;
+  font-weight: bold;
+}
 
 /* Payment methods */
 .paymentMethods {
@@ -228,7 +242,7 @@
 }
 
 .paymentMethod {
-  font-weight: 600;
+  font-size: 18px;
   margin-bottom: 10px;
   display: flex;
   align-items: center;
@@ -278,7 +292,31 @@
   margin-top: 15px;
   line-height: 1.4;
 }
-
+/* Thêm vào checkout.module.css */
+.popupOverlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.popupContent {
+  background: #fff;
+  padding: 24px;
+  border-radius: 8px;
+  min-width: 320px;
+  max-width: 90vw;
+}
+.addressItem {
+  margin-bottom: 12px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 8px;
+}
+.selectAddressBtn {
+  margin-bottom: 16px;
+}
 /* Responsive design */
 @media (max-width: 768px) {
   .content {

@@ -554,10 +554,14 @@
   display: block;
   object-fit: cover;
 }
+
+.newProductName,
 .bestSellingName {
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* Số dòng tối đa */
+  -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 180px;
-  display: block;
+  word-break: break-word;
+  min-height: 2.6em; /* Đảm bảo chiều cao cho 2 dòng */
 }

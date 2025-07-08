@@ -7,18 +7,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCart } from "../context/CartContext";
 import ToastNotification from "../ToastNotification/ToastNotification";
-
-// Define TypeScript interfaces for type safety
-interface CartItem {
-  product: { _id: string; name: string; images: string[] };
-  option: { _id: string; value: string; price: number; discount_price?: number };
-  quantity: number;
-}
-
-interface Cart {
-  _id: string;
-  items: CartItem[];
-}
+import { Cart, CartItem } from "@/app/components/cart_interface";
 
 export default function CartPage() {
   const [cart, setCart] = useState<Cart | null>(null);
@@ -334,7 +323,7 @@ export default function CartPage() {
   // Get image URL
   const getImageUrl = (image: string): string => {
     if (!image) return "https://via.placeholder.com/100x100?text=No+Image";
-    return image.startsWith("http") ? image : `https://api-zeal.onrender.com/${image}`;
+    return `https://api-zeal.onrender.com/${image}`;
   };
 
   return (
@@ -375,7 +364,7 @@ export default function CartPage() {
                       className={styles["cart-row"]}
                     >
                       <td className={`${styles["cart-cell"]} ${styles.product}`}>
-                        <Image
+                       <img
                           src={
                             item.product.images && item.product.images.length > 0
                               ? getImageUrl(item.product.images[0])
@@ -385,7 +374,10 @@ export default function CartPage() {
                           width={100}
                           height={100}
                           className={styles["cart-image"]}
-                        />
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).src = "https://via.placeholder.com/100x100?text=No+Image";
+                          }}
+/>
                         <span>
                           {item.product.name || "Sản phẩm không xác định"}
                           {item.option && ` - ${item.option.value}`}

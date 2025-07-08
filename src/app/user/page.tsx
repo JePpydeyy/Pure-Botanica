@@ -118,7 +118,7 @@ export default function Home() {
   // Xử lý URL ảnh
   const getImageUrl = (image: string): string => {
     if (!image) return "/api/placeholder/200/200";
-    return image.startsWith("http") ? image : `https://api-zeal.onrender.com${image}`;
+    return image.startsWith("http") ? image : `https://api-zeal.onrender.com/${image}`;
   };
 
   return (

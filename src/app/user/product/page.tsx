@@ -131,7 +131,7 @@ export default function ProductPage() {
       setIsLoading(true);
       setError(null);
       try {
-        const response = await fetch("https://api-zeal.onrender.com/api/products");
+        const response = await fetch("https://api-zeal.onrender.com/api/products/active");
         if (!response.ok) {
           throw new Error(`Lỗi tải sản phẩm: ${response.status}`);
         }

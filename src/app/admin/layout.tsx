@@ -37,6 +37,9 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
             <Link href="/admin/product" className="menu-item">
               <span>Sản phẩm</span>
             </Link>
+            <Link href="/admin/brand" className="menu-item">
+              <span>Thương hiệu</span>
+            </Link>
             <Link href="/admin/order" className="menu-item">
               <span>Danh sách oder</span>
             </Link>

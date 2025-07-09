@@ -60,7 +60,7 @@ export default function CheckoutPage() {
   const [isClient, setIsClient] = useState(false);
   const [shippingStatus, setShippingStatus] = useState<string | null>(null);
 
-  // Popup state
+
   const [showAddressPopup, setShowAddressPopup] = useState(false);
   const [addressTab, setAddressTab] = useState<"saved" | "new">("saved");
   const [newAddress, setNewAddress] = useState({

@@ -87,9 +87,17 @@
   text-align: center;
 }
 
-.statBox:nth-child(2) { border-left-color: #10b981; }
-.statBox:nth-child(3) { border-left-color: #f59e0b; }
-.statBox:nth-child(4) { border-left-color: #8b5cf6; }
+.statBox:nth-child(2) {
+  border-left-color: #10b981;
+}
+
+.statBox:nth-child(3) {
+  border-left-color: #f59e0b;
+}
+
+.statBox:nth-child(4) {
+  border-left-color: #8b5cf6;
+}
 
 .statBox:hover {
   transform: translateY(-3px);
@@ -113,13 +121,51 @@
 
 /* Chart */
 .chartContainer {
-background: white;
+  background: white;
   border-radius: 12px;
-  padding: 2rem;
-  margin: 0 1rem 2rem;
+  padding: 1.5rem;
+  margin: 2rem 1rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
-  width: 100%;
-  height: 400px; /* Đảm bảo chiều cao cố định cho biểu đồ */
+  width: calc(100% - 2rem);
+  height: 500px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Ensure the canvas fills the remaining space */
+.chartContainer canvas {
+  width: 100% !important;
+  height: 100% !important;
+  flex-grow: 1;
+}
+
+.chartHeader {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.5rem; /* Reduced to minimize impact on chart height */
+}
+
+.timePeriodSelect {
+  padding: 0.5rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  color: #1e293b;
+  background: #ffffff;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+  font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
+}
+
+.timePeriodSelect:hover {
+  border-color: #94a3b8;
+}
+
+.timePeriodSelect:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 /* Orders */
@@ -131,37 +177,45 @@ background: white;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
 }
 
-.recentOrders h3 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #0f172a;
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 1.25rem;
 }
 
-.recentOrders table {
+.sectionHeader h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #0f172a;
+  margin: 0;
+}
+
+.sectionHeader a {
+  color: #3b82f6;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.sectionHeader a:hover {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.tableContainer {
+  overflow-x: auto;
+}
+
+.table {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
   font-size: 0.875rem;
 }
 
-.tableCaption {
-  font-style: italic;
-  color: #6b7280;
-  text-align: left;
-  margin-bottom: 1rem;
-  font-size: 0.875rem;
-}
-
-.recentOrders th,
-.recentOrders td {
-  padding: 0.875rem 1rem;
-  text-align: left;
-  vertical-align: middle;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.recentOrders th {
+.tableHeader {
   background: #f9fafb;
   color: #1e293b;
   font-weight: 600;
@@ -169,44 +223,41 @@ background: white;
   text-transform: uppercase;
 }
 
-.recentOrders tr:last-child td {
-  border-bottom: none;
+.tableHeader th {
+  padding: 0.875rem 1rem;
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid #e5e7eb;
 }
 
-.recentOrders tr:hover td {
+.tableRow {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.tableRow td {
+  padding: 0.875rem 1rem;
+  vertical-align: middle;
+}
+
+.tableRow:hover td {
   background: #f8fafc;
 }
 
-.recentOrders td div {
-  margin-bottom: 0.25rem;
+.tableRow:last-child td {
+  border-bottom: none;
 }
 
-/* Status Tags */
-.statusPending {
-  background: #fef3c7;
-  color: #92400e;
+.status {
   padding: 0.25rem 0.6rem;
   border-radius: 4px;
   font-weight: 500;
   font-size: 0.75rem;
+  display: inline-block;
 }
 
-.statusCompleted {
+.completed {
   background: #d1fae5;
   color: #047857;
-  padding: 0.25rem 0.6rem;
-  border-radius: 4px;
-  font-weight: 500;
-  font-size: 0.75rem;
-}
-
-.statusDelivering {
-  background: #dbeafe;
-  color: #2563eb;
-  padding: 0.25rem 0.6rem;
-  border-radius: 4px;
-  font-weight: 500;
-  font-size: 0.75rem;
 }
 
 /* Messages */
@@ -230,7 +281,7 @@ background: white;
 .noDataMessage {
   text-align: center;
   color: #6b7280;
-  font-style: italic;
+  font-size: 0.875rem;
   padding: 1rem;
 }
 
@@ -240,7 +291,7 @@ background: white;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   }
 
-  .recentOrders table {
+  .tableContainer {
     overflow-x: auto;
     display: block;
     white-space: nowrap;
@@ -256,10 +307,11 @@ background: white;
   .chartContainer,
   .recentOrders {
     margin: 0 0 2rem;
+    width: 100%;
   }
 
-  .timePeriodButton {
-    flex: 1;
-    min-width: 100px;
+  .timePeriodSelect {
+    width: 100%;
+    max-width: 200px;
   }
 }

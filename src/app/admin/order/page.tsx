@@ -1,8 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
-import axios from "axios";
-import toast from "react-hot-toast";
 import styles from "./order.module.css";
+import { useRouter } from "next/navigation";
 
 interface Option {
   stock: number;
@@ -20,10 +19,10 @@ interface Product {
 }
 
 interface Address {
-  addressLine?: string;
-  ward?: string;
-  district?: string;
-  cityOrProvince?: string;
+  addressLine: string;
+  ward: string;
+  district: string;
+  cityOrProvince: string;
 }
 
 interface Order {
@@ -33,52 +32,149 @@ interface Order {
     _id: string;
     username: string;
     email: string;
-  } | null;
+  };
   createdAt: string;
   paymentStatus: string;
-  address: Address | null;
-  items: { product: Product | null; optionId: string; quantity: number; images?: string[] }[];
+  shippingStatus: string;
+  address: Address;
+  total: number;
+  items: { product: Product | null; optionId: string; quantity: number; images: string[] }[];
+}
+
+interface Notification {
+  show: boolean;
+  message: string;
+  type: "success" | "error";
 }
 
 export default function OrderPage() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showPopup, setShowPopup] = useState<boolean>(false);
+  const [showConfirm, setShowConfirm] = useState<{
+    orderId: string;
+    newStatus: string;
+    currentStatus: string;
+  } | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [notification, setNotification] = useState<Notification>({
+    show: false,
+    message: "",
+    type: "success",
+  });
+  const router = useRouter();
 
-  const statusMapping = {
+  const paymentStatusMapping = {
     pending: "Chờ xử lý",
-    completed: "Đã giao hàng",
+    completed: "Đã thanh toán",
     failed: "Thất bại",
     cancelled: "Đã hủy",
   };
 
-  const reverseStatusMapping = {
-    "Chờ xử lý": "pending",
-    "Đã giao hàng": "completed",
-    "Thất bại": "failed",
-    "Đã hủy": "cancelled",
+  const shippingStatusMapping = {
+    pending: "Chờ xử lý",
+    in_transit: "Đang vận chuyển",
+    delivered: "Đã giao hàng",
+    returned: "Đã hoàn",
   };
 
-  const formatAddress = (address: Address | null) => {
-    if (!address) return "Chưa có địa chỉ";
+  const reverseShippingStatusMapping = {
+    "Chờ xử lý": "pending",
+    "Đang vận chuyển": "in_transit",
+    "Đã giao hàng": "delivered",
+    "Đã hoàn": "returned",
+  };
+
+  const statusProgression: { [key: string]: string[] } = {
+    pending: ["in_transit"],
+    in_transit: ["delivered"],
+    delivered: ["returned"],
+    returned: [],
+  };
+
+  const allStatuses = [
+    { value: "pending", label: "Chờ xử lý" },
+    { value: "in_transit", label: "Đang vận chuyển" },
+    { value: "delivered", label: "Đã giao hàng" },
+    { value: "returned", label: "Đã hoàn" },
+  ];
+
+  const formatAddress = (address: Address) => {
     const { addressLine, ward, district, cityOrProvince } = address;
     return [addressLine, ward, district, cityOrProvince].filter(Boolean).join(", ") || "Chưa có địa chỉ";
   };
 
+  // Show notification and auto-hide after 3 seconds
+  const showNotification = (message: string, type: "success" | "error") => {
+    setNotification({ show: true, message, type });
+    setTimeout(() => {
+      setNotification({ show: false, message: "", type: "success" });
+    }, 3000);
+  };
+
+  // Check admin role and token
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const role = localStorage.getItem("role");
+    if (!token || role !== "admin") {
+      showNotification("Vui lòng đăng nhập với quyền admin!", "error");
+      localStorage.removeItem("token");
+      localStorage.removeItem("role");
+      localStorage.removeItem("email");
+      router.push("/user/login");
+    }
+  }, [router]);
+
+  // Fetch orders
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const response = await axios.get<Order[]>("https://api-zeal.onrender.com/api/orders/admin/all");
-        console.log("API Response:", response.data); // Log để kiểm tra dữ liệu
-        setOrders(response.data);
+        setError(null);
+        const token = localStorage.getItem("token");
+        const res = await fetch("https://api-zeal.onrender.com/api/orders/admin/all", {
+          headers: { Authorization: `Bearer ${token}` },
+          cache: "no-store",
+        });
+        if (res.status === 401 || res.status === 403) {
+          showNotification("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!", "error");
+          localStorage.removeItem("token");
+          localStorage.removeItem("role");
+          localStorage.removeItem("email");
+          router.push("/user/login");
+          return;
+        }
+        if (!res.ok) {
+          throw new Error(`Lỗi API: ${res.status} ${res.statusText}`);
+        }
+        const data: Order[] = await res.json();
+        if (!Array.isArray(data)) {
+          throw new Error("Dữ liệu đơn hàng không hợp lệ");
+        }
+        setOrders(data);
+        setFilteredOrders(data);
       } catch (error) {
-        console.error("Lỗi khi tải danh sách đơn hàng:", error);
-        setError("Không thể tải danh sách đơn hàng");
+        const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
+        console.error("Lỗi khi tải danh sách đơn hàng:", errorMessage);
+        setError("Không thể tải danh sách đơn hàng. Vui lòng thử lại sau.");
+        showNotification("Không thể tải danh sách đơn hàng", "error");
       }
     };
     fetchOrders();
-  }, []);
+  }, [router]);
+
+  // Filter orders based on search query
+  useEffect(() => {
+    const filtered = orders.filter((order) => {
+      const searchLower = searchQuery.toLowerCase();
+      const username = order.user.username?.toLowerCase() || "";
+      const orderId = order._id.toLowerCase();
+      const address = formatAddress(order.address).toLowerCase();
+      return username.includes(searchLower) || orderId.includes(searchLower) || address.includes(searchLower);
+    });
+    setFilteredOrders(filtered);
+  }, [searchQuery, orders]);
 
   const formatDate = (dateString: string | number | Date) => {
     const date = new Date(dateString);
@@ -89,39 +185,112 @@ export default function OrderPage() {
           .padStart(2, "0")}-${date.getFullYear()}`;
   };
 
-  const getVietnameseStatus = (paymentStatus: string) => {
-    return statusMapping[paymentStatus as keyof typeof statusMapping] || paymentStatus;
+  const getVietnamesePaymentStatus = (paymentStatus: string) => {
+    return paymentStatusMapping[paymentStatus as keyof typeof paymentStatusMapping] || paymentStatus;
   };
 
-  const handleStatusChange = async (orderId: string, userId: string, newStatus: string, currentStatus: string) => {
-    if (currentStatus === "completed") {
-      toast.error("Không thể thay đổi trạng thái đơn hàng đã giao thành công");
+  const getVietnameseShippingStatus = (shippingStatus: string) => {
+    return shippingStatusMapping[shippingStatus as keyof typeof shippingStatusMapping] || shippingStatus;
+  };
+
+  const handleShippingStatusChange = async (orderId: string, newStatus: string, currentStatus: string) => {
+    if (currentStatus === "returned") {
+      showNotification("Không thể thay đổi trạng thái đơn hàng Đã hoàn", "error");
       return;
     }
 
+    const englishStatus =
+      reverseShippingStatusMapping[newStatus as keyof typeof reverseShippingStatusMapping] || newStatus;
+
+    if (!statusProgression[currentStatus].includes(englishStatus)) {
+      showNotification("Trạng thái không hợp lệ hoặc không thể chuyển về trạng thái trước đó", "error");
+      return;
+    }
+
+    setShowConfirm({ orderId, newStatus, currentStatus });
+  };
+
+  const confirmStatusChange = async () => {
+    if (!showConfirm) return;
+
+    const { orderId, newStatus, currentStatus } = showConfirm;
+    const englishStatus =
+      reverseShippingStatusMapping[newStatus as keyof typeof reverseShippingStatusMapping] || newStatus;
+
     try {
-      const englishStatus = reverseStatusMapping[newStatus as keyof typeof reverseStatusMapping] || newStatus;
+      const updatePayload: { shippingStatus: string; paymentStatus?: string } = {
+        shippingStatus: englishStatus,
+      };
 
-      await axios.put(
-        `https://api-zeal.onrender.com/api/orders/status/${orderId}?userId=${userId}`,
-        { paymentStatus: englishStatus }
-      );
+      if (englishStatus === "delivered") {
+        updatePayload.paymentStatus = "completed";
+      } else if (englishStatus === "returned") {
+        updatePayload.paymentStatus = "cancelled";
+      }
 
-      toast.success("Cập nhật trạng thái thành công");
+      const token = localStorage.getItem("token");
+      const response = await fetch(`https://api-zeal.onrender.com/api/orders/update/${orderId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(updatePayload),
+      });
 
+      if (response.status === 401 || response.status === 403) {
+        showNotification("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!", "error");
+        localStorage.removeItem("token");
+        localStorage.removeItem("role");
+        localStorage.removeItem("email");
+        router.push("/user/login");
+        return;
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Lỗi API: ${response.status} ${errorText}`);
+      }
+
+      const { order }: { order: Order } = await response.json();
       setOrders((prevOrders) =>
-        prevOrders.map((order) =>
-          order._id === orderId ? { ...order, paymentStatus: englishStatus } : order
+        prevOrders.map((o) =>
+          o._id === orderId
+            ? {
+                ...o,
+                shippingStatus: order.shippingStatus,
+                paymentStatus: order.paymentStatus,
+              }
+            : o
         )
       );
+      setFilteredOrders((prevOrders) =>
+        prevOrders.map((o) =>
+          o._id === orderId
+            ? {
+                ...o,
+                shippingStatus: order.shippingStatus,
+                paymentStatus: order.paymentStatus,
+              }
+            : o
+        )
+      );
+      showNotification("Cập nhật trạng thái vận chuyển thành công", "success");
     } catch (error) {
-      console.error("Lỗi cập nhật trạng thái:", error);
-      toast.error("Không thể cập nhật trạng thái");
+      const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
+      console.error("Lỗi cập nhật trạng thái vận chuyển:", errorMessage);
+      showNotification("Không thể cập nhật trạng thái vận chuyển", "error");
+    } finally {
+      setShowConfirm(null);
     }
   };
 
+  const cancelConfirm = () => {
+    setShowConfirm(null);
+  };
+
   const handleOrderClick = (order: Order, e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).tagName === "SELECT") {
+    if ((e.target as HTMLElement).tagName === "SELECT" || (e.target as HTMLElement).tagName === "INPUT") {
       return;
     }
     setSelectedOrder(order);
@@ -144,85 +313,102 @@ export default function OrderPage() {
     return selectedOption.discount_price ?? selectedOption.price ?? 0;
   };
 
-  const calculateProductTotal = (product: Product | null, optionId: string, quantity: number) => {
-    const price = getProductPrice(product, optionId);
-    return price * quantity;
-  };
-
-  const calculateOrderTotal = (items: { product: Product | null; optionId: string; quantity: number }[]) => {
-    if (!items || !Array.isArray(items)) {
-      return 0;
-    }
-    return items.reduce((total, item) => {
-      if (!item || !item.product) {
-        return total;
-      }
-      return total + calculateProductTotal(item.product, item.optionId, item.quantity);
-    }, 0);
-  };
-
-  const getProductImage = (product: Product | null) => {
-    if (product?.images && product.images.length > 0) {
-      return `https://api-zeal.onrender.com/${product.images[0]}`;
+  const getProductImage = (item: { product: Product | null; images: string[] }) => {
+    if (item.images && item.images.length > 0) {
+      return `https://api-zeal.onrender.com/${item.images[0]}`;
     }
     return "https://via.placeholder.com/60x60?text=No+Image";
   };
 
-  if (error) return <div className={styles.errorMessage}>{error}</div>;
+  if (error) {
+    return (
+      <div className={styles.errorContainer}>
+        <p className={styles.errorMessage}>{error}</p>
+        <button className={styles.retryButton} onClick={() => window.location.reload()}>
+          Thử lại
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.orderContainer}>
+      {notification.show && (
+        <div className={`${styles.notification} ${styles[notification.type]}`}>
+          {notification.message}
+        </div>
+      )}
       <div className={styles.title}>
         <h1>Danh Sách Đơn Hàng</h1>
+      </div>
+      <div className={styles.searchContainer}>
+        <input
+          type="text"
+          placeholder="Tìm kiếm theo tên, ID đơn hàng hoặc địa chỉ..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className={styles.searchInput}
+        />
       </div>
       <div className={styles.tableContainer}>
         <table className={styles.orderTable}>
           <thead>
             <tr>
-              <th>ID</th>
-              <th>Tên</th>
-              <th>Địa Chỉ</th>
-              <th>Ngày</th>
-              <th>Trạng Thái</th>
-              <th>Phương thức thanh toán</th> {/* Thêm cột này */}
+              <th data-label="ID">ID</th>
+              <th data-label="Tên">Tên</th>
+              <th data-label="Tổng Tiền">Tổng Tiền</th>
+              <th data-label="Ngày">Ngày</th>
+              <th data-label="Trạng Thái Thanh Toán">Trạng Thái Thanh Toán</th>
+              <th data-label="Trạng Thái Vận Chuyển">Trạng Thái Vận Chuyển</th>
+              <th data-label="Phương Thức Thanh Toán"></th>
             </tr>
           </thead>
           <tbody>
-            {orders.length === 0 ? (
+            {filteredOrders.length === 0 ? (
               <tr>
-                <td colSpan={6} style={{ textAlign: "center" }}>
-                  Chưa có đơn hàng nào
+                <td colSpan={7} className={styles.emptyState}>
+                  <h3>{searchQuery ? "Không tìm thấy đơn hàng" : "Chưa có đơn hàng"}</h3>
+                  <p>
+                    {searchQuery
+                      ? "Không có đơn hàng nào khớp với từ khóa tìm kiếm."
+                      : "Hiện tại không có đơn hàng nào để hiển thị."}
+                  </p>
                 </td>
               </tr>
             ) : (
-              orders.map((order, index) => (
+              filteredOrders.map((order, index) => (
                 <tr key={order._id} onClick={(e) => handleOrderClick(order, e)}>
-                  <td>{index + 1}</td>
-                  <td>{order.user?.username || "Không xác định"}</td>
-                  <td>{formatAddress(order.address)}</td>
-                  <td>{formatDate(order.createdAt)}</td>
-                  <td>
+                  <td data-label="ID">{index + 1}</td>
+                  <td data-label="Tên">{order.user.username || "Không xác định"}</td>
+                  <td data-label="Tổng Tiền">{order.total.toLocaleString()} VND</td>
+                  <td data-label="Ngày">{formatDate(order.createdAt)}</td>
+                  <td data-label="Trạng Thái Thanh Toán">{getVietnamesePaymentStatus(order.paymentStatus)}</td>
+                  <td data-label="Trạng Thái Vận Chuyển">
                     <select
-                      value={getVietnameseStatus(order.paymentStatus)}
+                      value={getVietnameseShippingStatus(order.shippingStatus)}
                       onChange={(e) =>
-                        handleStatusChange(
-                          order._id,
-                          order.user?._id || "",
-                          e.target.value,
-                          order.paymentStatus
-                        )
+                        handleShippingStatusChange(order._id, e.target.value, order.shippingStatus)
                       }
-                      className={`${styles.statusSelect} ${styles[order.paymentStatus]}`}
+                      className={styles.statusSelect}
                       onClick={(e) => e.stopPropagation()}
-                      disabled={order.paymentStatus === "completed"}
+                      disabled={order.shippingStatus === "returned"}
                     >
-                      <option value="Chờ xử lý">Chờ xử lý</option>
-                      <option value="Đã giao hàng">Đã giao hàng</option>
-                      <option value="Thất bại">Thất bại</option>
-                      <option value="Đã hủy">Đã hủy</option>
+                      {allStatuses.map((status) => (
+                        <option
+                          key={status.value}
+                          value={status.label}
+                          disabled={
+                            order.shippingStatus === "returned" ||
+                            (!statusProgression[order.shippingStatus].includes(status.value) &&
+                              status.value !== order.shippingStatus)
+                          }
+                        >
+                          {status.label}
+                        </option>
+                      ))}
                     </select>
                   </td>
-                  <td>
+                  <td data-label="Phương Thức Thanh Toán">
                     {order.paymentMethod === "cod"
                       ? "Thanh toán khi nhận hàng"
                       : order.paymentMethod === "bank"
@@ -239,12 +425,12 @@ export default function OrderPage() {
       {showPopup && selectedOrder && (
         <div className={styles.popupOverlay} onClick={closePopup}>
           <div className={styles.orderDetail} onClick={(e) => e.stopPropagation()}>
-            <button className={styles.closeButton} onClick={closePopup}>
+            <button className={styles.closeButton} onClick={closePopup} aria-label="Đóng chi tiết đơn hàng">
               ×
             </button>
             <h2>Chi Tiết Đơn Hàng</h2>
             <p>
-              <strong>Khách hàng:</strong> {selectedOrder.user?.username || "Không xác định"}
+              <strong>Khách hàng:</strong> {selectedOrder.user.username || "Không xác định"}
             </p>
             <p>
               <strong>Địa chỉ:</strong> {formatAddress(selectedOrder.address)}
@@ -253,7 +439,10 @@ export default function OrderPage() {
               <strong>Ngày:</strong> {formatDate(selectedOrder.createdAt)}
             </p>
             <p>
-              <strong>Trạng thái:</strong> {getVietnameseStatus(selectedOrder.paymentStatus)}
+              <strong>Trạng thái thanh toán:</strong> {getVietnamesePaymentStatus(selectedOrder.paymentStatus)}
+            </p>
+            <p>
+              <strong>Trạng thái vận chuyển:</strong> {getVietnameseShippingStatus(selectedOrder.shippingStatus)}
             </p>
             <h3>Sản phẩm trong đơn hàng:</h3>
             <ul>
@@ -261,7 +450,7 @@ export default function OrderPage() {
                 selectedOrder.items.map((item, idx) => (
                   <li key={idx}>
                     <img
-                      src={getProductImage(item.product)}
+                      src={getProductImage(item)}
                       alt={item.product?.name || "Không xác định"}
                       className={styles.productImage}
                       onError={(e) => {
@@ -271,8 +460,7 @@ export default function OrderPage() {
                     <div className={styles.productInfo}>
                       <div className={styles.productName}>{item.product?.name || "Không xác định"}</div>
                       <div className={styles.productPrice}>
-                        {item.quantity} x {getProductPrice(item.product, item.optionId).toLocaleString()} VND ={" "}
-                        {calculateProductTotal(item.product, item.optionId, item.quantity).toLocaleString()} VND
+                        {item.quantity} x {getProductPrice(item.product, item.optionId).toLocaleString()} VND
                       </div>
                     </div>
                   </li>
@@ -282,7 +470,40 @@ export default function OrderPage() {
               )}
             </ul>
             <div className={styles.total}>
-              Tổng tiền đơn hàng: {calculateOrderTotal(selectedOrder.items).toLocaleString()} VND
+              Tổng tiền đơn hàng: {selectedOrder.total.toLocaleString()} VND
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showConfirm && (
+        <div className={styles.popupOverlay} onClick={cancelConfirm}>
+          <div className={styles.confirmModal} onClick={(e) => e.stopPropagation()}>
+            <h2>Xác Nhận Thay Đổi Trạng Thái</h2>
+            <p>
+              Bạn có chắc chắn muốn chuyển trạng thái vận chuyển sang{" "}
+              <strong>{showConfirm.newStatus}</strong>?{" "}
+              {showConfirm.newStatus === "Đã giao hàng"
+                ? "Trạng thái thanh toán sẽ được cập nhật thành 'Đã thanh toán'."
+                : showConfirm.newStatus === "Đã hoàn"
+                ? "Trạng thái thanh toán sẽ được cập nhật thành 'Đã hủy'."
+                : ""}
+            </p>
+            <div className={styles.confirmButtons}>
+              <button
+                className={styles.confirmButton}
+                onClick={confirmStatusChange}
+                aria-label="Xác nhận thay đổi trạng thái"
+              >
+                Xác Nhận
+              </button>
+              <button
+                className={styles.cancelButton}
+                onClick={cancelConfirm}
+                aria-label="Hủy thay đổi trạng thái"
+              >
+                Hủy
+              </button>
             </div>
           </div>
         </div>

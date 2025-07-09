@@ -1,4 +1,3 @@
-
 "use client";
 import { useEffect, useState } from "react";
 import styles from "./product.module.css";
@@ -7,6 +6,8 @@ import Image from "next/image";
 import Link from "next/link";
 import Head from "next/head";
 import React from "react";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faEdit, faEye, faEyeSlash, faPlus, faCheck, faTimes, faRedo } from '@fortawesome/free-solid-svg-icons';
 
 // Định nghĩa các giao diện TypeScript
 interface Option {
@@ -22,9 +23,10 @@ interface Product {
   name: string;
   slug: string;
   status: "show" | "hidden";
+  active: boolean;
   view: number;
   id_brand: string;
-  id_category: string;
+  id_category: string | { _id: string; status: string };
   images: string[];
   short_description: string;
   description: string;
@@ -36,7 +38,8 @@ interface Product {
 interface Category {
   _id: string;
   name: string;
-  createdAt: string;
+  status: "show" | "hidden";
+  createdAt?: string;
 }
 
 interface Brand {
@@ -61,6 +64,7 @@ export default function ProductPage() {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [isTogglingStatus, setIsTogglingStatus] = useState<boolean>(false);
   const [toggleSlug, setToggleSlug] = useState<string | null>(null);
+  const [toggleMessage, setToggleMessage] = useState<string>("");
   const [expandedProductId, setExpandedProductId] = useState<string | null>(null);
   const [notification, setNotification] = useState<Notification>({ show: false, message: "", type: "success" });
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -86,13 +90,7 @@ export default function ProductPage() {
     }
   }, [router]);
 
-  // Lấy dữ liệu sản phẩm, danh mục và thương hiệu
-  useEffect(() => {
-    fetchProducts();
-    fetchCategories();
-    fetchBrands();
-  }, []);
-
+  // Hàm hiển thị thông báo
   const showNotification = (message: string, type: "success" | "error") => {
     setNotification({ show: true, message, type });
     setTimeout(() => {
@@ -100,15 +98,77 @@ export default function ProductPage() {
     }, 3000);
   };
 
-  const fetchProducts = async () => {
+  // Lấy dữ liệu danh mục từ API
+  const fetchCategories = async () => {
     try {
       setLoading(true);
-      setError(null);
       const token = localStorage.getItem("token");
-      const res = await fetch("https://api-zeal.onrender.com/api/products?status=all", {
+      if (!token) {
+        throw new Error("Không tìm thấy token. Vui lòng đăng nhập lại.");
+      }
+
+      const res = await fetch("https://api-zeal.onrender.com/api/categories", {
         headers: { Authorization: `Bearer ${token}` },
         cache: "no-store",
       });
+
+      if (res.status === 401 || res.status === 403) {
+        alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
+        localStorage.removeItem("token");
+        localStorage.removeItem("role");
+        localStorage.removeItem("email");
+        router.push("/user/login");
+        return [];
+      }
+
+      if (!res.ok) {
+        throw new Error(`Lỗi API: ${res.status} ${res.statusText}`);
+      }
+
+      const data = await res.json();
+      if (!Array.isArray(data)) {
+        throw new Error("Dữ liệu danh mục không phải mảng.");
+      }
+
+      // Chuẩn hóa dữ liệu danh mục
+      const normalizedCategories: Category[] = data.map((cat: any) => {
+        const categoryId = typeof cat._id === "object" && cat._id.$oid ? cat._id.$oid : cat._id;
+        return {
+          _id: categoryId,
+          name: cat.name || "Danh mục không tên",
+          status: cat.status || "hidden",
+          createdAt: cat.createdAt?.$date || cat.createdAt,
+        };
+      });
+
+      setCategories(normalizedCategories);
+      console.log("Danh mục đã được tải từ API:", normalizedCategories);
+      return normalizedCategories;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
+      console.error("Lỗi khi tải danh mục:", errorMessage);
+      showNotification(`Không thể tải danh mục: ${errorMessage}`, "error");
+      setError(`Không thể tải danh mục: ${errorMessage}`);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Lấy dữ liệu thương hiệu từ API
+  const fetchBrands = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Không tìm thấy token. Vui lòng đăng nhập lại.");
+      }
+
+      const res = await fetch("https://api-zeal.onrender.com/api/brands", {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+      });
+
       if (res.status === 401 || res.status === 403) {
         alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
         localStorage.removeItem("token");
@@ -117,98 +177,190 @@ export default function ProductPage() {
         router.push("/user/login");
         return;
       }
+
       if (!res.ok) {
         throw new Error(`Lỗi API: ${res.status} ${res.statusText}`);
       }
-      const data: Product[] = await res.json();
+
+      const data = await res.json();
       if (!Array.isArray(data)) {
-        throw new Error("Dữ liệu sản phẩm không hợp lệ");
+        throw new Error("Dữ liệu thương hiệu không hợp lệ, không phải là mảng");
       }
-      setProducts(data);
-      setFilteredProducts(data);
+
+      // Chuẩn hóa dữ liệu thương hiệu
+      const normalizedBrands: Brand[] = data.map((brand: any) => ({
+        _id: typeof brand._id === "object" && brand._id.$oid ? brand._id.$oid : brand._id,
+        name: brand.name || "Thương hiệu không tên",
+        status: brand.status || "hidden",
+      }));
+
+      setBrands(normalizedBrands);
+      console.log("Thương hiệu đã được tải:", normalizedBrands);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
-      console.error("Lỗi khi tải danh sách sản phẩm:", errorMessage);
-      setError("Không thể tải danh sách sản phẩm. Vui lòng thử lại sau.");
-      showNotification("Không thể tải danh sách sản phẩm", "error");
+      console.error("Lỗi khi tải thương hiệu:", errorMessage);
+      showNotification(`Không thể tải thương hiệu: ${errorMessage}`, "error");
+      setError(`Không thể tải thương hiệu: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchCategories = async () => {
+  // Lấy dữ liệu sản phẩm từ API
+  const fetchProducts = async (loadedCategories: Category[]) => {
     try {
-const token = localStorage.getItem("token");
-      const res = await fetch("https://api-zeal.onrender.com/api/categories", {
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Không tìm thấy token. Vui lòng đăng nhập lại.");
+      }
+
+      const res = await fetch("https://api-zeal.onrender.com/api/products?status=all", {
         headers: { Authorization: `Bearer ${token}` },
         cache: "no-store",
       });
+
       if (res.status === 401 || res.status === 403) {
         alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
         localStorage.removeItem("token");
+        localStorage.removeItem("role");
+        localStorage.removeItem("email");
         router.push("/user/login");
         return;
       }
+
       if (!res.ok) {
         throw new Error(`Lỗi API: ${res.status} ${res.statusText}`);
       }
-      const data: Category[] = await res.json();
+
+      const data = await res.json();
       if (!Array.isArray(data)) {
-        throw new Error("Dữ liệu danh mục không hợp lệ");
+        throw new Error("Dữ liệu sản phẩm không hợp lệ, không phải là mảng");
       }
-      setCategories(data);
+
+      // Chuẩn hóa dữ liệu sản phẩm
+      const normalizedProducts: Product[] = data.map((prod: any) => {
+        let id_category: string;
+        if (prod.id_category && typeof prod.id_category === "object" && prod.id_category._id) {
+          id_category = prod.id_category._id;
+        } else if (typeof prod.id_category === "string" && prod.id_category) {
+          id_category = prod.id_category;
+        } else if (prod.id_category && typeof prod.id_category === "object" && prod.id_category.$oid) {
+          id_category = prod.id_category.$oid;
+        } else {
+          id_category = "";
+          console.warn(`id_category không hợp lệ cho sản phẩm ${prod.name}:`, prod.id_category);
+          showNotification(`Sản phẩm ${prod.name} có id_category không hợp lệ`, "error");
+        }
+
+        if (id_category && !loadedCategories.find((cat) => cat._id === id_category)) {
+          console.warn(`id_category ${id_category} của sản phẩm ${prod.name} không tồn tại trong danh mục`);
+          showNotification(`Sản phẩm ${prod.name} có id_category không tồn tại trong danh mục`, "error");
+        }
+
+        return {
+          _id: typeof prod._id === "object" && prod._id.$oid ? prod._id.$oid : prod._id,
+          name: prod.name || "Sản phẩm không tên",
+          slug: prod.slug || "",
+          status: prod.status || "hidden",
+          active: prod.active !== undefined ? prod.active : true,
+          view: prod.view || 0,
+          id_brand: typeof prod.id_brand === "object" && prod.id_brand.$oid ? prod.id_brand.$oid : prod.id_brand || "",
+          id_category,
+          images: Array.isArray(prod.images) ? prod.images : [],
+          short_description: prod.short_description || "",
+          description: prod.description || "",
+          option: Array.isArray(prod.option)
+            ? prod.option.map((opt: any) => ({
+                _id: typeof opt._id === "object" && opt._id.$oid ? opt._id.$oid : opt._id,
+                value: opt.value || "",
+                price: opt.price || 0,
+                stock: opt.stock || 0,
+                discount_price: opt.discount_price,
+              }))
+            : [],
+          createdAt: prod.createdAt?.$date || prod.createdAt || new Date().toISOString(),
+          updatedAt: prod.updatedAt?.$date || prod.updatedAt || new Date().toISOString(),
+        };
+      });
+
+      setProducts(normalizedProducts);
+      setFilteredProducts(normalizedProducts);
+      console.log("Sản phẩm đã được tải:", normalizedProducts);
+
+      normalizedProducts.forEach((prod) => {
+        const category = loadedCategories.find((cat) => cat._id === prod.id_category);
+        console.log(
+          `Sản phẩm: ${prod.name}, id_category: ${prod.id_category}, Danh mục: ${category ? category.name : "Chưa phân loại"}`
+        );
+      });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
-      console.error("Lỗi khi tải danh mục:", errorMessage);
-      showNotification("Không thể tải danh mục", "error");
+      console.error("Lỗi khi tải sản phẩm:", errorMessage);
+      showNotification(`Không thể tải sản phẩm: ${errorMessage}`, "error");
+      setError(`Không thể tải sản phẩm: ${errorMessage}`);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const fetchBrands = async () => {
+  // Đồng bộ hóa việc tải dữ liệu
+  const fetchData = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch("https://api-zeal.onrender.com/api/brands", {
-        headers: { Authorization: `Bearer ${token}` },
-        cache: "no-store",
-      });
-      if (res.status === 401 || res.status === 403) {
-        alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
-        localStorage.removeItem("token");
-        router.push("/user/login");
+      setLoading(true);
+      setError(null);
+
+      const loadedCategories = await fetchCategories();
+      if (loadedCategories.length === 0) {
+        showNotification("Không có danh mục nào được tải. Vui lòng kiểm tra API.", "error");
         return;
       }
-      if (!res.ok) {
-        throw new Error(`Lỗi API: ${res.status} ${res.statusText}`);
-      }
-      const data: Brand[] = await res.json();
-      if (!Array.isArray(data)) {
-        throw new Error("Dữ liệu thương hiệu không hợp lệ");
-      }
-      setBrands(data);
+
+      await fetchBrands();
+      await fetchProducts(loadedCategories);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
-      console.error("Lỗi khi tải thương hiệu:", errorMessage);
-      showNotification("Không thể tải thương hiệu", "error");
+      console.error("Lỗi khi tải dữ liệu:", errorMessage);
+      showNotification("Đã xảy ra lỗi khi tải dữ liệu", "error");
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   // Xử lý tìm kiếm và lọc theo danh mục và trạng thái
   useEffect(() => {
     const filtered = products.filter((product) => {
       const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory =
-        selectedCategory === "all" || product.id_category === selectedCategory;
-      const matchesStatus =
-        selectedStatus === "all" || product.status === selectedStatus;
+      const matchesCategory = selectedCategory === "all" || product.id_category === selectedCategory;
+      const matchesStatus = selectedStatus === "all" || product.status === selectedStatus;
       return matchesSearch && matchesCategory && matchesStatus;
     });
     setFilteredProducts(filtered);
     setCurrentPage(1);
   }, [searchQuery, selectedCategory, selectedStatus, products]);
 
+  // Xử lý thay đổi trạng thái sản phẩm
   const confirmToggleStatus = (slug: string) => {
-    setToggleSlug(slug);
-    setIsTogglingStatus(true);
+    const product = products.find((p) => p.slug === slug);
+    if (product) {
+      if (product.status === "show") {
+        const hasStock = product.option.some((opt) => opt.stock > 0);
+        setToggleMessage(
+          hasStock
+            ? "Sản phẩm này còn tồn kho. Bạn có chắc chắn muốn ẩn?"
+            : "Bạn có chắc chắn muốn ẩn Sản Phẩm này?"
+        );
+      } else {
+        setToggleMessage("Bạn có chắc chắn muốn hiển thị Sản Phẩm này?");
+      }
+      setToggleSlug(slug);
+      setIsTogglingStatus(true);
+    }
   };
 
   const handleToggleStatus = async () => {
@@ -216,6 +368,10 @@ const token = localStorage.getItem("token");
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Không tìm thấy token. Vui lòng đăng nhập lại.");
+      }
+
       const response = await fetch(
         `https://api-zeal.onrender.com/api/products/${toggleSlug}/toggle-visibility`,
         {
@@ -249,6 +405,7 @@ const token = localStorage.getItem("token");
       );
       setIsTogglingStatus(false);
       setToggleSlug(null);
+      setToggleMessage("");
       showNotification(
         `Sản phẩm đã được ${product.status === "show" ? "hiển thị" : "ẩn"}`,
         "success"
@@ -276,7 +433,7 @@ const token = localStorage.getItem("token");
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
-      setExpandedProductId(null); // Đóng tất cả chi tiết khi đổi trang
+      setExpandedProductId(null);
     }
   };
 
@@ -314,8 +471,8 @@ const token = localStorage.getItem("token");
     return (
       <div className={styles.errorContainer}>
         <p className={styles.errorMessage}>{error}</p>
-        <button className={styles.retryButton} onClick={fetchProducts}>
-          Thử lại
+        <button className={styles.retryButton} onClick={fetchData} title="Thử lại">
+          <FontAwesomeIcon icon={faRedo} />
         </button>
       </div>
     );
@@ -332,7 +489,9 @@ const token = localStorage.getItem("token");
         </div>
       )}
       {loading && products.length > 0 && (
-        <div className={styles.processingIndicator}>Đang xử lý...</div>
+        <div className={styles.processingIndicator}>
+          <FontAwesomeIcon icon={faRedo} spin /> Đang xử lý...
+        </div>
       )}
       <div className={styles.titleContainer}>
         <h1>QUẢN LÝ SẢN PHẨM</h1>
@@ -365,8 +524,8 @@ const token = localStorage.getItem("token");
             <option value="show">Hiển thị</option>
             <option value="hidden">Ẩn</option>
           </select>
-          <Link href="/admin/add_product" className={styles.addProductBtn}>
-            Thêm Sản Phẩm +
+          <Link href="/admin/add_product" className={styles.addProductBtn} title="Thêm sản phẩm">
+            <FontAwesomeIcon icon={faPlus} />
           </Link>
         </div>
       </div>
@@ -410,7 +569,9 @@ const token = localStorage.getItem("token");
                       />
                     </td>
                     <td>{product.name}</td>
-                    <td>{categories.find((cat) => cat._id === product.id_category)?.name || "Chưa phân loại"}</td>
+                    <td>
+                      {categories.find((cat) => cat._id === product.id_category)?.name || "Chưa phân loại"}
+                    </td>
                     <td>{brands.find((brand) => brand._id === product.id_brand)?.name || "Chưa phân loại"}</td>
                     <td>{product.status === "show" ? "Hiển thị" : "Ẩn"}</td>
                     <td className={styles.actionButtons}>
@@ -421,8 +582,9 @@ const token = localStorage.getItem("token");
                           router.push(`/admin/edit_product/${product.slug}`);
                         }}
                         disabled={loading}
+                        title="Sửa sản phẩm"
                       >
-                        Sửa
+                        <FontAwesomeIcon icon={faEdit} />
                       </button>
                       <button
                         className={styles.toggleStatusBtn}
@@ -431,8 +593,9 @@ const token = localStorage.getItem("token");
                           confirmToggleStatus(product.slug);
                         }}
                         disabled={loading}
+                        title={product.status === "show" ? "Ẩn sản phẩm" : "Hiển thị sản phẩm"}
                       >
-                        {product.status === "show" ? "Ẩn" : "Hiển thị"}
+                        <FontAwesomeIcon icon={product.status === "show" ? faEyeSlash : faEye} />
                       </button>
                     </td>
                   </tr>
@@ -441,36 +604,94 @@ const token = localStorage.getItem("token");
                       <td colSpan={6}>
                         <div className={styles.productDetails}>
                           <h3>Chi tiết sản phẩm</h3>
-                          <p><strong>Tên sản phẩm:</strong> {product.name}</p>
-                          <p><strong>Slug:</strong> {product.slug}</p>
-                          <p><strong>Danh mục:</strong> {categories.find((cat) => cat._id === product.id_category)?.name || "Chưa phân loại"}</p>
-                          <p><strong>Brand:</strong> {brands.find((brand) => brand._id === product.id_brand)?.name || "Chưa phân loại"}</p>
-                          <p><strong>Mô tả ngắn:</strong> {product.short_description}</p>
-                          <p><strong>Mô tả chi tiết:</strong></p>
-                          <div dangerouslySetInnerHTML={{ __html: product.description }} />
-                          <p><strong>Giá:</strong> {product.option[0]?.price.toLocaleString()}₫</p>
-                          <p><strong>Giá khuyến mãi:</strong> {product.option[0]?.discount_price ? product.option[0].discount_price.toLocaleString() + "₫" : "Không có"}</p>
-                          <p><strong>Tồn kho:</strong> {product.option[0]?.stock}</p>
-                          <p><strong>Kích thước:</strong> {product.option[0]?.value}</p>
-                          <p><strong>Trạng thái:</strong> {product.status === "show" ? "Hiển thị" : "Ẩn"}</p>
-                          <p><strong>Lượt xem:</strong> {product.view}</p>
-                          <p><strong>Ngày tạo:</strong> {new Date(product.createdAt).toLocaleString()}</p>
-                          <p><strong>Ngày cập nhật:</strong> {new Date(product.updatedAt).toLocaleString()}</p>
-                          <p><strong>Hình ảnh:</strong></p>
-                          <div className={styles.imageGallery}>
-                            {product.images.map((img, index) => (
-                              <Image
-                                key={index}
-                                src={normalizeImageUrl(img)}
-                                alt={`${product.name} hình ${index + 1}`}
-                                width={100}
-                                height={100}
-                                className={styles.detailImage}
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).src = "/images/placeholder.png";
-                                }}
+                          <div className={styles.detailsContainer}>
+                            <div className={styles.detailsSection}>
+                              <h4>Thông tin cơ bản</h4>
+                              <div className={styles.detailsGrid}>
+                                <p><strong>Tên sản phẩm:</strong> {product.name}</p>
+                                <p><strong>Slug:</strong> {product.slug}</p>
+                                <p>
+                                  <strong>Danh mục:</strong>{" "}
+                                  {categories.find((cat) => cat._id === product.id_category)?.name ||
+                                    "Chưa phân loại"}
+                                </p>
+                                <p>
+                                  <strong>Thương hiệu:</strong>{" "}
+                                  {brands.find((brand) => brand._id === product.id_brand)?.name ||
+                                    "Chưa phân loại"}
+                                </p>
+                                <p><strong>Trạng thái:</strong> {product.status === "show" ? "Hiển thị" : "Ẩn"}</p>
+                                <p><strong>Kích hoạt:</strong> {product.active ? "Có" : "Không"}</p>
+                                <p><strong>Lượt xem:</strong> {product.view}</p>
+                                <p><strong>Ngày tạo:</strong> {new Date(product.createdAt).toLocaleString()}</p>
+                                <p><strong>Ngày cập nhật:</strong> {new Date(product.updatedAt).toLocaleString()}</p>
+                              </div>
+                            </div>
+                            <div className={styles.detailsSection}>
+                              <h4>Mô tả sản phẩm</h4>
+                              <p><strong>Mô tả ngắn:</strong> {product.short_description}</p>
+                              <br></br>
+                              <p><strong>Mô tả chi tiết:</strong></p>
+                              <div
+                                className={styles.descriptionContent}
+                                dangerouslySetInnerHTML={{ __html: product.description }}
                               />
-                            ))}
+                            </div>
+                            <div className={styles.detailsSection}>
+                              <h4>Tùy chọn sản phẩm</h4>
+                              <table className={styles.optionsTable}>
+                                <thead>
+                                  <tr>
+                                    <th>Kích thước</th>
+                                    <th>Giá</th>
+                                    <th>Giá khuyến mãi</th>
+                                    <th>Tồn kho</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {product.option.length > 0 ? (
+                                    product.option.map((opt, index) => (
+                                      <tr key={index}>
+                                        <td>{opt.value}</td>
+                                        <td>{opt.price.toLocaleString()}₫</td>
+                                        <td>
+                                          {opt.discount_price ? opt.discount_price.toLocaleString() + "₫" : "Không có"}
+                                        </td>
+                                        <td>{opt.stock}</td>
+                                      </tr>
+                                    ))
+                                  ) : (
+                                    <tr>
+                                      <td colSpan={4} className="text-center">
+                                        Không có tùy chọn nào
+                                      </td>
+                                    </tr>
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                            <div className={styles.detailsSection}>
+                              <h4>Hình ảnh sản phẩm</h4>
+                              <div className={styles.imageGallery}>
+                                {product.images.length > 0 ? (
+                                  product.images.map((img, index) => (
+                                    <Image
+                                      key={index}
+                                      src={normalizeImageUrl(img)}
+                                      alt={`${product.name} hình ${index + 1}`}
+                                      width={120}
+                                      height={120}
+                                      className={styles.detailImage}
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).src = "/images/placeholder.png";
+                                      }}
+                                    />
+                                  ))
+                                ) : (
+                                  <p>Không có hình ảnh</p>
+                                )}
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </td>
@@ -554,22 +775,21 @@ const token = localStorage.getItem("token");
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
             <h2>Xác nhận thay đổi trạng thái</h2>
-            <p>
-              Bạn có chắc chắn muốn{" "}
-              {products.find((p) => p.slug === toggleSlug)?.status === "show"
-                ? "ẩn"
-                : "hiển thị"}{" "}
-              sản phẩm này?
-            </p>
+            <p>{toggleMessage}</p>
             <div className={styles.modalActions}>
-              <button className={styles.confirmBtn} onClick={handleToggleStatus}>
-                Xác nhận
+              <button className={styles.confirmBtn} onClick={handleToggleStatus} title="Xác nhận">
+                <FontAwesomeIcon icon={faCheck} />
               </button>
               <button
                 className={styles.cancelBtn}
-                onClick={() => setIsTogglingStatus(false)}
+                onClick={() => {
+                  setIsTogglingStatus(false);
+                  setToggleSlug(null);
+                  setToggleMessage("");
+                }}
+                title="Hủy"
               >
-                Hủy
+                <FontAwesomeIcon icon={faTimes} />
               </button>
             </div>
           </div>

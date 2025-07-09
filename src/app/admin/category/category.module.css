@@ -30,8 +30,9 @@
   align-items: center;
 }
 
+/* === ADD CATEGORY BUTTON === */
 .btnAddNewCategory {
- z-index: 100;
+  z-index: 100;
   width: 150px;
   height: 35px;
   background-color: #004C59;
@@ -40,23 +41,16 @@
   color: white;
   border-radius: 5px;
   line-height: 35px;
-  /* margin-left: 40px; */
-  font-weight: 500;
-}
-
-.btnAddNewCategory a {
-  color: white;
-  text-decoration: none;
   font-weight: 500;
   font-size: 14px;
-  display: block;
-  line-height: 35px;
-  text-align: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .btnAddNewCategory:hover {
   background-color: #003a44;
   transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 /* === TABLE STYLING === */
@@ -70,7 +64,7 @@
 }
 
 .categoryTableTr {
-  background-color: #357E38;
+  background: linear-gradient(135deg, #357E38 0%, #2d6a2f 100%);
   color: white;
 }
 
@@ -96,26 +90,53 @@
 
 /* === ACTION BUTTONS === */
 .categoryTableTdLast button {
-  min-width: 70px;
-  padding: 8px 16px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
   cursor: pointer;
-  font-weight: 500;
-  font-size: 14px;
-  transition: all 0.2s ease;
+  font-size: 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.categoryTableTdLast button::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.3s ease, height 0.3s ease;
+}
+
+.categoryTableTdLast button:hover::before {
+  width: 100%;
+  height: 100%;
+}
+
+.categoryTableTdLast button:hover svg {
+  transform: scale(1.1);
+  transition: transform 0.2s ease;
 }
 
 .btnEdit {
-  background-color: #4CAF50;
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
   color: white;
 }
 
 .btnEdit:hover {
-  background-color: #3e8e41;
+  background: linear-gradient(135deg, #45a049 0%, #3d8b40 100%);
   transform: translateY(-2px);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
 }
 
 .btnEdit:active {
@@ -123,14 +144,14 @@
 }
 
 .btnRemove {
-  background-color: #f44336;
+  background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
   color: white;
 }
 
 .btnRemove:hover {
-  background-color: #d32f2f;
+  background: linear-gradient(135deg, #d32f2f 0%, #c62828 100%);
   transform: translateY(-2px);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
 }
 
 .btnRemove:active {
@@ -138,14 +159,14 @@
 }
 
 .btnSave {
-  background-color: #2196F3;
+  background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
   color: white;
 }
 
 .btnSave:hover {
-  background-color: #1976D2;
+  background: linear-gradient(135deg, #1976D2 0%, #1565C0 100%);
   transform: translateY(-2px);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
 }
 
 .btnSave:active {
@@ -153,14 +174,14 @@
 }
 
 .btnCancel {
-  background-color: #FF9800;
+  background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
   color: white;
 }
 
 .btnCancel:hover {
-  background-color: #F57C00;
+  background: linear-gradient(135deg, #F57C00 0%, #EF6C00 100%);
   transform: translateY(-2px);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
 }
 
 .btnCancel:active {
@@ -181,6 +202,61 @@
   outline: none;
   border-color: #4CAF50;
   box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+}
+
+/* === WARNING POPUP === */
+.warningPopup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.warningContent {
+  background: white;
+  padding: 20px;
+  border-radius: 5px;
+  text-align: center;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  max-width: 400px;
+  width: 90%;
+}
+
+.warningContent h3 {
+  color: #004C59;
+  font-size: 18px;
+  margin-bottom: 12px;
+}
+
+.warningContent p {
+  color: #475569;
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.btnCloseWarning {
+  margin-top: 10px;
+  padding: 8px 16px;
+  background: #ff4444;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btnCloseWarning:hover {
+  background: #cc0000;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 /* === RESPONSIVE === */
@@ -207,7 +283,13 @@
   }
 
   .categoryTableTdLast button {
-    min-width: 80px;
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+  }
+
+  .btnCloseWarning {
+    padding: 6px 12px;
     font-size: 13px;
   }
 }
@@ -229,8 +311,21 @@
   }
 
   .categoryTableTdLast button {
-    min-width: 60px;
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+  }
+
+  .btnCloseWarning {
     padding: 6px 10px;
     font-size: 12px;
   }
+}
+
+/* === FOCUS VISIBLE === */
+.btnAddNewCategory:focus-visible,
+.categoryTableTdLast button:focus-visible,
+.btnCloseWarning:focus-visible {
+  outline: 2px solid #4CAF50;
+  outline-offset: 2px;
 }

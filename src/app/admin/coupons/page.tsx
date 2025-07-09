@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./coupon.module.css";
 import type { Coupon } from "@/app/components/coupon_interface";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faEdit, faTrash, faPlus, faTimes, faCheck, faRedo } from '@fortawesome/free-solid-svg-icons';
 
 interface Pagination {
   page: number;
@@ -12,11 +14,17 @@ interface Pagination {
   totalPages: number;
 }
 
-// FormData includes usedCount as optional
 type FormData = Omit<Coupon, "_id" | "usedCount"> & { _id?: string; usedCount?: number };
+
+interface Notification {
+  show: boolean;
+  message: string;
+  type: "success" | "error";
+}
 
 export default function CouponPage() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [filteredCoupons, setFilteredCoupons] = useState<Coupon[]>([]);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -26,7 +34,12 @@ export default function CouponPage() {
     total: 0,
     totalPages: 1,
   });
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
   const [showModal, setShowModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteCouponId, setDeleteCouponId] = useState<string | null>(null);
+  const [notification, setNotification] = useState<Notification>({ show: false, message: "", type: "success" });
   const [formData, setFormData] = useState<FormData>({
     code: "",
     discountType: "percentage",
@@ -57,17 +70,26 @@ export default function CouponPage() {
 
     const fetchCoupons = async () => {
       try {
+        setLoading(true);
         const token = localStorage.getItem("token");
         if (!token) {
           throw new Error("No token found");
         }
 
+        const queryParams = new URLSearchParams({
+          page: pagination.page.toString(),
+          limit: pagination.limit.toString(),
+          ...(searchQuery && { code: searchQuery }),
+          ...(statusFilter !== "all" && { isActive: statusFilter === "active" ? "true" : "false" }),
+        });
+
         const response = await fetch(
-          `https://api-zeal.onrender.com/api/coupons?page=${pagination.page}&limit=${pagination.limit}`,
+          `https://api-zeal.onrender.com/api/coupons?${queryParams}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
             },
+            cache: "no-store",
           }
         );
 
@@ -80,16 +102,19 @@ export default function CouponPage() {
 
         const data = await response.json();
         setCoupons(data.coupons || []);
+        setFilteredCoupons(data.coupons || []);
         setPagination(data.pagination || pagination);
         setLoading(false);
       } catch (err) {
-        setError(
+        const errorMessage =
           err instanceof Error
             ? err.message === "Phiên đăng nhập hết hạn"
               ? "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!"
               : "Lỗi khi tải dữ liệu khuyến mãi!"
-            : "Đã xảy ra lỗi không xác định"
-        );
+            : "Đã xảy ra lỗi không xác định";
+        setError(errorMessage);
+        setNotification({ show: true, message: errorMessage, type: "error" });
+        setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
         setLoading(false);
 
         if (err instanceof Error && err.message === "Phiên đăng nhập hết hạn") {
@@ -100,9 +125,33 @@ export default function CouponPage() {
     };
 
     fetchCoupons();
-  }, [isAuthorized, pagination.page, router]);
+  }, [isAuthorized, pagination.page, pagination.limit, searchQuery, statusFilter, router]);
 
-  // Handle form submission (Create or Update)
+  // Handle client-side filtering as fallback
+  useEffect(() => {
+    let filtered = coupons;
+
+    if (searchQuery) {
+      filtered = filtered.filter((coupon) =>
+        coupon.code.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((coupon) =>
+        statusFilter === "active" ? coupon.isActive : !coupon.isActive
+      );
+    }
+
+    setFilteredCoupons(filtered);
+    setPagination((prev) => ({
+      ...prev,
+      total: filtered.length,
+      totalPages: Math.ceil(filtered.length / prev.limit),
+    }));
+  }, [coupons, searchQuery, statusFilter]);
+
+  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -116,7 +165,6 @@ export default function CouponPage() {
         : `https://api-zeal.onrender.com/api/coupons`;
       const method = formData._id ? "PUT" : "POST";
 
-      // Exclude code when updating
       const bodyData = formData._id
         ? {
             discountType: formData.discountType,
@@ -142,7 +190,8 @@ export default function CouponPage() {
       });
 
       if (!response.ok) {
-        throw new Error(await response.text());
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Lỗi khi lưu mã giảm giá!");
       }
 
       setShowModal(false);
@@ -156,29 +205,22 @@ export default function CouponPage() {
         isActive: true,
         usedCount: 0,
       });
-      // Refresh data
-      const fetchCoupons = async () => {
-        const response = await fetch(
-          `https://api-zeal.onrender.com/api/coupons?page=${pagination.page}&limit=${pagination.limit}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        const newData = await response.json();
-        setCoupons(newData.coupons || []);
-        setPagination(newData.pagination || pagination);
-      };
-      fetchCoupons();
+      setNotification({
+        show: true,
+        message: formData._id ? "Cập nhật mã giảm giá thành công!" : "Thêm mã giảm giá thành công!",
+        type: "success",
+      });
+      setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
+      setPagination((prev) => ({ ...prev, page: 1 }));
     } catch (err) {
-      setError(
+      const errorMessage =
         err instanceof Error
           ? err.message === "Phiên đăng nhập hết hạn"
             ? "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!"
             : err.message || "Lỗi khi lưu mã giảm giá!"
-          : "Đã xảy ra lỗi không xác định"
-      );
+          : "Đã xảy ra lỗi không xác định";
+      setNotification({ show: true, message: errorMessage, type: "error" });
+      setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
     }
   };
 
@@ -200,9 +242,15 @@ export default function CouponPage() {
     setShowModal(true);
   };
 
-  // Delete coupon
-  const handleDelete = async (id: string) => {
-    if (!confirm("Bạn có chắc muốn xóa mã giảm giá này?")) return;
+  // Confirm delete coupon
+  const confirmDelete = (id: string) => {
+    setDeleteCouponId(id);
+    setShowDeleteModal(true);
+  };
+
+  // Handle delete coupon
+  const handleDelete = async () => {
+    if (!deleteCouponId) return;
 
     try {
       const token = localStorage.getItem("token");
@@ -210,7 +258,7 @@ export default function CouponPage() {
         throw new Error("No token found");
       }
 
-      const response = await fetch(`https://api-zeal.onrender.com/api/coupons/${id}`, {
+      const response = await fetch(`https://api-zeal.onrender.com/api/coupons/${deleteCouponId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -218,32 +266,28 @@ export default function CouponPage() {
       });
 
       if (!response.ok) {
-        throw new Error(await response.text());
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Lỗi khi xóa mã giảm giá!");
       }
 
-      // Refresh data
-      const fetchCoupons = async () => {
-        const response = await fetch(
-          `https://api-zeal.onrender.com/api/coupons?page=${pagination.page}&limit=${pagination.limit}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        const newData = await response.json();
-        setCoupons(newData.coupons || []);
-        setPagination(newData.pagination || pagination);
-      };
-      fetchCoupons();
+      setShowDeleteModal(false);
+      setDeleteCouponId(null);
+      setNotification({ show: true, message: "Xóa mã giảm giá thành công!", type: "success" });
+      setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
+      setPagination((prev) => ({ ...prev, page: 1 }));
     } catch (err) {
-      setError(
+      const errorMessage =
         err instanceof Error
           ? err.message === "Phiên đăng nhập hết hạn"
             ? "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!"
             : err.message || "Lỗi khi xóa mã giảm giá!"
-          : "Đã xảy ra lỗi không xác định"
-      );
+          : "Đã xảy ra lỗi không xác định";
+      setNotification({ show: true, message: errorMessage, type: "error" });
+      setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
+      if (err instanceof Error && err.message === "Phiên đăng nhập hết hạn") {
+        localStorage.clear();
+        router.push("/user/login");
+      }
     }
   };
 
@@ -254,21 +298,90 @@ export default function CouponPage() {
     }
   };
 
+  // Pagination info
+  const getPaginationInfo = () => {
+    const visiblePages: number[] = [];
+    let showPrevEllipsis = false;
+    let showNextEllipsis = false;
+
+    if (pagination.totalPages <= 3) {
+      for (let i = 1; i <= pagination.totalPages; i++) {
+        visiblePages.push(i);
+      }
+    } else {
+      if (pagination.page === 1) {
+        visiblePages.push(1, 2, 3);
+        showNextEllipsis = pagination.totalPages > 3;
+      } else if (pagination.page === pagination.totalPages) {
+        visiblePages.push(pagination.totalPages - 2, pagination.totalPages - 1, pagination.totalPages);
+        showPrevEllipsis = pagination.totalPages > 3;
+      } else {
+        visiblePages.push(pagination.page - 1, pagination.page, pagination.page + 1);
+        showPrevEllipsis = pagination.page > 2;
+        showNextEllipsis = pagination.page < pagination.totalPages - 1;
+      }
+    }
+
+    return { visiblePages, showPrevEllipsis, showNextEllipsis };
+  };
+
   if (loading) {
-    return <div className={styles.loading}>Đang tải mã giảm giá...</div>;
+    return (
+      <div className={styles.couponPage}>
+        <div className={styles.errorContainer}>
+          <p className={styles.errorMessage}>Đang tải mã giảm giá...</p>
+        </div>
+      </div>
+    );
   }
 
   if (error) {
-    return <div className={styles.error}>{error}</div>;
+    return (
+      <div className={styles.couponPage}>
+        <div className={styles.errorContainer}>
+          <p className={styles.errorMessage}>{error}</p>
+          <button className={styles.retryButton} onClick={() => window.location.reload()}>
+            <FontAwesomeIcon icon={faRedo} />
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className={styles.couponPage}>
+      {notification.show && (
+        <div className={`${styles.notification} ${styles[notification.type]}`}>
+          {notification.message}
+        </div>
+      )}
       <div className={styles.titleContainer}>
-        <h1>KHÁM PHÁ MÃ GIẢM GIÁ</h1>
-        <button className={styles.button} onClick={() => setShowModal(true)}>
-          Thêm mã giảm giá
-        </button>
+        <h1>QUẢN LÝ MÃ GIẢM GIÁ</h1>
+        <div className={styles.filterContainer}>
+          <input
+            type="text"
+            placeholder="Tìm kiếm mã giảm giá theo mã..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className={styles.searchInput}
+          />
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as "all" | "active" | "inactive")}
+            className={styles.categorySelect}
+          >
+            <option value="all">Tất cả trạng thái</option>
+            <option value="active">Hoạt động</option>
+            <option value="inactive">Không hoạt động</option>
+          </select>
+          <button
+            className={styles.addProductBtn}
+            onClick={() => setShowModal(true)}
+            title="Thêm mã giảm giá"
+          >
+            <FontAwesomeIcon icon={faPlus} />
+          </button>
+        </div>
       </div>
       <div className={styles.tableContainer}>
         <table className={styles.table}>
@@ -287,52 +400,59 @@ export default function CouponPage() {
             </tr>
           </thead>
           <tbody>
-            {coupons.length > 0 ? (
-              coupons.map((coupon, index) => (
-                <tr key={coupon._id}>
-                  <td>{(pagination.page - 1) * pagination.limit + index + 1}</td>
-                  <td>{coupon.code}</td>
-                  <td>{coupon.discountType === "percentage" ? "Phần trăm" : "Cố định"}</td>
-                  <td>
-                    {coupon.discountType === "percentage"
-                      ? `${coupon.discountValue}%`
-                      : `${coupon.discountValue.toLocaleString()} VNĐ`}
-                  </td>
-                  <td>{(coupon.minOrderValue || 0).toLocaleString()} VNĐ</td>
-                  <td>
-                    {coupon.expiryDate
-                      ? new Date(coupon.expiryDate).toLocaleDateString("vi-VN")
-                      : "N/A"}
-                  </td>
-                  <td>{coupon.usageLimit ?? "Không giới hạn"}</td>
-                  <td>{coupon.usedCount ?? 0}</td>
-                  <td>
-                    <span
-                      className={
-                        coupon.isActive ? styles.statusActive : styles.statusInactive
-                      }
-                    >
-                      {coupon.isActive ? "Hoạt động" : "Không hoạt động"}
-                    </span>
-                  </td>
-                  <td>
-                    <div className={styles.actionButtons}>
-                      <button
-                        className={styles.editBtn}
-                        onClick={() => handleEdit(coupon)}
+            {filteredCoupons.length > 0 ? (
+              filteredCoupons
+                .slice(
+                  (pagination.page - 1) * pagination.limit,
+                  pagination.page * pagination.limit
+                )
+                .map((coupon, index) => (
+                  <tr key={coupon._id}>
+                    <td>{(pagination.page - 1) * pagination.limit + index + 1}</td>
+                    <td>{coupon.code}</td>
+                    <td>{coupon.discountType === "percentage" ? "Phần trăm" : "Cố định"}</td>
+                    <td>
+                      {coupon.discountType === "percentage"
+                        ? `${coupon.discountValue}%`
+                        : `${coupon.discountValue.toLocaleString()} VNĐ`}
+                    </td>
+                    <td>{(coupon.minOrderValue || 0).toLocaleString()} VNĐ</td>
+                    <td>
+                      {coupon.expiryDate
+                        ? new Date(coupon.expiryDate).toLocaleDateString("vi-VN")
+                        : "Không có"}
+                    </td>
+                    <td>{coupon.usageLimit ?? "Không giới hạn"}</td>
+                    <td>{coupon.usedCount ?? 0}</td>
+                    <td>
+                      <span
+                        className={
+                          coupon.isActive ? styles.statusActive : styles.statusInactive
+                        }
                       >
-                        Sửa
-                      </button>
-                      <button
-                        className={styles.deleteBtn}
-                        onClick={() => handleDelete(coupon._id)}
-                      >
-                        Xóa
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
+                        {coupon.isActive ? "Hoạt động" : "Không hoạt động"}
+                      </span>
+                    </td>
+                    <td>
+                      <div className={styles.actionButtons}>
+                        <button
+                          className={styles.editBtn}
+                          onClick={() => handleEdit(coupon)}
+                          title="Sửa mã giảm giá"
+                        >
+                          <FontAwesomeIcon icon={faEdit} />
+                        </button>
+                        <button
+                          className={styles.deleteBtn}
+                          onClick={() => confirmDelete(coupon._id)}
+                          title="Xóa mã giảm giá"
+                        >
+                          <FontAwesomeIcon icon={faTrash} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
             ) : (
               <tr>
                 <td colSpan={10} className={styles.emptyState}>
@@ -343,26 +463,68 @@ export default function CouponPage() {
           </tbody>
         </table>
       </div>
-      {/* Pagination */}
-      <div className={styles.pagination}>
-        <button
-          disabled={pagination.page === 1}
-          onClick={() => handlePageChange(pagination.page - 1)}
-        >
-          Trước
-        </button>
-        <span>
-          Trang {pagination.page} / {pagination.totalPages}
-        </span>
-        <button
-          disabled={pagination.page === pagination.totalPages}
-          onClick={() => handlePageChange(pagination.page + 1)}
-        >
-          Sau
-        </button>
-      </div>
-
-      {/* Modal */}
+      {pagination.totalPages > 1 && (
+        <div className={styles.pagination}>
+          {(() => {
+            const { visiblePages, showPrevEllipsis, showNextEllipsis } = getPaginationInfo();
+            return (
+              <>
+                {showPrevEllipsis && (
+                  <>
+                    <button
+                      className={`${styles.pageLink} ${styles.firstLastPage}`}
+                      onClick={() => handlePageChange(1)}
+                      disabled={loading}
+                      title="Trang đầu tiên"
+                    >
+                      1
+                    </button>
+                    <div
+                      className={styles.ellipsis}
+                      onClick={() => handlePageChange(Math.max(1, pagination.page - 3))}
+                      title="Trang trước đó"
+                    >
+                      ...
+                    </div>
+                  </>
+                )}
+                {visiblePages.map((page) => (
+                  <button
+                    key={page}
+                    className={`${styles.pageLink} ${
+                      pagination.page === page ? styles.pageLinkActive : ""
+                    }`}
+                    onClick={() => handlePageChange(page)}
+                    disabled={loading}
+                    title={`Trang ${page}`}
+                  >
+                    {page}
+                  </button>
+                ))}
+                {showNextEllipsis && (
+                  <>
+                    <div
+                      className={styles.ellipsis}
+                      onClick={() => handlePageChange(Math.min(pagination.totalPages, pagination.page + 3))}
+                      title="Trang tiếp theo"
+                    >
+                      ...
+                    </div>
+                    <button
+                      className={`${styles.pageLink} ${styles.firstLastPage}`}
+                      onClick={() => handlePageChange(pagination.totalPages)}
+                      disabled={loading}
+                      title="Trang cuối cùng"
+                    >
+                      {pagination.totalPages}
+                    </button>
+                  </>
+                )}
+              </>
+            );
+          })()}
+        </div>
+      )}
       {showModal && (
         <div className={styles.modalOverlay}>
           <div className={styles.modal}>
@@ -375,7 +537,7 @@ export default function CouponPage() {
                   value={formData.code}
                   onChange={(e) => setFormData({ ...formData, code: e.target.value })}
                   required
-                  disabled={!!formData._id} // Disable when editing
+                  disabled={!!formData._id}
                 />
               </div>
               <div className={styles.formGroup}>
@@ -383,7 +545,7 @@ export default function CouponPage() {
                 <select
                   value={formData.discountType}
                   onChange={(e) =>
-                    setFormData({ ...formData, discountType: e.target.value })
+                    setFormData({ ...formData, discountType: e.target.value as "percentage" | "fixed" })
                   }
                   required
                 >
@@ -458,11 +620,12 @@ export default function CouponPage() {
                 <span>Hoạt động</span>
               </div>
               <div className={styles.formActions}>
-                <button type="submit">
+                <button type="submit" className={styles.confirmBtn}>
                   {formData._id ? "Cập nhật" : "Thêm"}
                 </button>
                 <button
                   type="button"
+                  className={styles.cancelBtn}
                   onClick={() => {
                     setShowModal(false);
                     setFormData({
@@ -481,6 +644,28 @@ export default function CouponPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {showDeleteModal && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <h2>Xác nhận xóa</h2>
+            <p>Bạn có chắc muốn xóa mã giảm giá này?</p>
+            <div className={styles.modalActions}>
+              <button className={styles.confirmBtn} onClick={handleDelete}>
+                <FontAwesomeIcon icon={faCheck} />
+              </button>
+              <button
+                className={styles.cancelBtn}
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setDeleteCouponId(null);
+                }}
+              >
+                <FontAwesomeIcon icon={faTimes} />
+              </button>
+            </div>
           </div>
         </div>
       )}

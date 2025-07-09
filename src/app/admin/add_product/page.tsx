@@ -17,7 +17,8 @@ interface Brand {
 }
 
 interface Option {
-  value: string;
+  value: string; // Giá trị số (e.g., "50")
+  unit: "ml" | "g"; // Đơn vị
   price: string;
   discount_price: string;
   stock: string;
@@ -51,13 +52,13 @@ const AddProduct = () => {
     id_brand: "",
     short_description: "",
     description: "",
-    options: [{ value: "", price: "", discount_price: "", stock: "" }] as Option[],
+    options: [{ value: "", unit: "ml", price: "", discount_price: "", stock: "" }] as Option[],
     images: [] as File[],
   });
-  const [notification, setNotification] = useState<Notification>({ 
-    show: false, 
-    message: "", 
-    type: "success" 
+  const [notification, setNotification] = useState<Notification>({
+    show: false,
+    message: "",
+    type: "success",
   });
   const [activeFormats, setActiveFormats] = useState<ActiveFormats>({
     bold: false,
@@ -69,9 +70,9 @@ const AddProduct = () => {
     justifyRight: false,
     justifyFull: false,
     insertUnorderedList: false,
-    insertOrderedList: false
+    insertOrderedList: false,
   });
-  
+
   const editorRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
@@ -151,15 +152,15 @@ const AddProduct = () => {
       updateFormatStates();
     };
 
-    document.addEventListener('selectionchange', handleSelectionChange);
-    editor.addEventListener('keyup', handleKeyUp);
-    editor.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener("selectionchange", handleSelectionChange);
+    editor.addEventListener("keyup", handleKeyUp);
+    editor.addEventListener("mouseup", handleMouseUp);
 
     return () => {
-      document.removeEventListener('selectionchange', handleSelectionChange);
+      document.removeEventListener("selectionchange", handleSelectionChange);
       if (editor) {
-        editor.removeEventListener('keyup', handleKeyUp);
-        editor.removeEventListener('mouseup', handleMouseUp);
+        editor.removeEventListener("keyup", handleKeyUp);
+        editor.removeEventListener("mouseup", handleMouseUp);
       }
     };
   }, []);
@@ -167,20 +168,20 @@ const AddProduct = () => {
   // Hàm kiểm tra trạng thái format hiện tại
   const updateFormatStates = () => {
     if (!editorRef.current) return;
-    
+
     const newStates: ActiveFormats = {
-      bold: document.queryCommandState('bold'),
-      italic: document.queryCommandState('italic'),
-      underline: document.queryCommandState('underline'),
-      strikeThrough: document.queryCommandState('strikeThrough'),
-      justifyLeft: document.queryCommandState('justifyLeft'),
-      justifyCenter: document.queryCommandState('justifyCenter'),
-      justifyRight: document.queryCommandState('justifyRight'),
-      justifyFull: document.queryCommandState('justifyFull'),
-      insertUnorderedList: document.queryCommandState('insertUnorderedList'),
-      insertOrderedList: document.queryCommandState('insertOrderedList')
+      bold: document.queryCommandState("bold"),
+      italic: document.queryCommandState("italic"),
+      underline: document.queryCommandState("underline"),
+      strikeThrough: document.queryCommandState("strikeThrough"),
+      justifyLeft: document.queryCommandState("justifyLeft"),
+      justifyCenter: document.queryCommandState("justifyCenter"),
+      justifyRight: document.queryCommandState("justifyRight"),
+      justifyFull: document.queryCommandState("justifyFull"),
+      insertUnorderedList: document.queryCommandState("insertUnorderedList"),
+      insertOrderedList: document.queryCommandState("insertOrderedList"),
     };
-    
+
     setActiveFormats(newStates);
   };
 
@@ -218,7 +219,7 @@ const AddProduct = () => {
   const addOption = () => {
     setFormData((prevState) => ({
       ...prevState,
-      options: [...prevState.options, { value: "", price: "", discount_price: "", stock: "" }],
+      options: [...prevState.options, { value: "", unit: "ml", price: "", discount_price: "", stock: "" }],
     }));
   };
 
@@ -255,7 +256,6 @@ const AddProduct = () => {
     if (editorRef.current) {
       editorRef.current.focus();
     }
-    // Cập nhật trạng thái sau khi thực hiện lệnh
     setTimeout(updateFormatStates, 10);
   };
 
@@ -291,11 +291,6 @@ const AddProduct = () => {
     }
   };
 
-  const changeTextAlign = (align: string) => {
-    execCommand(`justify${align}`);
-  };
-
-  // Render toolbar với trạng thái active
   const renderToolbar = () => (
     <div className={styles.toolbar}>
       <div className={styles.toolbarGroup}>
@@ -342,7 +337,7 @@ const AddProduct = () => {
       <div className={styles.toolbarGroup}>
         <button
           type="button"
-          className={`${styles.toolbarBtn} ${activeFormats.bold ? styles.active : ''}`}
+          className={`${styles.toolbarBtn} ${activeFormats.bold ? styles.active : ""}`}
           onClick={() => execCommand("bold")}
           title="Đậm"
         >
@@ -350,7 +345,7 @@ const AddProduct = () => {
         </button>
         <button
           type="button"
-          className={`${styles.toolbarBtn} ${activeFormats.italic ? styles.active : ''}`}
+          className={`${styles.toolbarBtn} ${activeFormats.italic ? styles.active : ""}`}
           onClick={() => execCommand("italic")}
           title="Nghiêng"
         >
@@ -358,7 +353,7 @@ const AddProduct = () => {
         </button>
         <button
           type="button"
-          className={`${styles.toolbarBtn} ${activeFormats.underline ? styles.active : ''}`}
+          className={`${styles.toolbarBtn} ${activeFormats.underline ? styles.active : ""}`}
           onClick={() => execCommand("underline")}
           title="Gạch chân"
         >
@@ -366,18 +361,17 @@ const AddProduct = () => {
         </button>
         <button
           type="button"
-          className={`${styles.toolbarBtn} ${activeFormats.strikeThrough ? styles.active : ''}`}
+          className={`${styles.toolbarBtn} ${activeFormats.strikeThrough ? styles.active : ""}`}
           onClick={() => execCommand("strikeThrough")}
           title="Gạch ngang"
         >
           <s>S</s>
         </button>
       </div>
-
       <div className={styles.toolbarGroup}>
         <button
           type="button"
-          className={`${styles.toolbarBtn} ${activeFormats.insertUnorderedList ? styles.active : ''}`}
+          className={`${styles.toolbarBtn} ${activeFormats.insertUnorderedList ? styles.active : ""}`}
           onClick={() => insertList("ul")}
           title="Danh sách không đánh số"
         >
@@ -385,7 +379,7 @@ const AddProduct = () => {
         </button>
         <button
           type="button"
-          className={`${styles.toolbarBtn} ${activeFormats.insertOrderedList ? styles.active : ''}`}
+          className={`${styles.toolbarBtn} ${activeFormats.insertOrderedList ? styles.active : ""}`}
           onClick={() => insertList("ol")}
           title="Danh sách đánh số"
         >
@@ -403,7 +397,7 @@ const AddProduct = () => {
       showNotification("Vui lòng điền đầy đủ các trường bắt buộc.", "error");
       return;
     }
-    if (formData.options.some(opt => !opt.value || !opt.price || !opt.stock)) {
+    if (formData.options.some((opt) => !opt.value || !opt.unit || !opt.price || !opt.stock)) {
       showNotification("Vui lòng điền đầy đủ thông tin cho tất cả tùy chọn.", "error");
       return;
     }
@@ -422,8 +416,8 @@ const AddProduct = () => {
       productData.append(
         "option",
         JSON.stringify(
-          formData.options.map(opt => ({
-            value: opt.value,
+          formData.options.map((opt) => ({
+            value: `${opt.value}${opt.unit}`, // Kết hợp value và unit, e.g., "50ml"
             price: Number(opt.price),
             discount_price: opt.discount_price ? Number(opt.discount_price) : undefined,
             stock: Number(opt.stock),
@@ -457,13 +451,12 @@ const AddProduct = () => {
           id_brand: "",
           short_description: "",
           description: "",
-          options: [{ value: "", price: "", discount_price: "", stock: "" }],
+          options: [{ value: "", unit: "ml", price: "", discount_price: "", stock: "" }],
           images: [],
         });
         if (editorRef.current) {
           editorRef.current.innerHTML = "";
         }
-        // Reset active formats
         setActiveFormats({
           bold: false,
           italic: false,
@@ -474,7 +467,7 @@ const AddProduct = () => {
           justifyRight: false,
           justifyFull: false,
           insertUnorderedList: false,
-          insertOrderedList: false
+          insertOrderedList: false,
         });
         router.push("/admin/product");
       } else {
@@ -563,53 +556,84 @@ const AddProduct = () => {
         {/* Tùy chọn sản phẩm */}
         <div className={styles.formGroup}>
           <label className={styles.label}>Tùy chọn sản phẩm *</label>
-          {formData.options.map((option, index) => (
-            <div key={index} className={styles.optionRow}>
-              <input
-                type="text"
-                placeholder="Kích thước (e.g., 50ml)"
-                value={option.value}
-                onChange={(e) => handleOptionChange(index, "value", e.target.value)}
-                className={styles.input}
-                required
-              />
-              <input
-                type="number"
-                placeholder="Giá gốc"
-                value={option.price}
-                onChange={(e) => handleOptionChange(index, "price", e.target.value)}
-                className={styles.input}
-                required
-                min="0"
-              />
-              <input
-                type="number"
-                placeholder="Giá khuyến mãi (tùy chọn)"
-                value={option.discount_price}
-                onChange={(e) => handleOptionChange(index, "discount_price", e.target.value)}
-                className={styles.input}
-                min="0"
-              />
-              <input
-                type="number"
-                placeholder="Số lượng"
-                value={option.stock}
-                onChange={(e) => handleOptionChange(index, "stock", e.target.value)}
-                className={styles.input}
-                required
-                min="0"
-              />
-              {formData.options.length > 1 && (
-                <button
-                  type="button"
-                  className={styles.removeBtn}
-                  onClick={() => removeOption(index)}
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-          ))}
+          <table className={styles.optionsTable}>
+            <thead>
+              <tr>
+                <th>Kích thước</th>
+                <th>Giá gốc</th>
+                <th>Giá khuyến mãi</th>
+                <th>Số lượng</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {formData.options.map((option, index) => (
+                <tr key={index} className={styles.optionRow}>
+                  <td className={styles.sizeColumn}>
+                    <div className={styles.sizeInputGroup}>
+                      <input
+                        type="number"
+                        placeholder="e.g., 50"
+                        value={option.value}
+                        onChange={(e) => handleOptionChange(index, "value", e.target.value)}
+                        className={styles.input}
+                        required
+                        min="0"
+                      />
+                      <select
+                        value={option.unit}
+                        onChange={(e) => handleOptionChange(index, "unit", e.target.value)}
+                        className={styles.unitSelect}
+                        required
+                      >
+                        <option value="ml">ml</option>
+                        <option value="g">g</option>
+                      </select>
+                    </div>
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      placeholder="Giá gốc"
+                      value={option.price}
+                      onChange={(e) => handleOptionChange(index, "price", e.target.value)}
+                      className={styles.input}
+                      required
+                      min="0"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      placeholder="Giá khuyến mãi"
+                      value={option.discount_price}
+                      onChange={(e) => handleOptionChange(index, "discount_price", e.target.value)}
+                      className={styles.input}
+                      min="0"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      placeholder="Số lượng"
+                      value={option.stock}
+                      onChange={(e) => handleOptionChange(index, "stock", e.target.value)}
+                      className={styles.input}
+                      required
+                      min="0"
+                    />
+                  </td>
+                  <td>
+                    {formData.options.length > 1 && (
+                      <button type="button" className={styles.removeBtn} onClick={() => removeOption(index)}>
+                        ✕
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
           <button type="button" className={styles.addOptionBtn} onClick={addOption}>
             Thêm tùy chọn +
           </button>
@@ -658,11 +682,7 @@ const AddProduct = () => {
                   />
                   <div className={styles.imageInfo}>
                     <span className={styles.imageName}>{img.name}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeImage(idx)}
-                      className={styles.removeBtn}
-                    >
+                    <button type="button" onClick={() => removeImage(idx)} className={styles.removeBtn}>
                       ✕
                     </button>
                   </div>

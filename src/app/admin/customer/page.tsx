@@ -2,31 +2,44 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./customer.module.css";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faEdit } from '@fortawesome/free-solid-svg-icons';
+
+interface Customer {
+  _id: string;
+  username: string;
+  phone: string;
+  email: string;
+  address: string;
+  birthday: string | null;
+  listOrder: any[];
+  status: string;
+  role: string;
+  createdAt: string;
+}
+
+interface Notification {
+  show: boolean;
+  message: string;
+  type: "success" | "error";
+}
 
 export default function Customer() {
-  interface Customer {
-    _id: string;
-    username: string;
-    phone: string;
-    email: string;
-    address: string;
-    birthday: string | null;
-    listOrder: any[];
-    status: string;
-    role: string;
-    createdAt: string;
-  }
-
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCreateAdminModalOpen, setIsCreateAdminModalOpen] = useState(false);
+  const [isConfirmUpdateModalOpen, setIsConfirmUpdateModalOpen] = useState(false);
+  const [isConfirmCreateAdminModalOpen, setIsConfirmCreateAdminModalOpen] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [roleFilter, setRoleFilter] = useState<"user" | "admin">("user");
   const [newAdmin, setNewAdmin] = useState({ username: "", email: "", phone: "", password: "" });
+  const [notification, setNotification] = useState<Notification>({ show: false, message: "", type: "success" });
   const customersPerPage = 9;
   const router = useRouter();
 
@@ -45,38 +58,54 @@ export default function Customer() {
   useEffect(() => {
     if (!isAuthorized) return;
 
-    const token = localStorage.getItem("token");
-    if (!token) {
-      alert("Vui lòng đăng nhập lại!");
-      router.push("/admin/login");
-      return;
-    }
+    const fetchCustomers = async () => {
+      try {
+        setLoading(true);
+        const token = localStorage.getItem("token");
+        if (!token) {
+          throw new Error("No token found");
+        }
 
-    fetch("https://api-zeal.onrender.com/api/users", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then((res) => {
+        const res = await fetch("https://api-zeal.onrender.com/api/users", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          cache: "no-store",
+        });
+
         if (res.status === 401 || res.status === 403) {
-          alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
+          throw new Error("Phiên đăng nhập hết hạn");
+        }
+
+        if (!res.ok) {
+          throw new Error("Lỗi khi tải dữ liệu khách hàng");
+        }
+
+        const data = await res.json();
+        setCustomers(data);
+        setFilteredCustomers(data.filter((customer: Customer) => customer.role === roleFilter));
+        setLoading(false);
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error
+            ? err.message === "Phiên đăng nhập hết hạn"
+              ? "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!"
+              : err.message || "Lỗi khi tải dữ liệu khách hàng!"
+            : "Đã xảy ra lỗi không xác định";
+        setError(errorMessage);
+        setNotification({ show: true, message: errorMessage, type: "error" });
+        setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
+        setLoading(false);
+
+        if (err instanceof Error && err.message === "Phiên đăng nhập hết hạn") {
           localStorage.clear();
           router.push("/user/login");
-          return null;
         }
-        return res.json();
-      })
-      .then((data) => {
-        if (data) {
-          setCustomers(data);
-          setFilteredCustomers(data.filter((customer: Customer) => customer.role === roleFilter));
-        }
-      })
-      .catch((error) => {
-        console.error("Fetch error:", error);
-        alert("Lỗi khi tải dữ liệu khách hàng!");
-      });
-  }, [isAuthorized, router, roleFilter]);
+      }
+    };
+
+    fetchCustomers();
+  }, [isAuthorized, roleFilter, router]);
 
   // Handle search and role filter
   useEffect(() => {
@@ -108,7 +137,7 @@ export default function Customer() {
   };
 
   const getPaginationInfo = () => {
-    const visiblePages = [];
+    const visiblePages: number[] = [];
     let showPrevEllipsis = false;
     let showNextEllipsis = false;
 
@@ -138,15 +167,18 @@ export default function Customer() {
     setIsModalOpen(true);
   };
 
+  const confirmUpdate = () => {
+    setIsModalOpen(false);
+    setIsConfirmUpdateModalOpen(true);
+  };
+
   const updateCustomerInfo = async () => {
     if (!selectedCustomer) return;
 
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-        alert("Vui lòng đăng nhập lại!");
-        router.push("/user/login");
-        return;
+        throw new Error("No token found");
       }
 
       const res = await fetch(
@@ -165,10 +197,7 @@ export default function Customer() {
       );
 
       if (res.status === 401 || res.status === 403) {
-        alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
-        localStorage.clear();
-        router.push("/user/login");
-        return;
+        throw new Error("Phiên đăng nhập hết hạn");
       }
 
       if (!res.ok) {
@@ -183,40 +212,72 @@ export default function Customer() {
       setFilteredCustomers((prev) =>
         prev.map((c) => (c._id === updatedCustomer._id ? updatedCustomer : c))
       );
-      setIsModalOpen(false);
-      alert("Cập nhật thông tin khách hàng thành công!");
-    } catch (err: any) {
-      console.error("Error:", err);
-      alert(err.message || "Có lỗi xảy ra, vui lòng thử lại!");
+      setIsConfirmUpdateModalOpen(false);
+      setSelectedCustomer(null);
+      setNotification({
+        show: true,
+        message: "Cập nhật thông tin khách hàng thành công!",
+        type: "success",
+      });
+      setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error
+          ? err.message === "Phiên đăng nhập hết hạn"
+            ? "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!"
+            : err.message || "Có lỗi xảy ra khi cập nhật!"
+          : "Đã xảy ra lỗi không xác định";
+      setNotification({ show: true, message: errorMessage, type: "error" });
+      setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
+      if (err instanceof Error && err.message === "Phiên đăng nhập hết hạn") {
+        localStorage.clear();
+        router.push("/user/login");
+      }
     }
   };
 
-  // Function to handle admin account creation
-  const createAdminAccount = async () => {
+  const confirmCreateAdmin = () => {
     // Client-side validation
     if (!newAdmin.username || !newAdmin.email || !newAdmin.phone || !newAdmin.password) {
-      alert("Vui lòng điền đầy đủ tất cả các trường!");
+      setNotification({
+        show: true,
+        message: "Vui lòng điền đầy đủ tất cả các trường!",
+        type: "error",
+      });
+      setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
       return;
     }
 
     if (newAdmin.password.length < 8) {
-      alert("Mật khẩu phải có ít nhất 8 ký tự!");
+      setNotification({
+        show: true,
+        message: "Mật khẩu phải có ít nhất 8 ký tự!",
+        type: "error",
+      });
+      setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
       return;
     }
 
-    // Basic email format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(newAdmin.email)) {
-      alert("Email không hợp lệ!");
+      setNotification({
+        show: true,
+        message: "Email không hợp lệ!",
+        type: "error",
+      });
+      setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
       return;
     }
 
+    setIsCreateAdminModalOpen(false);
+    setIsConfirmCreateAdminModalOpen(true);
+  };
+
+  const createAdminAccount = async () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-        alert("Vui lòng đăng nhập lại!");
-        router.push("/user/login");
-        return;
+        throw new Error("No token found");
       }
 
       const res = await fetch("https://api-zeal.onrender.com/api/users/register", {
@@ -227,7 +288,7 @@ export default function Customer() {
         },
         body: JSON.stringify({
           ...newAdmin,
-          role: "admin", // Explicitly set role to admin
+          role: "admin",
           status: "active",
           address: "",
           birthday: null,
@@ -236,10 +297,7 @@ export default function Customer() {
       });
 
       if (res.status === 401 || res.status === 403) {
-        alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
-        localStorage.clear();
-        router.push("/user/login");
-        return;
+        throw new Error("Phiên đăng nhập hết hạn");
       }
 
       if (!res.ok) {
@@ -250,19 +308,62 @@ export default function Customer() {
       const newUser = await res.json();
       setCustomers((prev) => [...prev, newUser.user]);
       setFilteredCustomers((prev) => [...prev, newUser.user]);
-      setIsCreateAdminModalOpen(false);
+      setIsConfirmCreateAdminModalOpen(false);
       setNewAdmin({ username: "", email: "", phone: "", password: "" });
-      alert("Tạo tài khoản admin thành công!");
-    } catch (err: any) {
-      console.error("Error:", err);
-      alert(err.message || "Có lỗi xảy ra, vui lòng thử lại!");
+      setNotification({
+        show: true,
+        message: "Tạo tài khoản admin thành công!",
+        type: "success",
+      });
+      setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error
+          ? err.message === "Phiên đăng nhập hết hạn"
+            ? "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!"
+            : err.message || "Có lỗi xảy ra khi tạo tài khoản!"
+          : "Đã xảy ra lỗi không xác định";
+      setNotification({ show: true, message: errorMessage, type: "error" });
+      setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
+      if (err instanceof Error && err.message === "Phiên đăng nhập hết hạn") {
+        localStorage.clear();
+        router.push("/user/login");
+      }
     }
   };
+
+  if (loading) {
+    return (
+      <div className={styles.customerPage}>
+        <div className={styles.errorContainer}>
+          <p className={styles.errorMessage}>Đang tải dữ liệu khách hàng...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className={styles.customerPage}>
+        <div className={styles.errorContainer}>
+          <p className={styles.errorMessage}>{error}</p>
+          <button className={styles.retryButton} onClick={() => window.location.reload()}>
+            Thử lại
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthorized) return null;
 
   return (
-    <>
+    <div className={styles.customerPage}>
+      {notification.show && (
+        <div className={`${styles.notification} ${styles[notification.type]}`}>
+          {notification.message}
+        </div>
+      )}
       <div className={styles.titleContainer}>
         <h1>{roleFilter === "user" ? "KHÁCH HÀNG" : "QUẢN TRỊ VIÊN"}</h1>
         <div className={styles.searchContainer}>
@@ -307,19 +408,23 @@ export default function Customer() {
                   <td>{customer.username}</td>
                   <td>{customer.email}</td>
                   <td>{customer.phone}</td>
-                  <td>{customer.status}</td>
-                  <td>{customer.role}</td>
+                  <td>{customer.status === "active" ? "Hoạt động" : "Không hoạt động"}</td>
+                  <td>{customer.role === "user" ? "Khách hàng" : "Quản trị viên"}</td>
                   <td>{new Date(customer.createdAt).toLocaleDateString("vi-VN")}</td>
                   <td>
-                    <button className={styles.btn} onClick={() => openModal(customer)}>
-                      Sửa
+                    <button
+                      className={styles.editBtn}
+                      onClick={() => openModal(customer)}
+                      title="Sửa thông tin"
+                    >
+                      <FontAwesomeIcon icon={faEdit} />
                     </button>
                   </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={8} className="text-center py-4">
+                <td colSpan={8} className={styles.emptyState}>
                   Không có {roleFilter === "user" ? "khách hàng" : "quản trị viên"} nào
                 </td>
               </tr>
@@ -390,7 +495,7 @@ export default function Customer() {
 
       {/* Modal for editing customer */}
       {isModalOpen && selectedCustomer && (
-        <div className={styles.modal}>
+        <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
             <h3>Chỉnh sửa thông tin {roleFilter === "user" ? "khách hàng" : "quản trị viên"}</h3>
             <label>
@@ -401,8 +506,8 @@ export default function Customer() {
                   setSelectedCustomer({ ...selectedCustomer, status: e.target.value })
                 }
               >
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
+                <option value="active">Hoạt động</option>
+                <option value="inactive">Không hoạt động</option>
               </select>
             </label>
             <label>
@@ -413,13 +518,41 @@ export default function Customer() {
                   setSelectedCustomer({ ...selectedCustomer, role: e.target.value })
                 }
               >
-                <option value="user">User</option>
-                <option value="admin">Admin</option>
+                <option value="user">Khách hàng</option>
+                <option value="admin">Quản trị viên</option>
               </select>
             </label>
             <div className={styles.modalActions}>
-              <button onClick={updateCustomerInfo}>Lưu</button>
-              <button onClick={() => setIsModalOpen(false)}>Hủy</button>
+              <button className={styles.confirmBtn} onClick={confirmUpdate}>
+                Lưu
+              </button>
+              <button className={styles.cancelBtn} onClick={() => setIsModalOpen(false)}>
+                Hủy
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation modal for updating customer */}
+      {isConfirmUpdateModalOpen && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <h3>Xác nhận cập nhật</h3>
+            <p>Bạn có chắc muốn cập nhật thông tin {roleFilter === "user" ? "khách hàng" : "quản trị viên"} này?</p>
+            <div className={styles.modalActions}>
+              <button className={styles.confirmBtn} onClick={updateCustomerInfo}>
+                Xác nhận
+              </button>
+              <button
+                className={styles.cancelBtn}
+                onClick={() => {
+                  setIsConfirmUpdateModalOpen(false);
+                  setIsModalOpen(true);
+                }}
+              >
+                Hủy
+              </button>
             </div>
           </div>
         </div>
@@ -427,7 +560,7 @@ export default function Customer() {
 
       {/* Modal for creating admin account */}
       {isCreateAdminModalOpen && (
-        <div className={styles.modal}>
+        <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
             <h3>Tạo Tài Khoản Quản Trị Viên</h3>
             <label>
@@ -475,15 +608,42 @@ export default function Customer() {
                 placeholder="Nhập mật khẩu (tối thiểu 8 ký tự)"
               />
             </label>
-            
-            <p>Vai trò: Quản trị viên</p> {/* Display role as admin */}
+            <p>Vai trò: Quản trị viên</p>
             <div className={styles.modalActions}>
-              <button onClick={createAdminAccount}>Tạo</button>
-              <button onClick={() => setIsCreateAdminModalOpen(false)}>Hủy</button>
+              <button className={styles.confirmBtn} onClick={confirmCreateAdmin}>
+                Tạo
+              </button>
+              <button className={styles.cancelBtn} onClick={() => setIsCreateAdminModalOpen(false)}>
+                Hủy
+              </button>
             </div>
           </div>
         </div>
       )}
-    </>
+
+      {/* Confirmation modal for creating admin account */}
+      {isConfirmCreateAdminModalOpen && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <h3>Xác nhận tạo tài khoản</h3>
+            <p>Bạn có chắc muốn tạo tài khoản quản trị viên này?</p>
+            <div className={styles.modalActions}>
+              <button className={styles.confirmBtn} onClick={createAdminAccount}>
+                Xác nhận
+              </button>
+              <button
+                className={styles.cancelBtn}
+                onClick={() => {
+                  setIsConfirmCreateAdminModalOpen(false);
+                  setIsCreateAdminModalOpen(true);
+                }}
+              >
+                Hủy
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

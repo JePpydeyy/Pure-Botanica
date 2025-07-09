@@ -109,7 +109,8 @@
 
 .input,
 .select,
-.textarea {
+.textarea,
+.unitSelect {
   width: 100%;
   padding: 12px;
   border: 1px solid #e1e1e1;
@@ -122,7 +123,8 @@
 
 .input:focus,
 .select:focus,
-.textarea:focus {
+.textarea:focus,
+.unitSelect:focus {
   outline: none;
   border-color: #4CAF50;
   box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
@@ -140,46 +142,110 @@
   line-height: 1.5;
 }
 
-/* Option Group */
-.optionGroup {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr auto;
-  gap: 10px;
-  align-items: center;
-  margin-bottom: 10px;
-  padding: 15px;
+/* Options Table */
+.optionsTable {
+  width: 100%;
+  border-collapse: collapse;
   background-color: #f9f9f9;
-  border-radius: 8px;
   border: 1px solid #e1e1e1;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 10px;
 }
 
-.addOptionBtn,
-.removeOptionBtn {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 6px;
+.optionsTable th,
+.optionsTable td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #e1e1e1;
+}
+
+.optionsTable th {
+  font-weight: 500;
+  color: #333;
   font-size: 14px;
+  background-color: #f6f9fc;
+  text-transform: uppercase;
+}
+
+.optionsTable td {
+  vertical-align: middle;
+}
+
+.optionsTable .sizeColumn {
+  display: flex;
+  align-items: center;
+}
+
+.sizeInputGroup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.sizeInputGroup .input {
+  flex: 1;
+  min-width: 80px;
+}
+
+.unitSelect {
+  width: 80px;
+  padding: 10px;
+}
+
+.optionsTable input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px;
+  border: 1px solid #e1e1e1;
+  border-radius: 6px;
+  background-color: #fff;
+  font-size: 16px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.optionsTable input:focus {
+  outline: none;
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+}
+
+.removeBtn {
+  background-color: #ff4757;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
   cursor: pointer;
-  transition: background-color 0.3s ease, transform 0.2s ease;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  margin: 0 auto;
+}
+
+.removeBtn:hover {
+  background-color: #ff3742;
+  transform: scale(1.1);
 }
 
 .addOptionBtn {
   background-color: #4CAF50;
   color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 20px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  margin-top: 10px;
 }
 
 .addOptionBtn:hover {
   background-color: #45a049;
-  transform: translateY(-2px);
-}
-
-.removeOptionBtn {
-  background-color: #ff4757;
-  color: white;
-}
-
-.removeOptionBtn:hover {
-  background-color: #ff3742;
   transform: translateY(-2px);
 }
 
@@ -252,19 +318,6 @@
   border-color: #4CAF50;
 }
 
-.colorPicker {
-  width: 32px;
-  height: 32px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: border-color 0.2s ease;
-}
-
-.colorPicker:hover {
-  border-color: #4CAF50;
-}
-
 .editor {
   min-height: 200px;
   padding: 15px;
@@ -324,6 +377,11 @@
 .uploadLabel:hover {
   border-color: #4CAF50;
   background-color: #f0f8f0;
+}
+
+.uploadLabel.disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .uploadIcon {
@@ -389,26 +447,6 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   margin-right: 8px;
-}
-
-.removeBtn {
-  background-color: #ff4757;
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 24px;
-  height: 24px;
-  cursor: pointer;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-}
-
-.removeBtn:hover {
-  background-color: #ff3742;
-  transform: scale(1.1);
 }
 
 /* Button Group */
@@ -527,9 +565,31 @@
     grid-template-columns: 1fr;
   }
 
-  .optionGroup {
-    grid-template-columns: 1fr;
+  .optionsTable {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .optionsTable th,
+  .optionsTable td {
+    min-width: 100px;
+  }
+
+  .sizeInputGroup {
+    flex-direction: row;
     gap: 8px;
+  }
+
+  .unitSelect {
+    width: 70px;
+    padding: 8px;
+    font-size: 14px;
+  }
+
+  .optionsTable input {
+    font-size: 14px;
+    padding: 8px;
   }
 
   .toolbar {
@@ -539,6 +599,18 @@
 
   .toolbarGroup:not(:last-child)::after {
     display: none;
+  }
+
+  .toolbarBtn {
+    padding: 4px 6px;
+    min-width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+
+  .toolbarSelect {
+    min-width: 60px;
+    font-size: 12px;
   }
 
   .imagePreview {
@@ -577,5 +649,21 @@
     left: 10px;
     right: 10px;
     max-width: none;
+  }
+
+  .sizeInputGroup {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  .unitSelect {
+    width: 100%;
+    padding: 8px;
+    font-size: 14px;
+  }
+
+  .sizeInputGroup .input {
+    min-width: 0;
   }
 }

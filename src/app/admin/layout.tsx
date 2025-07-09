@@ -40,9 +40,9 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
             <Link href="/admin/order" className="menu-item">
               <span>Danh sách oder</span>
             </Link>
-            {/* <Link href="/admin/comment" className="menu-item">
+            <Link href="/admin/comment" className="menu-item">
               <span>Bình Luận</span>
-            </Link> */}
+            </Link>
             <Link href="/admin/coupons" className="menu-item">
               <span>Khuyến mãi</span>
             </Link>

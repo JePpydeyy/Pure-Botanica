@@ -62,7 +62,7 @@ export default function Home() {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        const response = await fetch("https://api-zeal.onrender.com/api/products", {
+        const response = await fetch("https://api-zeal.onrender.com/api/products/active", {
           cache: "no-store",
         });
         if (!response.ok) {

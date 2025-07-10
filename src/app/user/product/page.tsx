@@ -4,62 +4,14 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-
-// Product interfaces
-interface ProductOption {
-  _id: string;
-  stock: number;
-  value: string;
-  price: number;
-  discount_price?: number;
-}
-
-interface Product {
-  _id: string;
-  name: string;
-  slug: string;
-  status: string;
-  view: number;
-  id_brand: string;
-  id_category: string;
-  images: string[];
-  short_description: string;
-  description: string;
-  option: ProductOption[];
-  createdAt: string;
-  updatedAt?: string;
-  createdAT?: string;
-  // Optional fields for populated data
-  category?: {
-    _id: string;
-    name: string;
-  };
-  brand?: {
-    _id: string;
-    name: string;
-  };
-  // Computed fields
-  price?: number;
-  stock?: number;
-  brandName?: string;
-}
-
-interface Category {
-  _id: string;
-  name: string;
-}
-
-interface Brand {
-  _id: string;
-  name: string;
-  status: string;
-}
+import { Category } from "@/app/components/category_interface";
+import { Brand } from "@/app/components/Brand_interface";
+import { Product } from "@/app/components/product_interface";
 
 const PRICE_RANGES = [
-  { label: "50 - 100.000 VND", value: "50-100" },
-  { label: "101 - 300.000 VND", value: "101-300" },
-  { label: "301 - 500.000 VND", value: "301-500" },
-  { label: "Trên 500.000 VND", value: "500+" },
+  { label: "100.000đ - 300.000đ", value: "100-300" },
+  { label: "300.000đ - 500.000đ", value: "300-500" },
+  { label: "500.000đ trở lên", value: "500+" },
 ];
 
 const formatPrice = (price: number | undefined | null): string => {
@@ -224,9 +176,8 @@ export default function ProductPage() {
     if (selectedPriceRange) {
       filtered = filtered.filter((product) => {
         const price = product.price || 0;
-        if (selectedPriceRange === "50-100") return price >= 50000 && price <= 100000;
-        if (selectedPriceRange === "101-300") return price >= 101000 && price <= 300000;
-        if (selectedPriceRange === "301-500") return price >= 301000 && price <= 500000;
+        if (selectedPriceRange === "100-300") return price >= 100000 && price <= 300000;
+        if (selectedPriceRange === "300-500") return price > 300000 && price <= 500000;
         if (selectedPriceRange === "500+") return price > 500000;
         return true;
       });
@@ -305,6 +256,7 @@ export default function ProductPage() {
       <div className={styles.containerBox}>
         <aside className={styles.productSidebar}>
           <h3 className={styles["sidebar-title"]}>DANH MỤC SẢN PHẨM</h3>
+              <hr />      
           <ul className={styles["menu-list"]}>
             {categories.length > 0 ? (
               categories.map((category) => (
@@ -314,11 +266,7 @@ export default function ProductPage() {
                   onClick={() => filterProducts(category.name)}
                 >
                   <span
-                    className={styles["menu-title"]}
-                    style={{
-                      color: activeCategory === category.name ? "#8D5524" : "#357E38",
-                      cursor: "pointer",
-                    }}
+                    className={`${styles.filterOption} ${activeCategory === category.name ? styles.active : ""}`}
                   >
                     {category.name}
                   </span>
@@ -329,53 +277,43 @@ export default function ProductPage() {
             )}
           </ul>
 
-          {/* Bộ lọc thương hiệu */}
-          <h3 className={styles["sidebar-title"]} style={{ marginTop: 32 }}>THƯƠNG HIỆU</h3>
+          <h3 className={styles["sidebar-title"]}>THƯƠNG HIỆU</h3>
           <hr />
-          <ul style={{ listStyle: "none", padding: 0, marginBottom: 18 }}>
+          <ul className={styles.filterList}>
             {brands.map((brand) => (
-              <li key={brand._id} style={{ marginBottom: 8 }}>
-                <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-                  <input
-                    type="checkbox"
-                    checked={selectedBrands.includes(brand.name)}
-                  onChange={() => {
+              <li key={brand._id} className={styles.filterItem}>
+                <span
+                  className={`${styles.filterOption} ${selectedBrands.includes(brand.name) ? styles.active : ""}`}
+                  onClick={() => {
                     setSelectedBrands((prev) =>
                       prev.includes(brand.name)
-                        ? prev.filter((b) => b !== brand.name) // Bỏ lọc nếu đã chọn
+                        ? prev.filter((b) => b !== brand.name)
                         : [...prev, brand.name]
                     );
                   }}
-                  />
-                  <span style={{ color: "#357E38", fontWeight: 500 }}>{brand.name}</span>
-                </label>
+                >
+                  {brand.name}
+                </span>
               </li>
             ))}
           </ul>
 
-          {/* Bộ lọc phân khúc giá */}
           <h3 className={styles["sidebar-title"]}>PHÂN KHÚC SẢN PHẨM</h3>
           <hr />
-        <ul style={{ listStyle: "none", padding: 0 }}>
-          {PRICE_RANGES.map((range) => (
-            <li key={range.value} style={{ marginBottom: 8 }}>
-              <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-                <input
-                  type="radio"
-                  name="priceRange"
-                  checked={selectedPriceRange === range.value}
-                  onChange={() => {
-                    setSelectedPriceRange(
-                      selectedPriceRange === range.value ? "" : range.value
-                    );
-                  }}
-                />
-                <span style={{ color: "#357E38", fontWeight: 500 }}>{range.label}</span>
-              </label>
-            </li>
-          ))}
-        </ul>
-       
+          <ul className={styles.filterList}>
+            {PRICE_RANGES.map((range) => (
+              <li key={range.value} className={styles.filterItem}>
+                <span
+                  className={`${styles.filterOption} ${selectedPriceRange === range.value ? styles.active : ""}`}
+                  onClick={() =>
+                    setSelectedPriceRange(selectedPriceRange === range.value ? "" : range.value)
+                  }
+                >
+                  {range.label}
+                </span>
+              </li>
+            ))}
+          </ul>
         </aside>
         <section className={styles.productContainer}>
           {error ? (
@@ -400,6 +338,7 @@ export default function ProductPage() {
                       alt={product?.name || "Sản phẩm"}
                       width={300}
                       height={200}
+                      quality={100}
                       className={styles["product-image"]}
                     />
                     <div>
@@ -503,6 +442,7 @@ export default function ProductPage() {
                       alt={product?.name || "Sản phẩm"}
                       width={200}
                       height={200}
+                      quality={100}
                       className={styles["best-selling-product-image"]}
                     />  
                   </div>

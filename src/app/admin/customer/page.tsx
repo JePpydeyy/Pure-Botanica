@@ -1,9 +1,9 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./customer.module.css";
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEdit } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faEdit } from "@fortawesome/free-solid-svg-icons";
 
 interface Customer {
   _id: string;
@@ -34,11 +34,21 @@ export default function Customer() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
   const [roleFilter, setRoleFilter] = useState<"user" | "admin">("user");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+  const [currentPage, setCurrentPage] = useState(1);
   const [notification, setNotification] = useState<Notification>({ show: false, message: "", type: "success" });
   const customersPerPage = 9;
   const router = useRouter();
+
+  // Debounce search input
+  const debounce = <T extends (...args: any[]) => void>(func: T, wait: number) => {
+    let timeout: NodeJS.Timeout;
+    return (...args: Parameters<T>) => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func(...args), wait);
+    };
+  };
 
   // Check admin privileges
   useEffect(() => {
@@ -80,7 +90,19 @@ export default function Customer() {
 
         const data = await res.json();
         setCustomers(data);
-        setFilteredCustomers(data.filter((customer: Customer) => customer.role === roleFilter));
+        setFilteredCustomers(
+          data.filter(
+            (customer: Customer) =>
+              customer.role === roleFilter &&
+              (statusFilter === "all" || customer.status === statusFilter) &&
+              (customer.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                customer.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                customer.phone.includes(searchQuery) ||
+                customer.status.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                customer.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                new Date(customer.createdAt).toLocaleDateString("vi-VN").includes(searchQuery.toLowerCase()))
+          )
+        );
         setLoading(false);
       } catch (err) {
         const errorMessage =
@@ -102,19 +124,38 @@ export default function Customer() {
     };
 
     fetchCustomers();
-  }, [isAuthorized, roleFilter, router]);
+  }, [isAuthorized, router]);
 
-  // Handle search and role filter
+  // Handle search, role, and status filter
+  const filterCustomers = useCallback(
+    (query: string, role: "user" | "admin", status: "all" | "active" | "inactive") => {
+      const filtered = customers.filter(
+        (customer) =>
+          customer.role === role &&
+          (status === "all" || customer.status === status) &&
+          (customer.username.toLowerCase().includes(query.toLowerCase()) ||
+            customer.email.toLowerCase().includes(query.toLowerCase()) ||
+            customer.phone.includes(query) ||
+            customer.status.toLowerCase().includes(query.toLowerCase()) ||
+            customer.address.toLowerCase().includes(query.toLowerCase()) ||
+            new Date(customer.createdAt).toLocaleDateString("vi-VN").includes(query.toLowerCase()))
+      );
+      setFilteredCustomers(filtered);
+      setCurrentPage(1);
+    },
+    [customers]
+  );
+
+  const debouncedFilter = useMemo(
+    () => debounce((query: string, role: "user" | "admin", status: "all" | "active" | "inactive") => {
+      filterCustomers(query, role, status);
+    }, 300),
+    [filterCustomers]
+  );
+
   useEffect(() => {
-    const filtered = customers.filter(
-      (customer) =>
-        customer.role === roleFilter &&
-        (customer.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          customer.email.toLowerCase().includes(searchQuery.toLowerCase()))
-    );
-    setFilteredCustomers(filtered);
-    setCurrentPage(1);
-  }, [searchQuery, customers, roleFilter]);
+    debouncedFilter(searchQuery, roleFilter, statusFilter);
+  }, [searchQuery, roleFilter, statusFilter, debouncedFilter]);
 
   // Toggle role filter
   const toggleRoleFilter = () => {
@@ -164,12 +205,14 @@ export default function Customer() {
     setIsModalOpen(true);
   };
 
-  const confirmUpdate = () => {
+  const confirmUpdate = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault(); // Ngăn hành vi submit mặc định
     setIsModalOpen(false);
     setIsConfirmUpdateModalOpen(true);
   };
 
-  const updateCustomerInfo = async () => {
+  const updateCustomerInfo = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault(); // Ngăn hành vi submit mặc định
     if (!selectedCustomer) return;
 
     try {
@@ -248,7 +291,7 @@ export default function Customer() {
       <div className={styles.customerPage}>
         <div className={styles.errorContainer}>
           <p className={styles.errorMessage}>{error}</p>
-          <button className={styles.retryButton} onClick={() => window.location.reload()}>
+          <button type="button" className={styles.retryButton} onClick={() => window.location.reload()}>
             Thử lại
           </button>
         </div>
@@ -270,13 +313,22 @@ export default function Customer() {
         <div className={styles.searchContainer}>
           <input
             type="text"
-            placeholder={`Tìm kiếm ${roleFilter === "user" ? "khách hàng" : "quản trị viên"} theo tên hoặc email...`}
+            placeholder={`Tìm kiếm ${roleFilter === "user" ? "khách hàng" : "quản trị viên"} theo tên, email, số điện thoại, địa chỉ...`}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className={styles.searchInput}
           />
-          <button onClick={toggleRoleFilter} className={styles.btn}>
-          {roleFilter === "user" ? "Xem Quản Trị Viên" : "Xem Khách Hàng"}
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as "all" | "active" | "inactive")}
+            className={styles.statusFilter}
+          >
+            <option value="all">Tất cả trạng thái</option>
+            <option value="active">Hoạt động</option>
+            <option value="inactive">Không hoạt động</option>
+          </select>
+          <button type="button" onClick={toggleRoleFilter} className={styles.btn}>
+            {roleFilter === "user" ? "Xem Quản Trị Viên" : "Xem Khách Hàng"}
           </button>
         </div>
       </div>
@@ -308,6 +360,7 @@ export default function Customer() {
                   <td>{new Date(customer.createdAt).toLocaleDateString("vi-VN")}</td>
                   <td>
                     <button
+                      type="button"
                       className={styles.editBtn}
                       onClick={() => openModal(customer)}
                       title="Sửa thông tin"
@@ -337,6 +390,7 @@ export default function Customer() {
                 {showPrevEllipsis && (
                   <>
                     <button
+                      type="button"
                       className={`${styles.pageLink} ${styles.firstLastPage}`}
                       onClick={() => handlePageChange(1)}
                       title="Trang đầu tiên"
@@ -354,6 +408,7 @@ export default function Customer() {
                 )}
                 {visiblePages.map((page) => (
                   <button
+                    type="button"
                     key={page}
                     className={`${styles.pageLink} ${
                       currentPage === page ? styles.pageLinkActive : ""
@@ -366,7 +421,6 @@ export default function Customer() {
                 ))}
                 {showNextEllipsis && (
                   <>
-                    varsa
                     <div
                       className={styles.ellipsis}
                       onClick={() => handlePageChange(Math.min(totalPages, currentPage + 3))}
@@ -375,6 +429,7 @@ export default function Customer() {
                       ...
                     </div>
                     <button
+                      type="button"
                       className={`${styles.pageLink} ${styles.firstLastPage}`}
                       onClick={() => handlePageChange(totalPages)}
                       title="Trang cuối cùng"
@@ -389,7 +444,6 @@ export default function Customer() {
         </div>
       )}
 
-      {/* Modal for editing customer */}
       {isModalOpen && selectedCustomer && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
@@ -419,10 +473,10 @@ export default function Customer() {
               </select>
             </label>
             <div className={styles.modalActions}>
-              <button className={styles.confirmBtn} onClick={confirmUpdate}>
+              <button type="button" className={styles.confirmBtn} onClick={confirmUpdate}>
                 Lưu
               </button>
-              <button className={styles.cancelBtn} onClick={() => setIsModalOpen(false)}>
+              <button type="button" className={styles.cancelBtn} onClick={() => setIsModalOpen(false)}>
                 Hủy
               </button>
             </div>
@@ -430,17 +484,17 @@ export default function Customer() {
         </div>
       )}
 
-      {/* Confirmation modal for updating customer */}
       {isConfirmUpdateModalOpen && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
             <h3>Xác nhận cập nhật</h3>
             <p>Bạn có chắc muốn cập nhật thông tin {roleFilter === "user" ? "khách hàng" : "quản trị viên"} này?</p>
             <div className={styles.modalActions}>
-              <button className={styles.confirmBtn} onClick={updateCustomerInfo}>
+              <button type="button" className={styles.confirmBtn} onClick={updateCustomerInfo}>
                 Xác nhận
               </button>
               <button
+                type="button"
                 className={styles.cancelBtn}
                 onClick={() => {
                   setIsConfirmUpdateModalOpen(false);

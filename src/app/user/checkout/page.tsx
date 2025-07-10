@@ -84,7 +84,7 @@ export default function CheckoutPage() {
 
     const token = localStorage.getItem("token");
     if (token) {
-      fetch("https://api-zeal.onrender.com/api/users/userinfo", {
+      fetch("https://z/api/users/userinfo", {
         headers: { Authorization: `Bearer ${token}` },
       })
         .then((res) => {
@@ -338,7 +338,7 @@ export default function CheckoutPage() {
     };
 
     try {
-      let checkoutResponse = await fetch(`https://api-zeal.onrender.com/api/carts/checkout`, {
+      let checkoutResponse = await fetch(`https://z/api/carts/checkout`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -377,7 +377,7 @@ export default function CheckoutPage() {
       setShippingStatus(initialShippingStatus);
 
       if (formData.paymentMethod === "bank") {
-        let paymentResponse = await fetch(`https://api-zeal.onrender.com/api/payments/create`, {
+        let paymentResponse = await fetch(`https://z/api/payments/create`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -428,7 +428,7 @@ export default function CheckoutPage() {
 
   const getImageUrl = (image: string | undefined): string => {
     if (!image) return "https://via.placeholder.com/50x50?text=No+Image";
-    const baseUrl = "https://api-zeal.onrender.com/";
+    const baseUrl = "https://z/";
     return `${baseUrl}${image}`;
   };
 

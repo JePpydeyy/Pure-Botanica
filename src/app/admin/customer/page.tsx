@@ -29,16 +29,13 @@ export default function Customer() {
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isCreateAdminModalOpen, setIsCreateAdminModalOpen] = useState(false);
   const [isConfirmUpdateModalOpen, setIsConfirmUpdateModalOpen] = useState(false);
-  const [isConfirmCreateAdminModalOpen, setIsConfirmCreateAdminModalOpen] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [roleFilter, setRoleFilter] = useState<"user" | "admin">("user");
-  const [newAdmin, setNewAdmin] = useState({ username: "", email: "", phone: "", password: "" });
   const [notification, setNotification] = useState<Notification>({ show: false, message: "", type: "success" });
   const customersPerPage = 9;
   const router = useRouter();
@@ -236,102 +233,6 @@ export default function Customer() {
     }
   };
 
-  const confirmCreateAdmin = () => {
-    // Client-side validation
-    if (!newAdmin.username || !newAdmin.email || !newAdmin.phone || !newAdmin.password) {
-      setNotification({
-        show: true,
-        message: "Vui lòng điền đầy đủ tất cả các trường!",
-        type: "error",
-      });
-      setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
-      return;
-    }
-
-    if (newAdmin.password.length < 8) {
-      setNotification({
-        show: true,
-        message: "Mật khẩu phải có ít nhất 8 ký tự!",
-        type: "error",
-      });
-      setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
-      return;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(newAdmin.email)) {
-      setNotification({
-        show: true,
-        message: "Email không hợp lệ!",
-        type: "error",
-      });
-      setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
-      return;
-    }
-
-    setIsCreateAdminModalOpen(false);
-    setIsConfirmCreateAdminModalOpen(true);
-  };
-
-  const createAdminAccount = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        throw new Error("No token found");
-      }
-
-      const res = await fetch("https://api-zeal.onrender.com/api/users/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          ...newAdmin,
-          role: "admin",
-          status: "active",
-          address: "",
-          birthday: null,
-          listOrder: [],
-        }),
-      });
-
-      if (res.status === 401 || res.status === 403) {
-        throw new Error("Phiên đăng nhập hết hạn");
-      }
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || "Tạo tài khoản admin thất bại");
-      }
-
-      const newUser = await res.json();
-      setCustomers((prev) => [...prev, newUser.user]);
-      setFilteredCustomers((prev) => [...prev, newUser.user]);
-      setIsConfirmCreateAdminModalOpen(false);
-      setNewAdmin({ username: "", email: "", phone: "", password: "" });
-      setNotification({
-        show: true,
-        message: "Tạo tài khoản admin thành công!",
-        type: "success",
-      });
-      setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error
-          ? err.message === "Phiên đăng nhập hết hạn"
-            ? "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!"
-            : err.message || "Có lỗi xảy ra khi tạo tài khoản!"
-          : "Đã xảy ra lỗi không xác định";
-      setNotification({ show: true, message: errorMessage, type: "error" });
-      setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
-      if (err instanceof Error && err.message === "Phiên đăng nhập hết hạn") {
-        localStorage.clear();
-        router.push("/user/login");
-      }
-    }
-  };
-
   if (loading) {
     return (
       <div className={styles.customerPage}>
@@ -377,12 +278,6 @@ export default function Customer() {
         </div>
         <button onClick={toggleRoleFilter} className={styles.btn}>
           {roleFilter === "user" ? "Xem Quản Trị Viên" : "Xem Khách Hàng"}
-        </button>
-        <button
-          onClick={() => setIsCreateAdminModalOpen(true)}
-          className={styles.btn}
-        >
-          Tạo Tài Khoản Admin
         </button>
       </div>
 
@@ -471,6 +366,7 @@ export default function Customer() {
                 ))}
                 {showNextEllipsis && (
                   <>
+                    varsa
                     <div
                       className={styles.ellipsis}
                       onClick={() => handlePageChange(Math.min(totalPages, currentPage + 3))}
@@ -549,93 +445,6 @@ export default function Customer() {
                 onClick={() => {
                   setIsConfirmUpdateModalOpen(false);
                   setIsModalOpen(true);
-                }}
-              >
-                Hủy
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal for creating admin account */}
-      {isCreateAdminModalOpen && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modalContent}>
-            <h3>Tạo Tài Khoản Quản Trị Viên</h3>
-            <label>
-              Tên:
-              <input
-                type="text"
-                required
-                value={newAdmin.username}
-                onChange={(e) =>
-                  setNewAdmin({ ...newAdmin, username: e.target.value })
-                }
-                placeholder="Nhập tên"
-              />
-            </label>
-            <label>
-              Email:
-              <input
-                type="email"
-                required
-                value={newAdmin.email}
-                onChange={(e) => setNewAdmin({ ...newAdmin, email: e.target.value })}
-                placeholder="Nhập email"
-              />
-            </label>
-            <label>
-              Số điện thoại:
-              <input
-                type="text"
-                required
-                value={newAdmin.phone}
-                onChange={(e) => setNewAdmin({ ...newAdmin, phone: e.target.value })}
-                placeholder="Nhập số điện thoại"
-              />
-            </label>
-            <label>
-              Mật khẩu:
-              <input
-                type="password"
-                required
-                minLength={8}
-                value={newAdmin.password}
-                onChange={(e) =>
-                  setNewAdmin({ ...newAdmin, password: e.target.value })
-                }
-                placeholder="Nhập mật khẩu (tối thiểu 8 ký tự)"
-              />
-            </label>
-            <p>Vai trò: Quản trị viên</p>
-            <div className={styles.modalActions}>
-              <button className={styles.confirmBtn} onClick={confirmCreateAdmin}>
-                Tạo
-              </button>
-              <button className={styles.cancelBtn} onClick={() => setIsCreateAdminModalOpen(false)}>
-                Hủy
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Confirmation modal for creating admin account */}
-      {isConfirmCreateAdminModalOpen && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modalContent}>
-            <h3>Xác nhận tạo tài khoản</h3>
-            <p>Bạn có chắc muốn tạo tài khoản quản trị viên này?</p>
-            <div className={styles.modalActions}>
-              <button className={styles.confirmBtn} onClick={createAdminAccount}>
-                Xác nhận
-              </button>
-              <button
-                className={styles.cancelBtn}
-                onClick={() => {
-                  setIsConfirmCreateAdminModalOpen(false);
-                  setIsCreateAdminModalOpen(true);
                 }}
               >
                 Hủy

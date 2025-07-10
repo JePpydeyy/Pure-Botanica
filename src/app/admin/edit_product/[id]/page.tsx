@@ -174,26 +174,27 @@ const EditProduct = () => {
         if (!brandsResponse.ok) throw new Error("Không thể tải thương hiệu");
         const brandsData: Brand[] = await brandsResponse.json();
 
-    const options: Option[] = productData.option && productData.option.length > 0
-      ? productData.option.map((opt): Option => {
-          const match = opt.value.match(/^(\d+)(ml|g)$/);
-          const unit = match?.[2] === "ml" || match?.[2] === "g" ? match[2] : "ml"; // ✅ TS hiểu chắc chắn là "ml" | "g"
-          return {
-            value: match ? match[1] : opt.value,
-            unit,
-            price: opt.price.toString(),
-            discount_price: opt.discount_price ? opt.discount_price.toString() : "",
-            stock: opt.stock.toString(),
-          };
-        })
-      : [{ value: "", unit: "ml", price: "", discount_price: "", stock: "" }];
+        const options: Option[] =
+          productData.option && productData.option.length > 0
+            ? productData.option.map((opt) => {
+                const match = opt.value.match(/^(\d+)(ml|g)$/);
+                const unit = match?.[2] === "ml" || match?.[2] === "g" ? match[2] : "ml";
+                return {
+                  value: match ? match[1] : opt.value,
+                  unit,
+                  price: opt.price.toString(),
+                  discount_price: opt.discount_price ? opt.discount_price.toString() : "",
+                  stock: opt.stock.toString(),
+                };
+              })
+            : [{ value: "", unit: "ml", price: "", discount_price: "", stock: "" }];
         setCategories(categoriesData);
         setBrands(brandsData);
         setFormData({
           name: productData.name || "",
           status: productData.status || "show",
-          id_category: productData.id_category || "",
-          id_brand: productData.id_brand || "",
+          id_category: typeof productData.id_category === "string" ? productData.id_category : productData.id_category?._id || "",
+          id_brand: typeof productData.id_brand === "string" ? productData.id_brand : productData.id_brand?._id || "",
           short_description: productData.short_description || "",
           description: productData.description || "",
           option: options,
@@ -281,11 +282,69 @@ const EditProduct = () => {
   };
 
   const execCommand = (command: string, value?: string) => {
-    document.execCommand(command, false, value);
     if (editorRef.current) {
+      const isActive = document.queryCommandState(command);
+      if (isActive && !value) {
+        document.execCommand(command, false, undefined);
+      } else {
+        document.execCommand(command, false, value);
+      }
       editorRef.current.focus();
+      setTimeout(updateFormatStates, 10);
     }
-    setTimeout(updateFormatStates, 10);
+  };
+
+  const insertList = (type: "ul" | "ol") => {
+    const command = `insert${type === "ul" ? "UnorderedList" : "OrderedList"}`;
+    if (editorRef.current) {
+      const isActive = document.queryCommandState(command);
+      if (isActive) {
+        document.execCommand("formatBlock", false, "p");
+      } else {
+        document.execCommand(command, false, undefined);
+      }
+      editorRef.current.focus();
+      setTimeout(updateFormatStates, 10);
+    }
+  };
+
+  const changeFontSize = (size: string) => {
+    if (editorRef.current && size) {
+      const currentSize = document.queryCommandValue("fontSize");
+      if (currentSize === size) {
+        document.execCommand("fontSize", false, "3");
+      } else {
+        document.execCommand("fontSize", false, size);
+      }
+      editorRef.current.focus();
+      setTimeout(updateFormatStates, 10);
+    }
+  };
+
+  const changeFontFamily = (font: string) => {
+    if (editorRef.current && font) {
+      const currentFont = document.queryCommandValue("fontName").replace(/"/g, "");
+      if (currentFont.toLowerCase().includes(font.toLowerCase())) {
+        document.execCommand("fontName", false, "Arial");
+      } else {
+        document.execCommand("fontName", false, font);
+      }
+      editorRef.current.focus();
+      setTimeout(updateFormatStates, 10);
+    }
+  };
+
+  const insertHeading = (level: string) => {
+    if (editorRef.current && level) {
+      const currentBlock = document.queryCommandValue("formatBlock").toLowerCase();
+      if (currentBlock === `h${level}`) {
+        document.execCommand("formatBlock", false, "p");
+      } else {
+        document.execCommand("formatBlock", false, `h${level}`);
+      }
+      editorRef.current.focus();
+      setTimeout(updateFormatStates, 10);
+    }
   };
 
   const handleDescriptionChange = () => {
@@ -298,29 +357,13 @@ const EditProduct = () => {
     updateFormatStates();
   };
 
-  const insertList = (type: "ul" | "ol") => {
-    execCommand(`insert${type === "ul" ? "UnorderedList" : "OrderedList"}`);
-  };
-
-  const changeFontSize = (size: string) => {
-    if (size) execCommand("fontSize", size);
-  };
-
-  const changeFontFamily = (font: string) => {
-    if (font) execCommand("fontName", font);
-  };
-
-  const insertHeading = (level: string) => {
-    if (level) execCommand("formatBlock", `<h${level}>`);
-  };
-
   const renderToolbar = () => (
     <div className={styles.toolbar}>
       <div className={styles.toolbarGroup}>
         <select
           className={styles.toolbarSelect}
           onChange={(e) => changeFontFamily(e.target.value)}
-          defaultValue=""
+          value={document.queryCommandValue("fontName").replace(/"/g, "") || ""}
         >
           <option value="">Font</option>
           <option value="Arial">Arial</option>
@@ -332,7 +375,7 @@ const EditProduct = () => {
         <select
           className={styles.toolbarSelect}
           onChange={(e) => changeFontSize(e.target.value)}
-          defaultValue=""
+          value={document.queryCommandValue("fontSize") || ""}
         >
           <option value="">Size</option>
           <option value="1">8pt</option>
@@ -346,7 +389,7 @@ const EditProduct = () => {
         <select
           className={styles.toolbarSelect}
           onChange={(e) => insertHeading(e.target.value)}
-          defaultValue=""
+          value={document.queryCommandValue("formatBlock").toLowerCase().replace('h', '') || ""}
         >
           <option value="">Heading</option>
           <option value="1">H1</option>
@@ -647,6 +690,7 @@ const EditProduct = () => {
                       value={option.discount_price}
                       onChange={(e) => handleOptionChange(index, "discount_price", e.target.value)}
                       className={styles.input}
+                      mininsight
                       min="0"
                     />
                   </td>

@@ -28,9 +28,17 @@ interface Product {
   updatedAt: string;
 }
 
+interface Brand {
+  _id: string;
+  name: string;
+  status: string;
+  logoImg: string;
+}
+
 export default function Home() {
   const [newProducts, setNewProducts] = useState<Product[]>([]);
   const [bestSellingProducts, setBestSellingProducts] = useState<Product[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -57,18 +65,20 @@ export default function Home() {
     };
   }, []);
 
-  // Lấy dữ liệu sản phẩm từ API
+  // Lấy dữ liệu sản phẩm và thương hiệu từ API
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        const response = await fetch("https://api-zeal.onrender.com/api/products/active", {
+
+        // Fetch products
+        const productResponse = await fetch("https://api-zeal.onrender.com/api/products/active", {
           cache: "no-store",
         });
-        if (!response.ok) {
+        if (!productResponse.ok) {
           throw new Error("Không thể lấy dữ liệu sản phẩm");
         }
-        const allProducts: Product[] = await response.json();
+        const allProducts: Product[] = await productResponse.json();
 
         // Filter valid products with valid option data
         const validProducts = allProducts.filter(
@@ -97,14 +107,26 @@ export default function Home() {
         const topStockProducts = sortedByStock.slice(0, 4);
         setBestSellingProducts(topStockProducts);
 
+        // Fetch brands
+        const brandResponse = await fetch("https://api-zeal.onrender.com/api/brands", {
+          cache: "no-store",
+        });
+        if (!brandResponse.ok) {
+          throw new Error("Không thể lấy dữ liệu thương hiệu");
+        }
+        const allBrands: Brand[] = await brandResponse.json();
+        // Filter brands with status "show"
+        const visibleBrands = allBrands.filter((brand) => brand.status === "show");
+        setBrands(visibleBrands);
+
         setLoading(false);
       } catch (error) {
-        console.error("Lỗi khi lấy sản phẩm:", error);
+        console.error("Lỗi khi lấy dữ liệu:", error);
         setLoading(false);
       }
     };
 
-    fetchProducts();
+    fetchData();
   }, []);
 
   // Định dạng giá tiền
@@ -156,7 +178,6 @@ export default function Home() {
                           {product.option[0].discount_price
                             ? formatPrice(product.option[0].discount_price)
                             : formatPrice(product.option[0].price)}
-                          
                         </p>
                       </div>
                     </div>
@@ -247,7 +268,6 @@ export default function Home() {
                       {product.option[0].discount_price
                         ? formatPrice(product.option[0].discount_price)
                         : formatPrice(product.option[0].price)}
-                     
                     </p>
                   </div>
                 </div>
@@ -281,10 +301,19 @@ export default function Home() {
       <div className={styles.brands}>
         <h2>Thương hiệu nổi bật</h2>
         <div className={styles.brandsGrid}>
-          <img src="/images/comem 1.png" alt="Thương hiệu Comem" />
-          <img src="/images/cocoon 1.png" alt="Thương hiệu Cocoon" />
-          <img src="/images/Logo_Bio_LAK 1.png" alt="Thương hiệu Bio LAK" />
-          <img src="/images/Logo-Thorakao-Ngang-500-1 1.png" alt="Thương hiệu Thorakao" />
+          {loading ? (
+            <p>Đang tải thương hiệu...</p>
+          ) : brands.length > 0 ? (
+            brands.map((brand) => (
+              <img
+                key={brand._id}
+                src={getImageUrl(brand.logoImg)}
+                alt={`Thương hiệu ${brand.name}`}
+              />
+            ))
+          ) : (
+            <p>Không tìm thấy thương hiệu.</p>
+          )}
         </div>
       </div>
     </div>

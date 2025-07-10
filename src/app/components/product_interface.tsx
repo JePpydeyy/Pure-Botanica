@@ -1,6 +1,6 @@
-import { Category } from "./category_interface";
-import { Brand } from "./Brand_interface";
 
+
+// Product interfaces
 export interface Product {
   _id: string;
   name: string;
@@ -21,10 +21,8 @@ export interface Product {
   }[];
   createdAt: string;
   updatedAt: string;
-}
-export interface Comment {
-  _id: string;
-  user: { username: string };
-  content: string;
-  createdAt: string;
+  // Thêm các trường dưới đây để không bị báo đỏ
+  stock?: number;
+  price?: number;
+  brandName?: string;
 }

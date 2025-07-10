@@ -27,6 +27,8 @@ interface Article {
   content: string;
 }
 
+const API_DOMAIN = "https://api-zeal.onrender.com";
+
 const EditArticle = () => {
   const router = useRouter();
   const { id: slug } = useParams();
@@ -81,7 +83,7 @@ const EditArticle = () => {
         const token = localStorage.getItem("token");
         if (!token) throw new Error("Vui lòng đăng nhập lại.");
 
-        const response = await fetch(`https://api-zeal.onrender.com/api/news/${slug}`, {
+        const response = await fetch(`${API_DOMAIN}/api/news/${slug}`, {
           headers: { Authorization: `Bearer ${token}` },
           cache: "no-store",
         });
@@ -98,17 +100,23 @@ const EditArticle = () => {
         }
 
         const article: Article = await response.json();
+
+        const fixedContent = (article.content || "").replace(
+          /src="(?:\/)?images\/([^"]+)"/g,
+          `src="${API_DOMAIN}/images/$1"`
+        );
+
         setFormData({
           title: article.title || "",
-          content: article.content || "",
+          content: fixedContent,
           thumbnailFile: null,
           thumbnailCaption: article.thumbnailCaption || "",
           status: article.status || "show",
           contentImages: [],
         });
-        setPreviewThumbnail(article.thumbnailUrl ? `https://api-zeal.onrender.com/${article.thumbnailUrl}` : null);
+        setPreviewThumbnail(article.thumbnailUrl ? `${API_DOMAIN}/${article.thumbnailUrl}` : null);
         if (editorRef.current) {
-          editorRef.current.innerHTML = article.content || "";
+          editorRef.current.innerHTML = fixedContent;
         }
       } catch (error: any) {
         showNotification(error.message || "Lỗi khi tải bài viết.", "error");
@@ -309,12 +317,19 @@ const EditArticle = () => {
 
       const formDataToSend = new FormData();
       formDataToSend.append("title", formData.title.trim());
-      formDataToSend.append("content", formData.content.trim());
+
+      // 👇 Remove domain from content image src before submit
+      const cleanedContent = formData.content.replace(
+        new RegExp(`${API_DOMAIN}/(images/[^"]+)`, "g"),
+        "/$1"
+      );
+      formDataToSend.append("content", cleanedContent);
+
       if (formData.thumbnailFile) formDataToSend.append("thumbnail", formData.thumbnailFile);
       formDataToSend.append("thumbnailCaption", formData.thumbnailCaption.trim() || formData.title.trim());
       formDataToSend.append("status", formData.status);
 
-      const response = await fetch(`https://api-zeal.onrender.com/api/news/${slug}`, {
+      const response = await fetch(`${API_DOMAIN}/api/news/${slug}`, {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${token}`,

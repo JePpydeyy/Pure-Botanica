@@ -2,7 +2,6 @@
 
 /* Layout & base */
 .mainContent {
-  margin-top: 50px;
   margin-left: 250px;
   padding: 2rem 1.5rem;
   min-height: 100vh;
@@ -14,11 +13,8 @@
 
 /* Header */
 .dashboardHeader {
-  background: #ffffff;
-  padding: 2rem;
-  margin-bottom: 2rem;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
-  border-radius: 12px;
+margin-bottom: 2rem;
+    padding: 2rem;
 }
 
 .dashboardHeader h2 {

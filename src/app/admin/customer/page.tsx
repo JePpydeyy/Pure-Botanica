@@ -275,10 +275,10 @@ export default function Customer() {
             onChange={(e) => setSearchQuery(e.target.value)}
             className={styles.searchInput}
           />
-        </div>
-        <button onClick={toggleRoleFilter} className={styles.btn}>
+          <button onClick={toggleRoleFilter} className={styles.btn}>
           {roleFilter === "user" ? "Xem Quản Trị Viên" : "Xem Khách Hàng"}
-        </button>
+          </button>
+        </div>
       </div>
 
       <div className={styles.tableContainer}>

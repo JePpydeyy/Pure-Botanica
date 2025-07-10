@@ -9,13 +9,8 @@
 
 /* === TITLE === */
 .title {
-  width: 1350px;
-  margin: 80px auto 20px;
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-  border-radius: 16px;
-  padding: 24px 32px;
-  box-shadow: 0 4px 20px rgba(0, 76, 89, 0.08);
-  border: 1px solid #e2e8f0;
+width: 1350px;
+    margin: 80px auto 20px;
 }
 
 .title h1 {
@@ -29,13 +24,9 @@
 
 /* === SEARCH CONTAINER === */
 .searchContainer {
-  width: 1350px;
-  margin: 0 auto 16px;
-  background: #ffffff;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
-  border: 1px solid #e2e8f0;
+    width: 1350px;
+    margin: 0 auto 16px;
+    padding: 20px 20px 20px 0px;
 }
 
 .searchInput {

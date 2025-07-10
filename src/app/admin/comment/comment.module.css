@@ -8,14 +8,10 @@
 
 /* === ENHANCED TITLE & FILTER SECTION === */
 .titleContainer {
-  width: 1350px;
-  margin: 80px 0 0 280px;
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-  border-radius: 16px;
-  padding: 24px 32px;
-  box-shadow: 0 4px 20px rgba(0, 76, 89, 0.08);
-  border: 1px solid #e2e8f0;
-  position: relative;
+width: 1350px;
+    margin: 80px 0 0 280px;
+    /* padding: 24px 32px; */
+    position: relative;
 }
 
 .titleContainer h1 {
@@ -28,17 +24,14 @@
 }
 
 .filterContainer {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  align-items: center;
-  background: #ffffff;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
-  border: 1px solid #e2e8f0;
-  margin-top: 16px;
-  position: relative;
+ flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+    /* margin-top: 16px; */
+    padding: 20px 20px 20px 0px;
+    display: flex
+;
+    position: relative;
 }
 
 .searchInput {

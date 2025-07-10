@@ -61,43 +61,6 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
           </div>
         </div>
 
-        <div className="header">
-          {/* <div className="search-box">
-            <img
-              style={{ width: "20px", height: "20px" }}
-              src="/images/search.png"
-              alt="Search Icon"
-            />
-            <input type="text" placeholder="Search..." />
-          </div> */}
-
-          {/* <div className="user-menu">
-            <div className="notification">
-              <img
-                style={{ width: "40px", height: "40px" }}
-                src="/images/notification.png"
-                alt="Notification Icon"
-              />
-              <span className="notification-badge">2</span>
-            </div>
-            <div className="language-selector">
-              <img
-                style={{ width: "60px", height: "40px" }}
-                src="/images/vietnam.png"
-                alt="Vietnamese flag"
-              />
-              <span>Việt Nam</span>
-            </div>
-
-            <div className="user-profile">
-              <div className="user-info">
-                <div className="user-name">The Nhan</div>
-                <div className="user-role">Admin</div>
-              </div>
-              <div className="user-avatar">👤</div>
-            </div>
-          </div> */}
-        </div>
 
         {/* Hiển thị nội dung con */}
         {children}

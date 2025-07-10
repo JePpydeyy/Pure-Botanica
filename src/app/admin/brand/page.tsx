@@ -1,15 +1,21 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import styles from './brand.module.css';
 import { Brand } from '@/app/components/Brand_interface';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPenToSquare, faEye, faEyeSlash, faTrash, faPlus } from '@fortawesome/free-solid-svg-icons';
 
+interface Product {
+  _id: string;
+  id_brand: string;
+}
 
 export default function Brands() {
   const [brands, setBrands] = useState<Brand[]>([]);
   const [filteredBrands, setFilteredBrands] = useState<Brand[]>([]);
+  const [productCounts, setProductCounts] = useState<{ [key: string]: number }>({});
   const [loading, setLoading] = useState(true);
   const [showPopup, setShowPopup] = useState(false);
   const [popupMessage, setPopupMessage] = useState('');
@@ -17,6 +23,7 @@ export default function Brands() {
   const [showAddPopup, setShowAddPopup] = useState(false);
   const [showEditPopup, setShowEditPopup] = useState(false);
   const [showDeletePopup, setShowDeletePopup] = useState(false);
+  const [showConfirmEditPopup, setShowConfirmEditPopup] = useState(false);
   const [selectedBrand, setSelectedBrand] = useState<Brand | null>(null);
   const [newBrandName, setNewBrandName] = useState('');
   const [newBrandStatus, setNewBrandStatus] = useState<'show' | 'hidden'>('show');
@@ -24,28 +31,140 @@ export default function Brands() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [searchName, setSearchName] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'show' | 'hidden'>('all');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | 'none'>('none');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
+  const router = useRouter();
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
+  // Check admin authentication
   useEffect(() => {
-    const fetchBrands = async () => {
+    const role = localStorage.getItem('role');
+    if (!token || role !== 'admin') {
+      router.push('/user/login');
+    }
+  }, [router, token]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!token) {
+        setPopupMessage('Không tìm thấy token. Vui lòng đăng nhập lại.');
+        setPopupType('error');
+        setShowPopup(true);
+        router.push('/user/login');
+        return;
+      }
+
       try {
-        const res = await fetch('https://api-zeal.onrender.com/api/brands');
-        if (!res.ok) throw new Error('Lỗi khi tải danh sách thương hiệu');
-        const data: Brand[] = await res.json();
-        setBrands(data);
-        setFilteredBrands(data);
-      } catch (error) {
-        console.error('Lỗi khi tải danh sách thương hiệu:', error);
-        setPopupMessage('Lỗi khi tải danh sách thương hiệu');
+        // Fetch brands
+        const brandsRes = await fetch('https://api-zeal.onrender.com/api/brands', {
+          headers: { Authorization: `Bearer ${token}` },
+          cache: 'no-store',
+        });
+        if (brandsRes.status === 401 || brandsRes.status === 403) {
+          setPopupMessage('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
+          setPopupType('error');
+          setShowPopup(true);
+          localStorage.removeItem('token');
+          localStorage.removeItem('role');
+          localStorage.removeItem('email');
+          router.push('/user/login');
+          return;
+        }
+        if (!brandsRes.ok) {
+          const errorText = await brandsRes.text();
+          throw new Error(`Lỗi khi tải danh sách thương hiệu: ${brandsRes.status} ${errorText}`);
+        }
+        const brandsData: Brand[] = await brandsRes.json();
+        console.log('Brands fetched:', brandsData);
+
+        // Fetch products for counting
+        let productsData: Product[] = [];
+        try {
+          const productsRes = await fetch('https://api-zeal.onrender.com/api/products?fields=id_brand', {
+            headers: { Authorization: `Bearer ${token}` },
+            cache: 'no-store',
+          });
+          if (productsRes.status === 401 || productsRes.status === 403) {
+            setPopupMessage('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
+            setPopupType('error');
+            setShowPopup(true);
+            localStorage.removeItem('token');
+            localStorage.removeItem('role');
+            localStorage.removeItem('email');
+            router.push('/user/login');
+            return;
+          }
+          if (!productsRes.ok) {
+            console.warn('Field filtering not supported, fetching all product data');
+            const fallbackRes = await fetch('https://api-zeal.onrender.com/api/products', {
+              headers: { Authorization: `Bearer ${token}` },
+              cache: 'no-store',
+            });
+            if (fallbackRes.status === 401 || fallbackRes.status === 403) {
+              setPopupMessage('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
+              setPopupType('error');
+              setShowPopup(true);
+              localStorage.removeItem('token');
+              localStorage.removeItem('role');
+              localStorage.removeItem('email');
+              router.push('/user/login');
+              return;
+            }
+            if (!fallbackRes.ok) {
+              throw new Error(`Lỗi khi tải danh sách sản phẩm: ${fallbackRes.status} ${await fallbackRes.text()}`);
+            }
+            productsData = await fallbackRes.json();
+          } else {
+            productsData = await productsRes.json();
+          }
+        } catch (error) {
+          console.warn('Error fetching products with field filtering:', error);
+          const fallbackRes = await fetch('https://api-zeal.onrender.com/api/products', {
+            headers: { Authorization: `Bearer ${token}` },
+            cache: 'no-store',
+          });
+          if (fallbackRes.status === 401 || fallbackRes.status === 403) {
+            setPopupMessage('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
+            setPopupType('error');
+            setShowPopup(true);
+            localStorage.removeItem('token');
+            localStorage.removeItem('role');
+            localStorage.removeItem('email');
+            router.push('/user/login');
+            return;
+          }
+          if (!fallbackRes.ok) {
+            throw new Error(`Lỗi khi tải danh sách sản phẩm: ${fallbackRes.status} ${await fallbackRes.text()}`);
+          }
+          productsData = await fallbackRes.json();
+        }
+        console.log('Products fetched:', productsData);
+
+        // Calculate product counts per brand
+        const counts = productsData.reduce((acc: { [key: string]: number }, product: Product) => {
+          if (product.id_brand) {
+            acc[product.id_brand] = (acc[product.id_brand] || 0) + 1;
+          }
+          return acc;
+        }, {});
+        console.log('Product counts:', counts);
+
+        setBrands(brandsData);
+        setProductCounts(counts);
+        setFilteredBrands(brandsData);
+      } catch (error: any) {
+        console.error('Lỗi khi tải dữ liệu:', error.message);
+        setPopupMessage(`Lỗi khi tải dữ liệu: ${error.message}`);
         setPopupType('error');
         setShowPopup(true);
       } finally {
         setLoading(false);
       }
     };
-    fetchBrands();
-  }, []);
+    fetchData();
+  }, [router, token]);
 
   useEffect(() => {
     let filtered = [...brands];
@@ -55,8 +174,15 @@ export default function Brands() {
     if (statusFilter !== 'all') {
       filtered = filtered.filter((b) => b.status === statusFilter);
     }
+    if (sortOrder !== 'none') {
+      filtered.sort((a, b) => {
+        const countA = productCounts[a._id] || 0;
+        const countB = productCounts[b._id] || 0;
+        return sortOrder === 'asc' ? countA - countB : countB - countA;
+      });
+    }
     setFilteredBrands(filtered);
-  }, [searchName, statusFilter, brands]);
+  }, [searchName, statusFilter, sortOrder, brands, productCounts]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files ? e.target.files[0] : null;
@@ -73,6 +199,7 @@ export default function Brands() {
     setShowAddPopup(false);
     setShowEditPopup(false);
     setShowDeletePopup(false);
+    setShowConfirmEditPopup(false);
     setSelectedBrand(null);
     setNewBrandName('');
     setNewBrandStatus('show');
@@ -81,7 +208,22 @@ export default function Brands() {
   };
 
   const handleToggleStatus = async (id: string) => {
-    if (!confirm('Bạn có chắc chắn muốn thay đổi trạng thái thương hiệu này không?')) return;
+    if (!token) {
+      setPopupMessage('Không tìm thấy token. Vui lòng đăng nhập lại.');
+      setPopupType('error');
+      setShowPopup(true);
+      router.push('/user/login');
+      return;
+    }
+
+    const brand = brands.find((b) => b._id === id);
+    if (!brand) return;
+
+    const productCount = productCounts[id] || 0;
+    if (brand.status === 'show' && productCount > 0) {
+      if (!confirm(`Thương hiệu này có ${productCount} sản phẩm. Ẩn thương hiệu sẽ ẩn tất cả các sản phẩm liên quan. Bạn có chắc chắn muốn tiếp tục?`)) return;
+    } else if (!confirm('Bạn có chắc chắn muốn thay đổi trạng thái thương hiệu này không?')) return;
+
     try {
       const res = await fetch(`https://api-zeal.onrender.com/api/brands/${id}/toggle-visibility`, {
         method: 'PUT',
@@ -90,17 +232,26 @@ export default function Brands() {
           Authorization: `Bearer ${token}`,
         },
       });
-      const result = await res.json();
-      if (res.ok) {
-        setBrands((prev) => prev.map((b) => (b._id === id ? result.brand : b)));
-        setPopupMessage(result.message);
-        setPopupType('success');
-      } else {
-        setPopupMessage(result.error || 'Thay đổi trạng thái thất bại');
+      if (res.status === 401 || res.status === 403) {
+        setPopupMessage('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
         setPopupType('error');
+        setShowPopup(true);
+        localStorage.removeItem('token');
+        localStorage.removeItem('role');
+        localStorage.removeItem('email');
+        router.push('/user/login');
+        return;
       }
-    } catch (error) {
-      setPopupMessage('Lỗi khi thay đổi trạng thái');
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Thay đổi trạng thái thất bại: ${res.status} ${errorText}`);
+      }
+      const result = await res.json();
+      setBrands((prev) => prev.map((b) => (b._id === id ? result.brand : b)));
+      setPopupMessage(result.message);
+      setPopupType('success');
+    } catch (error: any) {
+      setPopupMessage(`Lỗi khi thay đổi trạng thái: ${error.message}`);
       setPopupType('error');
     } finally {
       setShowPopup(true);
@@ -109,6 +260,13 @@ export default function Brands() {
 
   const handleAddBrand = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!token) {
+      setPopupMessage('Không tìm thấy token. Vui lòng đăng nhập lại.');
+      setPopupType('error');
+      setShowPopup(true);
+      router.push('/user/login');
+      return;
+    }
     if (!newBrandLogo) {
       setPopupMessage('Vui lòng tải lên logo thương hiệu');
       setPopupType('error');
@@ -129,18 +287,27 @@ export default function Brands() {
         },
         body: formData,
       });
-      const result = await res.json();
-      if (res.ok) {
-        setBrands((prev) => [...prev, result.brand]);
-        setPopupMessage(result.message);
-        setPopupType('success');
-        resetForm();
-      } else {
-        setPopupMessage(result.error || 'Lỗi khi thêm thương hiệu');
+      if (res.status === 401 || res.status === 403) {
+        setPopupMessage('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
         setPopupType('error');
+        setShowPopup(true);
+        localStorage.removeItem('token');
+        localStorage.removeItem('role');
+        localStorage.removeItem('email');
+        router.push('/user/login');
+        return;
       }
-    } catch (error) {
-      setPopupMessage('Lỗi mạng khi thêm thương hiệu');
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Lỗi khi thêm thương hiệu: ${res.status} ${errorText}`);
+      }
+      const result = await res.json();
+      setBrands((prev) => [...prev, result.brand]);
+      setPopupMessage(result.message);
+      setPopupType('success');
+      resetForm();
+    } catch (error: any) {
+      setPopupMessage(`Lỗi khi thêm thương hiệu: ${error.message}`);
       setPopupType('error');
     } finally {
       setShowPopup(true);
@@ -150,6 +317,13 @@ export default function Brands() {
   const handleEditBrand = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedBrand) return;
+    if (!token) {
+      setPopupMessage('Không tìm thấy token. Vui lòng đăng nhập lại.');
+      setPopupType('error');
+      setShowPopup(true);
+      router.push('/user/login');
+      return;
+    }
 
     const formData = new FormData();
     formData.append('name', newBrandName);
@@ -166,20 +340,29 @@ export default function Brands() {
         },
         body: formData,
       });
-      const result = await res.json();
-      if (res.ok) {
-        setBrands((prev) =>
-          prev.map((b) => (b._id === selectedBrand._id ? result.brand : b))
-        );
-        setPopupMessage(result.message);
-        setPopupType('success');
-        resetForm();
-      } else {
-        setPopupMessage(result.error || 'Cập nhật thất bại');
+      if (res.status === 401 || res.status === 403) {
+        setPopupMessage('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
         setPopupType('error');
+        setShowPopup(true);
+        localStorage.removeItem('token');
+        localStorage.removeItem('role');
+        localStorage.removeItem('email');
+        router.push('/user/login');
+        return;
       }
-    } catch (error) {
-      setPopupMessage('Lỗi khi cập nhật thương hiệu');
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Cập nhật thất bại: ${res.status} ${errorText}`);
+      }
+      const result = await res.json();
+      setBrands((prev) =>
+        prev.map((b) => (b._id === selectedBrand._id ? result.brand : b))
+      );
+      setPopupMessage(result.message);
+      setPopupType('success');
+      resetForm();
+    } catch (error: any) {
+      setPopupMessage(`Lỗi khi cập nhật thương hiệu: ${error.message}`);
       setPopupType('error');
     } finally {
       setShowPopup(true);
@@ -188,6 +371,13 @@ export default function Brands() {
 
   const handleDeleteBrand = async () => {
     if (!selectedBrand) return;
+    if (!token) {
+      setPopupMessage('Không tìm thấy token. Vui lòng đăng nhập lại.');
+      setPopupType('error');
+      setShowPopup(true);
+      router.push('/user/login');
+      return;
+    }
     if (!confirm('Bạn có chắc chắn muốn xóa thương hiệu này không?')) return;
 
     try {
@@ -197,23 +387,40 @@ export default function Brands() {
           Authorization: `Bearer ${token}`,
         },
       });
-      const result = await res.json();
-      if (res.ok) {
-        setBrands((prev) => prev.filter((b) => b._id !== selectedBrand._id));
-        setPopupMessage(result.message);
-        setPopupType('success');
-        resetForm();
-      } else {
-        setPopupMessage(result.error || 'Xóa thất bại');
+      if (res.status === 401 || res.status === 403) {
+        setPopupMessage('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
         setPopupType('error');
+        setShowPopup(true);
+        localStorage.removeItem('token');
+        localStorage.removeItem('role');
+        localStorage.removeItem('email');
+        router.push('/user/login');
+        return;
       }
-    } catch (error) {
-      setPopupMessage('Lỗi khi xóa thương hiệu');
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Xóa thất bại: ${res.status} ${errorText}`);
+      }
+      const result = await res.json();
+      setBrands((prev) => prev.filter((b) => b._id !== selectedBrand._id));
+      setPopupMessage(result.message);
+      setPopupType('success');
+      resetForm();
+    } catch (error: any) {
+      setPopupMessage(`Lỗi khi xóa thương hiệu: ${error.message}`);
       setPopupType('error');
     } finally {
       setShowPopup(true);
     }
   };
+
+  // Pagination logic
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredBrands.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredBrands.length / itemsPerPage);
+
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
   return (
     <div className={styles.NewManagementContainer}>
@@ -236,6 +443,15 @@ export default function Brands() {
             <option value="show">Hiển thị</option>
             <option value="hidden">Ẩn</option>
           </select>
+          <select
+            className={styles.categorySelect}
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc' | 'none')}
+          >
+            <option value="none">Sắp xếp mặc định</option>
+            <option value="asc">Số sản phẩm: Ít nhất</option>
+            <option value="desc">Số sản phẩm: Nhiều nhất</option>
+          </select>
           <button
             className={styles.addProductBtn}
             onClick={() => setShowAddPopup(true)}
@@ -251,6 +467,7 @@ export default function Brands() {
             <tr>
               <th>Logo</th>
               <th>Tên</th>
+              <th>Số sản phẩm</th>
               <th>Trạng thái</th>
               <th>Hành động</th>
             </tr>
@@ -258,27 +475,32 @@ export default function Brands() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={4} className={styles.errorContainer}>
+                <td colSpan={5} className={styles.errorContainer}>
                   Đang tải danh sách thương hiệu...
                 </td>
               </tr>
-            ) : filteredBrands.length === 0 ? (
+            ) : currentItems.length === 0 ? (
               <tr>
-                <td colSpan={4} className={styles.errorContainer}>
+                <td colSpan={5} className={styles.errorContainer}>
                   Không có thương hiệu nào phù hợp.
                 </td>
               </tr>
             ) : (
-              filteredBrands.map((brand) => (
+              currentItems.map((brand) => (
                 <tr key={brand._id} className={styles.productRow}>
                   <td>
                     <img
                       src={`https://api-zeal.onrender.com/${brand.logoImg}`}
                       alt={brand.name}
                       className={styles.brandLogo}
+                      onError={(e) => {
+                        console.error(`Error loading image for brand ${brand.name}: ${brand.logoImg}`);
+                        e.currentTarget.src = '/fallback-image.png';
+                      }}
                     />
                   </td>
                   <td>{brand.name}</td>
+                  <td>{productCounts[brand._id] || 0}</td>
                   <td>
                     <span className={brand.status === 'show' ? styles.statusShow : styles.statusHidden}>
                       {brand.status === 'show' ? 'Hiển thị' : 'Ẩn'}
@@ -293,7 +515,7 @@ export default function Brands() {
                           setNewBrandName(brand.name);
                           setNewBrandStatus(brand.status);
                           setPreviewUrl(`https://api-zeal.onrender.com/${brand.logoImg}`);
-                          setShowEditPopup(true);
+                          setShowConfirmEditPopup(true);
                         }}
                         title="Chỉnh sửa"
                       >
@@ -324,6 +546,35 @@ export default function Brands() {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className={styles.pagination}>
+          <button
+            onClick={() => paginate(currentPage - 1)}
+            disabled={currentPage === 1}
+            className={styles.paginationBtn}
+          >
+            Trước
+          </button>
+          {Array.from({ length: totalPages }, (_, i) => (
+            <button
+              key={i + 1}
+              onClick={() => paginate(i + 1)}
+              className={`${styles.paginationBtn} ${currentPage === i + 1 ? styles.active : ''}`}
+            >
+              {i + 1}
+            </button>
+          ))}
+          <button
+            onClick={() => paginate(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className={styles.paginationBtn}
+          >
+            Sau
+          </button>
+        </div>
+      )}
 
       {showPopup && (
         <div className={styles.popupOverlay}>
@@ -396,6 +647,32 @@ export default function Brands() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showConfirmEditPopup && selectedBrand && (
+        <div className={styles.popupOverlay}>
+          <div className={styles.popupForm}>
+            <h2 className={styles.popupTitle}>Xác Nhận Chỉnh Sửa</h2>
+            <p>Bạn có chắc chắn muốn chỉnh sửa thương hiệu "{selectedBrand.name}"?</p>
+            <div className={styles.formActions}>
+              <button
+                className={styles.addProductBtn}
+                onClick={() => {
+                  setShowConfirmEditPopup(false);
+                  setShowEditPopup(true);
+                }}
+              >
+                Xác nhận
+              </button>
+              <button
+                className={styles.cancelBtn}
+                onClick={resetForm}
+              >
+                Hủy
+              </button>
+            </div>
           </div>
         </div>
       )}

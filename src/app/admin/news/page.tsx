@@ -3,17 +3,34 @@
 import React, { useEffect, useState } from "react";
 import styles from "./news.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEye, faEyeSlash, faEdit, faTrash } from "@fortawesome/free-solid-svg-icons";
+import {
+  faEye,
+  faEyeSlash,
+  faEdit,
+  faTrash,
+  faTimes,
+  faChevronLeft,
+  faChevronRight,
+} from "@fortawesome/free-solid-svg-icons";
 import Link from "next/link";
 
 interface NewsItem {
   _id: string;
   title: string;
+  content: string;
+  thumbnailUrl: string;
+  thumbnailCaption?: string;
   status: "show" | "hidden";
   views: number;
   publishedAt: string;
   slug: string;
 }
+
+const API_BASE_URL = "https://api-zeal.onrender.com";
+
+const processContentImages = (content: string): string => {
+  return content.replace(/src="images\/([^"]+)"/g, `src="${API_BASE_URL}/images/$1"`);
+};
 
 const AdminNewsPage: React.FC = () => {
   const [newsList, setNewsList] = useState<NewsItem[]>([]);
@@ -21,6 +38,13 @@ const AdminNewsPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<"all" | "show" | "hidden">("all");
   const [sortOption, setSortOption] = useState<"mostViewed" | "leastViewed">("mostViewed");
   const [searchTitle, setSearchTitle] = useState<string>("");
+  const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null);
+  const [isPopupOpen, setIsPopupOpen] = useState<boolean>(false);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const itemsPerPage = 10;
+
+  const totalPages = Math.ceil(newsList.length / itemsPerPage);
 
   const fetchNews = async (): Promise<void> => {
     try {
@@ -29,16 +53,16 @@ const AdminNewsPage: React.FC = () => {
         alert("Token xác thực không tồn tại. Vui lòng đăng nhập lại!");
         return;
       }
-      const res = await fetch("https://api-zeal.onrender.com/api/news", {
+      const res = await fetch(`${API_BASE_URL}/api/news`, {
         headers: { Authorization: `Bearer ${token}` },
         cache: "no-store",
       });
-      if (!res.ok) throw new Error("Không thể tải danh sách tin tức");
+      if (!res.ok) throw new Error(`Lỗi HTTP: ${res.status}`);
       const data: NewsItem[] = await res.json();
       setNewsList(data);
     } catch (err) {
       console.error("Lỗi khi tải tin tức:", err);
-      alert("Đã xảy ra lỗi khi tải danh sách tin tức. Vui lòng kiểm tra kết nối hoặc đăng nhập lại.");
+      alert("Đã xảy ra lỗi khi tải danh sách tin tức.");
     } finally {
       setLoading(false);
     }
@@ -48,96 +72,85 @@ const AdminNewsPage: React.FC = () => {
     fetchNews();
   }, []);
 
-  const toggleVisibility = async (idOrSlug: string, currentStatus: "show" | "hidden"): Promise<void> => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      alert("Token xác thực không tồn tại. Vui lòng đăng nhập lại!");
-      return;
-    }
+  const filteredNews = newsList
+    .filter((item) => {
+      if (statusFilter !== "all" && item.status !== statusFilter) return false;
+      return item.title.toLowerCase().includes(searchTitle.toLowerCase());
+    })
+    .sort((a, b) => {
+      if (sortOption === "mostViewed") return b.views - a.views;
+      return a.views - b.views;
+    });
 
-    const newStatus = currentStatus === "show" ? "hidden" : "show";
+  const paginatedNews = filteredNews.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= Math.ceil(filteredNews.length / itemsPerPage)) {
+      setCurrentPage(page);
+    }
+  };
+
+  const fetchNewsDetails = async (id: string): Promise<void> => {
     try {
-      const res = await fetch(`https://api-zeal.onrender.com/api/news/${idOrSlug}`, {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE_URL}/api/news/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      setSelectedNews(data);
+      setIsPopupOpen(true);
+    } catch (err) {
+      console.error("Lỗi khi tải chi tiết bài viết:", err);
+    }
+  };
+
+  const toggleVisibility = async (id: string, currentStatus: "show" | "hidden"): Promise<void> => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE_URL}/api/news/${id}/toggle-visibility`, {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ status: newStatus }),
       });
-      if (!res.ok) {
-        throw new Error(`Yêu cầu thất bại với mã: ${res.status}`);
-      }
-      const updatedNews = await res.json();
+      if (!res.ok) throw new Error("Cập nhật trạng thái thất bại.");
+      const newStatus = currentStatus === "show" ? "hidden" : "show";
       setNewsList((prev) =>
-        prev.map((item) => (item._id === idOrSlug || item.slug === idOrSlug ? { ...item, status: newStatus } : item))
+        prev.map((item) => (item._id === id ? { ...item, status: newStatus } : item))
       );
-      alert(`Cập nhật trạng thái thành công! Hiện tại: ${newStatus === "show" ? "Hiển thị" : "Ẩn"}`);
     } catch (err) {
-      console.error("Lỗi khi thay đổi trạng thái:", err);
-      if (err instanceof Error && err.message.includes("401")) {
-        alert("Token xác thực không hợp lệ. Vui lòng đăng nhập lại!");
-      } else {
-        alert("Đã xảy ra lỗi khi thay đổi trạng thái.");
-      }
+      alert("Lỗi khi đổi trạng thái.");
     }
   };
 
-  const handleDelete = async (idOrSlug: string): Promise<void> => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      alert("Token xác thực không tồn tại. Vui lòng đăng nhập lại!");
-      return;
-    }
-
-    if (!confirm("Bạn có chắc chắn muốn xử lý bài viết này không?")) return;
-
+  const handleDelete = async (id: string): Promise<void> => {
     try {
-      const newsRes = await fetch(`https://api-zeal.onrender.com/api/news/${idOrSlug}`, {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE_URL}/api/news/${id}`, {
+        method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!newsRes.ok) throw new Error("Không thể lấy thông tin bài viết");
-      const newsItem: NewsItem = await newsRes.json();
-
-      if (newsItem.views > 0) {
-        await toggleVisibility(idOrSlug, newsItem.status);
-        alert("Bài viết đã được ẩn vì có lượt xem!");
-      } else {
-        const resDelete = await fetch(`https://api-zeal.onrender.com/api/news/${idOrSlug}`, {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (resDelete.ok) {
-          setNewsList((prev) => prev.filter((item) => item._id !== idOrSlug && item.slug !== idOrSlug));
-          alert("Xóa bài viết thành công!");
-        } else {
-          alert("Xóa bài viết thất bại!");
-        }
-      }
+      if (!res.ok) throw new Error("Xóa thất bại.");
+      setNewsList((prev) => prev.filter((item) => item._id !== id));
     } catch (err) {
-      console.error("Lỗi khi xử lý bài viết:", err);
-      if (err instanceof Error && err.message.includes("401")) {
-        alert("Token xác thực không hợp lệ. Vui lòng đăng nhập lại!");
-      } else {
-        alert("Đã xảy ra lỗi khi xử lý bài viết.");
-      }
+      alert("Lỗi khi xóa bài viết.");
     }
   };
 
-  const filteredNews = newsList
-    .filter((item: NewsItem) => {
-      if (statusFilter !== "all" && item.status !== statusFilter) return false;
-      return item.title.toLowerCase().includes(searchTitle.toLowerCase());
-    })
-    .sort((a: NewsItem, b: NewsItem) => {
-      if (sortOption === "mostViewed") return b.views - a.views;
-      if (sortOption === "leastViewed") return a.views - b.views;
-      return 0;
-    });
+  const closePopup = () => {
+    setIsPopupOpen(false);
+    setSelectedNews(null);
+  };
 
-  if (loading) {
-    return <p className="text-center py-10">Đang tải danh sách tin tức...</p>;
-  }
+  const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) closePopup();
+  };
+
+  if (loading) return <p>Đang tải...</p>;
 
   return (
     <div className={styles.NewManagementContainer}>
@@ -186,8 +199,12 @@ const AdminNewsPage: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {filteredNews.map((news) => (
-              <tr key={news._id} className={styles.productRow}>
+            {paginatedNews.map((news) => (
+              <tr
+                key={news._id}
+                className={styles.productRow}
+                onClick={() => fetchNewsDetails(news._id)}
+              >
                 <td>{news.title}</td>
                 <td>
                   <span className={news.status === "show" ? styles.statusShow : styles.statusHidden}>
@@ -198,9 +215,9 @@ const AdminNewsPage: React.FC = () => {
                   <FontAwesomeIcon icon={faEye} /> {news.views}
                 </td>
                 <td>{new Date(news.publishedAt).toLocaleDateString("vi-VN")}</td>
-                <td>
+                <td onClick={(e) => e.stopPropagation()}>
                   <div className={styles.actionButtons}>
-                    <Link href={`/admin/edit_news/${news.slug}`}>
+                    <Link href={`/admin/edit_new/${news.slug}`}>
                       <button className={styles.editBtn} title="Chỉnh sửa">
                         <FontAwesomeIcon icon={faEdit} />
                       </button>
@@ -208,14 +225,12 @@ const AdminNewsPage: React.FC = () => {
                     <button
                       className={styles.toggleStatusBtn}
                       onClick={() => toggleVisibility(news._id, news.status)}
-                      title={news.status === "show" ? "Ẩn bài viết" : "Hiển thị bài viết"}
                     >
-                      <FontAwesomeIcon icon={news.status === "show" ? faEye : faEyeSlash} />
+                      <FontAwesomeIcon icon={news.status === "show" ? faEyeSlash : faEye} />
                     </button>
                     <button
                       className={styles.cancelBtn}
                       onClick={() => handleDelete(news._id)}
-                      title="Xóa hoặc ẩn bài viết"
                     >
                       <FontAwesomeIcon icon={faTrash} />
                     </button>
@@ -223,7 +238,7 @@ const AdminNewsPage: React.FC = () => {
                 </td>
               </tr>
             ))}
-            {filteredNews.length === 0 && (
+            {paginatedNews.length === 0 && (
               <tr>
                 <td colSpan={5} className={styles.errorContainer}>
                   Không có bài viết nào phù hợp.
@@ -232,7 +247,51 @@ const AdminNewsPage: React.FC = () => {
             )}
           </tbody>
         </table>
+
+        {/* PHÂN TRANG */}
+        {totalPages > 1 && (
+          <div className={styles.paginationContainer}>
+            <button
+              className={styles.pageBtn}
+              onClick={() => goToPage(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              <FontAwesomeIcon icon={faChevronLeft} />
+            </button>
+            <span className={styles.pageIndicator}>
+              {currentPage} / {Math.ceil(filteredNews.length / itemsPerPage)}
+            </span>
+            <button
+              className={styles.pageBtn}
+              onClick={() => goToPage(currentPage + 1)}
+              disabled={currentPage === totalPages}
+            >
+              <FontAwesomeIcon icon={faChevronRight} />
+            </button>
+          </div>
+        )}
       </div>
+
+      {isPopupOpen && selectedNews && (
+        <div className={styles.popupOverlay} onClick={handleOverlayClick}>
+          <div className={styles.popupContent} onClick={(e) => e.stopPropagation()}>
+            <button className={styles.closePopupBtn} onClick={closePopup}>
+              <FontAwesomeIcon icon={faTimes} />
+            </button>
+            <h2 className={styles.popupTitle}>{selectedNews.title}</h2>
+            <div className={styles.popupDetails}>
+              <p><strong>Trạng thái:</strong> {selectedNews.status}</p>
+              <p><strong>Lượt xem:</strong> {selectedNews.views}</p>
+              <p><strong>Ngày đăng:</strong> {new Date(selectedNews.publishedAt).toLocaleDateString("vi-VN")}</p>
+              <div
+                dangerouslySetInnerHTML={{
+                  __html: processContentImages(selectedNews.content),
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

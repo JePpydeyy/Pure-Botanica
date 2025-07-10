@@ -1,6 +1,6 @@
-
 export interface Brand {
-  _id: string ;
+  _id: string;
   name: string;
-  status: string;
+  status: 'show' | 'hidden';
+  logoImg: string;
 }

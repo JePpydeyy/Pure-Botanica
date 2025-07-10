@@ -138,9 +138,35 @@
   cursor: pointer;
   font-size: 16px;
   transition: all 0.2s ease;
-  background-color: none; /* Màu chung cho tất cả các nút */
-  color: rgb(0, 0, 0);
 }
+
+.editBtn {
+  background-color: #e6f4ea;
+  color: #2e7d32;
+}
+
+.editBtn:hover {
+  background-color: #c8e6c9;
+}
+
+.toggleStatusBtn {
+  background-color: #e3f2fd;
+  color: #1565c0;
+}
+
+.toggleStatusBtn:hover {
+  background-color: #bbdefb;
+}
+
+.cancelBtn {
+  background-color: #fce8e6;
+  color: #c62828;
+}
+
+.cancelBtn:hover {
+  background-color: #ef9a9a;
+}
+
 /* === STATUS STYLING === */
 .statusShow {
   background-color: #e6f4ea;
@@ -163,6 +189,99 @@
   padding: 20px;
   color: #c62828;
   font-weight: 500;
+}
+
+/* === POPUP STYLING === */
+.popupOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.popupContent {
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  max-width: 800px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.closePopupBtn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: #fce8e6;
+  color: #c62828;
+  border: none;
+  border-radius: 4px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.2s ease;
+}
+
+.closePopupBtn:hover {
+  background: #ef9a9a;
+}
+
+.popupTitle {
+  font-size: 1.5rem;
+  color: #004C59;
+  margin-bottom: 20px;
+  font-weight: 600;
+}
+
+.popupDetails p {
+  margin: 10px 0;
+  font-size: 1rem;
+  color: #333;
+}
+
+.popupDetails strong {
+  color: #004C59;
+}
+
+.popupThumbnail {
+  margin: 20px 0;
+}
+
+.popupThumbnail img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.popupContentBody {
+  margin-top: 20px;
+}
+
+.popupContentBody div {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #333;
+}
+
+.popupContentBody img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  margin: 10px 0;
 }
 
 @media (max-width: 1240px) {
@@ -190,6 +309,11 @@
   .categorySelect {
     width: 100%;
   }
+
+  .popupContent {
+    width: 95%;
+    max-height: 85vh;
+  }
 }
 
 @media (max-width: 768px) {
@@ -208,4 +332,47 @@
     margin-left: 0;
     margin-top: 10px;
   }
+
+  .popupContent {
+    padding: 15px;
+  }
+
+  .popupTitle {
+    font-size: 1.25rem;
+  }
 }
+.paginationContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 20px 280px;
+  gap: 10px;
+}
+
+.pageBtn {
+  background-color: #e6f4ea;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 16px;
+  cursor: pointer;
+  color: #2e7d32;
+  transition: background-color 0.2s ease;
+}
+
+.pageBtn:hover:not(:disabled) {
+  background-color: #c8e6c9;
+}
+
+.pageBtn:disabled {
+  background-color: #f0f0f0;
+  color: #999;
+  cursor: not-allowed;
+}
+
+.pageIndicator {
+  font-weight: 500;
+  color: #004C59;
+}
+
+/* Giữ nguyên các phần CSS khác như .NewManagementContainer, .productTable, .titleContainer, .editBtn, .toggleStatusBtn, .cancelBtn, .statusShow, .statusHidden, .errorContainer, ... */

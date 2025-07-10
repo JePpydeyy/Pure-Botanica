@@ -10,6 +10,7 @@
   width: 100%;
   height: auto;
   display: block;
+  object-fit: cover;
 }
 
 .namePage {
@@ -75,9 +76,11 @@
   transform: translateY(-10px);
 }
 
-.hotNew :global(img) {
+.hotNewImage {
   width: 100%;
-  height: auto;
+  max-width: 430px;
+  height: 250px;
+  object-fit: cover;
   display: block;
   border-radius: 10px;
 }
@@ -120,9 +123,11 @@
   transition: transform 0.3s ease-in-out;
 }
 
-.news :global(img) {
+.newsImage {
   width: 100%;
   max-width: 350px;
+  height: 220px;
+  object-fit: cover;
   border-radius: 8px;
 }
 
@@ -178,6 +183,63 @@
 .btn :global(i) {
   font-size: 16px;
   line-height: 1;
+}
+
+/* ========== Image Error ========== */
+.imageError {
+  width: 100%;
+  max-width: 350px;
+  height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f0f0f0;
+  color: #ff0000;
+  font-size: 14px;
+  text-align: center;
+  border-radius: 8px;
+  margin: 0 auto;
+}
+
+.hotNew .imageError {
+  max-width: 430px;
+  height: 250px;
+}
+
+/* ========== Pagination ========== */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+  padding: 20px 0;
+}
+
+.pageButton {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  background-color: #fff;
+  color: #333;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: background-color 0.3s;
+}
+
+.pageButton:hover:not(:disabled) {
+  background-color: #f0f0f0;
+}
+
+.pageButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.activePage {
+  background-color: #2db36c;
+  color: #fff;
+  border-color: #2db36c;
 }
 
 /* ========== Responsive ========== */

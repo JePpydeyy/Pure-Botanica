@@ -1,4 +1,4 @@
-.addArticleContainer {
+.editArticleContainer {
   max-width: 1000px;
   margin: 40px auto;
   padding: 24px;
@@ -272,7 +272,7 @@
 }
 
 @media (max-width: 768px) {
-  .addArticleContainer {
+  .editArticleContainer {
     margin: 20px;
     padding: 16px;
   }
@@ -314,7 +314,7 @@
 }
 
 @media (max-width: 480px) {
-  .addArticleContainer {
+  .editArticleContainer {
     margin: 12px;
     padding: 12px;
   }
@@ -361,4 +361,74 @@
 
 .editor::-webkit-scrollbar-thumb:hover {
   background: #a0aec0;
+}
+.editNewsContainer {
+  max-width: 800px;
+  margin: 100px auto;
+  padding: 40px;
+  background-color: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.title {
+  text-align: center;
+  font-size: 28px;
+  font-weight: 700;
+  color: #004c59;
+  margin-bottom: 30px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+label {
+  font-weight: 600;
+  color: #004c59;
+}
+
+input[type="text"],
+input[type="file"],
+select {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+select {
+  background-color: #fafafa;
+}
+
+.editorBox {
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 10px;
+  background-color: #f7f9fa;
+}
+
+.submitBtn {
+  background-color: #004c59;
+  color: white;
+  padding: 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-top: 20px;
+}
+
+.submitBtn:hover {
+  background-color: #003b47;
+}
+
+.loading {
+  padding: 80px;
+  text-align: center;
+  font-size: 18px;
+  color: #666;
 }

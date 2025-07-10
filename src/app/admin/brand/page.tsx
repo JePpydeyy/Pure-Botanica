@@ -1,11 +1,11 @@
-// Cập nhật đầy đủ Brands.tsx với lọc theo tên và trạng thái, popup icon sửa/xoá, giữ nguyên layout cũ
 "use client";
 
 import { useEffect, useState } from 'react';
 import styles from './brand.module.css';
-import type { Brand } from '@/app/components/Brand_interface';
+import { Brand } from '@/app/components/Brand_interface';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPenToSquare, faTrash, faEye, faPlus } from '@fortawesome/free-solid-svg-icons';
+import { faPenToSquare, faEye, faEyeSlash, faTrash, faPlus } from '@fortawesome/free-solid-svg-icons';
+
 
 export default function Brands() {
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -13,24 +13,33 @@ export default function Brands() {
   const [loading, setLoading] = useState(true);
   const [showPopup, setShowPopup] = useState(false);
   const [popupMessage, setPopupMessage] = useState('');
-  const [popupType, setPopupType] = useState<'success' | 'error' | 'info' | ''>('');
+  const [popupType, setPopupType] = useState<'success' | 'error' | ''>('');
   const [showAddPopup, setShowAddPopup] = useState(false);
   const [showEditPopup, setShowEditPopup] = useState(false);
+  const [showDeletePopup, setShowDeletePopup] = useState(false);
   const [selectedBrand, setSelectedBrand] = useState<Brand | null>(null);
   const [newBrandName, setNewBrandName] = useState('');
-  const [newBrandStatus, setNewBrandStatus] = useState('show');
+  const [newBrandStatus, setNewBrandStatus] = useState<'show' | 'hidden'>('show');
+  const [newBrandLogo, setNewBrandLogo] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [searchName, setSearchName] = useState('');
-  const [searchStatus, setSearchStatus] = useState('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'show' | 'hidden'>('all');
+
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
   useEffect(() => {
     const fetchBrands = async () => {
       try {
         const res = await fetch('https://api-zeal.onrender.com/api/brands');
-        const data = await res.json();
+        if (!res.ok) throw new Error('Lỗi khi tải danh sách thương hiệu');
+        const data: Brand[] = await res.json();
         setBrands(data);
         setFilteredBrands(data);
       } catch (error) {
         console.error('Lỗi khi tải danh sách thương hiệu:', error);
+        setPopupMessage('Lỗi khi tải danh sách thương hiệu');
+        setPopupType('error');
+        setShowPopup(true);
       } finally {
         setLoading(false);
       }
@@ -39,34 +48,59 @@ export default function Brands() {
   }, []);
 
   useEffect(() => {
-    let filtered = brands;
+    let filtered = [...brands];
     if (searchName.trim()) {
       filtered = filtered.filter((b) => b.name.toLowerCase().includes(searchName.toLowerCase()));
     }
-    if (searchStatus !== 'all') {
-      filtered = filtered.filter((b) => b.status === searchStatus);
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter((b) => b.status === statusFilter);
     }
     setFilteredBrands(filtered);
-  }, [searchName, searchStatus, brands]);
+  }, [searchName, statusFilter, brands]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files ? e.target.files[0] : null;
+    setNewBrandLogo(file);
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+    } else {
+      setPreviewUrl(null);
+    }
+  };
+
+  const resetForm = () => {
+    setShowAddPopup(false);
+    setShowEditPopup(false);
+    setShowDeletePopup(false);
+    setSelectedBrand(null);
+    setNewBrandName('');
+    setNewBrandStatus('show');
+    setNewBrandLogo(null);
+    setPreviewUrl(null);
+  };
 
   const handleToggleStatus = async (id: string) => {
     if (!confirm('Bạn có chắc chắn muốn thay đổi trạng thái thương hiệu này không?')) return;
     try {
-      const resToggle = await fetch(`https://api-zeal.onrender.com/api/brands/${id}/toggle-visibility`, {
+      const res = await fetch(`https://api-zeal.onrender.com/api/brands/${id}/toggle-visibility`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
       });
-      if (resToggle.ok) {
-        const updated = await resToggle.json();
-        setBrands((prev) => prev.map((b) => (b._id === id ? updated : b)));
-        setPopupMessage('Cập nhật trạng thái thành công');
+      const result = await res.json();
+      if (res.ok) {
+        setBrands((prev) => prev.map((b) => (b._id === id ? result.brand : b)));
+        setPopupMessage(result.message);
         setPopupType('success');
       } else {
-        setPopupMessage('Thay đổi trạng thái thất bại');
+        setPopupMessage(result.error || 'Thay đổi trạng thái thất bại');
         setPopupType('error');
       }
     } catch (error) {
-      setPopupMessage('Lỗi khi xử lý thương hiệu');
+      setPopupMessage('Lỗi khi thay đổi trạng thái');
       setPopupType('error');
     } finally {
       setShowPopup(true);
@@ -75,22 +109,34 @@ export default function Brands() {
 
   const handleAddBrand = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!newBrandLogo) {
+      setPopupMessage('Vui lòng tải lên logo thương hiệu');
+      setPopupType('error');
+      setShowPopup(true);
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('name', newBrandName);
+    formData.append('status', newBrandStatus);
+    formData.append('logoImg', newBrandLogo);
+
     try {
       const res = await fetch('https://api-zeal.onrender.com/api/brands', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newBrandName, status: newBrandStatus }),
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
       });
       const result = await res.json();
       if (res.ok) {
         setBrands((prev) => [...prev, result.brand]);
-        setPopupMessage('Thêm thành công');
+        setPopupMessage(result.message);
         setPopupType('success');
-        setShowAddPopup(false);
-        setNewBrandName('');
-        setNewBrandStatus('show');
+        resetForm();
       } else {
-        setPopupMessage(result?.error || 'Lỗi thêm thương hiệu');
+        setPopupMessage(result.error || 'Lỗi khi thêm thương hiệu');
         setPopupType('error');
       }
     } catch (error) {
@@ -104,24 +150,65 @@ export default function Brands() {
   const handleEditBrand = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedBrand) return;
+
+    const formData = new FormData();
+    formData.append('name', newBrandName);
+    formData.append('status', newBrandStatus);
+    if (newBrandLogo) {
+      formData.append('logoImg', newBrandLogo);
+    }
+
     try {
       const res = await fetch(`https://api-zeal.onrender.com/api/brands/${selectedBrand._id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newBrandName, status: newBrandStatus }),
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
       });
+      const result = await res.json();
       if (res.ok) {
-        setBrands((prev) => prev.map((b) => (b._id === selectedBrand._id ? { ...b, name: newBrandName, status: newBrandStatus } : b)));
-        setPopupMessage('Cập nhật thành công');
+        setBrands((prev) =>
+          prev.map((b) => (b._id === selectedBrand._id ? result.brand : b))
+        );
+        setPopupMessage(result.message);
         setPopupType('success');
-        setShowEditPopup(false);
-        setSelectedBrand(null);
+        resetForm();
       } else {
-        setPopupMessage('Cập nhật thất bại');
+        setPopupMessage(result.error || 'Cập nhật thất bại');
         setPopupType('error');
       }
     } catch (error) {
-      setPopupMessage('Lỗi khi cập nhật');
+      setPopupMessage('Lỗi khi cập nhật thương hiệu');
+      setPopupType('error');
+    } finally {
+      setShowPopup(true);
+    }
+  };
+
+  const handleDeleteBrand = async () => {
+    if (!selectedBrand) return;
+    if (!confirm('Bạn có chắc chắn muốn xóa thương hiệu này không?')) return;
+
+    try {
+      const res = await fetch(`https://api-zeal.onrender.com/api/brands/${selectedBrand._id}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const result = await res.json();
+      if (res.ok) {
+        setBrands((prev) => prev.filter((b) => b._id !== selectedBrand._id));
+        setPopupMessage(result.message);
+        setPopupType('success');
+        resetForm();
+      } else {
+        setPopupMessage(result.error || 'Xóa thất bại');
+        setPopupType('error');
+      }
+    } catch (error) {
+      setPopupMessage('Lỗi khi xóa thương hiệu');
       setPopupType('error');
     } finally {
       setShowPopup(true);
@@ -129,73 +216,111 @@ export default function Brands() {
   };
 
   return (
-    <div className={styles.containerCategory}>
-      <div className={styles.formTableCategory}>
-        <div className={styles.nameTableCategory}>
-          <span className={styles.span}>Thương Hiệu</span>
-          <div className={styles.formBtnAddNewCategory}>
-            <button className={styles.btnAddNewCategory} onClick={() => setShowAddPopup(true)}>
-              <FontAwesomeIcon icon={faPlus} /> Thêm thương hiệu
-            </button>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', gap: '15px', marginBottom: '15px' }}>
+    <div className={styles.NewManagementContainer}>
+      <div className={styles.titleContainer}>
+        <h1>QUẢN LÝ THƯƠNG HIỆU</h1>
+        <div className={styles.filterContainer}>
           <input
             type="text"
-            placeholder="Tìm theo tên"
+            placeholder="Tìm theo tên..."
+            className={styles.searchInput}
             value={searchName}
             onChange={(e) => setSearchName(e.target.value)}
-            className={styles.editInput}
-            style={{ maxWidth: '300px' }}
           />
           <select
-            value={searchStatus}
-            onChange={(e) => setSearchStatus(e.target.value)}
-            className={styles.editInput}
-            style={{ maxWidth: '200px' }}
+            className={styles.categorySelect}
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as 'all' | 'show' | 'hidden')}
           >
             <option value="all">Tất cả trạng thái</option>
             <option value="show">Hiển thị</option>
             <option value="hidden">Ẩn</option>
           </select>
+          <button
+            className={styles.addProductBtn}
+            onClick={() => setShowAddPopup(true)}
+          >
+            <FontAwesomeIcon icon={faPlus} /> Thêm thương hiệu
+          </button>
         </div>
+      </div>
 
-        <table className={styles.categoryTable}>
-          <thead>
-            <tr className={styles.categoryTableTr}>
+      <div className={styles.tableContainer}>
+        <table className={styles.productTable}>
+          <thead className={styles.productTableThead}>
+            <tr>
+              <th>Logo</th>
               <th>Tên</th>
               <th>Trạng thái</th>
               <th>Hành động</th>
             </tr>
           </thead>
           <tbody>
-            {filteredBrands.map((brand) => (
-              <tr key={brand._id}>
-                <td>{brand.name}</td>
-                <td>{brand.status === 'show' ? 'Hiển thị' : 'Ẩn'}</td>
-                <td className={styles.categoryTableTdLast}>
-                  <button className={styles.btnEdit} onClick={() => {
-                    setSelectedBrand(brand);
-                    setNewBrandName(brand.name);
-                    setNewBrandStatus(brand.status);
-                    setShowEditPopup(true);
-                  }}>
-                    <FontAwesomeIcon icon={faPenToSquare} />
-                  </button>
-                  <button className={styles.btnRemove} onClick={() => handleToggleStatus(brand._id)}>
-                    <FontAwesomeIcon icon={faTrash} />
-                  </button>
-                  <button className={styles.btnView} onClick={() => {
-                    setPopupMessage(`Tên: ${brand.name}\nTrạng thái: ${brand.status}`);
-                    setPopupType('info');
-                    setShowPopup(true);
-                  }}>
-                    <FontAwesomeIcon icon={faEye} />
-                  </button>
+            {loading ? (
+              <tr>
+                <td colSpan={4} className={styles.errorContainer}>
+                  Đang tải danh sách thương hiệu...
                 </td>
               </tr>
-            ))}
+            ) : filteredBrands.length === 0 ? (
+              <tr>
+                <td colSpan={4} className={styles.errorContainer}>
+                  Không có thương hiệu nào phù hợp.
+                </td>
+              </tr>
+            ) : (
+              filteredBrands.map((brand) => (
+                <tr key={brand._id} className={styles.productRow}>
+                  <td>
+                    <img
+                      src={`https://api-zeal.onrender.com/${brand.logoImg}`}
+                      alt={brand.name}
+                      className={styles.brandLogo}
+                    />
+                  </td>
+                  <td>{brand.name}</td>
+                  <td>
+                    <span className={brand.status === 'show' ? styles.statusShow : styles.statusHidden}>
+                      {brand.status === 'show' ? 'Hiển thị' : 'Ẩn'}
+                    </span>
+                  </td>
+                  <td>
+                    <div className={styles.actionButtons}>
+                      <button
+                        className={styles.editBtn}
+                        onClick={() => {
+                          setSelectedBrand(brand);
+                          setNewBrandName(brand.name);
+                          setNewBrandStatus(brand.status);
+                          setPreviewUrl(`https://api-zeal.onrender.com/${brand.logoImg}`);
+                          setShowEditPopup(true);
+                        }}
+                        title="Chỉnh sửa"
+                      >
+                        <FontAwesomeIcon icon={faPenToSquare} />
+                      </button>
+                      <button
+                        className={styles.toggleStatusBtn}
+                        onClick={() => handleToggleStatus(brand._id)}
+                        title={brand.status === 'show' ? 'Ẩn thương hiệu' : 'Hiển thị thương hiệu'}
+                      >
+                        <FontAwesomeIcon icon={brand.status === 'show' ? faEyeSlash : faEye} />
+                      </button>
+                      <button
+                        className={styles.cancelBtn}
+                        onClick={() => {
+                          setSelectedBrand(brand);
+                          setShowDeletePopup(true);
+                        }}
+                        title="Xóa thương hiệu"
+                      >
+                        <FontAwesomeIcon icon={faTrash} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
@@ -203,55 +328,166 @@ export default function Brands() {
       {showPopup && (
         <div className={styles.popupOverlay}>
           <div className={`${styles.popup} ${styles[popupType]}`}>
-            <p>{popupMessage}</p>
-            <button className={styles.btnClose} onClick={() => setShowPopup(false)}>Đóng</button>
+            <p style={{ whiteSpace: 'pre-wrap' }}>{popupMessage}</p>
+            <button
+              className={styles.btnClose}
+              onClick={() => setShowPopup(false)}
+            >
+              Đóng
+            </button>
           </div>
         </div>
       )}
 
-      {(showAddPopup || showEditPopup) && (
+      {showAddPopup && (
         <div className={styles.popupOverlay}>
           <div className={styles.popupForm}>
-            <h2 className={styles.popupTitle}>{showAddPopup ? 'Thêm Thương Hiệu Mới' : 'Chỉnh Sửa Thương Hiệu'}</h2>
-            <form onSubmit={showAddPopup ? handleAddBrand : handleEditBrand}>
+            <h2 className={styles.popupTitle}>Thêm Thương Hiệu Mới</h2>
+            <form onSubmit={handleAddBrand}>
               <div className={styles.formGroup}>
                 <label>Tên Thương Hiệu:</label>
                 <input
                   type="text"
                   value={newBrandName}
                   onChange={(e) => setNewBrandName(e.target.value)}
-                  className={styles.editInput}
+                  className={styles.searchInput}
                   required
                 />
+              </div>
+              <div className={styles.formGroup}>
+                <label>Logo Thương Hiệu:</label>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/jpg,image/gif,image/webp,image/svg+xml"
+                  onChange={handleFileChange}
+                  className={styles.searchInput}
+                  required
+                />
+                {previewUrl && (
+                  <div className={styles.previewContainer}>
+                    <img src={previewUrl} alt="Logo Preview" className={styles.previewImage} />
+                  </div>
+                )}
               </div>
               <div className={styles.formGroup}>
                 <label>Trạng Thái:</label>
                 <select
                   value={newBrandStatus}
-                  onChange={(e) => setNewBrandStatus(e.target.value)}
-                  className={styles.editInput}
+                  onChange={(e) => setNewBrandStatus(e.target.value as 'show' | 'hidden')}
+                  className={styles.categorySelect}
                 >
                   <option value="show">Hiển thị</option>
                   <option value="hidden">Ẩn</option>
                 </select>
               </div>
               <div className={styles.formActions}>
-                <button type="submit" className={styles.btnSave}>
-                  <FontAwesomeIcon icon={showAddPopup ? faPlus : faPenToSquare} /> {showAddPopup ? 'Thêm' : 'Lưu'}
+                <button
+                  type="submit"
+                  className={styles.addProductBtn}
+                >
+                  <FontAwesomeIcon icon={faPlus} /> Thêm
                 </button>
                 <button
                   type="button"
-                  className={styles.btnCancel}
-                  onClick={() => {
-                    setShowAddPopup(false);
-                    setShowEditPopup(false);
-                    setSelectedBrand(null);
-                  }}
+                  className={styles.cancelBtn}
+                  onClick={resetForm}
                 >
                   Hủy
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showEditPopup && (
+        <div className={styles.popupOverlay}>
+          <div className={styles.popupForm}>
+            <h2 className={styles.popupTitle}>Chỉnh Sửa Thương Hiệu</h2>
+            <form onSubmit={handleEditBrand}>
+              <div className={styles.formGroup}>
+                <label>Tên Thương Hiệu:</label>
+                <input
+                  type="text"
+                  value={newBrandName}
+                  onChange={(e) => setNewBrandName(e.target.value)}
+                  className={styles.searchInput}
+                  required
+                />
+              </div>
+              <div className={styles.formGroup}>
+                <label>Logo Thương Hiệu:</label>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/jpg,image/gif,image/webp,image/svg+xml"
+                  onChange={handleFileChange}
+                  className={styles.searchInput}
+                />
+                {previewUrl && (
+                  <div className={styles.previewContainer}>
+                    <img src={previewUrl} alt="Logo Preview" className={styles.previewImage} />
+                  </div>
+                )}
+                {!newBrandLogo && selectedBrand && (
+                  <div className={styles.previewContainer}>
+                    <img
+                      src={`https://api-zeal.onrender.com/${selectedBrand.logoImg}`}
+                      alt="Current Logo"
+                      className={styles.previewImage}
+                    />
+                  </div>
+                )}
+              </div>
+              <div className={styles.formGroup}>
+                <label>Trạng Thái:</label>
+                <select
+                  value={newBrandStatus}
+                  onChange={(e) => setNewBrandStatus(e.target.value as 'show' | 'hidden')}
+                  className={styles.categorySelect}
+                >
+                  <option value="show">Hiển thị</option>
+                  <option value="hidden">Ẩn</option>
+                </select>
+              </div>
+              <div className={styles.formActions}>
+                <button
+                  type="submit"
+                  className={styles.addProductBtn}
+                >
+                  <FontAwesomeIcon icon={faPenToSquare} /> Lưu
+                </button>
+                <button
+                  type="button"
+                  className={styles.cancelBtn}
+                  onClick={resetForm}
+                >
+                  Hủy
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showDeletePopup && selectedBrand && (
+        <div className={styles.popupOverlay}>
+          <div className={styles.popupForm}>
+            <h2 className={styles.popupTitle}>Xác Nhận Xóa</h2>
+            <p>Bạn có chắc chắn muốn xóa thương hiệu "{selectedBrand.name}"?</p>
+            <div className={styles.formActions}>
+              <button
+                className={styles.addProductBtn}
+                onClick={handleDeleteBrand}
+              >
+                Xóa
+              </button>
+              <button
+                className={styles.cancelBtn}
+                onClick={resetForm}
+              >
+                Hủy
+              </button>
+            </div>
           </div>
         </div>
       )}

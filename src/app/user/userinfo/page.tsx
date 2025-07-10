@@ -25,6 +25,22 @@ interface Order {
   }[];
 }
 
+// Define fetchWithAuth outside the component to avoid redefinition
+const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
+  const token = localStorage.getItem("token");
+  if (!token) {
+    throw new Error("Không có token. Vui lòng đăng nhập.");
+  }
+  return fetch(url, {
+    ...options,
+    headers: {
+      ...options.headers,
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
+};
+
 const getImageUrl = (image: string): string => {
   if (!image) return "/images/placeholder.png";
   const cleanImage = image.startsWith("images/") ? image : `images/${image}`;
@@ -51,26 +67,10 @@ export default function UserProfile() {
     return product.price || 0;
   };
 
-  // Hàm gọi API với kiểm tra token
-  const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      throw new Error("Không có token. Vui lòng đăng nhập.");
-    }
-    return fetch(url, {
-      ...options,
-      headers: {
-        ...options.headers,
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
-  };
-
-  // Lấy thông tin người dùng, loại bỏ các trường nhạy cảm
+  // Lấy thông tin người dùng
   const fetchUserInfo = async () => {
     try {
-      const userId = localStorage.getItem("userId"); // Lấy userId từ localStorage
+      const userId = localStorage.getItem("userId");
       if (!userId) {
         throw new Error("Không tìm thấy userId. Vui lòng đăng nhập lại.");
       }
@@ -103,6 +103,7 @@ export default function UserProfile() {
   const fetchOrders = async (userId: string) => {
     if (!userId || userId.trim() === "") {
       setOrders([]);
+      setOrdersError("Không tìm thấy userId.");
       return;
     }
     setOrdersLoading(true);
@@ -115,42 +116,46 @@ export default function UserProfile() {
         } else if (res.status === 404) {
           setOrders([]);
           return;
-        } else {
-          throw new Error("Lỗi khi tải danh sách đơn hàng.");
         }
+        throw new Error("Lỗi khi tải danh sách đơn hàng.");
       }
       const data = await res.json();
       let ordersData: Order[] = [];
-      if (Array.isArray(data)) {
+      if (data.status === "success" && Array.isArray(data.data)) {
+        ordersData = data.data;
+      } else if (Array.isArray(data)) {
         ordersData = data;
       } else if (data && Array.isArray(data.orders)) {
         ordersData = data.orders;
-      } else if (data && Array.isArray(data.data)) {
-        ordersData = data.data;
       } else {
         ordersData = [];
       }
       setOrders(ordersData);
 
+      // Fetch payment codes
       const paymentRes = await fetchWithAuth("https://api-zeal.onrender.com/api/payments/get-by-user", {
         method: "POST",
-        body: JSON.stringify({ id: userId }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId }),
       });
-      if (!paymentRes.ok) {
-        if (paymentRes.status === 401) {
-          throw new Error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+      if (paymentRes.ok) {
+        const paymentData = await paymentRes.json();
+        let map: Record<string, string> = {};
+        if (paymentData.status === "success" && Array.isArray(paymentData.data)) {
+          paymentData.data.forEach((p: any) => {
+            if (p.orderId && p.paymentCode) {
+              map[p.orderId] = p.paymentCode;
+            }
+          });
+        } else {
+          console.log("Payment data is empty or invalid:", paymentData);
         }
-        throw new Error("Lỗi khi tải thông tin thanh toán.");
-      }
-      const paymentData = await paymentRes.json();
-      if (paymentData && Array.isArray(paymentData.data)) {
-        const map: Record<string, string> = {};
-        paymentData.data.forEach((p: any) => {
-          if (p.orderId && p.paymentCode) {
-            map[p.orderId] = p.paymentCode;
-          }
-        });
         setPaymentMap(map);
+      } else {
+        console.warn("Payment request failed:", paymentRes.status, paymentRes.statusText);
+        throw new Error("Lỗi khi tải thông tin thanh toán.");
       }
     } catch (err: any) {
       setOrdersError(err.message || "Lỗi khi tải danh sách đơn hàng.");
@@ -158,32 +163,6 @@ export default function UserProfile() {
       setOrdersLoading(false);
     }
   };
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          setError("Không có token. Vui lòng đăng nhập.");
-          setLoading(false);
-          return;
-        }
-        const userData = await fetchUserInfo();
-        const userId = localStorage.getItem("userId"); // Sử dụng userId từ localStorage
-        if (userId) {
-          await fetchOrders(userId);
-        } else {
-          setOrders([]);
-        }
-      } catch (err: any) {
-        setError(err.message || "Lỗi khi tải dữ liệu.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
 
   // Lấy chi tiết đơn hàng
   const fetchOrderById = async (orderId: string) => {
@@ -211,7 +190,7 @@ export default function UserProfile() {
   };
 
   const retryFetchOrders = () => {
-    const userId = localStorage.getItem("userId"); // Sử dụng userId từ localStorage
+    const userId = localStorage.getItem("userId");
     if (userId) {
       fetchOrders(userId);
     }
@@ -269,6 +248,32 @@ export default function UserProfile() {
     </div>
   );
 
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          setError("Không có token. Vui lòng đăng nhập.");
+          setLoading(false);
+          return;
+        }
+        const userData = await fetchUserInfo();
+        const userId = localStorage.getItem("userId");
+        if (userId) {
+          await fetchOrders(userId);
+        } else {
+          setOrders([]);
+        }
+      } catch (err: any) {
+        setError(err.message || "Lỗi khi tải dữ liệu.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
   if (loading) return <p className={styles.loading}>Đang tải thông tin...</p>;
   if (error) return <p className={styles.error}>{error}</p>;
   if (!user) return <p className={styles.error}>Không tìm thấy thông tin người dùng.</p>;
@@ -276,7 +281,9 @@ export default function UserProfile() {
   return (
     <div className={styles.container}>
       <div className={styles.sidebar}>
-        <h3 className={styles.greeting}>Xin chào, <br /> {user.username}</h3>
+        <h3 className={styles.greeting}>
+          Xin chào, <br /> {user.username}
+        </h3>
         <ul className={styles.menu}>
           <li
             className={`${styles.menuItem} ${selectedSection === "profile" ? styles.active : ""}`}

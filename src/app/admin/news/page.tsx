@@ -29,7 +29,13 @@ interface NewsItem {
 const API_BASE_URL = "https://api-zeal.onrender.com";
 
 const processContentImages = (content: string): string => {
-  return content.replace(/src="images\/([^"]+)"/g, `src="${API_BASE_URL}/images/$1"`);
+  // Xử lý tất cả các src không bắt đầu bằng http hoặc https
+  return content.replace(/src="([^"]+)"/g, (match, src) => {
+    if (!src.startsWith("http://") && !src.startsWith("https://")) {
+      return `src="${API_BASE_URL}/${src}"`;
+    }
+    return match;
+  });
 };
 
 const AdminNewsPage: React.FC = () => {
@@ -99,7 +105,12 @@ const AdminNewsPage: React.FC = () => {
       const res = await fetch(`${API_BASE_URL}/api/news/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data = await res.json();
+      if (!res.ok) throw new Error(`Lỗi HTTP: ${res.status}`);
+      const data: NewsItem = await res.json();
+      // Đảm bảo thumbnailUrl là URL đầy đủ
+      if (data.thumbnailUrl && !data.thumbnailUrl.startsWith("http")) {
+        data.thumbnailUrl = `${API_BASE_URL}/${data.thumbnailUrl}`;
+      }
       setSelectedNews(data);
       setIsPopupOpen(true);
     } catch (err) {
@@ -144,6 +155,7 @@ const AdminNewsPage: React.FC = () => {
   const closePopup = () => {
     setIsPopupOpen(false);
     setSelectedNews(null);
+    setImageError(null);
   };
 
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -283,11 +295,30 @@ const AdminNewsPage: React.FC = () => {
               <p><strong>Trạng thái:</strong> {selectedNews.status}</p>
               <p><strong>Lượt xem:</strong> {selectedNews.views}</p>
               <p><strong>Ngày đăng:</strong> {new Date(selectedNews.publishedAt).toLocaleDateString("vi-VN")}</p>
+              {selectedNews.thumbnailUrl && (
+                <div className={styles.popupThumbnail}>
+                  <img
+                    src={selectedNews.thumbnailUrl}
+                    alt={selectedNews.thumbnailCaption || selectedNews.title}
+                    onError={(e) => {
+                      setImageError("Không thể tải hình ảnh thumbnail.");
+                      (e.target as HTMLImageElement).style.display = "none";
+                    }}
+                  />
+                  {imageError && <p className={styles.errorContainer}>{imageError}</p>}
+                </div>
+              )}
               <div
+                className={styles.popupContentBody}
                 dangerouslySetInnerHTML={{
                   __html: processContentImages(selectedNews.content),
                 }}
+                onError={(e) => {
+                  setImageError("Không thể tải hình ảnh trong nội dung.");
+                  console.error("Image load error:", e);
+                }}
               />
+              {imageError && <p className={styles.errorContainer}>{imageError}</p>}
             </div>
           </div>
         </div>

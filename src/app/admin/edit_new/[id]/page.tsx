@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { config } from "@fortawesome/fontawesome-svg-core";
 import "@fortawesome/fontawesome-svg-core/styles.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -17,7 +17,22 @@ import styles from "./edit_new.module.css";
 
 config.autoAddCss = false;
 
+interface Article {
+  _id: string;
+  slug: string;
+  title: string;
+  thumbnailUrl?: string;
+  thumbnailCaption: string;
+  status: "show" | "hidden";
+  content: string;
+}
+
 const EditArticle = () => {
+  const router = useRouter();
+  const { id: slug } = useParams();
+  const editorRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const thumbnailInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     title: "",
     content: "",
@@ -26,117 +41,92 @@ const EditArticle = () => {
     status: "show" as "show" | "hidden",
     contentImages: [] as File[],
   });
-
   const [notification, setNotification] = useState({
     show: false,
     message: "",
     type: "success" as "success" | "error",
   });
-
-  const [activeFormats, setActiveFormats] = useState<any>({});
+  const [activeFormats, setActiveFormats] = useState({
+    bold: false,
+    italic: false,
+    underline: false,
+    insertUnorderedList: false,
+    insertOrderedList: false,
+    createLink: false,
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [previewThumbnail, setPreviewThumbnail] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const editorRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const thumbnailInputRef = useRef<HTMLInputElement>(null);
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const slug = searchParams.get("slug");
 
-  const fileToDataURL = useCallback((file: File): Promise<string> => {
+  const fileToDataURL = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result as string);
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
-  }, []);
-
-  const fetchNewsBySlug = useCallback(async (slug: string) => {
-    try {
-      setIsLoading(true);
-      const token = localStorage.getItem("token");
-      if (!token) {
-        showNotification("Vui lòng đăng nhập lại.", "error");
-        router.push("/user/login");
-        return;
-      }
-
-      const response = await fetch(`https://api-zeal.onrender.com/api/news/${slug}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (response.status === 401 || response.status === 403) {
-        showNotification("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.", "error");
-        localStorage.removeItem("token");
-        localStorage.removeItem("role");
-        router.push("/user/login");
-        return;
-      }
-
-      const result = await response.json();
-      console.log("API Response:", result);
-
-      if (response.ok) {
-        setFormData({
-          title: result.title || "",
-          content: result.content || "",
-          thumbnailFile: null,
-          thumbnailCaption: result.thumbnailCaption || "",
-          status: result.status || "show",
-          contentImages: [],
-        });
-        setPreviewThumbnail(result.thumbnailUrl ? `https://api-zeal.onrender.com/${result.thumbnailUrl}` : null);
-        if (editorRef.current) {
-          editorRef.current.innerHTML = result.content || "";
-        }
-      } else {
-        showNotification(result.message || "Không tìm thấy bài viết với slug này.", "error");
-      }
-    } catch (error) {
-      console.error("Lỗi khi tải bài viết:", error);
-      showNotification("Lỗi kết nối khi tải bài viết. Vui lòng kiểm tra mạng và thử lại.", "error");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [router]);
+  };
 
   useEffect(() => {
     const token = localStorage.getItem("token");
     const role = localStorage.getItem("role");
     if (!token || role !== "admin") {
       router.push("/user/login");
-      return;
     }
-    if (slug) {
-      fetchNewsBySlug(slug);
-    } else {
-      setIsLoading(false);
-      showNotification("Slug không hợp lệ. Vui lòng kiểm tra URL.", "error");
-    }
-  }, [router, slug, fetchNewsBySlug]);
+  }, [router]);
+
+  useEffect(() => {
+    const fetchArticle = async () => {
+      try {
+        setIsSubmitting(true);
+        const token = localStorage.getItem("token");
+        if (!token) throw new Error("Vui lòng đăng nhập lại.");
+
+        const response = await fetch(`https://api-zeal.onrender.com/api/news/${slug}`, {
+          headers: { Authorization: `Bearer ${token}` },
+          cache: "no-store",
+        });
+
+        if (response.status === 401 || response.status === 403) {
+          showNotification("Phiên đăng nhập hết hạn.", "error");
+          router.push("/user/login");
+          return;
+        }
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Không thể tải bài viết.");
+        }
+
+        const article: Article = await response.json();
+        setFormData({
+          title: article.title || "",
+          content: article.content || "",
+          thumbnailFile: null,
+          thumbnailCaption: article.thumbnailCaption || "",
+          status: article.status || "show",
+          contentImages: [],
+        });
+        setPreviewThumbnail(article.thumbnailUrl ? `https://api-zeal.onrender.com/${article.thumbnailUrl}` : null);
+        if (editorRef.current) {
+          editorRef.current.innerHTML = article.content || "";
+        }
+      } catch (error: any) {
+        showNotification(error.message || "Lỗi khi tải bài viết.", "error");
+        router.push("/admin/news");
+      } finally {
+        setIsSubmitting(false);
+      }
+    };
+
+    if (slug) fetchArticle();
+  }, [slug, router]);
 
   useEffect(() => {
     const editor = editorRef.current;
-    if (!editor || isLoading) return;
+    if (!editor) return;
 
     const updateFormatStates = () => {
-      const commands = [
-        "bold",
-        "italic",
-        "underline",
-        "strikeThrough",
-        "justifyLeft",
-        "justifyCenter",
-        "justifyRight",
-        "justifyFull",
-        "insertUnorderedList",
-        "insertOrderedList",
-        "createLink",
-      ];
+      const commands = ["bold", "italic", "underline", "insertUnorderedList", "insertOrderedList", "createLink"];
       const newStates: any = {};
       commands.forEach((cmd) => {
         newStates[cmd] = document.queryCommandState(cmd);
@@ -153,14 +143,12 @@ const EditArticle = () => {
       editor.removeEventListener("keyup", updateFormatStates);
       editor.removeEventListener("mouseup", updateFormatStates);
     };
-  }, [isLoading]);
+  }, []);
 
-  const showNotification = useCallback((message: string, type: "success" | "error") => {
+  const showNotification = (message: string, type: "success" | "error") => {
     let displayMessage = message;
     if (message.includes("Trùng lặp slug") || message.includes("duplicate key")) {
       displayMessage = "Slug đã tồn tại. Vui lòng thử lại với tiêu đề khác.";
-    } else if (message.includes("Không tìm thấy file thumbnail")) {
-      displayMessage = "Vui lòng chọn một ảnh thumbnail.";
     } else if (message.includes("Invalid file type")) {
       displayMessage = "Loại file không hợp lệ. Chỉ chấp nhận JPG, PNG, GIF, WebP, SVG.";
     } else if (message.includes("File too large")) {
@@ -173,14 +161,14 @@ const EditArticle = () => {
     setTimeout(() => {
       setNotification({ show: false, message: "", type: "success" });
     }, 3000);
-  }, [router]);
+  };
 
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-  }, []);
+  };
 
-  const handleThumbnailChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.length) {
       const file = e.target.files[0];
       const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "image/gif", "image/webp", "image/svg+xml"];
@@ -195,10 +183,10 @@ const EditArticle = () => {
       setFormData((prev) => ({ ...prev, thumbnailFile: file }));
       setPreviewThumbnail(URL.createObjectURL(file));
     }
-  }, [showNotification]);
+  };
 
-  const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.length && editorRef.current) {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.length) {
       const files = Array.from(e.target.files);
       const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "image/gif", "image/webp", "image/svg+xml"];
       const validFiles = files.filter((file) => allowedTypes.includes(file.type) && file.size <= 20 * 1024 * 1024);
@@ -208,37 +196,39 @@ const EditArticle = () => {
         return;
       }
 
-      for (const file of validFiles) {
-        const dataUrl = await fileToDataURL(file);
-        const imgTag = `<img src="${dataUrl}" alt="Image" style="max-width:100%; height:auto;" />`;
-        editorRef.current.innerHTML += imgTag;
+      if (editorRef.current) {
+        for (const file of validFiles) {
+          const dataUrl = await fileToDataURL(file);
+          const imgTag = `<img src="${dataUrl}" alt="Image" style="max-width:100%; height:auto;" />`;
+          editorRef.current.innerHTML += imgTag;
+        }
+        setFormData((prev) => ({
+          ...prev,
+          content: editorRef.current!.innerHTML,
+          contentImages: [...prev.contentImages, ...validFiles],
+        }));
       }
-      setFormData((prev) => ({
-        ...prev,
-        content: editorRef.current!.innerHTML,
-        contentImages: [...prev.contentImages, ...validFiles],
-      }));
     }
-  }, [fileToDataURL, showNotification]);
+  };
 
-  const execCommand = useCallback((command: string, value?: string) => {
+  const execCommand = (command: string, value?: string) => {
     document.execCommand(command, false, value);
     editorRef.current?.focus();
     setTimeout(() => {
       const event = new Event("input", { bubbles: true });
       editorRef.current?.dispatchEvent(event);
     }, 10);
-  }, []);
+  };
 
-  const insertHeading = useCallback((level: string) => {
+  const insertHeading = (level: string) => {
     if (level) execCommand("formatBlock", `<h${level}>`);
-  }, [execCommand]);
+  };
 
-  const insertList = useCallback((type: "ul" | "ol") => {
+  const insertList = (type: "ul" | "ol") => {
     execCommand(`insert${type === "ul" ? "UnorderedList" : "OrderedList"}`);
-  }, [execCommand]);
+  };
 
-  const insertLink = useCallback(() => {
+  const insertLink = () => {
     const selection = window.getSelection();
     if (selection && selection.toString().trim()) {
       const url = prompt("Nhập URL liên kết:", "https://");
@@ -251,7 +241,7 @@ const EditArticle = () => {
     } else {
       showNotification("Vui lòng chọn văn bản để tạo liên kết.", "error");
     }
-  }, [execCommand, showNotification]);
+  };
 
   const renderToolbar = useCallback(() => (
     <div className={styles.toolbar}>
@@ -283,18 +273,18 @@ const EditArticle = () => {
         <FontAwesomeIcon icon={faLink} />
       </button>
     </div>
-  ), [activeFormats, execCommand, insertHeading, insertList, insertLink]);
+  ), [activeFormats]);
 
-  const handleContentChange = useCallback(() => {
+  const handleContentChange = () => {
     if (editorRef.current) {
       const cleanedContent = editorRef.current.innerHTML
         .replace(/ data-placeholder="true"/g, "")
         .trim();
       setFormData((prev) => ({ ...prev, content: cleanedContent }));
     }
-  }, []);
+  };
 
-  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
 
@@ -320,14 +310,9 @@ const EditArticle = () => {
       const formDataToSend = new FormData();
       formDataToSend.append("title", formData.title.trim());
       formDataToSend.append("content", formData.content.trim());
-      if (formData.thumbnailFile) {
-        formDataToSend.append("thumbnail", formData.thumbnailFile);
-      }
+      if (formData.thumbnailFile) formDataToSend.append("thumbnail", formData.thumbnailFile);
       formDataToSend.append("thumbnailCaption", formData.thumbnailCaption.trim() || formData.title.trim());
       formDataToSend.append("status", formData.status);
-      formData.contentImages.forEach((file) => {
-        formDataToSend.append("contentImages", file);
-      });
 
       const response = await fetch(`https://api-zeal.onrender.com/api/news/${slug}`, {
         method: "PUT",
@@ -339,7 +324,7 @@ const EditArticle = () => {
 
       const result = await response.json();
       if (!response.ok) {
-        showNotification(result.error || "Lỗi khi cập nhật bài viết.", "error");
+        showNotification(result.error || "Lỗi khi cập nhật bài viết", "error");
         return;
       }
 
@@ -353,10 +338,14 @@ const EditArticle = () => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [formData, isSubmitting, router, showNotification, slug]);
+  };
+
+  if (isSubmitting && !notification.show) {
+    return <div className={styles.addArticleContainer}>Đang tải thông tin bài viết...</div>;
+  }
 
   return (
-    <div className={styles.editNewsContainer}>
+    <div className={styles.addArticleContainer}>
       <h1 className={styles.title}>Chỉnh sửa bài viết</h1>
 
       {notification.show && (
@@ -365,106 +354,102 @@ const EditArticle = () => {
         </div>
       )}
 
-      {isLoading ? (
-        <div className={styles.loading}>Đang tải...</div>
-      ) : (
-        <form onSubmit={handleSubmit} className={styles.form}>
-          <div className={styles.formGroup}>
-            <label className={styles.label}>Tiêu đề *</label>
-            <input
-              type="text"
-              name="title"
-              value={formData.title}
-              onChange={handleInputChange}
-              className={styles.input}
-              required
-              placeholder="Nhập tiêu đề bài viết"
-              maxLength={100}
-            />
-          </div>
+      <form onSubmit={handleSubmit} className={styles.form}>
+        <div className={styles.formGroup}>
+          <label className={styles.label}>Tiêu đề *</label>
+          <input
+            type="text"
+            name="title"
+            value={formData.title}
+            onChange={handleInputChange}
+            className={styles.input}
+            required
+            placeholder="Nhập tiêu đề"
+            maxLength={100}
+          />
+        </div>
 
-          <div className={styles.formGroup}>
-            <label className={styles.label}>Chú thích thumbnail (tùy chọn)</label>
-            <input
-              type="text"
-              name="thumbnailCaption"
-              value={formData.thumbnailCaption}
-              onChange={handleInputChange}
-              className={styles.input}
-              placeholder="Nhập chú thích cho thumbnail"
-              maxLength={200}
-            />
-          </div>
+        <div className={styles.formGroup}>
+          <label className={styles.label}>Chú thích thumbnail (tùy chọn)</label>
+          <input
+            type="text"
+            name="thumbnailCaption"
+            value={formData.thumbnailCaption}
+            onChange={handleInputChange}
+            className={styles.input}
+            placeholder="Nhập chú thích cho thumbnail"
+            maxLength={200}
+          />
+        </div>
 
-          <div className={styles.formGroup}>
-            <label className={styles.label}>Trạng thái *</label>
-            <select
-              name="status"
-              value={formData.status}
-              onChange={handleInputChange}
-              className={styles.input}
-              required
-            >
-              <option value="show">Hiển thị</option>
-              <option value="hidden">Ẩn</option>
-            </select>
-          </div>
+        <div className={styles.formGroup}>
+          <label className={styles.label}>Trạng thái *</label>
+          <select
+            name="status"
+            value={formData.status}
+            onChange={handleInputChange}
+            className={styles.input}
+            required
+          >
+            <option value="show">Hiển thị</option>
+            <option value="hidden">Ẩn</option>
+          </select>
+        </div>
 
-          <div className={styles.formGroup}>
-            <label className={styles.label}>Thumbnail *</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleThumbnailChange}
-              ref={thumbnailInputRef}
-              className={styles.input}
-            />
-            {previewThumbnail && (
-              <div className={styles.thumbnailPreview}>
-                <img src={previewThumbnail} alt="Thumbnail Preview" className={styles.previewImage} />
-              </div>
-            )}
-          </div>
+        <div className={styles.formGroup}>
+          <label className={styles.label}>Thumbnail</label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleThumbnailChange}
+            ref={thumbnailInputRef}
+            className={styles.input}
+          />
+          {previewThumbnail && (
+            <div className={styles.thumbnailPreview}>
+              <img src={previewThumbnail} alt="Thumbnail Preview" className={styles.previewImage} />
+            </div>
+          )}
+        </div>
 
-          <div className={styles.formGroup}>
-            <label className={styles.label}>Nội dung *</label>
-            {renderToolbar()}
-            <div
-              ref={editorRef}
-              className={styles.editor}
-              contentEditable
-              onInput={handleContentChange}
-              data-placeholder="Nhập nội dung bài viết..."
-            />
-            <input
-              type="file"
-              accept="image/*"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              style={{ display: "none" }}
-              multiple
-            />
-          </div>
+        <div className={styles.formGroup}>
+          <label className={styles.label}>Nội dung *</label>
+          {renderToolbar()}
+          <div
+            ref={editorRef}
+            className={styles.editor}
+            contentEditable
+            onInput={handleContentChange}
+            data-placeholder="Nhập nội dung..."
+          />
+          <input
+            type="file"
+            accept="image/*"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            style={{ display: "none" }}
+            multiple
+          />
+        </div>
 
-          <div className={styles.formActions}>
-            <button
-              type="button"
-              className={styles.cancelButton}
-              onClick={() => router.push("/admin/news")}
-              disabled={isSubmitting}
-            >
-              Hủy
-            </button>
-            <button
-              type="submit"
-              className={styles.submitButton}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? "Đang cập nhật..." : "✓ Cập nhật bài viết"}
-            </button>
-          </div>
-        </form>
-      )}
+        <div className={styles.formActions}>
+          <button
+            type="button"
+            className={styles.cancelButton}
+            onClick={() => router.push("/admin/news")}
+            disabled={isSubmitting}
+          >
+            Hủy
+          </button>
+          <button
+            type="submit"
+            className={styles.submitButton}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Đang cập nhật..." : "✓ Cập nhật bài viết"}
+          </button>
+        </div>
+      </form>
     </div>
   );
 };

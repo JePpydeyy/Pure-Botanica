@@ -13,7 +13,7 @@ import {
   faImage,
   faLink,
 } from "@fortawesome/free-solid-svg-icons";
-import styles from "./addnews.module.css";
+import styles from "./addnews.module.css";  
 
 config.autoAddCss = false;
 

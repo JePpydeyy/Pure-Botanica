@@ -142,11 +142,9 @@ export default function ProductPage() {
       });
 
       setCategories(normalizedCategories);
-      console.log("Danh mục đã được tải từ API:", normalizedCategories);
       return normalizedCategories;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
-      console.error("Lỗi khi tải danh mục:", errorMessage);
       showNotification(`Không thể tải danh mục: ${errorMessage}`, "error");
       setError(`Không thể tải danh mục: ${errorMessage}`);
       return [];
@@ -195,10 +193,8 @@ export default function ProductPage() {
       }));
 
       setBrands(normalizedBrands);
-      console.log("Thương hiệu đã được tải:", normalizedBrands);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
-      console.error("Lỗi khi tải thương hiệu:", errorMessage);
       showNotification(`Không thể tải thương hiệu: ${errorMessage}`, "error");
       setError(`Không thể tải thương hiệu: ${errorMessage}`);
     } finally {
@@ -249,12 +245,10 @@ export default function ProductPage() {
           id_category = prod.id_category.$oid;
         } else {
           id_category = "";
-          console.warn(`id_category không hợp lệ cho sản phẩm ${prod.name}:`, prod.id_category);
           showNotification(`Sản phẩm ${prod.name} có id_category không hợp lệ`, "error");
         }
 
         if (id_category && !loadedCategories.find((cat) => cat._id === id_category)) {
-          console.warn(`id_category ${id_category} của sản phẩm ${prod.name} không tồn tại trong danh mục`);
           showNotification(`Sản phẩm ${prod.name} có id_category không tồn tại trong danh mục`, "error");
         }
 
@@ -286,17 +280,8 @@ export default function ProductPage() {
 
       setProducts(normalizedProducts);
       setFilteredProducts(normalizedProducts);
-      console.log("Sản phẩm đã được tải:", normalizedProducts);
-
-      normalizedProducts.forEach((prod) => {
-        const category = loadedCategories.find((cat) => cat._id === prod.id_category);
-        console.log(
-          `Sản phẩm: ${prod.name}, id_category: ${prod.id_category}, Danh mục: ${category ? category.name : "Chưa phân loại"}`
-        );
-      });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
-      console.error("Lỗi khi tải sản phẩm:", errorMessage);
       showNotification(`Không thể tải sản phẩm: ${errorMessage}`, "error");
       setError(`Không thể tải sản phẩm: ${errorMessage}`);
     } finally {
@@ -320,7 +305,6 @@ export default function ProductPage() {
       await fetchProducts(loadedCategories);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
-      console.error("Lỗi khi tải dữ liệu:", errorMessage);
       showNotification("Đã xảy ra lỗi khi tải dữ liệu", "error");
       setError(errorMessage);
     } finally {
@@ -412,7 +396,6 @@ export default function ProductPage() {
       );
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
-      console.error("Lỗi khi thay đổi trạng thái sản phẩm:", errorMessage);
       showNotification("Đã xảy ra lỗi khi thay đổi trạng thái sản phẩm", "error");
     } finally {
       setLoading(false);

@@ -27,7 +27,7 @@ export default function Category() {
 
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
-    console.log("Token:", storedToken); // Debug
+    console.log("Token:", storedToken);
     setToken(storedToken);
 
     const fetchCategories = async () => {
@@ -48,7 +48,7 @@ export default function Category() {
           throw new Error(`Không thể tải danh mục: ${res.status}`);
         }
         const data: Category[] = await res.json();
-        console.log("Categories fetched:", data); // Debug
+        console.log("Categories fetched:", data);
         setCategories(data);
       } catch (error: any) {
         toast.error(error.message || "Đã xảy ra lỗi khi tải danh sách danh mục.");
@@ -67,57 +67,12 @@ export default function Category() {
       return false;
     }
     try {
-      console.log(`Fetching products for category ${categoryId}`); // Debug
-      const res = await fetch(
-        `https://api-zeal.onrender.com/api/products?id_category=${categoryId}`,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      console.log(`Products API response for category ${categoryId}:`, {
-        status: res.status,
-        ok: res.ok,
-      }); // Debug
-      if (res.status === 401) {
-        toast.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
-        localStorage.removeItem("token");
-        setToken(null);
-        router.push("/login");
-        return false;
-      }
-      if (!res.ok) {
-        console.log(`No products found for category ${categoryId} (status: ${res.status})`); // Debug
-        return true; // Danh mục rỗng hoặc lỗi, cho phép ẩn
-      }
-      const products = await res.json();
-      console.log(`Products for category ${categoryId}:`, products); // Debug
-      if (!Array.isArray(products)) {
-        console.error(`Invalid products response for category ${categoryId}:`, products);
-        toast.error("Dữ liệu sản phẩm không hợp lệ.");
-        return true; // Cho phép ẩn nếu dữ liệu không hợp lệ
-      }
-      if (products.length === 0) {
-        console.log(`Category ${categoryId} is empty, allowing hide`); // Debug
-        return true; // Danh mục rỗng, cho phép ẩn
-      }
-      // Kiểm tra stock nếu có sản phẩm
-      const hasStock = products.some((product: Product) =>
-        product.option?.some((opt) => opt.stock > 0)
-      );
-      if (hasStock) {
-        console.log(`Category ${categoryId} has products with stock > 0`); // Debug
-        setShowWarning("Không thể ẩn danh mục vì vẫn còn sản phẩm có tồn kho. Vui lòng giảm tồn kho về 0 trước.");
-        return false;
-      }
-      console.log(`Category ${categoryId} has products but no stock > 0, allowing hide`); // Debug
+      console.log(`Checking category ${categoryId} for visibility toggle`);
       return true;
     } catch (error: any) {
-      console.error(`Error checking products for category ${categoryId}:`, error); // Debug
-      toast.error(error.message || "Lỗi khi kiểm tra sản phẩm.");
-      return true; // Cho phép ẩn trong trường hợp lỗi bất ngờ
+      console.error(`Error checking category ${categoryId}:`, error);
+      toast.error(error.message || "Lỗi khi kiểm tra danh mục.");
+      return false;
     }
   }, [token, router]);
 
@@ -132,11 +87,13 @@ export default function Category() {
       toast.error("Không tìm thấy danh mục!");
       return;
     }
+    setShowWarning(null);
+
     if (category.status === "show") {
-      setShowWarning(null);
       const canHide = await checkCategoryCanHide(id);
       if (!canHide) return;
     }
+
     setShowConfirmPopup({
       id,
       name: category.name,
@@ -166,14 +123,14 @@ export default function Category() {
         return;
       }
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ message: `Lỗi ${res.status}` }));
-        throw new Error(errorData.message);
+        const errorData = await res.json().catch(() => ({ message: `Không thể ${action} danh mục` }));
+        throw new Error(errorData.message || `Không thể ${action} danh mục`);
       }
       const result = await res.json();
       setCategories((prev) => prev.map((cat) => (cat._id === id ? result.category : cat)));
       toast.success(`Danh mục "${name}" đã được ${result.category.status === "show" ? "hiển thị" : "ẩn"} thành công!`);
-    } catch (error: any) {
-      toast.error(`Không thể ${action} danh mục "${name}": ${error.message}`);
+  } catch (error: any) {
+      toast.error(error.message || `Không thể ${action} danh mục "${name}"`);
     } finally {
       setShowConfirmPopup(null);
     }

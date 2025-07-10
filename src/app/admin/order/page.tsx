@@ -70,7 +70,7 @@ export default function OrderPage() {
     pending: "Chờ xử lý",
     completed: "Đã thanh toán",
     failed: "Thất bại",
-    cancelled: "Đã hủy",
+    cancelled: "Đã hoàn",
   };
 
   const shippingStatusMapping = {
@@ -476,38 +476,44 @@ export default function OrderPage() {
         </div>
       )}
 
-      {showConfirm && (
-        <div className={styles.popupOverlay} onClick={cancelConfirm}>
-          <div className={styles.confirmModal} onClick={(e) => e.stopPropagation()}>
-            <h2>Xác Nhận Thay Đổi Trạng Thái</h2>
-            <p>
-              Bạn có chắc chắn muốn chuyển trạng thái vận chuyển sang{" "}
-              <strong>{showConfirm.newStatus}</strong>?{" "}
-              {showConfirm.newStatus === "Đã giao hàng"
-                ? "Trạng thái thanh toán sẽ được cập nhật thành 'Đã thanh toán'."
-                : showConfirm.newStatus === "Đã hoàn"
-                ? "Trạng thái thanh toán sẽ được cập nhật thành 'Đã hủy'."
-                : ""}
-            </p>
-            <div className={styles.confirmButtons}>
-              <button
-                className={styles.confirmButton}
-                onClick={confirmStatusChange}
-                aria-label="Xác nhận thay đổi trạng thái"
-              >
-                Xác Nhận
-              </button>
-              <button
-                className={styles.cancelButton}
-                onClick={cancelConfirm}
-                aria-label="Hủy thay đổi trạng thái"
-              >
-                Hủy
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+     {showConfirm && (
+  <div className={styles.popupOverlay} onClick={cancelConfirm}>
+    <div className={styles.confirmModal} onClick={(e) => e.stopPropagation()}>
+      <h2>Xác Nhận Thay Đổi Trạng Thái</h2>
+      <p>
+        Bạn có chắc chắn muốn chuyển trạng thái vận chuyển sang{" "}
+        <strong>{showConfirm.newStatus}</strong>?{" "}
+        {showConfirm.newStatus === "Đã giao hàng" ? (
+          <>
+            Trạng thái thanh toán sẽ được cập nhật thành{" "}
+            <strong>Đã thanh toán</strong>.
+          </>
+        ) : showConfirm.newStatus === "Đã hoàn" ? (
+          <>
+            Trạng thái thanh toán sẽ được cập nhật thành{" "}
+            <strong>Đã hoàn</strong>.
+          </>
+        ) : null}
+      </p>
+      <div className={styles.confirmButtons}>
+        <button
+          className={styles.confirmButton}
+          onClick={confirmStatusChange}
+          aria-label="Xác nhận thay đổi trạng thái"
+        >
+          Xác Nhận
+        </button>
+        <button
+          className={styles.cancelButton}
+          onClick={cancelConfirm}
+          aria-label="Hủy thay đổi trạng thái"
+        >
+          Hủy
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 }

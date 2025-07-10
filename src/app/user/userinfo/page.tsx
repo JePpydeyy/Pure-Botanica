@@ -51,6 +51,54 @@ export default function UserProfile() {
     return product.price || 0;
   };
 
+  // Hàm gọi API với kiểm tra token
+  const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      throw new Error("Không có token. Vui lòng đăng nhập.");
+    }
+    return fetch(url, {
+      ...options,
+      headers: {
+        ...options.headers,
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+  };
+
+  // Lấy thông tin người dùng, loại bỏ các trường nhạy cảm
+  const fetchUserInfo = async () => {
+    try {
+      const userId = localStorage.getItem("userId"); // Lấy userId từ localStorage
+      if (!userId) {
+        throw new Error("Không tìm thấy userId. Vui lòng đăng nhập lại.");
+      }
+      const res = await fetchWithAuth(`https://api-zeal.onrender.com/api/users/userinfo?id=${userId}`);
+      if (!res.ok) {
+        if (res.status === 401) {
+          throw new Error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+        }
+        throw new Error("Lỗi khi tải thông tin người dùng.");
+      }
+      const data = await res.json();
+      const { password, ...safeUserData } = data;
+      if (safeUserData.address && typeof safeUserData.address === "string") {
+        const addressParts = safeUserData.address.split(", ").map((part: string) => part.trim());
+        safeUserData.address = {
+          addressLine: addressParts[0] || "",
+          ward: addressParts[1] || "",
+          district: addressParts[2] || "",
+          cityOrProvince: addressParts[3] || "",
+        };
+      }
+      setUser(safeUserData);
+      return safeUserData;
+    } catch (err: any) {
+      throw new Error(err.message || "Lỗi khi tải thông tin người dùng.");
+    }
+  };
+
   // Lấy danh sách đơn hàng
   const fetchOrders = async (userId: string) => {
     if (!userId || userId.trim() === "") {
@@ -60,12 +108,11 @@ export default function UserProfile() {
     setOrdersLoading(true);
     setOrdersError(null);
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`https://api-zeal.onrender.com/api/orders/user/${userId}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+      const res = await fetchWithAuth(`https://api-zeal.onrender.com/api/orders/user/${userId}`);
       if (!res.ok) {
-        if (res.status === 404) {
+        if (res.status === 401) {
+          throw new Error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+        } else if (res.status === 404) {
           setOrders([]);
           return;
         } else {
@@ -85,26 +132,25 @@ export default function UserProfile() {
       }
       setOrders(ordersData);
 
-      // Lấy paymentCode cho từng order
-      const paymentRes = await fetch("https://api-zeal.onrender.com/api/payments/get-by-user", {
+      const paymentRes = await fetchWithAuth("https://api-zeal.onrender.com/api/payments/get-by-user", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ userId }),
+        body: JSON.stringify({ id: userId }),
       });
-      if (paymentRes.ok) {
-        const paymentData = await paymentRes.json();
-        if (paymentData && Array.isArray(paymentData.data)) {
-          const map: Record<string, string> = {};
-          paymentData.data.forEach((p: any) => {
-            if (p.orderId && p.paymentCode) {
-              map[p.orderId] = p.paymentCode;
-            }
-          });
-          setPaymentMap(map);
+      if (!paymentRes.ok) {
+        if (paymentRes.status === 401) {
+          throw new Error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
         }
+        throw new Error("Lỗi khi tải thông tin thanh toán.");
+      }
+      const paymentData = await paymentRes.json();
+      if (paymentData && Array.isArray(paymentData.data)) {
+        const map: Record<string, string> = {};
+        paymentData.data.forEach((p: any) => {
+          if (p.orderId && p.paymentCode) {
+            map[p.orderId] = p.paymentCode;
+          }
+        });
+        setPaymentMap(map);
       }
     } catch (err: any) {
       setOrdersError(err.message || "Lỗi khi tải danh sách đơn hàng.");
@@ -114,43 +160,18 @@ export default function UserProfile() {
   };
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      setError("Không có token. Vui lòng đăng nhập.");
-      setLoading(false);
-      return;
-    }
-
-    const fetchUserInfo = async () => {
-      try {
-        const res = await fetch("https://api-zeal.onrender.com/api/users/userinfo", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) {
-          throw new Error("Lỗi khi tải thông tin người dùng.");
-        }
-        const data = await res.json();
-        if (data.address && typeof data.address === "string") {
-          const addressParts = data.address.split(", ").map((part: string) => part.trim());
-          data.address = {
-            addressLine: addressParts[0] || "",
-            ward: addressParts[1] || "",
-            district: addressParts[2] || "",
-            cityOrProvince: addressParts[3] || "",
-          };
-        }
-        setUser(data);
-        return data;
-      } catch (err: any) {
-        throw new Error(err.message || "Lỗi khi tải thông tin người dùng.");
-      }
-    };
-
     const fetchData = async () => {
       try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          setError("Không có token. Vui lòng đăng nhập.");
+          setLoading(false);
+          return;
+        }
         const userData = await fetchUserInfo();
-        if (userData?._id) {
-          await fetchOrders(userData._id);
+        const userId = localStorage.getItem("userId"); // Sử dụng userId từ localStorage
+        if (userId) {
+          await fetchOrders(userId);
         } else {
           setOrders([]);
         }
@@ -164,35 +185,22 @@ export default function UserProfile() {
     fetchData();
   }, []);
 
-  // Lấy chi tiết đơn hàng và truyền paymentCode vào selectedOrder
+  // Lấy chi tiết đơn hàng
   const fetchOrderById = async (orderId: string) => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setError("Vui lòng đăng nhập để xem chi tiết đơn hàng.");
-        return;
-      }
-      setLoading(true);
-      setError(null);
-
-      const res = await fetch(`https://api-zeal.onrender.com/api/orders/order/${orderId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
+      const res = await fetchWithAuth(`https://api-zeal.onrender.com/api/orders/order/${orderId}`);
       if (!res.ok) {
-        if (res.status === 404) {
+        if (res.status === 401) {
+          throw new Error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+        } else if (res.status === 404) {
           throw new Error("Không tìm thấy đơn hàng.");
-        } else {
-          throw new Error("Lỗi khi tải chi tiết đơn hàng.");
         }
+        throw new Error("Lỗi khi tải chi tiết đơn hàng.");
       }
-
       const data = await res.json();
       if (!data || !data._id || !data.items || !Array.isArray(data.items)) {
         throw new Error("Dữ liệu đơn hàng không hợp lệ.");
       }
-
-      // Lấy paymentCode từ paymentMap
       const paymentCode = paymentMap[data._id];
       setSelectedOrder({ ...data, paymentCode });
     } catch (err: any) {
@@ -203,8 +211,9 @@ export default function UserProfile() {
   };
 
   const retryFetchOrders = () => {
-    if (user?._id) {
-      fetchOrders(user._id);
+    const userId = localStorage.getItem("userId"); // Sử dụng userId từ localStorage
+    if (userId) {
+      fetchOrders(userId);
     }
   };
 
@@ -310,7 +319,7 @@ export default function UserProfile() {
                 {user.birthday ? new Date(user.birthday).toLocaleDateString() : "Chưa cập nhật"}
               </p>
             </div>
-            <Link href={`/user/edituser/${user._id}`} className={styles.editLink}>
+            <Link href={`/user/edituser/${user.id}`} className={styles.editLink}>
               <button className={styles.editButton}>Chỉnh sửa thông tin</button>
             </Link>
           </>
@@ -423,7 +432,6 @@ export default function UserProfile() {
                     (Tổng giá bao gồm tất cả các loại thuế và phí)
                   </div>
                 </div>
-                {/* Hiển thị nút thanh toán online nếu là bank và chưa thanh toán */}
                 {selectedOrder.paymentMethod === "bank" && selectedOrder.paymentStatus === "pending" && selectedOrder.paymentCode && (
                   <div className={styles.paymentNotice}>
                     <p style={{ color: "#e67e22", margin: "12px 0" }}>

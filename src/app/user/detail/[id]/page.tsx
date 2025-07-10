@@ -4,7 +4,8 @@ import { useParams } from "next/navigation";
 import styles from "./Detail.module.css";
 import Image from "next/image";
 import ToastNotification from "../../ToastNotification/ToastNotification";
-import { Product, Comment } from "@/app/components/product_interface";
+import { Product} from "@/app/components/product_interface";
+import {Comment} from  "@/app/components/comment_interface";
 
 // Environment variables
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api-zeal.onrender.com";
@@ -320,6 +321,7 @@ export default function DetailPage() {
                   alt={`${product.name} thumbnail ${index + 1}`}
                   width={100}
                   height={100}
+                  quality={100}
                   className={styles.thumbnailImg}
                 />
               </div>
@@ -333,6 +335,7 @@ export default function DetailPage() {
                 alt={product.name}
                 width={300}
                 height={200}
+                quality={100}
                 className={styles["mainImg"]}
               />
             </div>

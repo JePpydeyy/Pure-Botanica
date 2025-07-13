@@ -48,15 +48,25 @@ export default function PaymentOnline() {
 
     setIsLoading(true);
     try {
+      const token = localStorage.getItem("token"); // Lấy token từ localStorage
+      if (!token) {
+        throw new Error("Vui lòng đăng nhập để tiếp tục");
+      }
+
       const response = await fetch(`${API_BASE_URL}/payments/check-payment`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`, // Thêm token vào header
+        },
         body: JSON.stringify({ paymentCode, amount }),
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        if (response.status === 404) {
+        if (response.status === 401 || response.status === 403) {
+          throw new Error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
+        } else if (response.status === 404) {
           throw new Error("Thanh toán không tồn tại");
         } else if (response.status === 400) {
           throw new Error(errorData.message || "Mã thanh toán hoặc số tiền không hợp lệ");
@@ -99,11 +109,11 @@ export default function PaymentOnline() {
 
       // Xử lý chuyển hướng khi hoàn tất
       if (paymentData.status === "success" && paymentData.paymentStatus === "completed") {
-        toast.success("Thanh toán thành công!");
+        toast.success("Thanh toán thành công!"); // Hiển thị thông báo
         localStorage.removeItem(`payment_${paymentCode}`);
         localStorage.removeItem(`amount_${paymentCode}`);
         if (intervalRef.current) clearInterval(intervalRef.current);
-        setTimeout(() => router.push("/user/"), 2000);
+        setTimeout(() => router.push("/user/"), 3000); // Chờ 3 giây trước khi chuyển hướng
       } else if (paymentData.status === "expired") {
         toast.warn("Thanh toán đã hết hạn.");
         localStorage.removeItem(`payment_${paymentCode}`);
@@ -115,6 +125,12 @@ export default function PaymentOnline() {
       const errorMessage = error.message || "Có lỗi xảy ra khi kiểm tra thanh toán.";
       setError(errorMessage);
       toast.error(errorMessage);
+      if (error.message.includes("đăng nhập")) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("role");
+        localStorage.removeItem("email");
+        setTimeout(() => router.push("/user/login"), 2000);
+      }
       if (intervalRef.current) clearInterval(intervalRef.current);
     } finally {
       setIsLoading(false);
@@ -192,6 +208,7 @@ export default function PaymentOnline() {
             </p>
             <p><span>Nội dung chuyển khoản:</span> {paymentCode || "N/A"}</p>
             <p><span>Trạng thái:</span> {message}</p>
+            <p><span>Thời gian còn lại:</span> {formatTimeLeft(timeLeft)}</p>
             {order?.transactionId && (
               <>
                 <p><span>Mã giao dịch:</span> {order.transactionId}</p>

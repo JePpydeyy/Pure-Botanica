@@ -526,14 +526,6 @@ export default function CheckoutPage() {
               <p>Không thể tải thông tin người dùng. Vui lòng thử lại.</p>
             ) : (
               <>
-                <button
-                  type="button"
-                  className={styles.selectAddressBtn}
-                  onClick={() => setShowAddressPopup(true)}
-                  style={{ marginBottom: 12 }}
-                >
-                  Chọn địa chỉ giao hàng
-                </button>
 
                 {showAddressPopup && (
                   <div className={styles.popupOverlay}>

@@ -100,9 +100,9 @@ export default function AD_Home() {
   const chartOptions = useMemo(
     () => ({
       responsive: true,
-      maintainAspectRatio: false, // Allow chart to fill container
+      maintainAspectRatio: false,
       plugins: {
-        legend: { position: "bottom" as const },
+        legend: { position: "bottom" },
         title: {
           display: true,
           text: `Báo cáo doanh thu theo ${
@@ -183,18 +183,8 @@ export default function AD_Home() {
           }
         } else if (period === "year") {
           const monthsOfYear = [
-            "Tháng 1",
-            "Tháng 2",
-            "Tháng 3",
-            "Tháng 4",
-            "Tháng 5",
-            "Tháng 6",
-            "Tháng 7",
-            "Tháng 8",
-            "Tháng 9",
-            "Tháng 10",
-            "Tháng 11",
-            "Tháng 12",
+            "Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5", "Tháng 6",
+            "Tháng 7", "Tháng 8", "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12",
           ];
           for (let i = 0; i < 12; i++) {
             const monthStart = new Date(today.getFullYear(), i, 1);
@@ -209,7 +199,6 @@ export default function AD_Home() {
           }
         }
 
-        // Ensure chartData is always valid
         return {
           labels: labels.length ? labels : ["Không có dữ liệu"],
           datasets: [

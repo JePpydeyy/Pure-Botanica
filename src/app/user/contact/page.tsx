@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import emailjs from "emailjs-com"; // Import emailjs
 import styles from "./contact.module.css";
 
@@ -14,6 +14,33 @@ const ContactPage: React.FC = () => {
     email: "",
     message: "",
   });
+  const [logo, setLogo] = useState("/images/logo_web.png"); // State để lưu URL logo
+  const [loading, setLoading] = useState(true);
+
+  // Fetch logo từ API khi component mount
+  useEffect(() => {
+    const fetchLogo = async () => {
+      try {
+        const response = await fetch("https://api-zeal.onrender.com/api/interfaces/logo-shop", {
+          cache: "no-store",
+        });
+        if (!response.ok) {
+          throw new Error("Không thể lấy logo");
+        }
+        const data = await response.json();
+        if (data.paths && data.paths.length > 0) {
+          setLogo(`https://api-zeal.onrender.com/${data.paths[0]}`);
+        }
+      } catch (error) {
+        console.error("Lỗi khi lấy logo:", error);
+        // Giữ logo mặc định nếu lỗi
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLogo();
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -49,7 +76,11 @@ const ContactPage: React.FC = () => {
         <div className={styles.contactInfo}>
           <div className={styles.logoContainer}>
             <div className={styles.logo}>
-              <img src="/images/logo_web.png" alt="Pure Botanica Logo" />
+              {loading ? (
+                <p>Đang tải logo...</p>
+              ) : (
+                <img src={logo} alt="Pure Botanica Logo" />
+              )}
               <div className={styles.slogan}>
                 <p>"Nurtured by Nature</p>
                 <p>Perfected for You"</p>
@@ -83,7 +114,7 @@ const ContactPage: React.FC = () => {
                 <div>
                   <strong>Khung giờ làm việc:</strong> 8h-18h thứ 2 - thứ 7
                 </div>
-                </div>
+              </div>
             </div>
           </div>
 

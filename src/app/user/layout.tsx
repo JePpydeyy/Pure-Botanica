@@ -7,11 +7,9 @@ import { AuthProvider } from "./context/AuthContext";
 import CategoryList from "../components/category_list";
 import UserMenu from "../components/Usermenu";
 import { CartProvider } from "./context/CartContext";
-
 import SearchBar from "../components/Searchbar";
 
 // Import SearchBar as a client component
-
 
 const geistSans = Geist({ 
   variable: "--font-geist-sans",
@@ -35,6 +33,22 @@ export default async function RootLayout({
 }) {
   const category: Category[] = await getCategories("https://api-zeal.onrender.com/api/categories");
 
+  // Hàm lấy hình ảnh từ API (favicon hoặc logo)
+  const fetchImage = async (type: "favicon" | "logo-shop") => {
+    console.log(`Fetching ${type}...`);
+    const res = await fetch(`https://api-zeal.onrender.com/api/interfaces/${type}`, { cache: "no-store" });
+    if (!res.ok) {
+      console.error(`Fetch ${type} failed:`, res.status, res.statusText);
+      return null;
+    }
+    const data = await res.json();
+    console.log(`${type} data:`, data);
+    return data.paths[0] || null;
+  };
+
+  const faviconPath = await fetchImage("favicon");
+  const logoPath = await fetchImage("logo-shop");
+
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <head>
@@ -46,6 +60,9 @@ export default async function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@100;300;400;700&display=swap"
           rel="stylesheet"
         />
+        {faviconPath && (
+          <link rel="icon" href={`https://api-zeal.onrender.com/${faviconPath}?v=${Date.now()}`} type="image/x-icon" />
+        )}
       </head>
       <body>
         <AuthProvider>
@@ -56,7 +73,7 @@ export default async function RootLayout({
                 <div className="logo">
                   <Link href="/user">
                     <img
-                      src="https://api-zeal.onrender.com/images/logo_web.png"
+                      src={logoPath ? `https://api-zeal.onrender.com/${logoPath}?v=${Date.now()}` : "/images/logo_web.png"}
                       alt="Pure Botanica"
                     />
                   </Link>
@@ -91,7 +108,10 @@ export default async function RootLayout({
             <footer className="footer">
               <div className="footer-container">
                 <div className="footer-logo">
-                  <img src="/images/logo_web.png" alt="Pure Botanica Logo" />
+                  <img
+                    src={logoPath ? `https://api-zeal.onrender.com/${logoPath}?v=${Date.now()}` : "/images/logo_web.png"}
+                    alt="Pure Botanica Logo"
+                  />
                   <p className="footer-slogan">
                     "Nurtured by Nature <br /> Perfected for You"
                   </p>

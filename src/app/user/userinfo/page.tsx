@@ -25,7 +25,6 @@ interface Order {
   }[];
 }
 
-// Define fetchWithAuth outside the component to avoid redefinition
 const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
   const token = localStorage.getItem("token");
   if (!token) {
@@ -67,22 +66,27 @@ export default function UserProfile() {
     return product.price || 0;
   };
 
-  // Lấy thông tin người dùng
   const fetchUserInfo = async () => {
     try {
       const userId = localStorage.getItem("userId");
-      if (!userId) {
-        throw new Error("Không tìm thấy userId. Vui lòng đăng nhập lại.");
+      if (!userId || userId === "undefined" || !userId.match(/^[0-9a-fA-F]{24}$/)) {
+        throw new Error("Không tìm thấy hoặc userId không hợp lệ. Vui lòng đăng nhập lại.");
       }
       const res = await fetchWithAuth(`https://api-zeal.onrender.com/api/users/userinfo?id=${userId}`);
       if (!res.ok) {
         if (res.status === 401) {
           throw new Error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+        } else if (res.status === 400) {
+          throw new Error("ID người dùng không hợp lệ.");
+        } else if (res.status === 403) {
+          throw new Error("Bạn không có quyền truy cập thông tin này.");
+        } else if (res.status === 404) {
+          throw new Error("Không tìm thấy người dùng.");
         }
         throw new Error("Lỗi khi tải thông tin người dùng.");
       }
       const data = await res.json();
-      const { password, ...safeUserData } = data;
+      const { password, passwordResetToken, ...safeUserData } = data;
       if (safeUserData.address && typeof safeUserData.address === "string") {
         const addressParts = safeUserData.address.split(", ").map((part: string) => part.trim());
         safeUserData.address = {
@@ -92,16 +96,15 @@ export default function UserProfile() {
           cityOrProvince: addressParts[3] || "",
         };
       }
-      setUser(safeUserData);
+      setUser({ ...safeUserData, id: userId }); // Đảm bảo user.id được gán từ userId
       return safeUserData;
     } catch (err: any) {
       throw new Error(err.message || "Lỗi khi tải thông tin người dùng.");
     }
   };
 
-  // Lấy danh sách đơn hàng
   const fetchOrders = async (userId: string) => {
-    if (!userId || userId.trim() === "") {
+    if (!userId || userId.trim() === "" || userId === "undefined") {
       setOrders([]);
       setOrdersError("Không tìm thấy userId.");
       return;
@@ -132,12 +135,9 @@ export default function UserProfile() {
       }
       setOrders(ordersData);
 
-      // Fetch payment codes
       const paymentRes = await fetchWithAuth("https://api-zeal.onrender.com/api/payments/get-by-user", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId }),
       });
       if (paymentRes.ok) {
@@ -164,7 +164,6 @@ export default function UserProfile() {
     }
   };
 
-  // Lấy chi tiết đơn hàng
   const fetchOrderById = async (orderId: string) => {
     try {
       const res = await fetchWithAuth(`https://api-zeal.onrender.com/api/orders/order/${orderId}`);
@@ -252,18 +251,19 @@ export default function UserProfile() {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem("token");
+        const userId = localStorage.getItem("userId");
         if (!token) {
           setError("Không có token. Vui lòng đăng nhập.");
           setLoading(false);
           return;
         }
-        const userData = await fetchUserInfo();
-        const userId = localStorage.getItem("userId");
-        if (userId) {
-          await fetchOrders(userId);
-        } else {
-          setOrders([]);
+        if (!userId || userId === "undefined" || !userId.match(/^[0-9a-fA-F]{24}$/)) {
+          setError("Không tìm thấy hoặc userId không hợp lệ. Vui lòng đăng nhập lại.");
+          setLoading(false);
+          return;
         }
+        await fetchUserInfo();
+        await fetchOrders(userId);
       } catch (err: any) {
         setError(err.message || "Lỗi khi tải dữ liệu.");
       } finally {
@@ -326,7 +326,7 @@ export default function UserProfile() {
                 {user.birthday ? new Date(user.birthday).toLocaleDateString() : "Chưa cập nhật"}
               </p>
             </div>
-            <Link href={`/user/edituser/${user.id}`} className={styles.editLink}>
+            <Link href={`/user/edituser/${localStorage.getItem("userId") || ""}`} className={styles.editLink}>
               <button className={styles.editButton}>Chỉnh sửa thông tin</button>
             </Link>
           </>
@@ -335,9 +335,7 @@ export default function UserProfile() {
         {selectedSection === "orders" && !selectedOrder && (
           <>
             <h2 className={styles.title}>Đơn hàng</h2>
-
             {ordersLoading && <p className={styles.loading}>Đang tải danh sách đơn hàng...</p>}
-
             {ordersError && (
               <div className={styles.error}>
                 <p>{ordersError}</p>
@@ -346,7 +344,6 @@ export default function UserProfile() {
                 </button>
               </div>
             )}
-
             {!ordersLoading && !ordersError && (
               <>
                 {orders.length === 0 ? (
@@ -360,7 +357,7 @@ export default function UserProfile() {
                           {renderOrderStatus(order)}
                         </div>
                         <p>Ngày đặt: {new Date(order.createdAt).toLocaleDateString()}</p>
-                        <p>Tổng tiền: {order.total.toLocaleString()}đ</p>
+                        <p>Tổng tiền: {formatPrice(order.total)}</p>
                         <p>Thanh toán: {order.paymentMethod || "COD"}</p>
                         <button
                           className={styles.detailButton}

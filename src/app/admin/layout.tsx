@@ -8,9 +8,8 @@ import Link from "next/link";
 const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
   const [logo, setLogo] = useState<string>("https://via.placeholder.com/200?text=Logo+Not+Found");
-  const [isMounted, setIsMounted] = useState(false); // Track client-side mount
+  const [isMounted, setIsMounted] = useState(false);
 
-  // Hàm xác thực token
   const validateToken = (token: string | null) => {
     if (!token) {
       console.log("No token found");
@@ -44,12 +43,15 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // Set isMounted to true after client-side mount
   useEffect(() => {
     setIsMounted(true);
-  }, []);
+    // Validate token on mount and redirect if invalid
+    const token = localStorage.getItem("token");
+    if (!validateToken(token)) {
+      router.push("/user/login");
+    }
+  }, [router]);
 
-  // Tải logo từ API
   useEffect(() => {
     const fetchImages = async () => {
       const token = localStorage.getItem("token");
@@ -88,8 +90,12 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
 
   const handleLogout = () => {
     localStorage.removeItem("token");
-    router.push("/user"); // Chuyển hướng đến trang user sau khi đăng xuất
+    router.push("/user");
   };
+
+  if (!isMounted) {
+    return null; // Prevent rendering until client-side mount
+  }
 
   return (
     <div className="admin-layout">
@@ -145,7 +151,6 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
         </div>
       </div>
 
-      {/* Hiển thị nội dung con */}
       <div className="content">{children}</div>
     </div>
   );

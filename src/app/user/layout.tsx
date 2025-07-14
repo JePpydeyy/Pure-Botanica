@@ -103,7 +103,7 @@ export default async function RootLayout({
 
             {/* Main content */}
             <main>{children}</main>
-
+    
             {/* Footer */}
             <footer className="footer">
               <div className="footer-container">

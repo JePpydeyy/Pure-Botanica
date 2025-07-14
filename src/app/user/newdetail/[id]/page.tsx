@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCalendarDays, faEye } from "@fortawesome/free-solid-svg-icons";
@@ -19,7 +19,6 @@ export interface NewsDetail {
 
 export default function NewsDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const id = params?.id as string;
   const [news, setNews] = useState<NewsDetail | null>(null);
   const [relatedNews, setRelatedNews] = useState<NewsDetail[]>([]);
@@ -28,21 +27,6 @@ export default function NewsDetailPage() {
   const [showNotification, setShowNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
   const [notificationType, setNotificationType] = useState<'success' | 'error' | ''>('');
-
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-
-  // Check admin authentication
-  useEffect(() => {
-    const role = localStorage.getItem('role');
-    if (!token || role !== 'admin') {
-      setNotificationMessage('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
-      setNotificationType('error');
-      setShowNotification(true);
-      setTimeout(() => {
-        router.push('/user/login');
-      }, 3000);
-    }
-  }, [router, token]);
 
   // Normalize image URLs
   const normalizeImageUrl = (path: string): string => {
@@ -85,29 +69,15 @@ export default function NewsDetailPage() {
       return;
     }
 
-    if (!token) {
-      setError("Không tìm thấy token. Vui lòng đăng nhập lại.");
-      setLoading(false);
-      router.push('/user/login');
-      return;
-    }
-
     const slugString = Array.isArray(id) ? id[0] : id;
 
     const fetchNews = async () => {
       try {
+        // Gọi API mà không gửi token
         const res = await fetch(`https://api-zeal.onrender.com/api/news/${slugString}`, {
-          headers: { Authorization: `Bearer ${token}` },
           cache: 'no-store',
         });
-        if (res.status === 401 || res.status === 403) {
-          showNotificationMessage('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.', 'error');
-          localStorage.removeItem('token');
-          localStorage.removeItem('role');
-          localStorage.removeItem('email');
-          setTimeout(() => router.push('/user/login'), 3000);
-          return;
-        }
+
         if (!res.ok) {
           throw new Error(`Lỗi ${res.status}: ${await res.text()}`);
         }
@@ -123,17 +93,8 @@ export default function NewsDetailPage() {
 
         // Fetch related news
         const allNewsRes = await fetch('https://api-zeal.onrender.com/api/news', {
-          headers: { Authorization: `Bearer ${token}` },
           cache: 'no-store',
         });
-        if (allNewsRes.status === 401 || allNewsRes.status === 403) {
-          showNotificationMessage('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.', 'error');
-          localStorage.removeItem('token');
-          localStorage.removeItem('role');
-          localStorage.removeItem('email');
-          setTimeout(() => router.push('/user/login'), 3000);
-          return;
-        }
         if (!allNewsRes.ok) {
           throw new Error(`Lỗi khi lấy danh sách bài viết: ${await allNewsRes.text()}`);
         }
@@ -156,7 +117,7 @@ export default function NewsDetailPage() {
     };
 
     fetchNews();
-  }, [id, token, router]);
+  }, [id]);
 
   if (loading) return <p className={styles.errorContainer}>Đang tải bài viết...</p>;
   if (error) return <p className={styles.errorContainer}>Lỗi: {error}</p>;

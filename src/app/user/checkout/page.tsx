@@ -36,6 +36,18 @@ interface UserInfo {
     district: string;
     cityOrProvince: string;
   }>;
+  temporaryAddress1?: {
+    addressLine: string;
+    ward: string;
+    district: string;
+    cityOrProvince: string;
+  };
+  temporaryAddress2?: {
+    addressLine: string;
+    ward: string;
+    district: string;
+    cityOrProvince: string;
+  };
 }
 
 export default function CheckoutPage() {
@@ -111,7 +123,7 @@ export default function CheckoutPage() {
       }
       setUserId(userIdFromToken);
     } catch (err) {
-      toast.error("Lỗi khi giải mã token: " + err.message);
+      toast.error("Lỗi khi giải mã token: " + (err as Error).message);
       setLoadingUser(false);
       setTimeout(() => router.push("/user/login"), 3000);
     }
@@ -129,12 +141,10 @@ export default function CheckoutPage() {
       return;
     }
 
-    console.log("Fetching user info with userId:", userId); // Debug log
     fetch(`https://api-zeal.onrender.com/api/users/userinfo?id=${userId}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => {
-        console.log("User info response status:", res.status); // Debug log
         if (!res.ok) {
           return res.json().then((errorData) => {
             throw new Error(errorData.error || errorData.message || `HTTP ${res.status}`);
@@ -143,7 +153,6 @@ export default function CheckoutPage() {
         return res.json();
       })
       .then((data) => {
-        console.log("User info response data:", data); // Debug log
         let addressLine = "";
         let ward = "";
         let district = "";
@@ -174,6 +183,8 @@ export default function CheckoutPage() {
           district,
           cityOrProvince,
           addresses,
+          temporaryAddress1: data.temporaryAddress1,
+          temporaryAddress2: data.temporaryAddress2,
         };
 
         setUserInfo(userData);
@@ -189,8 +200,7 @@ export default function CheckoutPage() {
         setLoadingUser(false);
       })
       .catch((err) => {
-        console.error("Error fetching user info:", err); // Debug log
-        toast.error("Lỗi khi lấy thông tin người dùng: " + err.message);
+        toast.error("Lỗi khi lấy thông tin người dùng: " + (err as Error).message);
         setLoadingUser(false);
         if (err.message.includes("Unauthorized") || err.message.includes("Token")) {
           localStorage.removeItem("token");
@@ -205,7 +215,7 @@ export default function CheckoutPage() {
     fetch("https://provinces.open-api.vn/api/?depth=1")
       .then((res) => res.json())
       .then((data) => setCities(data))
-      .catch((err) => toast.error("Lỗi khi tải danh sách tỉnh/thành: " + err.message));
+      .catch((err) => toast.error("Lỗi khi tải danh sách tỉnh/thành: " + (err as Error).message));
   }, []);
 
   // Fetch districts
@@ -216,7 +226,7 @@ export default function CheckoutPage() {
         fetch(`https://provinces.open-api.vn/api/p/${selectedCity.code}?depth=2`)
           .then((res) => res.json())
           .then((data) => setDistricts(data.districts || []))
-          .catch((err) => toast.error("Lỗi khi tải danh sách quận/huyện: " + err.message));
+          .catch((err) => toast.error("Lỗi khi tải danh sách quận/huyện: " + (err as Error).message));
       }
     } else {
       setDistricts([]);
@@ -232,7 +242,7 @@ export default function CheckoutPage() {
         fetch(`https://provinces.open-api.vn/api/d/${selectedDistrict.code}?depth=2`)
           .then((res) => res.json())
           .then((data) => setWards(data.wards || []))
-          .catch((err) => toast.error("Lỗi khi tải danh sách phường/xã: " + err.message));
+          .catch((err) => toast.error("Lỗi khi tải danh sách phường/xã: " + (err as Error).message));
       }
     } else {
       setWards([]);
@@ -274,12 +284,12 @@ export default function CheckoutPage() {
   const handleSelectAddress = (address: any) => {
     setFormData((prev) => ({
       ...prev,
-      fullName: address.fullName || "",
+      fullName: address.fullName || userInfo?.username || "",
       addressLine: address.addressLine || "",
       ward: address.ward || "",
       district: address.district || "",
       cityOrProvince: address.cityOrProvince || "",
-      sdt: address.sdt || "",
+      sdt: address.sdt || userInfo?.phone || "",
     }));
     setShowAddressPopup(false);
   };
@@ -351,7 +361,9 @@ export default function CheckoutPage() {
 
     // Kiểm tra token
     const token = localStorage.getItem("token");
-    if (!token) {
+    if (!
+
+ token) {
       toast.error("Vui lòng đăng nhập để thanh toán");
       setIsLoading(false);
       return;
@@ -396,8 +408,6 @@ export default function CheckoutPage() {
       couponCode: couponCode || "",
     };
 
-    console.log("Sending checkout data:", cleanData); // Debug log
-
     try {
       let checkoutResponse = await fetch(`https://api-zeal.onrender.com/api/carts/checkout`, {
         method: "POST",
@@ -412,7 +422,6 @@ export default function CheckoutPage() {
         let errorData;
         try {
           errorData = await checkoutResponse.json();
-          console.log("Checkout error response:", errorData); // Debug log
           if (errorData.message.includes("required")) {
             toast.error("Thiếu thông tin bắt buộc: " + errorData.message);
           } else if (errorData.message.includes("invalid")) {
@@ -427,8 +436,6 @@ export default function CheckoutPage() {
       }
 
       let checkoutData = await checkoutResponse.json();
-      console.log("Checkout response data:", checkoutData); // Debug log
-
       const orderId = checkoutData.order?._id;
       const initialShippingStatus = checkoutData.order?.shippingStatus || "pending";
 
@@ -455,7 +462,6 @@ export default function CheckoutPage() {
           let errorData;
           try {
             errorData = await paymentResponse.json();
-            console.log("Payment error response:", errorData); // Debug log
             toast.error(errorData.message || "Không thể tạo thanh toán");
           } catch {
             toast.error("Không thể phân tích phản hồi từ server");
@@ -464,8 +470,6 @@ export default function CheckoutPage() {
         }
 
         let paymentData = await paymentResponse.json();
-        console.log("Payment response data:", paymentData); // Debug log
-
         const { paymentCode, amount } = paymentData.data || paymentData || {};
         if (!paymentCode || !amount) {
           throw new Error("Thiếu thông tin thanh toán từ server. Kiểm tra phản hồi: " + JSON.stringify(paymentData));
@@ -483,8 +487,7 @@ export default function CheckoutPage() {
         setTimeout(() => router.push("/user/"), 3000);
       }
     } catch (err) {
-      console.error("Lỗi chi tiết:", err);
-      toast.error("Lỗi khi đặt hàng: " + err.message);
+      toast.error("Lỗi khi đặt hàng: " + (err as Error).message);
     } finally {
       setIsLoading(false);
     }
@@ -526,6 +529,13 @@ export default function CheckoutPage() {
               <p>Không thể tải thông tin người dùng. Vui lòng thử lại.</p>
             ) : (
               <>
+                <button
+                  type="button"
+                  className={styles.addressButton}
+                  onClick={() => setShowAddressPopup(true)}
+                >
+                  Chọn hoặc thêm địa chỉ
+                </button>
 
                 {showAddressPopup && (
                   <div className={styles.popupOverlay}>
@@ -549,20 +559,80 @@ export default function CheckoutPage() {
                       </div>
                       {addressTab === "saved" ? (
                         <>
-                          {(userInfo.addresses || []).length === 0 && (
+                          {(userInfo.addressLine || userInfo.temporaryAddress1 || userInfo.temporaryAddress2 || userInfo.addresses?.length) ? (
+                            <>
+                              {userInfo.addressLine && (
+                                <div className={styles.addressItem}>
+                                  <div>
+                                    <strong>Địa chỉ mặc định:</strong><br />
+                                    {userInfo.username} - {userInfo.phone}<br />
+                                    {userInfo.addressLine}, {userInfo.ward}, {userInfo.district}, {userInfo.cityOrProvince}
+                                  </div>
+                                  <button type="button" onClick={() => handleSelectAddress({
+                                    fullName: userInfo.username,
+                                    sdt: userInfo.phone,
+                                    addressLine: userInfo.addressLine,
+                                    ward: userInfo.ward,
+                                    district: userInfo.district,
+                                    cityOrProvince: userInfo.cityOrProvince,
+                                  })}>
+                                    Chọn
+                                  </button>
+                                </div>
+                              )}
+                              {userInfo.temporaryAddress1 && (
+                                <div className={styles.addressItem}>
+                                  <div>
+                                    <strong>Địa chỉ gần đây 1:</strong><br />
+                                    {userInfo.username} - {userInfo.phone}<br />
+                                    {userInfo.temporaryAddress1.addressLine}, {userInfo.temporaryAddress1.ward}, {userInfo.temporaryAddress1.district}, {userInfo.temporaryAddress1.cityOrProvince}
+                                  </div>
+                                  <button type="button" onClick={() => handleSelectAddress({
+                                    fullName: userInfo.username,
+                                    sdt: userInfo.phone,
+                                    addressLine: userInfo.temporaryAddress1!.addressLine,
+                                    ward: userInfo.temporaryAddress1!.ward,
+                                    district: userInfo.temporaryAddress1!.district,
+                                    cityOrProvince: userInfo.temporaryAddress1!.cityOrProvince,
+                                  })}>
+                                    Chọn
+                                  </button>
+                                </div>
+                              )}
+                              {userInfo.temporaryAddress2 && (
+                                <div className={styles.addressItem}>
+                                  <div>
+                                    <strong>Địa chỉ gần đây 2:</strong><br />
+                                    {userInfo.username} - {userInfo.phone}<br />
+                                    {userInfo.temporaryAddress2.addressLine}, {userInfo.temporaryAddress2.ward}, {userInfo.temporaryAddress2.district}, {userInfo.temporaryAddress2.cityOrProvince}
+                                  </div>
+                                  <button type="button" onClick={() => handleSelectAddress({
+                                    fullName: userInfo.username,
+                                    sdt: userInfo.phone,
+                                    addressLine: userInfo.temporaryAddress2!.addressLine,
+                                    ward: userInfo.temporaryAddress2!.ward,
+                                    district: userInfo.temporaryAddress2!.district,
+                                    cityOrProvince: userInfo.temporaryAddress2!.cityOrProvince,
+                                  })}>
+                                    Chọn
+                                  </button>
+                                </div>
+                              )}
+                              {(userInfo.addresses || []).map((address, idx) => (
+                                <div key={idx} className={styles.addressItem}>
+                                  <div>
+                                    {address.fullName} - {address.sdt}<br />
+                                    {address.addressLine}, {address.ward}, {address.district}, {address.cityOrProvince}
+                                  </div>
+                                  <button type="button" onClick={() => handleSelectAddress(address)}>
+                                    Chọn
+                                  </button>
+                                </div>
+                              ))}
+                            </>
+                          ) : (
                             <div>Chưa có địa chỉ nào.</div>
                           )}
-                          {(userInfo.addresses || []).map((address, idx) => (
-                            <div key={idx} className={styles.addressItem}>
-                              <div>
-                                {address.fullName} - {address.sdt}<br />
-                                {address.addressLine}, {address.ward}, {address.district}, {address.cityOrProvince}
-                              </div>
-                              <button type="button" onClick={() => handleSelectAddress(address)}>
-                                Chọn
-                              </button>
-                            </div>
-                          ))}
                         </>
                       ) : (
                         <div>

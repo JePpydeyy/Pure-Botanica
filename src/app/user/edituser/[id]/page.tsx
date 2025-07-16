@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { use } from "react";
 import { User, Option } from "@/app/components/user_interface";
+
 import styles from "./edituser.module.css";
 
 const fetchWithAuth = async (url: string, options: RequestInit = {}) => {

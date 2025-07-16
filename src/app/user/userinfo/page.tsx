@@ -18,6 +18,15 @@ interface Order {
   discount?: number;
   subtotal?: number;
   paymentCode?: string;
+  // Thêm thông tin địa chỉ giao hàng từ đơn hàng
+  address?: {
+    addressLine: string;
+    ward: string; 
+    district: string;
+    cityOrProvince: string;
+  };
+  sdt?: string; // Số điện thoại từ đơn hàng
+  note?: string;
   items: {
     product: { _id: string; name?: string; price?: number; images?: string[]; option?: any[] };
     optionId?: string;
@@ -96,7 +105,7 @@ export default function UserProfile() {
           cityOrProvince: addressParts[3] || "",
         };
       }
-      setUser({ ...safeUserData, id: userId }); // Đảm bảo user.id được gán từ userId
+      setUser({ ...safeUserData, id: userId });
       return safeUserData;
     } catch (err: any) {
       throw new Error(err.message || "Lỗi khi tải thông tin người dùng.");
@@ -176,6 +185,7 @@ export default function UserProfile() {
         throw new Error("Lỗi khi tải chi tiết đơn hàng.");
       }
       const data = await res.json();
+      console.log("Order data:", data); // Debug log
       if (!data || !data._id || !data.items || !Array.isArray(data.items)) {
         throw new Error("Dữ liệu đơn hàng không hợp lệ.");
       }
@@ -247,6 +257,21 @@ export default function UserProfile() {
     </div>
   );
 
+  // Hàm format địa chỉ
+  const formatAddress = (address: any) => {
+    if (!address) return "Chưa cập nhật";
+    
+    if (typeof address === "string") {
+      return address;
+    }
+    
+    if (typeof address === "object" && address.addressLine) {
+      return `${address.addressLine}, ${address.ward}, ${address.district}, ${address.cityOrProvince}`;
+    }
+    
+    return "Chưa cập nhật";
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -315,10 +340,7 @@ export default function UserProfile() {
               <p className={styles.infoRow}><strong>Email:</strong> {user.email}</p>
               <p className={styles.infoRow}><strong>SĐT:</strong> {user.phone}</p>
               <p className={styles.infoRow}>
-                <strong>Địa chỉ:</strong>{" "}
-                {user.address && typeof user.address !== "string" && user.address.addressLine
-                  ? `${user.address.addressLine}, ${user.address.ward}, ${user.address.district}, ${user.address.cityOrProvince}`
-                  : "Chưa cập nhật"}
+                <strong>Địa chỉ:</strong> {formatAddress(user.address)}
               </p>
               <p className={styles.infoRow}><strong>Trạng thái:</strong> {user.status}</p>
               <p className={styles.infoRow}>
@@ -436,6 +458,15 @@ export default function UserProfile() {
                     (Tổng giá bao gồm tất cả các loại thuế và phí)
                   </div>
                 </div>
+                
+                {/* Hiển thị ghi chú nếu có */}
+                {selectedOrder.note && (
+                  <div className={styles.noteSection}>
+                    <h3>Ghi chú đơn hàng</h3>
+                    <p>{selectedOrder.note}</p>
+                  </div>
+                )}
+
                 {selectedOrder.paymentMethod === "bank" && selectedOrder.paymentStatus === "pending" && selectedOrder.paymentCode && (
                   <div className={styles.paymentNotice}>
                     <p style={{ color: "#e67e22", margin: "12px 0" }}>
@@ -459,18 +490,23 @@ export default function UserProfile() {
                     </a>
                   </div>
                 )}
+                
+                {/* Phần địa chỉ nhận hàng - ưu tiên lấy từ đơn hàng */}
                 <div className={styles.addressSection}>
                   <h3>Địa chỉ nhận hàng</h3>
                   <p><strong>Tên:</strong> {user.username}</p>
-                  <p><strong>SĐT:</strong> {user.phone}</p>
+                  <p><strong>SĐT:</strong> {selectedOrder.sdt || user.phone}</p>
                   <p>
                     <strong>Địa chỉ:</strong>{" "}
-                    {user.address && typeof user.address !== "string" && user.address.addressLine
-                      ? `${user.address.addressLine}, ${user.address.ward}, ${user.address.district}, ${user.address.cityOrProvince}`
-                      : "Chưa cập nhật"}
+                    {selectedOrder.address ? (
+                      formatAddress(selectedOrder.address)
+                    ) : (
+                      formatAddress(user.address)
+                    )}
                   </p>
                   <p><strong>Giao hàng:</strong> Giao Hàng Nhanh</p>
                 </div>
+                
                 <button
                   className={styles.backButton}
                   onClick={() => setSelectedOrder(null)}

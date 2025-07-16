@@ -7,6 +7,7 @@ import { useSearchParams } from "next/navigation";
 import { Category } from "@/app/components/category_interface";
 import { Brand } from "@/app/components/Brand_interface";
 import { Product } from "@/app/components/product_interface";
+import ToastNotification from "../ToastNotification/ToastNotification";
 
 const PRICE_RANGES = [
   { label: "100.000đ - 300.000đ", value: "100-300" },
@@ -50,83 +51,148 @@ export default function ProductPage() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [favoriteProducts, setFavoriteProducts] = useState<string[]>([]);
 
-  // Filter states
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [selectedPriceRange, setSelectedPriceRange] = useState<string>("");
 
   const productsPerPage = 9;
   const searchParams = useSearchParams();
-
-  // Lấy query tìm kiếm từ URL
   const searchQuery = searchParams.get("query")?.toLowerCase() || "";
+
+  // Load initial favorites from localStorage
+  useEffect(() => {
+    const savedFavorites = localStorage.getItem("favoriteProducts");
+    if (savedFavorites) {
+      setFavoriteProducts(JSON.parse(savedFavorites));
+    }
+  }, []);
 
   // Fetch brands
   useEffect(() => {
     const fetchBrands = async () => {
       try {
-        const res = await fetch("https://api-zeal.onrender.com/api/brands");
-        if (!res.ok) throw new Error("Lỗi tải thương hiệu");
+        const res = await fetch("https://api-zeal.onrender.com/api/brands", {
+          cache: "no-store",
+        });
+        if (!res.ok) throw new Error(`Lỗi tải thương hiệu: ${res.status}`);
         const data: Brand[] = await res.json();
         setBrands(data);
-      } catch {
+      } catch (err) {
+        console.error("Lỗi khi tải thương hiệu:", err);
         setBrands([]);
       }
     };
     fetchBrands();
   }, []);
 
-  // Fetch products (chờ brands)
+  // Fetch products
   useEffect(() => {
-    if (brands.length === 0) return;
     const fetchProducts = async () => {
       setIsLoading(true);
       setError(null);
       try {
-        const response = await fetch("https://api-zeal.onrender.com/api/products/active");
+        const response = await fetch("https://api-zeal.onrender.com/api/products/active", {
+          cache: "no-store",
+        });
         if (!response.ok) {
           throw new Error(`Lỗi tải sản phẩm: ${response.status}`);
         }
         const data: Product[] = await response.json();
-        // Gán brandName cho từng sản phẩm
-        const processedProducts = data.map(product => {
-          const brandObj = brands.find(b => b._id === product.id_brand);
-          return {
-            ...product,
-            price: getProductPrice(product),
-            stock: getProductStock(product),
-            brandName: brandObj ? brandObj.name : "",
-          };
-        });
+        const processedProducts = data.map(product => ({
+          ...product,
+          price: getProductPrice(product),
+          stock: getProductStock(product),
+          brandName: brands.find(b => b._id === product.id_brand)?.name || "",
+          images: product.images?.map(img => getImageUrl(img)) || [],
+        }));
         setProducts(processedProducts);
         setFilteredProducts(processedProducts);
       } catch (error) {
+        console.error("Lỗi khi tải sản phẩm:", error);
         setError("Không thể tải sản phẩm. Vui lòng thử lại sau.");
       } finally {
         setIsLoading(false);
       }
     };
-    fetchProducts();
+    if (brands.length > 0) fetchProducts();
   }, [brands]);
 
   // Fetch categories
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const res = await fetch("https://api-zeal.onrender.com/api/categories");
+        const res = await fetch("https://api-zeal.onrender.com/api/categories", {
+          cache: "no-store",
+        });
         if (!res.ok) {
           throw new Error(`Lỗi tải danh mục: ${res.status}`);
         }
         const data: Category[] = await res.json();
         setCategories(data);
       } catch (err) {
+        console.error("Lỗi khi tải danh mục:", err);
         setError("Không thể tải danh mục. Vui lòng thử lại sau.");
       }
     };
     fetchCategories();
   }, []);
 
-  // Apply filter based on URL query parameter (category)
+  // Fetch favorite products from API
+  useEffect(() => {
+    const fetchFavoriteProducts = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setFavoriteProducts([]);
+        localStorage.removeItem("favoriteProducts"); // Clear invalid state
+        return;
+      }
+      try {
+        const response = await fetch("https://api-zeal.onrender.com/api/users/favorite-products", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          cache: "no-store",
+        });
+        if (!response.ok) {
+          if (response.status === 401) {
+            localStorage.removeItem("token");
+            setFavoriteProducts([]);
+            showToast("error", "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!");
+            return;
+          } else if (response.status === 400) {
+            setFavoriteProducts([]);
+            showToast("error", "User ID không hợp lệ!");
+            return;
+          } else if (response.status === 404) {
+            setFavoriteProducts([]);
+            showToast("error", "Không tìm thấy người dùng!");
+            return;
+          } else if (response.status === 500) {
+            setFavoriteProducts([]);
+            showToast("error", "Lỗi server. Vui lòng thử lại sau!");
+            return;
+          }
+          throw new Error(`Lỗi tải danh sách yêu thích: ${response.status}`);
+        }
+        const data = await response.json();
+        const newFavorites = data.favoriteProducts.map((item: any) => item._id); // Extract _id from detailed response
+        setFavoriteProducts(newFavorites);
+        localStorage.setItem("favoriteProducts", JSON.stringify(newFavorites)); // Sync with localStorage
+      } catch (error) {
+        console.error("Lỗi khi lấy danh sách yêu thích:", error);
+        const savedFavorites = localStorage.getItem("favoriteProducts");
+        if (savedFavorites) {
+          setFavoriteProducts(JSON.parse(savedFavorites)); // Fallback to localStorage
+        } else {
+          setFavoriteProducts([]);
+        }
+      }
+    };
+    fetchFavoriteProducts();
+  }, []);
+
+  // Apply category filter from URL
   useEffect(() => {
     const categoryFromUrl = searchParams.get("category");
     if (!categoryFromUrl) {
@@ -135,15 +201,11 @@ export default function ProductPage() {
       setCurrentPage(1);
       return;
     }
-    if (products.length === 0 || categories.length === 0) {
-      return;
-    }
+    if (products.length === 0 || categories.length === 0) return;
     const decodedCategory = decodeURIComponent(categoryFromUrl);
     const foundCategory = categories.find(cat => cat.name === decodedCategory);
     if (foundCategory) {
-      const filtered = products.filter(
-        (product) => product.id_category === foundCategory._id
-      );
+      const filtered = products.filter(product => product.id_category === foundCategory._id);
       setActiveCategory(decodedCategory);
       setFilteredProducts(filtered);
     } else if (decodedCategory === "Tất cả") {
@@ -156,25 +218,20 @@ export default function ProductPage() {
     setCurrentPage(1);
   }, [searchParams, products, categories]);
 
-  // Lọc sản phẩm theo bộ lọc sidebar (category, brand, price)
+  // Apply sidebar filters (category, brand, price, search)
   useEffect(() => {
     let filtered = [...products];
-    // Lọc theo danh mục
     if (activeCategory) {
       const foundCategory = categories.find(cat => cat.name === activeCategory);
       if (foundCategory) {
-        filtered = filtered.filter((product) => product.id_category === foundCategory._id);
+        filtered = filtered.filter(product => product.id_category === foundCategory._id);
       }
     }
-    // Lọc theo thương hiệu
     if (selectedBrands.length > 0) {
-      filtered = filtered.filter(
-        (product) => selectedBrands.includes(product.brandName || "")
-      );
+      filtered = filtered.filter(product => selectedBrands.includes(product.brandName || ""));
     }
-    // Lọc theo giá
     if (selectedPriceRange) {
-      filtered = filtered.filter((product) => {
+      filtered = filtered.filter(product => {
         const price = product.price || 0;
         if (selectedPriceRange === "100-300") return price >= 100000 && price <= 300000;
         if (selectedPriceRange === "300-500") return price > 300000 && price <= 500000;
@@ -182,20 +239,14 @@ export default function ProductPage() {
         return true;
       });
     }
-    setFilteredProducts(filtered);
-    setCurrentPage(1);
-  }, [products, activeCategory, selectedBrands, selectedPriceRange, categories]);
-
-  // Lọc sản phẩm theo từ khóa tìm kiếm (nếu có)
-  useEffect(() => {
     if (searchQuery) {
-      const filtered = products.filter(product =>
+      filtered = filtered.filter(product =>
         product.name?.toLowerCase().includes(searchQuery)
       );
-      setFilteredProducts(filtered);
-      setCurrentPage(1);
     }
-  }, [searchQuery, products]);
+    setFilteredProducts(filtered);
+    setCurrentPage(1);
+  }, [products, activeCategory, selectedBrands, selectedPriceRange, searchQuery, categories]);
 
   const filterProducts = (categoryName: string) => {
     if (activeCategory === categoryName) {
@@ -204,9 +255,7 @@ export default function ProductPage() {
     } else {
       const foundCategory = categories.find(cat => cat.name === categoryName);
       if (foundCategory) {
-        const filtered = products.filter(
-          (product) => product.id_category === foundCategory._id
-        );
+        const filtered = products.filter(product => product.id_category === foundCategory._id);
         setFilteredProducts(filtered);
         setActiveCategory(categoryName);
       }
@@ -226,25 +275,117 @@ export default function ProductPage() {
   }, [filteredProducts, currentPage, totalPages]);
 
   const getTopStockProducts = (products: Product[], count: number): Product[] => {
-    const validProducts = products.filter(product => 
-      product.stock !== undefined && 
-      product.stock !== null && 
-      !isNaN(product.stock) &&
-      product.stock > 0
+    const validProducts = products.filter(
+      product =>
+        product.stock !== undefined &&
+        product.stock !== null &&
+        !isNaN(product.stock) &&
+        product.stock > 0
     );
-    const sortedProducts = [...validProducts].sort((a, b) => (b.stock || 0) - (a.stock || 0));
-    return sortedProducts.slice(0, count);
+    return validProducts.sort((a, b) => (b.stock || 0) - (a.stock || 0)).slice(0, count);
   };
 
   const bestSellingProducts = getTopStockProducts(products, 5);
 
-  // Xoá bộ lọc
-  const handleClearFilters = () => {
-    setSelectedBrands([]);
-    setSelectedPriceRange("");
-    setActiveCategory(null);
-    setFilteredProducts(products);
-    setCurrentPage(1);
+  const useToast = () => {
+    const [message, setMessage] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
+    const TOAST_DURATION = 3000;
+
+    const showToast = (type: "success" | "error" | "info", text: string) => {
+      setMessage({ type, text });
+      setTimeout(() => setMessage(null), TOAST_DURATION);
+    };
+
+    const hideToast = () => setMessage(null);
+
+    return { message, showToast, hideToast };
+  };
+
+  const { message, showToast, hideToast } = useToast();
+
+  const addToWishlist = async (productId: string) => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      showToast("error", "Vui lòng đăng nhập để thêm vào danh sách yêu thích!");
+      return;
+    }
+
+    try {
+      if (favoriteProducts.includes(productId)) {
+        const response = await fetch(
+          `https://api-zeal.onrender.com/api/users/favorite-products/${productId}`,
+          {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        if (!response.ok) {
+          if (response.status === 401) {
+            localStorage.removeItem("token");
+            setFavoriteProducts([]);
+            showToast("error", "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!");
+            return;
+          } else if (response.status === 400) {
+            showToast("error", "ProductId không hợp lệ!");
+            return;
+          } else if (response.status === 404) {
+            showToast("error", "Không tìm thấy người dùng!");
+            return;
+          } else if (response.status === 500) {
+            showToast("error", "Lỗi server. Vui lòng thử lại sau!");
+            return;
+          }
+          throw new Error("Không thể xóa khỏi danh sách yêu thích!");
+        }
+        const data = await response.json();
+        const updatedFavorites: string[] = [];
+        setFavoriteProducts(updatedFavorites);
+        localStorage.setItem("favoriteProducts", JSON.stringify(updatedFavorites));
+        showToast("success", data.message || "Đã xóa khỏi danh sách yêu thích!");
+      } else {
+        const response = await fetch("https://api-zeal.onrender.com/api/users/favorite-products", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ productId }),
+        });
+        if (!response.ok) {
+          if (response.status === 401) {
+            localStorage.removeItem("token");
+            setFavoriteProducts([]);
+            showToast("error", "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!");
+            return;
+          } else if (response.status === 400) {
+            showToast("error", "ProductId không hợp lệ!");
+            return;
+          } else if (response.status === 404) {
+            showToast("error", "Không tìm thấy người dùng!");
+            return;
+          } else if (response.status === 500) {
+            showToast("error", "Lỗi server. Vui lòng thử lại sau!");
+            return;
+          }
+          throw new Error("Không thể thêm vào danh sách yêu thích!");
+        }
+        const data = await response.json();
+        const updatedFavorites = [...favoriteProducts, productId];
+        setFavoriteProducts(updatedFavorites);
+        localStorage.setItem("favoriteProducts", JSON.stringify(updatedFavorites));
+        showToast("success", data.message || "Đã thêm vào danh sách yêu thích!");
+      }
+    } catch (error) {
+      console.error("Lỗi khi quản lý danh sách yêu thích:", error);
+      showToast("error", "Lỗi khi cập nhật danh sách yêu thích!");
+    }
+  };
+
+  const isProductInWishlist = (productId: string) => {
+    return favoriteProducts.includes(productId);
   };
 
   return (
@@ -256,17 +397,19 @@ export default function ProductPage() {
       <div className={styles.containerBox}>
         <aside className={styles.productSidebar}>
           <h3 className={styles["sidebar-title"]}>DANH MỤC SẢN PHẨM</h3>
-              <hr />      
+          <hr />
           <ul className={styles["menu-list"]}>
             {categories.length > 0 ? (
-              categories.map((category) => (
+              categories.map(category => (
                 <li
                   key={category._id}
                   className={styles["menu-list-item"]}
                   onClick={() => filterProducts(category.name)}
                 >
                   <span
-                    className={`${styles.filterOption} ${activeCategory === category.name ? styles.active : ""}`}
+                    className={`${styles.filterOption} ${
+                      activeCategory === category.name ? styles.active : ""
+                    }`}
                   >
                     {category.name}
                   </span>
@@ -280,17 +423,19 @@ export default function ProductPage() {
           <h3 className={styles["sidebar-title"]}>THƯƠNG HIỆU</h3>
           <hr />
           <ul className={styles.filterList}>
-            {brands.map((brand) => (
+            {brands.map(brand => (
               <li key={brand._id} className={styles.filterItem}>
                 <span
-                  className={`${styles.filterOption} ${selectedBrands.includes(brand.name) ? styles.active : ""}`}
-                  onClick={() => {
-                    setSelectedBrands((prev) =>
+                  className={`${styles.filterOption} ${
+                    selectedBrands.includes(brand.name) ? styles.active : ""
+                  }`}
+                  onClick={() =>
+                    setSelectedBrands(prev =>
                       prev.includes(brand.name)
-                        ? prev.filter((b) => b !== brand.name)
+                        ? prev.filter(b => b !== brand.name)
                         : [...prev, brand.name]
-                    );
-                  }}
+                    )
+                  }
                 >
                   {brand.name}
                 </span>
@@ -301,10 +446,12 @@ export default function ProductPage() {
           <h3 className={styles["sidebar-title"]}>PHÂN KHÚC SẢN PHẨM</h3>
           <hr />
           <ul className={styles.filterList}>
-            {PRICE_RANGES.map((range) => (
+            {PRICE_RANGES.map(range => (
               <li key={range.value} className={styles.filterItem}>
                 <span
-                  className={`${styles.filterOption} ${selectedPriceRange === range.value ? styles.active : ""}`}
+                  className={`${styles.filterOption} ${
+                    selectedPriceRange === range.value ? styles.active : ""
+                  }`}
                   onClick={() =>
                     setSelectedPriceRange(selectedPriceRange === range.value ? "" : range.value)
                   }
@@ -322,7 +469,7 @@ export default function ProductPage() {
             <p className={styles["no-products"]}>Đang tải sản phẩm...</p>
           ) : currentProducts.length > 0 ? (
             <div className={styles.productGrid}>
-              {currentProducts.map((product) => (
+              {currentProducts.map(product => (
                 <Link
                   href={`/user/detail/${product.slug}`}
                   key={product._id}
@@ -332,7 +479,7 @@ export default function ProductPage() {
                     <Image
                       src={
                         product.images && product.images.length > 0
-                          ? getImageUrl(product.images[0])
+                          ? product.images[0]
                           : "https://via.placeholder.com/300x200?text=No+Image"
                       }
                       alt={product?.name || "Sản phẩm"}
@@ -341,13 +488,38 @@ export default function ProductPage() {
                       quality={100}
                       className={styles["product-image"]}
                     />
-                    <div>
+                    <div className={styles["product-details"]}>
                       <h4 className={styles["product-item-name"]}>{product?.name || "Tên sản phẩm"}</h4>
                       <div className={styles["product-card"]}>
                         <p className={styles.price}>{formatPrice(product?.price)}</p>
-                        <span title="Thêm vào Giỏ Hàng" className={styles.cartIcon}>
-                          <i className="fas fa-shopping-cart"></i>
-                        </span>
+                        <div className={styles.actionIcons}>
+                          <span
+                            title={
+                              isProductInWishlist(product._id)
+                                ? "Xóa khỏi danh sách yêu thích"
+                                : "Thêm vào danh sách yêu thích"
+                            }
+                            className={`${styles.wishlistIcon} ${
+                              isProductInWishlist(product._id) ? styles.favorited : ""
+                            }`}
+                            onClick={e => {
+                              e.preventDefault();
+                              addToWishlist(product._id);
+                            }}
+                          >
+                            <i className="fas fa-heart"></i>
+                          </span>
+                          <span
+                            title="Thêm vào Giỏ Hàng"
+                            className={styles.cartIcon}
+                            onClick={e => {
+                              e.preventDefault();
+                              showToast("info", "Chức năng giỏ hàng đang được phát triển!");
+                            }}
+                          >
+                            <i className="fas fa-shopping-cart"></i>
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -359,8 +531,8 @@ export default function ProductPage() {
               {searchQuery
                 ? `Không tìm thấy sản phẩm với từ khóa "${searchQuery}"`
                 : activeCategory
-                  ? `Không tìm thấy sản phẩm trong danh mục "${activeCategory}"`
-                  : "Không có sản phẩm nào."}
+                ? `Không tìm thấy sản phẩm trong danh mục "${activeCategory}"`
+                : "Không có sản phẩm nào."}
             </p>
           )}
           {totalPages > 1 && (
@@ -428,7 +600,7 @@ export default function ProductPage() {
         <h3 className={styles["slider-title"]}>Có thể bạn sẽ thích</h3>
         <div className={styles["best-selling-grid"]}>
           {bestSellingProducts.length > 0 ? (
-            bestSellingProducts.map((product) => (
+            bestSellingProducts.map(product => (
               <Link
                 href={`/user/detail/${product.slug}`}
                 key={product._id}
@@ -438,26 +610,38 @@ export default function ProductPage() {
                   <div className={styles["best-selling-badge"]}>Sale</div>
                   <div className={styles["best-selling-image"]}>
                     <Image
-                      src={getImageUrl(product.images?.[0] || "")}
+                      src={
+                        product.images?.[0] ||
+                        "https://via.placeholder.com/200x200?text=No+Image"
+                      }
                       alt={product?.name || "Sản phẩm"}
                       width={200}
                       height={200}
                       quality={100}
                       className={styles["best-selling-product-image"]}
-                    />  
+                    />
                   </div>
                   <div className={styles["best-selling-details"]}>
-                    <h3 className={styles["best-selling-product-name"]}>{product?.name || "Tên sản phẩm"}</h3>
+                    <h3 className={styles["best-selling-product-name"]}>
+                      {product?.name || "Tên sản phẩm"}
+                    </h3>
                     <p className={styles["best-selling-price"]}>{formatPrice(product?.price)}</p>
                   </div>
                 </div>
               </Link>
             ))
           ) : (
-              <p className={styles["no-products"]}>Đang tải sản phẩm...</p>
-            )}
+            <p className={styles["no-products"]}>Đang tải sản phẩm...</p>
+          )}
         </div>
       </div>
+      {message && (
+        <ToastNotification
+          message={message.text}
+          type={message.type}
+          onClose={hideToast}
+        />
+      )}
     </div>
   );
 }

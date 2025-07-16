@@ -18,12 +18,36 @@ interface Order {
   discount?: number;
   subtotal?: number;
   paymentCode?: string;
+  // Thêm thông tin địa chỉ giao hàng từ đơn hàng
+  address?: {
+    addressLine: string;
+    ward: string; 
+    district: string;
+    cityOrProvince: string;
+  };
+  sdt?: string; // Số điện thoại từ đơn hàng
+  note?: string;
   items: {
     product: { _id: string; name?: string; price?: number; images?: string[]; option?: any[] };
     optionId?: string;
     quantity: number;
   }[];
 }
+
+const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
+  const token = localStorage.getItem("token");
+  if (!token) {
+    throw new Error("Không có token. Vui lòng đăng nhập.");
+  }
+  return fetch(url, {
+    ...options,
+    headers: {
+      ...options.headers,
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
+};
 
 const getImageUrl = (image: string): string => {
   if (!image) return "/images/placeholder.png";
@@ -51,38 +75,27 @@ export default function UserProfile() {
     return product.price || 0;
   };
 
-  // Hàm gọi API với kiểm tra token
-  const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      throw new Error("Không có token. Vui lòng đăng nhập.");
-    }
-    return fetch(url, {
-      ...options,
-      headers: {
-        ...options.headers,
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
-  };
-
-  // Lấy thông tin người dùng, loại bỏ các trường nhạy cảm
   const fetchUserInfo = async () => {
     try {
-      const userId = localStorage.getItem("userId"); // Lấy userId từ localStorage
-      if (!userId) {
-        throw new Error("Không tìm thấy userId. Vui lòng đăng nhập lại.");
+      const userId = localStorage.getItem("userId");
+      if (!userId || userId === "undefined" || !userId.match(/^[0-9a-fA-F]{24}$/)) {
+        throw new Error("Không tìm thấy hoặc userId không hợp lệ. Vui lòng đăng nhập lại.");
       }
       const res = await fetchWithAuth(`https://api-zeal.onrender.com/api/users/userinfo?id=${userId}`);
       if (!res.ok) {
         if (res.status === 401) {
           throw new Error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+        } else if (res.status === 400) {
+          throw new Error("ID người dùng không hợp lệ.");
+        } else if (res.status === 403) {
+          throw new Error("Bạn không có quyền truy cập thông tin này.");
+        } else if (res.status === 404) {
+          throw new Error("Không tìm thấy người dùng.");
         }
         throw new Error("Lỗi khi tải thông tin người dùng.");
       }
       const data = await res.json();
-      const { password, ...safeUserData } = data;
+      const { password, passwordResetToken, ...safeUserData } = data;
       if (safeUserData.address && typeof safeUserData.address === "string") {
         const addressParts = safeUserData.address.split(", ").map((part: string) => part.trim());
         safeUserData.address = {
@@ -92,17 +105,17 @@ export default function UserProfile() {
           cityOrProvince: addressParts[3] || "",
         };
       }
-      setUser(safeUserData);
+      setUser({ ...safeUserData, id: userId });
       return safeUserData;
     } catch (err: any) {
       throw new Error(err.message || "Lỗi khi tải thông tin người dùng.");
     }
   };
 
-  // Lấy danh sách đơn hàng
   const fetchOrders = async (userId: string) => {
-    if (!userId || userId.trim() === "") {
+    if (!userId || userId.trim() === "" || userId === "undefined") {
       setOrders([]);
+      setOrdersError("Không tìm thấy userId.");
       return;
     }
     setOrdersLoading(true);
@@ -115,18 +128,17 @@ export default function UserProfile() {
         } else if (res.status === 404) {
           setOrders([]);
           return;
-        } else {
-          throw new Error("Lỗi khi tải danh sách đơn hàng.");
         }
+        throw new Error("Lỗi khi tải danh sách đơn hàng.");
       }
       const data = await res.json();
       let ordersData: Order[] = [];
-      if (Array.isArray(data)) {
+      if (data.status === "success" && Array.isArray(data.data)) {
+        ordersData = data.data;
+      } else if (Array.isArray(data)) {
         ordersData = data;
       } else if (data && Array.isArray(data.orders)) {
         ordersData = data.orders;
-      } else if (data && Array.isArray(data.data)) {
-        ordersData = data.data;
       } else {
         ordersData = [];
       }
@@ -134,23 +146,25 @@ export default function UserProfile() {
 
       const paymentRes = await fetchWithAuth("https://api-zeal.onrender.com/api/payments/get-by-user", {
         method: "POST",
-        body: JSON.stringify({ id: userId }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
       });
-      if (!paymentRes.ok) {
-        if (paymentRes.status === 401) {
-          throw new Error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+      if (paymentRes.ok) {
+        const paymentData = await paymentRes.json();
+        let map: Record<string, string> = {};
+        if (paymentData.status === "success" && Array.isArray(paymentData.data)) {
+          paymentData.data.forEach((p: any) => {
+            if (p.orderId && p.paymentCode) {
+              map[p.orderId] = p.paymentCode;
+            }
+          });
+        } else {
+          console.log("Payment data is empty or invalid:", paymentData);
         }
-        throw new Error("Lỗi khi tải thông tin thanh toán.");
-      }
-      const paymentData = await paymentRes.json();
-      if (paymentData && Array.isArray(paymentData.data)) {
-        const map: Record<string, string> = {};
-        paymentData.data.forEach((p: any) => {
-          if (p.orderId && p.paymentCode) {
-            map[p.orderId] = p.paymentCode;
-          }
-        });
         setPaymentMap(map);
+      } else {
+        console.warn("Payment request failed:", paymentRes.status, paymentRes.statusText);
+        throw new Error("Lỗi khi tải thông tin thanh toán.");
       }
     } catch (err: any) {
       setOrdersError(err.message || "Lỗi khi tải danh sách đơn hàng.");
@@ -159,33 +173,6 @@ export default function UserProfile() {
     }
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          setError("Không có token. Vui lòng đăng nhập.");
-          setLoading(false);
-          return;
-        }
-        const userData = await fetchUserInfo();
-        const userId = localStorage.getItem("userId"); // Sử dụng userId từ localStorage
-        if (userId) {
-          await fetchOrders(userId);
-        } else {
-          setOrders([]);
-        }
-      } catch (err: any) {
-        setError(err.message || "Lỗi khi tải dữ liệu.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  // Lấy chi tiết đơn hàng
   const fetchOrderById = async (orderId: string) => {
     try {
       const res = await fetchWithAuth(`https://api-zeal.onrender.com/api/orders/order/${orderId}`);
@@ -198,6 +185,7 @@ export default function UserProfile() {
         throw new Error("Lỗi khi tải chi tiết đơn hàng.");
       }
       const data = await res.json();
+      console.log("Order data:", data); // Debug log
       if (!data || !data._id || !data.items || !Array.isArray(data.items)) {
         throw new Error("Dữ liệu đơn hàng không hợp lệ.");
       }
@@ -211,7 +199,7 @@ export default function UserProfile() {
   };
 
   const retryFetchOrders = () => {
-    const userId = localStorage.getItem("userId"); // Sử dụng userId từ localStorage
+    const userId = localStorage.getItem("userId");
     if (userId) {
       fetchOrders(userId);
     }
@@ -269,6 +257,48 @@ export default function UserProfile() {
     </div>
   );
 
+  // Hàm format địa chỉ
+  const formatAddress = (address: any) => {
+    if (!address) return "Chưa cập nhật";
+    
+    if (typeof address === "string") {
+      return address;
+    }
+    
+    if (typeof address === "object" && address.addressLine) {
+      return `${address.addressLine}, ${address.ward}, ${address.district}, ${address.cityOrProvince}`;
+    }
+    
+    return "Chưa cập nhật";
+  };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const userId = localStorage.getItem("userId");
+        if (!token) {
+          setError("Không có token. Vui lòng đăng nhập.");
+          setLoading(false);
+          return;
+        }
+        if (!userId || userId === "undefined" || !userId.match(/^[0-9a-fA-F]{24}$/)) {
+          setError("Không tìm thấy hoặc userId không hợp lệ. Vui lòng đăng nhập lại.");
+          setLoading(false);
+          return;
+        }
+        await fetchUserInfo();
+        await fetchOrders(userId);
+      } catch (err: any) {
+        setError(err.message || "Lỗi khi tải dữ liệu.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
   if (loading) return <p className={styles.loading}>Đang tải thông tin...</p>;
   if (error) return <p className={styles.error}>{error}</p>;
   if (!user) return <p className={styles.error}>Không tìm thấy thông tin người dùng.</p>;
@@ -276,7 +306,9 @@ export default function UserProfile() {
   return (
     <div className={styles.container}>
       <div className={styles.sidebar}>
-        <h3 className={styles.greeting}>Xin chào, <br /> {user.username}</h3>
+        <h3 className={styles.greeting}>
+          Xin chào, <br /> {user.username}
+        </h3>
         <ul className={styles.menu}>
           <li
             className={`${styles.menuItem} ${selectedSection === "profile" ? styles.active : ""}`}
@@ -308,10 +340,7 @@ export default function UserProfile() {
               <p className={styles.infoRow}><strong>Email:</strong> {user.email}</p>
               <p className={styles.infoRow}><strong>SĐT:</strong> {user.phone}</p>
               <p className={styles.infoRow}>
-                <strong>Địa chỉ:</strong>{" "}
-                {user.address && typeof user.address !== "string" && user.address.addressLine
-                  ? `${user.address.addressLine}, ${user.address.ward}, ${user.address.district}, ${user.address.cityOrProvince}`
-                  : "Chưa cập nhật"}
+                <strong>Địa chỉ:</strong> {formatAddress(user.address)}
               </p>
               <p className={styles.infoRow}><strong>Trạng thái:</strong> {user.status}</p>
               <p className={styles.infoRow}>
@@ -319,7 +348,7 @@ export default function UserProfile() {
                 {user.birthday ? new Date(user.birthday).toLocaleDateString() : "Chưa cập nhật"}
               </p>
             </div>
-            <Link href={`/user/edituser/${user.id}`} className={styles.editLink}>
+            <Link href={`/user/edituser/${localStorage.getItem("userId") || ""}`} className={styles.editLink}>
               <button className={styles.editButton}>Chỉnh sửa thông tin</button>
             </Link>
           </>
@@ -328,9 +357,7 @@ export default function UserProfile() {
         {selectedSection === "orders" && !selectedOrder && (
           <>
             <h2 className={styles.title}>Đơn hàng</h2>
-
             {ordersLoading && <p className={styles.loading}>Đang tải danh sách đơn hàng...</p>}
-
             {ordersError && (
               <div className={styles.error}>
                 <p>{ordersError}</p>
@@ -339,7 +366,6 @@ export default function UserProfile() {
                 </button>
               </div>
             )}
-
             {!ordersLoading && !ordersError && (
               <>
                 {orders.length === 0 ? (
@@ -353,7 +379,7 @@ export default function UserProfile() {
                           {renderOrderStatus(order)}
                         </div>
                         <p>Ngày đặt: {new Date(order.createdAt).toLocaleDateString()}</p>
-                        <p>Tổng tiền: {order.total.toLocaleString()}đ</p>
+                        <p>Tổng tiền: {formatPrice(order.total)}</p>
                         <p>Thanh toán: {order.paymentMethod || "COD"}</p>
                         <button
                           className={styles.detailButton}
@@ -432,6 +458,15 @@ export default function UserProfile() {
                     (Tổng giá bao gồm tất cả các loại thuế và phí)
                   </div>
                 </div>
+                
+                {/* Hiển thị ghi chú nếu có */}
+                {selectedOrder.note && (
+                  <div className={styles.noteSection}>
+                    <h3>Ghi chú đơn hàng</h3>
+                    <p>{selectedOrder.note}</p>
+                  </div>
+                )}
+
                 {selectedOrder.paymentMethod === "bank" && selectedOrder.paymentStatus === "pending" && selectedOrder.paymentCode && (
                   <div className={styles.paymentNotice}>
                     <p style={{ color: "#e67e22", margin: "12px 0" }}>
@@ -455,18 +490,23 @@ export default function UserProfile() {
                     </a>
                   </div>
                 )}
+                
+                {/* Phần địa chỉ nhận hàng - ưu tiên lấy từ đơn hàng */}
                 <div className={styles.addressSection}>
                   <h3>Địa chỉ nhận hàng</h3>
                   <p><strong>Tên:</strong> {user.username}</p>
-                  <p><strong>SĐT:</strong> {user.phone}</p>
+                  <p><strong>SĐT:</strong> {selectedOrder.sdt || user.phone}</p>
                   <p>
                     <strong>Địa chỉ:</strong>{" "}
-                    {user.address && typeof user.address !== "string" && user.address.addressLine
-                      ? `${user.address.addressLine}, ${user.address.ward}, ${user.address.district}, ${user.address.cityOrProvince}`
-                      : "Chưa cập nhật"}
+                    {selectedOrder.address ? (
+                      formatAddress(selectedOrder.address)
+                    ) : (
+                      formatAddress(user.address)
+                    )}
                   </p>
                   <p><strong>Giao hàng:</strong> Giao Hàng Nhanh</p>
                 </div>
+                
                 <button
                   className={styles.backButton}
                   onClick={() => setSelectedOrder(null)}

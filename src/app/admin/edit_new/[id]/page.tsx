@@ -194,7 +194,7 @@ const EditArticle = () => {
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.length) {
+    if (e.target.files?.length && editorRef.current) {
       const files = Array.from(e.target.files);
       const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "image/gif", "image/webp", "image/svg+xml"];
       const validFiles = files.filter((file) => allowedTypes.includes(file.type) && file.size <= 20 * 1024 * 1024);
@@ -204,18 +204,41 @@ const EditArticle = () => {
         return;
       }
 
-      if (editorRef.current) {
-        for (const file of validFiles) {
-          const dataUrl = await fileToDataURL(file);
-          const imgTag = `<img src="${dataUrl}" alt="Image" style="max-width:100%; height:auto;" />`;
-          editorRef.current.innerHTML += imgTag;
-        }
-        setFormData((prev) => ({
-          ...prev,
-          content: editorRef.current!.innerHTML,
-          contentImages: [...prev.contentImages, ...validFiles],
-        }));
+      const selection = window.getSelection();
+      if (!selection || selection.rangeCount === 0) {
+        showNotification("Vui lòng chọn vị trí để chèn ảnh.", "error");
+        return;
       }
+
+      const range = selection.getRangeAt(0);
+      range.deleteContents(); // Remove any selected content
+
+      for (const file of validFiles) {
+        try {
+          const dataUrl = await fileToDataURL(file);
+          const img = document.createElement("img");
+          img.src = dataUrl;
+          img.alt = "Image";
+          img.style.maxWidth = "100%";
+          img.style.height = "auto";
+
+          range.insertNode(img);
+          // Add a space after the image to allow cursor positioning
+          range.insertNode(document.createTextNode(" "));
+          range.collapse(false); // Move cursor after the inserted image
+          selection.removeAllRanges();
+          selection.addRange(range);
+        } catch (error) {
+          console.error("Error inserting image:", error);
+          showNotification("Lỗi khi chèn ảnh.", "error");
+        }
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        content: editorRef.current!.innerHTML,
+        contentImages: [...prev.contentImages, ...validFiles],
+      }));
     }
   };
 
@@ -318,7 +341,7 @@ const EditArticle = () => {
       const formDataToSend = new FormData();
       formDataToSend.append("title", formData.title.trim());
 
-      // 👇 Remove domain from content image src before submit
+      // Remove domain from content image src before submit
       const cleanedContent = formData.content.replace(
         new RegExp(`${API_DOMAIN}/(images/[^"]+)`, "g"),
         "/$1"

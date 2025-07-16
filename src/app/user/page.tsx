@@ -39,6 +39,13 @@ export default function Home() {
   const [newProducts, setNewProducts] = useState<Product[]>([]);
   const [bestSellingProducts, setBestSellingProducts] = useState<Product[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
+  const [banners, setBanners] = useState({
+    banner1: [] as string[],
+    banner2: null as string | null,
+    banner3: null as string | null,
+    decor: [] as string[],
+  });
+  const [cacheBuster, setCacheBuster] = useState(""); // State để quản lý query string
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -65,7 +72,12 @@ export default function Home() {
     };
   }, []);
 
-  // Lấy dữ liệu sản phẩm và thương hiệu từ API
+  // Tạo cacheBuster trên client sau khi hydration
+  useEffect(() => {
+    setCacheBuster(`v=${Date.now()}`);
+  }, []);
+
+  // Lấy dữ liệu sản phẩm, thương hiệu và banner từ API
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -119,6 +131,45 @@ export default function Home() {
         const visibleBrands = allBrands.filter((brand) => brand.status === "show");
         setBrands(visibleBrands);
 
+        // Fetch banners
+        const bannerTypes = [
+          { key: "banner1", endpoint: "banner1" },
+          { key: "banner2", endpoint: "banner2" },
+          { key: "banner3", endpoint: "banner3" },
+          { key: "decor", endpoint: "decor-images" },
+        ];
+
+        const baseUrl = "https://api-zeal.onrender.com";
+        const bannerData: { banner1: string[]; banner2: string | null; banner3: string | null; decor: string[] } = {
+          banner1: [],
+          banner2: null,
+          banner3: null,
+          decor: [],
+        };
+
+        for (const { key, endpoint } of bannerTypes) {
+          try {
+            const res = await fetch(`https://api-zeal.onrender.com/api/interfaces/${endpoint}`, {
+              cache: "no-store",
+            });
+            if (res.ok) {
+              const data = await res.json();
+              if (data.paths && data.paths.length > 0) {
+                if (key === "banner1" || key === "decor") {
+                  (bannerData as any)[key] = data.paths.map((p: string) => `${baseUrl}/${p}`);
+                } else {
+                  (bannerData as any)[key] = `${baseUrl}/${data.paths[0]}`;
+                }
+              }
+            } else {
+              console.warn(`No images found for ${key}: ${res.status} ${res.statusText}`);
+            }
+          } catch (error) {
+            console.error(`Error fetching ${key}:`, error);
+          }
+        }
+
+        setBanners(bannerData);
         setLoading(false);
       } catch (error) {
         console.error("Lỗi khi lấy dữ liệu:", error);
@@ -146,7 +197,10 @@ export default function Home() {
   return (
     <div className={styles.mainContainer}>
       <div className={styles.banner}>
-        <img src="/images/bannerhome1.png" alt="Main Banner" />
+        <img
+          src={banners.banner1[0] ? `${getImageUrl(banners.banner1[0])}?${cacheBuster}` : "/images/bannerhome1.png"}
+          alt="Main Banner"
+        />
       </div>
 
       <section className={styles.newProductsSection}>
@@ -216,7 +270,7 @@ export default function Home() {
 
       <div className={styles.bannerContainer}>
         <img
-          src="/images/bannersale.png"
+          src={banners.banner2 ? `${getImageUrl(banners.banner2)}?${cacheBuster}` : "/images/bannersale.png"}
           alt="Banner Sale"
           className={styles.bannerImage}
         />
@@ -225,7 +279,7 @@ export default function Home() {
       <section className={styles.botanicalGallery}>
         <div className={styles.botanicalFrameLeft}>
           <img
-            src="/images/cosmetics nature_1.png"
+            src={banners.decor[0] ? `${getImageUrl(banners.decor[0])}?${cacheBuster}` : "/images/cosmetics nature_1.png"}
             alt="Sản phẩm Pure Botanica với lá xanh và hoa"
             className={styles.botanicalPhoto}
           />
@@ -236,7 +290,7 @@ export default function Home() {
         </div>
         <div className={styles.botanicalFrameRight}>
           <img
-            src="/images/cosmetics-nature-2.png"
+            src={banners.decor[1] ? `${getImageUrl(banners.decor[1])}?${cacheBuster}` : "/images/cosmetics-nature-2.png"}
             alt="Bộ sưu tập sản phẩm Pure Botanica"
             className={styles.botanicalPhoto}
           />
@@ -281,7 +335,7 @@ export default function Home() {
 
       <div className={styles.brandValueSection}>
         <img
-          src="/images/thuonghieu1.png"
+          src={banners.banner3 ? `${getImageUrl(banners.banner3)}?${cacheBuster}` : "/images/thuonghieu1.png"}
           alt="Background with Natural Ingredients"
           className={styles.brandBackground}
         />

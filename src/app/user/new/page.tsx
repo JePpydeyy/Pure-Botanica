@@ -30,9 +30,49 @@ const processContentImages = (content: string): string => {
 export default function NewsPage() {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [banner, setBanner] = useState<string>("/images/banner.png"); // Mặc định là banner tĩnh
+  const [bannerLoading, setBannerLoading] = useState<boolean>(true);
+  const [bannerError, setBannerError] = useState<string | null>(null);
+  const [cacheBuster, setCacheBuster] = useState<string>("");
   const [currentPage, setCurrentPage] = useState(1);
   const [imageErrors, setImageErrors] = useState<{ [key: string]: string }>({});
 
+  // Tạo cacheBuster để tránh cache hình ảnh
+  useEffect(() => {
+    setCacheBuster(`v=${Date.now()}`);
+  }, []);
+
+  // Fetch banner từ API
+  useEffect(() => {
+    const fetchBanner = async () => {
+      try {
+        setBannerLoading(true);
+        setBannerError(null);
+        const response = await fetch(`${API_BASE_URL}/api/interfaces/banner-news`, {
+          cache: "no-store",
+        });
+        if (!response.ok) {
+          throw new Error(`Lỗi HTTP: ${response.status} ${response.statusText}`);
+        }
+        const data = await response.json();
+        if (data.paths && data.paths.length > 0) {
+          setBanner(`${API_BASE_URL}/${data.paths[0]}`);
+        } else {
+          throw new Error("Không tìm thấy banner trong dữ liệu API");
+        }
+      } catch (error: any) {
+        console.error("Lỗi khi lấy banner:", error);
+        setBannerError(error.message || "Không thể tải banner");
+        setBanner("/images/banner.png"); // Fallback về banner tĩnh
+      } finally {
+        setBannerLoading(false);
+      }
+    };
+
+    fetchBanner();
+  }, []);
+
+  // Fetch danh sách tin tức
   useEffect(() => {
     fetch(`${API_BASE_URL}/api/news`)
       .then((res) => res.json())
@@ -67,12 +107,23 @@ export default function NewsPage() {
 
   return (
     <>
-      <img
-        src="/images/banner.png"
-        alt="Banner"
-        className={styles.banner}
-        loading="lazy"
-      />
+      {/* Hiển thị banner */}
+      {bannerLoading ? (
+        <p>Đang tải banner...</p>
+      ) : bannerError ? (
+        <p className={styles.errorContainer}>Lỗi: {bannerError}</p>
+      ) : (
+        <img
+          src={banner ? `${banner}?${cacheBuster}` : "/images/banner.png"}
+          alt="Banner"
+          className={styles.banner}
+          loading="lazy"
+          onError={(e) => {
+            setBannerError("Không thể tải hình ảnh banner.");
+            (e.target as HTMLImageElement).src = "/images/banner.png";
+          }}
+        />
+      )}
 
       <section className={styles.namePage}>
         <p className={styles.nameTagPage}>

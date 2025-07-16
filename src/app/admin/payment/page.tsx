@@ -193,7 +193,7 @@ export default function PaymentHistoryPage() {
               <th data-label="Số Tiền">Số Tiền</th>
               <th data-label="Ngày Giao Dịch">Ngày Giao Dịch</th>
               <th data-label="Tên Người Chuyển">Tên Người Chuyển</th>
-              <th data-label="Mô Tả">Mô Tả</th>
+              <th data-label="Nội Dung Chuyển Khoản">Nội Dung Chuyển Khoản</th>
               <th data-label="Trạng Thái">Trạng Thái</th>
               <th data-label="ID Đơn Hàng">ID Đơn Hàng</th>
             </tr>
@@ -218,7 +218,7 @@ export default function PaymentHistoryPage() {
                   <td data-label="Số Tiền">{payment.amount.toLocaleString()} VND</td>
                   <td data-label="Ngày Giao Dịch">{formatDate(payment.transactionDate)}</td>
                   <td data-label="Tên Người Chuyển">{payment.bankUserName}</td>
-                  <td data-label="Mô Tả">{payment.description}</td>
+                  <td data-label="Nội Dung Chuyển Khoản">{payment.description}</td>
                   <td data-label="Trạng Thái">{statusMapping[payment.status] || payment.status}</td>
                   <td data-label="ID Đơn Hàng">{payment.orderId}</td>
                 </tr>
@@ -236,12 +236,13 @@ export default function PaymentHistoryPage() {
             </button>
             <h2>Chi Tiết Thanh Toán</h2>
             <p><strong>Mã Thanh Toán:</strong> {selectedPayment.paymentCode}</p>
-            <p><strong>Số Tiền:</strong> {selectedPayment.amount.toLocaleString()} VND</p>
-            <p><strong>Ngày Giao Dịch:</strong> {formatDate(selectedPayment.transactionDate)}</p>
-            <p><strong>Tên Người Chuyển:</strong> {selectedPayment.bankUserName}</p>
-            <p><strong>Mô Tả:</strong> {selectedPayment.description}</p>
-            <p><strong>Trạng Thái:</strong> {statusMapping[selectedPayment.status] || selectedPayment.status}</p>
             <p><strong>ID Đơn Hàng:</strong> {selectedPayment.orderId}</p>
+            <p><strong>Ngày Giao Dịch:</strong> {formatDate(selectedPayment.transactionDate)}</p>
+
+            <p><strong>Số Tiền:</strong> {selectedPayment.amount.toLocaleString()} VND</p>
+            <p><strong>Tên Người Chuyển:</strong> {selectedPayment.bankUserName}</p>
+            <p><strong>Nội Dung Chuyển Khoản:</strong> {selectedPayment.description}</p>
+            <p><strong>Trạng Thái:</strong> {statusMapping[selectedPayment.status] || selectedPayment.status}</p>
           </div>
         </div>
       )}

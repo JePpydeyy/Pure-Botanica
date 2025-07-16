@@ -101,12 +101,12 @@ export default function ConfigPage() {
           if (res.ok) {
             const data = await res.json();
             if (data.paths && data.paths.length > 0) {
-              const baseUrl = "https://api-zeal.onrender.com";
               setPreviews((prev) => ({
                 ...prev,
                 [key]: key === "banner1" || key === "decor"
-                  ? data.paths.map((p: string) => `${baseUrl}/${p}`)
-                  : `${baseUrl}/${data.paths[0]}`,
+                ? data.paths
+                : data.paths[0],
+
               }));
             } else {
               setPreviews((prev) => ({
@@ -233,15 +233,15 @@ export default function ConfigPage() {
         setMessage(data.message || `Cập nhật ${type} thành công`);
         setMessageType("success");
         setIsToastVisible(true);
-        const baseUrl = "https://api-zeal.onrender.com";
         if (data.paths && data.paths.length > 0) {
           setPreviews((prev) => ({
             ...prev,
             [type]: type === "banner1" || type === "decor"
-              ? data.paths.map((p: string) => `${baseUrl}/${p}`)
-              : `${baseUrl}/${data.paths[0]}`,
+              ? data.paths
+              : data.paths[0],
           }));
         }
+
         // Tải lại trang sau 3 giây để đồng bộ với thời gian ẩn thông báo
         setTimeout(() => window.location.reload(), 3000);
       } else {

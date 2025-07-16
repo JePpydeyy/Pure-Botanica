@@ -21,13 +21,11 @@ export default function Category() {
   const [loading, setLoading] = useState(true);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [token, setToken] = useState<string | null>(null);
-  const [showWarning, setShowWarning] = useState<string | null>(null);
   const [showConfirmPopup, setShowConfirmPopup] = useState<{ id: string; name: string; action: "ẩn" | "hiển thị" } | null>(null);
   const router = useRouter();
 
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
-    console.log("Token:", storedToken);
     setToken(storedToken);
 
     const fetchCategories = async () => {
@@ -48,7 +46,6 @@ export default function Category() {
           throw new Error(`Không thể tải danh mục: ${res.status}`);
         }
         const data: Category[] = await res.json();
-        console.log("Categories fetched:", data);
         setCategories(data);
       } catch (error: any) {
         toast.error(error.message || "Đã xảy ra lỗi khi tải danh sách danh mục.");
@@ -60,6 +57,7 @@ export default function Category() {
     fetchCategories();
   }, [router]);
 
+  // Kiểm tra điều kiện ẩn danh mục
   const checkCategoryCanHide = useCallback(async (categoryId: string): Promise<boolean> => {
     if (!token) {
       toast.error("Vui lòng đăng nhập lại!");
@@ -67,15 +65,35 @@ export default function Category() {
       return false;
     }
     try {
-      console.log(`Checking category ${categoryId} for visibility toggle`);
-      return true;
+      const res = await fetch(`https://api-zeal.onrender.com/api/products?id_category=${categoryId}`, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) throw new Error("Không thể kiểm tra sản phẩm của danh mục");
+      const products: Product[] = await res.json();
+
+      // Nếu không có sản phẩm => được phép ẩn
+      if (!products || products.length === 0) return true;
+
+      // Nếu có sản phẩm, kiểm tra tất cả stock đều = 0
+      const allStockZero = products.every(
+        (product) =>
+          Array.isArray(product.option) && product.option.every((opt) => Number(opt.stock) === 0)
+      );
+      if (allStockZero) return true;
+
+      // Nếu còn sản phẩm có stock > 0 thì không cho ẩn
+      toast.error("Không thể ẩn danh mục vì vẫn còn sản phẩm có tồn kho!");
+      return false;
     } catch (error: any) {
-      console.error(`Error checking category ${categoryId}:`, error);
       toast.error(error.message || "Lỗi khi kiểm tra danh mục.");
       return false;
     }
   }, [token, router]);
 
+  // Xử lý khi ấn nút ẩn/hiển thị
   const handleToggleVisibility = useCallback(async (id: string) => {
     if (!token) {
       toast.error("Vui lòng đăng nhập để thực hiện thao tác này!");
@@ -87,20 +105,15 @@ export default function Category() {
       toast.error("Không tìm thấy danh mục!");
       return;
     }
-    setShowWarning(null);
-
-    if (category.status === "show") {
-      const canHide = await checkCategoryCanHide(id);
-      if (!canHide) return;
-    }
 
     setShowConfirmPopup({
       id,
       name: category.name,
       action: category.status === "show" ? "ẩn" : "hiển thị",
     });
-  }, [categories, token, checkCategoryCanHide]);
+  }, [categories, token]);
 
+  // Xác nhận chuyển trạng thái
   const confirmToggleVisibility = useCallback(async () => {
     if (!showConfirmPopup || !token) return;
     const { id, name, action } = showConfirmPopup;
@@ -115,27 +128,21 @@ export default function Category() {
           },
         }
       );
-      if (res.status === 401) {
-        toast.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
-        localStorage.removeItem("token");
-        setToken(null);
-        router.push("/login");
+      const result = await res.json();
+      if (!res.ok) {
+        toast.error(result.message || `Không thể ${action} danh mục "${name}"`);
         return;
       }
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ message: `Không thể ${action} danh mục` }));
-        throw new Error(errorData.message || `Không thể ${action} danh mục`);
-      }
-      const result = await res.json();
       setCategories((prev) => prev.map((cat) => (cat._id === id ? result.category : cat)));
       toast.success(`Danh mục "${name}" đã được ${result.category.status === "show" ? "hiển thị" : "ẩn"} thành công!`);
-  } catch (error: any) {
+    } catch (error: any) {
       toast.error(error.message || `Không thể ${action} danh mục "${name}"`);
     } finally {
       setShowConfirmPopup(null);
     }
   }, [showConfirmPopup, token, router]);
 
+  // Sửa tên danh mục
   const handleEdit = useCallback((id: string) => {
     const category = categories.find((cat) => cat._id === id);
     if (category) {
@@ -143,6 +150,7 @@ export default function Category() {
     }
   }, [categories]);
 
+  // Lưu tên danh mục
   const handleUpdate = useCallback(async (id: string, updatedName: string) => {
     if (!token) {
       toast.error("Vui lòng đăng nhập để thực hiện thao tác này!");
@@ -276,22 +284,6 @@ export default function Category() {
           </tbody>
         </table>
       </div>
-
-      {showWarning && (
-        <div className={styles.warningPopup}>
-          <div className={styles.warningContent}>
-            <h3>Cảnh báo</h3>
-            <p>{showWarning}</p>
-            <button
-              className={styles.btnCloseWarning}
-              onClick={() => setShowWarning(null)}
-              aria-label="Đóng cảnh báo"
-            >
-              Đóng
-            </button>
-          </div>
-        </div>
-      )}
 
       {showConfirmPopup && (
         <div className={styles.warningPopup}>

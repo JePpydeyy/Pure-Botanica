@@ -50,7 +50,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
               <span>Tin tức</span>
             </Link>
             <Link href="/admin/coupons" className="menu-item">
-              <span>Khuyến mãi</span>
+              <span>Mã giảm giá</span>
             </Link>
             <Link href="/admin/customer" className="menu-item">
               <span>Khách hàng</span>

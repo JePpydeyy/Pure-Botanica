@@ -563,6 +563,7 @@ export default function CouponPage() {
                   }
                   required
                   min="0"
+                  disabled={!!formData._id} // Thêm dòng này để không cho sửa khi cập nhật
                 />
               </div>
               <div className={styles.formGroup}>

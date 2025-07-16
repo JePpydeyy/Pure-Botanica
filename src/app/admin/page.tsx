@@ -116,8 +116,11 @@ export default function AD_Home() {
           beginAtZero: true,
           title: { display: true, text: "VND" },
           ticks: {
-            callback: function (value: number) {
-              return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(value);
+            callback: function (tickValue: string | number, index: number, ticks: any) {
+              if (typeof tickValue === "number") {
+                return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(tickValue);
+              }
+              return tickValue;
             },
           },
         },
@@ -275,14 +278,20 @@ export default function AD_Home() {
 
         const isInPeriod = (date: Date) => {
           if (timePeriod === "week") {
-            const start = new Date(today);
-            start.setDate(today.getDate() - 6);
-            return date >= start;
+            // Đầu tuần (Thứ 2)
+            const currentDay = today.getDay();
+            const daysSinceMonday = currentDay === 0 ? 6 : currentDay - 1;
+            const monday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - daysSinceMonday);
+            return date >= monday;
           }
           if (timePeriod === "month") {
-            return date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
+            // Đầu tháng
+            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+            return date >= firstDay;
           }
-          return date.getFullYear() === today.getFullYear();
+          // Đầu năm
+          const firstDayYear = new Date(today.getFullYear(), 0, 1);
+          return date >= firstDayYear;
         };
 
         const ordersInPeriod = orders.filter((o) => isInPeriod(new Date(o.createdAt)));

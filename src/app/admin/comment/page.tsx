@@ -337,14 +337,14 @@ const CommentPage: React.FC = () => {
                         src={
                           comment.product?.images && comment.product.images.length > 0
                             ? normalizeImageUrl(comment.product.images[0])
-                            : "/images/placeholder.png"
+                            : "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg"
                         }
                         alt={comment.product?.name || "Sản phẩm"}
                         width={50}
                         height={50}
                         className={styles.productTableImage}
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src = "/images/placeholder.png";
+                          (e.target as HTMLImageElement).src = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
                         }}
                       />
                     </td>

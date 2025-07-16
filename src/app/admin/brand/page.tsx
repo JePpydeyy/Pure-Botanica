@@ -490,14 +490,14 @@ export default function Brands() {
                 <tr key={brand._id} className={styles.productRow}>
                   <td>
                     <img
-                      src={`https://api-zeal.onrender.com/${brand.logoImg}`}
+                      src={brand.logoImg}
                       alt={brand.name}
                       className={styles.brandLogo}
                       onError={(e) => {
-                        console.error(`Error loading image for brand ${brand.name}: ${brand.logoImg}`);
-                        e.currentTarget.src = '/fallback-image.png';
+                        e.currentTarget.src = 'https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg'; // fallback nếu lỗi ảnh
                       }}
                     />
+
                   </td>
                   <td>{brand.name}</td>
                   <td>{productCounts[brand._id] || 0}</td>
@@ -514,7 +514,8 @@ export default function Brands() {
                           setSelectedBrand(brand);
                           setNewBrandName(brand.name);
                           setNewBrandStatus(brand.status);
-                          setPreviewUrl(`https://api-zeal.onrender.com/${brand.logoImg}`);
+                          setPreviewUrl(brand.logoImg);
+
                           setShowConfirmEditPopup(true);
                         }}
                         title="Chỉnh sửa"
@@ -702,15 +703,11 @@ export default function Brands() {
                 />
                 {previewUrl && (
                   <div className={styles.previewContainer}>
-                    <img src={previewUrl} alt="Logo Preview" className={styles.previewImage} />
-                  </div>
-                )}
-                {!newBrandLogo && selectedBrand && (
-                  <div className={styles.previewContainer}>
-                    <img
-                      src={`https://api-zeal.onrender.com/${selectedBrand.logoImg}`}
-                      alt="Current Logo"
-                      className={styles.previewImage}
+                    <img src={previewUrl} alt="Logo Preview" className={styles.previewImage}
+                    onError={(e) => {
+                          (e.target as HTMLImageElement).src =
+                            "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+                        }}
                     />
                   </div>
                 )}

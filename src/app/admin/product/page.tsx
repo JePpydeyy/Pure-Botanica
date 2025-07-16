@@ -74,12 +74,11 @@ export default function ProductPage() {
 
   const router = useRouter();
 
-  // Chuẩn hóa URL hình ảnh
   const normalizeImageUrl = (path: string): string => {
-    return path.startsWith("/images/")
-      ? `https://api-zeal.onrender.com${path}`
-      : `https://api-zeal.onrender.com/images/${path.replace(/^images\//, "")}`;
+    if (path.startsWith("http")) return path;
+    return `https://api-zeal.onrender.com${path.startsWith("/") ? "" : "/"}${path}`;
   };
+
 
   // Kiểm tra quyền admin
   useEffect(() => {
@@ -536,18 +535,15 @@ export default function ProductPage() {
                     style={{ cursor: "pointer" }}
                   >
                     <td>
-                      <Image
-                        src={
-                          product.images && product.images.length > 0
-                            ? normalizeImageUrl(product.images[0])
-                            : "/images/placeholder.png"
-                        }
+                      <img
+                        src={normalizeImageUrl(product.images[0])}
                         alt={product.name}
                         width={50}
                         height={50}
                         className={styles.productTableImage}
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src = "/images/placeholder.png";
+                          (e.target as HTMLImageElement).src =
+                            "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
                         }}
                       />
                     </td>
@@ -666,7 +662,7 @@ export default function ProductPage() {
                                       height={120}
                                       className={styles.detailImage}
                                       onError={(e) => {
-                                        (e.target as HTMLImageElement).src = "/images/placeholder.png";
+                                        (e.target as HTMLImageElement).src = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
                                       }}
                                     />
                                   ))

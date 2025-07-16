@@ -1,7 +1,9 @@
 "use client";
-import { useState, useEffect } from "react";
+
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import styles from "./order.module.css";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 interface Option {
   stock: number;
@@ -47,6 +49,19 @@ interface Notification {
   type: "success" | "error";
 }
 
+const API_BASE_URL = "https://api-zeal.onrender.com";
+const FALLBACK_IMAGE_URL = "https://via.placeholder.com/60x60?text=Error";
+
+const normalizeImageUrl = (url: string): string => {
+  if (url.startsWith("https://res.cloudinary.com")) {
+    return url; // Giữ nguyên URL từ Cloudinary
+  }
+  if (!url.startsWith("http://") && !url.startsWith("https://")) {
+    return `${API_BASE_URL}/${url}?_t=${Date.now()}`; // Thêm timestamp để phá cache
+  }
+  return url;
+};
+
 export default function OrderPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
@@ -59,6 +74,7 @@ export default function OrderPage() {
     currentStatus: string;
   } | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [shippingStatusFilter, setShippingStatusFilter] = useState<string>("all");
   const [notification, setNotification] = useState<Notification>({
     show: false,
     message: "",
@@ -95,6 +111,7 @@ export default function OrderPage() {
   };
 
   const allStatuses = [
+    { value: "all", label: "Tất cả trạng thái" },
     { value: "pending", label: "Chờ xử lý" },
     { value: "in_transit", label: "Đang vận chuyển" },
     { value: "delivered", label: "Đã giao hàng" },
@@ -133,7 +150,7 @@ export default function OrderPage() {
       try {
         setError(null);
         const token = localStorage.getItem("token");
-        const res = await fetch("https://api-zeal.onrender.com/api/orders/admin/all", {
+        const res = await fetch(`${API_BASE_URL}/api/orders/admin/all`, {
           headers: { Authorization: `Bearer ${token}` },
           cache: "no-store",
         });
@@ -164,17 +181,50 @@ export default function OrderPage() {
     fetchOrders();
   }, [router]);
 
-  // Filter orders based on search query
+  // Debounce filter function
+  const debounce = <T extends (...args: any[]) => void>(func: T, wait: number) => {
+    let timeout: NodeJS.Timeout;
+    return (...args: Parameters<T>) => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func(...args), wait);
+    };
+  };
+
+  // Filter orders based on search query and shipping status
+  const filterOrders = useCallback(
+    (query: string, shippingStatus: string) => {
+      const filtered = orders.filter((order) => {
+        const searchLower = query.toLowerCase();
+        const username = order.user.username?.toLowerCase() || "";
+        const orderId = order._id.toLowerCase();
+        const address = formatAddress(order.address).toLowerCase();
+        const matchesSearch =
+          username.includes(searchLower) || orderId.includes(searchLower) || address.includes(searchLower);
+        const matchesShippingStatus = shippingStatus === "all" || order.shippingStatus === shippingStatus;
+        return matchesSearch && matchesShippingStatus;
+      });
+      setFilteredOrders(filtered);
+    },
+    [orders]
+  );
+
+  const debouncedFilter = useMemo(
+    () => debounce((query: string, shippingStatus: string) => {
+      filterOrders(query, shippingStatus);
+    }, 300),
+    [filterOrders]
+  );
+
   useEffect(() => {
-    const filtered = orders.filter((order) => {
-      const searchLower = searchQuery.toLowerCase();
-      const username = order.user.username?.toLowerCase() || "";
-      const orderId = order._id.toLowerCase();
-      const address = formatAddress(order.address).toLowerCase();
-      return username.includes(searchLower) || orderId.includes(searchLower) || address.includes(searchLower);
-    });
-    setFilteredOrders(filtered);
-  }, [searchQuery, orders]);
+    debouncedFilter(searchQuery, shippingStatusFilter);
+  }, [searchQuery, shippingStatusFilter, debouncedFilter]);
+
+  // Reset filters
+  const resetFilters = () => {
+    setSearchQuery("");
+    setShippingStatusFilter("all");
+    setFilteredOrders(orders);
+  };
 
   const formatDate = (dateString: string | number | Date) => {
     const date = new Date(dateString);
@@ -229,7 +279,7 @@ export default function OrderPage() {
       }
 
       const token = localStorage.getItem("token");
-      const response = await fetch(`https://api-zeal.onrender.com/api/orders/update/${orderId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/orders/update/${orderId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -315,9 +365,9 @@ export default function OrderPage() {
 
   const getProductImage = (item: { product: Product | null; images: string[] }) => {
     if (item.images && item.images.length > 0) {
-      return `https://api-zeal.onrender.com/${item.images[0]}`;
+      return normalizeImageUrl(item.images[0]);
     }
-    return "https://via.placeholder.com/60x60?text=No+Image";
+    return FALLBACK_IMAGE_URL;
   };
 
   if (error) {
@@ -349,6 +399,20 @@ export default function OrderPage() {
           onChange={(e) => setSearchQuery(e.target.value)}
           className={styles.searchInput}
         />
+        <select
+          value={shippingStatusFilter}
+          onChange={(e) => setShippingStatusFilter(e.target.value)}
+          className={styles.statusFilter}
+        >
+          {allStatuses.map((status) => (
+            <option key={status.value} value={status.value}>
+              {status.label}
+            </option>
+          ))}
+        </select>
+        <button type="button" onClick={resetFilters} className={styles.resetButton}>
+          Xóa bộ lọc
+        </button>
       </div>
       <div className={styles.tableContainer}>
         <table className={styles.orderTable}>
@@ -367,10 +431,10 @@ export default function OrderPage() {
             {filteredOrders.length === 0 ? (
               <tr>
                 <td colSpan={7} className={styles.emptyState}>
-                  <h3>{searchQuery ? "Không tìm thấy đơn hàng" : "Chưa có đơn hàng"}</h3>
+                  <h3>{searchQuery || shippingStatusFilter !== "all" ? "Không tìm thấy đơn hàng" : "Chưa có đơn hàng"}</h3>
                   <p>
-                    {searchQuery
-                      ? "Không có đơn hàng nào khớp với từ khóa tìm kiếm."
+                    {(searchQuery || shippingStatusFilter !== "all")
+                      ? "Không có đơn hàng nào khớp với bộ lọc."
                       : "Hiện tại không có đơn hàng nào để hiển thị."}
                   </p>
                 </td>
@@ -449,12 +513,15 @@ export default function OrderPage() {
               {selectedOrder.items && selectedOrder.items.length > 0 ? (
                 selectedOrder.items.map((item, idx) => (
                   <li key={idx}>
-                    <img
+                    <Image
                       src={getProductImage(item)}
                       alt={item.product?.name || "Không xác định"}
+                      width={60}
+                      height={60}
                       className={styles.productImage}
                       onError={(e) => {
-                        (e.target as HTMLImageElement).src = "https://via.placeholder.com/60x60?text=Error";
+                        (e.target as HTMLImageElement).src = FALLBACK_IMAGE_URL;
+                        console.log(`Image load failed for ${item.product?.name || "Không xác định"}:`, item.images[0]);
                       }}
                     />
                     <div className={styles.productInfo}>
@@ -476,44 +543,42 @@ export default function OrderPage() {
         </div>
       )}
 
-     {showConfirm && (
-  <div className={styles.popupOverlay} onClick={cancelConfirm}>
-    <div className={styles.confirmModal} onClick={(e) => e.stopPropagation()}>
-      <h2>Xác Nhận Thay Đổi Trạng Thái</h2>
-      <p>
-        Bạn có chắc chắn muốn chuyển trạng thái vận chuyển sang{" "}
-        <strong>{showConfirm.newStatus}</strong>?{" "}
-        {showConfirm.newStatus === "Đã giao hàng" ? (
-          <>
-            Trạng thái thanh toán sẽ được cập nhật thành{" "}
-            <strong>Đã thanh toán</strong>.
-          </>
-        ) : showConfirm.newStatus === "Đã hoàn" ? (
-          <>
-            Trạng thái thanh toán sẽ được cập nhật thành{" "}
-            <strong>Đã hoàn</strong>.
-          </>
-        ) : null}
-      </p>
-      <div className={styles.confirmButtons}>
-        <button
-          className={styles.confirmButton}
-          onClick={confirmStatusChange}
-          aria-label="Xác nhận thay đổi trạng thái"
-        >
-          Xác Nhận
-        </button>
-        <button
-          className={styles.cancelButton}
-          onClick={cancelConfirm}
-          aria-label="Hủy thay đổi trạng thái"
-        >
-          Hủy
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+      {showConfirm && (
+        <div className={styles.popupOverlay} onClick={cancelConfirm}>
+          <div className={styles.confirmModal} onClick={(e) => e.stopPropagation()}>
+            <h2>Xác Nhận Thay Đổi Trạng Thái</h2>
+            <p>
+              Bạn có chắc chắn muốn chuyển trạng thái vận chuyển sang{" "}
+              <strong>{showConfirm.newStatus}</strong>?{" "}
+              {showConfirm.newStatus === "Đã giao hàng" ? (
+                <>
+                  Trạng thái thanh toán sẽ được cập nhật thành <strong>Đã thanh toán</strong>.
+                </>
+              ) : showConfirm.newStatus === "Đã hoàn" ? (
+                <>
+                  Trạng thái thanh toán sẽ được cập nhật thành <strong>Đã hoàn</strong>.
+                </>
+              ) : null}
+            </p>
+            <div className={styles.confirmButtons}>
+              <button
+                className={styles.confirmButton}
+                onClick={confirmStatusChange}
+                aria-label="Xác nhận thay đổi trạng thái"
+              >
+                Xác Nhận
+              </button>
+              <button
+                className={styles.cancelButton}
+                onClick={cancelConfirm}
+                aria-label="Hủy thay đổi trạng thái"
+              >
+                Hủy
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

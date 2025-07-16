@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import "../layout.css"; // Đảm bảo file layout.css tồn tại trong app/layouts/
+import "../layout.css";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -10,11 +10,8 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   const [logo, setLogo] = useState<string>("https://via.placeholder.com/200?text=Logo+Not+Found");
   const [isMounted, setIsMounted] = useState(false);
 
-  const validateToken = (token: string | null) => {
-    if (!token) {
-      console.log("No token found");
-      return false;
-    }
+  const validateToken = (token: string | null): boolean => {
+    if (!token) return false;
     try {
       const base64Url = token.split(".")[1];
       const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
@@ -28,17 +25,8 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
       const exp = decoded.exp ? new Date(decoded.exp * 1000) : null;
       const role = decoded.role || "user";
 
-      if (exp && exp < new Date()) {
-        console.log("Token expired");
-        return false;
-      }
-      if (role !== "admin") {
-        console.log("Non-admin role");
-        return false;
-      }
-      return true;
-    } catch (err) {
-      console.log("Invalid token:", err);
+      return !(exp && exp < new Date()) && role === "admin";
+    } catch {
       return false;
     }
   };
@@ -52,41 +40,26 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   }, [router]);
 
   useEffect(() => {
-    const fetchImages = async () => {
+    const fetchLogo = async () => {
       const token = localStorage.getItem("token");
-      if (!validateToken(token)) {
-        setLogo("https://via.placeholder.com/200?text=Logo+Not+Found");
-        return;
-      }
+      if (!validateToken(token)) return;
 
-      const url = "https://api-zeal.onrender.com/api/interfaces/logo-shop";
       try {
-        console.log("Fetching logo from:", url);
-        const res = await fetch(url, {
+        const res = await fetch("https://api-zeal.onrender.com/api/interfaces/logo-shop", {
           headers: { Authorization: `Bearer ${token}` },
           cache: "no-store",
         });
+        const data = await res.json();
 
-        if (res.ok) {
-          const data = await res.json();
-          console.log("Logo data:", data);
-          if (data.paths && data.paths.length > 0) {
-            const imageUrl = `https://api-zeal.onrender.com/${data.paths[0]}`;
-            setLogo(imageUrl);
-          } else {
-            console.warn("No logo paths returned");
-          }
-        } else {
-          console.warn(`No logo found: ${res.status} ${res.statusText}`);
+        if (res.ok && data.paths && data.paths[0]) {
+          setLogo(data.paths[0]); // sử dụng full URL trả về
         }
       } catch (error) {
         console.error("Lỗi khi tải logo:", error);
       }
     };
 
-    if (isMounted) {
-      fetchImages();
-    }
+    if (isMounted) fetchLogo();
   }, [isMounted]);
 
   const handleLogout = () => {
@@ -94,61 +67,45 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
     router.push("/user");
   };
 
-  if (!isMounted) {
-    return <div>Đang tải...</div>; // Thêm trạng thái loading để cải thiện UX
-  }
+  if (!isMounted) return <div>Đang tải...</div>;
 
   return (
     <div className="admin-layout">
       <div className="sidebar">
         <div className="logo">
           <Link href="/admin">
-            <img
-              style={{ width: "200px" }}
-              src={`${logo}?v=${Date.now()}`}
-              alt="Logo"
-              onError={(e) => {
-                console.log("Logo image load failed:", logo);
-                (e.target as HTMLImageElement).src = "https://via.placeholder.com/200?text=Logo+Not+Found";
-              }}
-            />
+          <img
+            style={{ width: "200px" }}
+            src={`${logo}?v=${Date.now()}`}
+            alt="Logo"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src =
+                "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+            }}
+          />
+
+
           </Link>
         </div>
 
         <div className="menu">
-          <Link href="/admin" className="menu-item">
-            <span>Dashboard</span>
-          </Link>
-          <Link href="/admin/category" className="menu-item">
-            <span>Danh mục</span>
-          </Link>
-          <Link href="/admin/product" className="menu-item">
-            <span>Sản phẩm</span>
-          </Link>
-          <Link href="/admin/brand" className="menu-item">
-            <span>Thương hiệu</span>
-          </Link>
-          <Link href="/admin/order" className="menu-item">
-            <span>Danh sách oder</span>
-          </Link>
-          <Link href="/admin/comment" className="menu-item">
-            <span>Bình Luận</span>
-          </Link>
-          <Link href="/admin/news" className="menu-item">
-            <span>Tin tức</span>
-          </Link>
-          <Link href="/admin/coupons" className="menu-item">
-            <span>Khuyến mãi</span>
-          </Link>
-          <Link href="/admin/customer" className="menu-item">
-            <span>Khách hàng</span>
-          </Link>
-          <Link href="/admin/interface_config" className="menu-item">
-            <span>Cấu hình giao diện</span>
-          </Link>
-          <Link href="/admin/payment" className="menu-item">
-            <span>Thanh toán online</span>
-          </Link>
+          {[
+            { href: "/admin", label: "Dashboard" },
+            { href: "/admin/category", label: "Danh mục" },
+            { href: "/admin/product", label: "Sản phẩm" },
+            { href: "/admin/brand", label: "Thương hiệu" },
+            { href: "/admin/order", label: "Danh sách order" },
+            { href: "/admin/comment", label: "Bình luận" },
+            { href: "/admin/news", label: "Tin tức" },
+            { href: "/admin/coupons", label: "Khuyến mãi" },
+            { href: "/admin/customer", label: "Khách hàng" },
+            { href: "/admin/interface_config", label: "Cấu hình giao diện" },
+            { href: "/admin/payment", label: "Thanh toán online" },
+          ].map((item) => (
+            <Link key={item.href} href={item.href} className="menu-item">
+              <span>{item.label}</span>
+            </Link>
+          ))}
           <button onClick={handleLogout} className="menu-item logout-button">
             <span>Đăng xuất</span>
           </button>

@@ -13,6 +13,7 @@ type PreviewType = {
   banner3: string | null;
   bannerAbout: string | null;
   bannerNews: string | null;
+  [key: string]: string | string[] | null; // Add index signature
 };
 
 export default function ConfigPage() {
@@ -202,7 +203,7 @@ export default function ConfigPage() {
 
     const url = `https://api-zeal.onrender.com/api/interfaces/${endpoint}`;
     const maxFiles = type === "banner1" ? 5 : type === "decor" ? 2 : 1;
-    const files = formData.getAll(type);
+    const files = formData.getAll(type) as File[];
 
     if (files.length > maxFiles || (files.length === 0 && maxFiles > 0)) {
       setMessage(`Không có hình nào được tải lên`);
@@ -215,8 +216,10 @@ export default function ConfigPage() {
     formData.delete(type);
     if (Array.isArray(files)) {
       files.forEach((file) => formData.append(type, file));
-    } else if (files.length > 0) {
+    } else if (files && files.length > 0) {
       formData.append(type, files[0]);
+    } else if (files && typeof files === "object") {
+      formData.append(type, files as File);
     }
 
     try {
@@ -269,6 +272,8 @@ export default function ConfigPage() {
           multiple={multiple}
           onChange={(e) => handleFileChange(e, type)}
           className={styles.searchInput}
+          title={`Chọn ${label}`}
+          placeholder={`Chọn ${label}`}
         />
         {multiple ? (
           (previews[type as keyof PreviewType] as string[]).length > 0 && (
@@ -280,7 +285,7 @@ export default function ConfigPage() {
                   alt={`${label} Preview ${index + 1}`}
                   className={styles.previewImage}
                   onError={(e) => {
-                    (e.target as HTMLImageElement).src = "https://via.placeholder.com/100?text=Image+Not+Found";
+                    (e.target as HTMLImageElement).src = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
                     console.log(`Image load failed for ${type}:`, src);
                   }}
                 />
@@ -291,11 +296,12 @@ export default function ConfigPage() {
           previews[type as keyof PreviewType] && (
             <div className={styles.previewContainer}>
               <img
-                src={previews[type as keyof PreviewType] as string}
+                src={`${previews[type as keyof PreviewType]}?_t=${Date.now()}`}
+
                 alt={`${label} Preview`}
                 className={styles.previewImage}
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src = "https://via.placeholder.com/100?text=Image+Not+Found";
+                  (e.target as HTMLImageElement).src = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
                   console.log(`Image load failed for ${type}:`, previews[type]);
                 }}
               />

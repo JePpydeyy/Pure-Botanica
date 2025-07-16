@@ -80,10 +80,11 @@ const EditProduct = () => {
   });
 
   const normalizeImageUrl = (path: string): string => {
-    return path.startsWith("/images/")
-      ? `https://api-zeal.onrender.com${path}`
-      : `https://api-zeal.onrender.com/images/${path.replace(/^images\//, "")}`;
+    if (path.startsWith("http")) return path;
+    return `https://api-zeal.onrender.com${path.startsWith("/") ? "" : "/"}${path}`;
   };
+  const fallbackImage = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -690,7 +691,6 @@ const EditProduct = () => {
                       value={option.discount_price}
                       onChange={(e) => handleOptionChange(index, "discount_price", e.target.value)}
                       className={styles.input}
-                      mininsight
                       min="0"
                     />
                   </td>
@@ -741,13 +741,19 @@ const EditProduct = () => {
               <div className={styles.imagePreview}>
                 {existingImages.map((img, idx) => (
                   <div key={idx} className={styles.imageItem}>
-                    <Image
+                    <img
                       src={normalizeImageUrl(img)}
-                      alt={`Existing ${idx + 1}`}
+                      alt={`Ảnh ${idx + 1}`}
                       width={100}
                       height={100}
                       className={styles.previewImage}
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.onerror = null;
+                        target.src = fallbackImage;
+                      }}
                     />
+
                     <div className={styles.imageInfo}>
                       <span className={styles.imageName}>Ảnh {idx + 1}</span>
                       <button

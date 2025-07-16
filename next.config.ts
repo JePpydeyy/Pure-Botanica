@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    domains: ["via.placeholder.com", "api-zeal.onrender.com"], // Thêm các hostname cần thiết
+    domains: ["via.placeholder.com", "api-zeal.onrender.com", "res.cloudinary.com", "png.pngtree.com"], // Thêm các hostname cần thiết
     remotePatterns: [
       {
         protocol: "https",

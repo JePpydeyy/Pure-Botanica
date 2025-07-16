@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./customer.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEdit } from "@fortawesome/free-solid-svg-icons";
+import { faEdit, faPlus } from "@fortawesome/free-solid-svg-icons";
 
 interface Customer {
   _id: string;
@@ -24,12 +24,26 @@ interface Notification {
   type: "success" | "error";
 }
 
+interface NewAdmin {
+  username: string;
+  email: string;
+  phone: string;
+  password: string;
+}
+
 export default function Customer() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmUpdateModalOpen, setIsConfirmUpdateModalOpen] = useState(false);
+  const [isAddAdminModalOpen, setIsAddAdminModalOpen] = useState(false);
+  const [newAdmin, setNewAdmin] = useState<NewAdmin>({
+    username: "",
+    email: "",
+    phone: "",
+    password: "",
+  });
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -206,13 +220,13 @@ export default function Customer() {
   };
 
   const confirmUpdate = (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault(); // Ngăn hành vi submit mặc định
+    event.preventDefault();
     setIsModalOpen(false);
     setIsConfirmUpdateModalOpen(true);
   };
 
   const updateCustomerInfo = async (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault(); // Ngăn hành vi submit mặc định
+    event.preventDefault();
     if (!selectedCustomer) return;
 
     try {
@@ -266,6 +280,87 @@ export default function Customer() {
           ? err.message === "Phiên đăng nhập hết hạn"
             ? "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!"
             : err.message || "Có lỗi xảy ra khi cập nhật!"
+          : "Đã xảy ra lỗi không xác định";
+      setNotification({ show: true, message: errorMessage, type: "error" });
+      setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
+      if (err instanceof Error && err.message === "Phiên đăng nhập hết hạn") {
+        localStorage.clear();
+        router.push("/user/login");
+      }
+    }
+  };
+
+  const openAddAdminModal = () => {
+    setNewAdmin({ username: "", email: "", phone: "", password: "" });
+    setIsAddAdminModalOpen(true);
+  };
+
+  const handleAddAdmin = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No token found");
+      }
+
+      // Basic validation
+      if (!newAdmin.username || !newAdmin.email || !newAdmin.phone || !newAdmin.password) {
+        throw new Error("Vui lòng điền đầy đủ thông tin");
+      }
+
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newAdmin.email)) {
+        throw new Error("Email không hợp lệ");
+      }
+
+      if (!/^\d{10,11}$/.test(newAdmin.phone)) {
+        throw new Error("Số điện thoại không hợp lệ");
+      }
+
+      if (newAdmin.password.length < 6) {
+        throw new Error("Mật khẩu phải có ít nhất 6 ký tự");
+      }
+
+      const res = await fetch("https://api-zeal.onrender.com/api/users/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ...newAdmin,
+          role: "admin",
+          status: "active",
+          address: "",
+          birthday: null,
+          listOrder: [],
+        }),
+      });
+
+      if (res.status === 401 || res.status === 403) {
+        throw new Error("Phiên đăng nhập hết hạn");
+      }
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Thêm quản trị viên thất bại");
+      }
+
+      const newCustomer = await res.json();
+      setCustomers((prev) => [...prev, newCustomer]);
+      setFilteredCustomers((prev) => [...prev, newCustomer]);
+      setIsAddAdminModalOpen(false);
+      setNotification({
+        show: true,
+        message: "Thêm quản trị viên thành công!",
+        type: "success",
+      });
+      setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error
+          ? err.message === "Phiên đăng nhập hết hạn"
+            ? "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!"
+            : err.message || "Có lỗi xảy ra khi thêm quản trị viên!"
           : "Đã xảy ra lỗi không xác định";
       setNotification({ show: true, message: errorMessage, type: "error" });
       setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
@@ -330,6 +425,9 @@ export default function Customer() {
           <button type="button" onClick={toggleRoleFilter} className={styles.btn}>
             {roleFilter === "user" ? "Xem Quản Trị Viên" : "Xem Khách Hàng"}
           </button>
+          <button type="button" onClick={openAddAdminModal} className={styles.btn}>
+            <FontAwesomeIcon icon={faPlus} /> Thêm Quản Trị Viên
+          </button>
         </div>
       </div>
 
@@ -357,7 +455,7 @@ export default function Customer() {
                   <td>{customer.phone}</td>
                   <td>{customer.status === "active" ? "Hoạt động" : "Không hoạt động"}</td>
                   <td>{customer.role === "user" ? "Khách hàng" : "Quản trị viên"}</td>
-                  <td>{new Date(customer.createdAt).toLocaleDateString("vi-VN")}</td>
+                  <td>{new Date(customer.createdAt).toLocaleDateString("vi-VN", { year: "numeric", month: "2-digit", day: "2-digit" })}</td>
                   <td>
                     <button
                       type="button"
@@ -500,6 +598,62 @@ export default function Customer() {
                   setIsConfirmUpdateModalOpen(false);
                   setIsModalOpen(true);
                 }}
+              >
+                Hủy
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isAddAdminModalOpen && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <h3>Thêm Quản Trị Viên</h3>
+            <label>
+              Tên:
+              <input
+                type="text"
+                value={newAdmin.username}
+                onChange={(e) => setNewAdmin({ ...newAdmin, username: e.target.value })}
+                placeholder="Nhập tên quản trị viên"
+              />
+            </label>
+            <label>
+              Email:
+              <input
+                type="email"
+                value={newAdmin.email}
+                onChange={(e) => setNewAdmin({ ...newAdmin, email: e.target.value })}
+                placeholder="Nhập email"
+              />
+            </label>
+            <label>
+              Số điện thoại:
+              <input
+                type="text"
+                value={newAdmin.phone}
+                onChange={(e) => setNewAdmin({ ...newAdmin, phone: e.target.value })}
+                placeholder="Nhập số điện thoại"
+              />
+            </label>
+            <label>
+              Mật khẩu:
+              <input
+                type="password"
+                value={newAdmin.password}
+                onChange={(e) => setNewAdmin({ ...newAdmin, password: e.target.value })}
+                placeholder="Nhập mật khẩu"
+              />
+            </label>
+            <div className={styles.modalActions}>
+              <button type="button" className={styles.confirmBtn} onClick={handleAddAdmin}>
+                Thêm
+              </button>
+              <button
+                type="button"
+                className={styles.cancelBtn}
+                onClick={() => setIsAddAdminModalOpen(false)}
               >
                 Hủy
               </button>

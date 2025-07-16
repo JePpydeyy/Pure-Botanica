@@ -9,9 +9,7 @@ import UserMenu from "../components/Usermenu";
 import { CartProvider } from "./context/CartContext";
 import SearchBar from "../components/Searchbar";
 
-// Import SearchBar as a client component
-
-const geistSans = Geist({ 
+const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
 });
@@ -93,7 +91,10 @@ export default async function RootLayout({
                   <div className="search-bar">
                     <SearchBar />
                   </div>
-                  <Link href="/user/cart">
+                  <Link href="/user/wishlist" title="Danh sách yêu thích">
+                    <i className="fa-solid fa-heart"></i>
+                  </Link>
+                  <Link href="/user/cart" title="Giỏ hàng">
                     <i className="fa-solid fa-cart-shopping"></i>
                   </Link>
                   <UserMenu />
@@ -191,5 +192,7 @@ async function getCategories(url: string): Promise<Category[]> {
     _id: category._id,
     name: category.name,
     isHidden: category.isHidden || false,
+    status: category.status,
+    createdAt: category.createdAt,
   }));
 }

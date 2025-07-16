@@ -140,7 +140,7 @@ export default function Home() {
         ];
 
         const baseUrl = "https://api-zeal.onrender.com";
-        const bannerData: { [key: string]: string[] | string | null } = {
+        const bannerData: { banner1: string[]; banner2: string | null; banner3: string | null; decor: string[] } = {
           banner1: [],
           banner2: null,
           banner3: null,
@@ -155,9 +155,11 @@ export default function Home() {
             if (res.ok) {
               const data = await res.json();
               if (data.paths && data.paths.length > 0) {
-                bannerData[key] = key === "banner1" || key === "decor"
-                  ? data.paths.map((p: string) => `${baseUrl}/${p}`)
-                  : `${baseUrl}/${data.paths[0]}`;
+                if (key === "banner1" || key === "decor") {
+                  (bannerData as any)[key] = data.paths.map((p: string) => `${baseUrl}/${p}`);
+                } else {
+                  (bannerData as any)[key] = `${baseUrl}/${data.paths[0]}`;
+                }
               }
             } else {
               console.warn(`No images found for ${key}: ${res.status} ${res.statusText}`);

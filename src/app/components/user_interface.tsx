@@ -12,8 +12,11 @@ export interface User {
   status: string;
   listOrder: any[];
   birthday: string | null;
+  googleId?: string;
+  role?: string;
 }
- export interface Option {
+
+export interface Option {
   code: number;
   name: string;
- }
+}

@@ -1,15 +1,9 @@
 import { Cart } from "./cart_interface";
 
-export interface Address {
-  addressLine: string;
-  ward: string;
-  district: string;
-  cityOrProvince: string;
-}
 
-// Interface cho dữ liệu form
- export interface FormData {
 
+
+export interface FormData {
   fullName: string;
   addressLine: string;
   ward: string;
@@ -18,6 +12,35 @@ export interface Address {
   sdt: string;
   note: string;
   paymentMethod: "bank" | "cod";
+}
+
+export interface UserInfo {
+  username: string;
+  phone: string;
+  addressLine: string;
+  ward: string;
+  district: string;
+  cityOrProvince: string;
+  addresses?: Array<{
+    fullName: string;
+    sdt: string;
+    addressLine: string;
+    ward: string;
+    district: string;
+    cityOrProvince: string;
+  }>;
+  temporaryAddress1?: {
+    addressLine: string;
+    ward: string;
+    district: string;
+    cityOrProvince: string;
+  };
+  temporaryAddress2?: {
+    addressLine: string;
+    ward: string;
+    district: string;
+    cityOrProvince: string;
+  };
 }
 // Interface cho dữ liệu thanh toán
  export interface CheckoutData {

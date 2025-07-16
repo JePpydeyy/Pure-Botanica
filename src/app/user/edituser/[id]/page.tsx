@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { use } from "react";
 import { User, Option } from "@/app/components/user_interface";
-
 import styles from "./edituser.module.css";
 
 const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
@@ -33,7 +32,12 @@ export default function EditUser({ params }: { params: Promise<{ id: string }> }
     username: "",
     email: "",
     phone: "",
-    address: "",
+    address: {
+      addressLine: "",
+      ward: "",
+      district: "",
+      cityOrProvince: "",
+    },
     birthday: "",
   });
   const [cities, setCities] = useState<Option[]>([]);
@@ -88,6 +92,7 @@ export default function EditUser({ params }: { params: Promise<{ id: string }> }
 
         const { password, passwordResetToken, emailVerificationToken, ...safeUserData } = responseData;
 
+        // Chuyển đổi address từ chuỗi (nếu API trả về chuỗi) sang object
         const addressParts = responseData.address && typeof responseData.address === "string" && responseData.address.includes(", ")
           ? {
               addressLine: responseData.address.split(", ")[0]?.trim() || "",
@@ -96,7 +101,7 @@ export default function EditUser({ params }: { params: Promise<{ id: string }> }
               cityOrProvince: responseData.address.split(", ")[3]?.trim() || "",
             }
           : {
-              addressLine: responseData.address || "",
+              addressLine: "",
               ward: "",
               district: "",
               cityOrProvince: "",
@@ -107,7 +112,7 @@ export default function EditUser({ params }: { params: Promise<{ id: string }> }
           username: safeUserData.username || "",
           email: safeUserData.email || "",
           phone: safeUserData.phone || "",
-          address: responseData.address || "",
+          address: addressParts,
           birthday: safeUserData.birthday ? responseData.birthday.split("T")[0] : "",
         });
         setAddressParts(addressParts);
@@ -174,17 +179,9 @@ export default function EditUser({ params }: { params: Promise<{ id: string }> }
     const { name, value } = e.target;
     setAddressParts((prev) => {
       const newAddressParts = { ...prev, [name]: value };
-      const newAddress = [
-        newAddressParts.addressLine,
-        newAddressParts.ward,
-        newAddressParts.district,
-        newAddressParts.cityOrProvince,
-      ]
-        .filter((part) => part)
-        .join(", ");
       setFormData((prevFormData) => ({
         ...prevFormData,
-        address: newAddress || "",
+        address: newAddressParts,
       }));
       return newAddressParts;
     });
@@ -213,10 +210,10 @@ export default function EditUser({ params }: { params: Promise<{ id: string }> }
       }
 
       // Client-side validation
-      if (!formData.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+      if (!formData.email?.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
         throw new Error("Email không hợp lệ.");
       }
-      if (!user.googleId && !formData.username) {
+      if (!user?.googleId && !formData.username) {
         throw new Error("Tên người dùng là bắt buộc.");
       }
       if (formData.phone && !formData.phone.match(/^0\d{9}$/)) {
@@ -230,13 +227,24 @@ export default function EditUser({ params }: { params: Promise<{ id: string }> }
         username: formData.username || "",
         email: formData.email || "",
         phone: formData.phone || "",
-        address: formData.address || "",
+        // Chuyển address thành chuỗi nếu API yêu cầu chuỗi
+        address: formData.address
+          ? [
+              formData.address.addressLine,
+              formData.address.ward,
+              formData.address.district,
+              formData.address.cityOrProvince,
+            ]
+              .filter((part) => part)
+              .join(", ") || ""
+          : "",
         birthday: formData.birthday ? new Date(formData.birthday).toISOString() : null,
       };
 
       if (user?.role === "admin") {
         formattedData.status = user.status || "active";
-        formattedData.role = user.role || "user";
+        // Nếu interface User có role, cần thêm role vào formattedData
+        // formattedData.role = user.role || "user";
       }
 
       console.log("Sending user_info for submit_action:", JSON.stringify(formattedData, null, 2));

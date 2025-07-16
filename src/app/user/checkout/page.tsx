@@ -8,47 +8,8 @@ import "react-toastify/dist/ReactToastify.css";
 import styles from "./checkout.module.css";
 import { useCart } from "../context/CartContext";
 import { CartItem } from "../../components/cart_interface";
-import { CheckoutData } from "../../components/checkout_interface";
+import { CheckoutData, FormData, UserInfo } from "../../components/checkout_interface";
 
-interface FormData {
-  fullName: string;
-  addressLine: string;
-  ward: string;
-  district: string;
-  cityOrProvince: string;
-  sdt: string;
-  note: string;
-  paymentMethod: "bank" | "cod";
-}
-
-interface UserInfo {
-  username: string;
-  phone: string;
-  addressLine: string;
-  ward: string;
-  district: string;
-  cityOrProvince: string;
-  addresses?: Array<{
-    fullName: string;
-    sdt: string;
-    addressLine: string;
-    ward: string;
-    district: string;
-    cityOrProvince: string;
-  }>;
-  temporaryAddress1?: {
-    addressLine: string;
-    ward: string;
-    district: string;
-    cityOrProvince: string;
-  };
-  temporaryAddress2?: {
-    addressLine: string;
-    ward: string;
-    district: string;
-    cityOrProvince: string;
-  };
-}
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -659,6 +620,7 @@ export default function CheckoutPage() {
                           />
                           <select
                             name="cityOrProvince"
+                            title="Tỉnh/Thành phố"
                             value={newAddress.cityOrProvince}
                             onChange={e => setNewAddress(f => ({ ...f, cityOrProvince: e.target.value, district: "", ward: "" }))}
                             required
@@ -670,6 +632,7 @@ export default function CheckoutPage() {
                           </select>
                           <select
                             name="district"
+                             title="Quận/Huyện"
                             value={newAddress.district}
                             onChange={e => setNewAddress(f => ({ ...f, district: e.target.value, ward: "" }))}
                             required
@@ -682,6 +645,7 @@ export default function CheckoutPage() {
                           </select>
                           <select
                             name="ward"
+                             title="Xã/Phường"
                             value={newAddress.ward}
                             onChange={e => setNewAddress(f => ({ ...f, ward: e.target.value }))}
                             required

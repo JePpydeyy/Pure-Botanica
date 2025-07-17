@@ -102,7 +102,7 @@ export default function AD_Home() {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { position: "bottom" },
+        legend: { position: "bottom" as const },
         title: {
           display: true,
           text: `Báo cáo doanh thu theo ${

@@ -5,7 +5,7 @@ import type { Category } from "@/app/components/category_interface";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEdit, faEye, faEyeSlash, faCheck, faTimes, faPlus } from "@fortawesome/free-solid-svg-icons";
+import { faEdit, faEye, faEyeSlash, faCheck, faTimes, faPlus, faRedo } from "@fortawesome/free-solid-svg-icons";
 import { toast } from "react-toastify";
 
 interface Product {
@@ -24,6 +24,9 @@ export default function Category() {
   const [showConfirmPopup, setShowConfirmPopup] = useState<{ id: string; name: string; action: "ẩn" | "hiển thị" } | null>(null);
   const [showStockWarning, setShowStockWarning] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "show" | "hidden">("all");
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [itemsPerPage] = useState<number>(9); // Đồng bộ với productsPerPage trong ProductPage
   const router = useRouter();
 
   useEffect(() => {
@@ -37,6 +40,7 @@ export default function Category() {
             "Content-Type": "application/json",
             ...(storedToken && { Authorization: `Bearer ${storedToken}` }),
           },
+          cache: "no-store",
         });
         if (!res.ok) {
           if (res.status === 401) {
@@ -188,15 +192,52 @@ export default function Category() {
     }
   }, [token, router]);
 
-  const filteredCategories = categories.filter((cat) =>
-    statusFilter === "all" ? true : cat.status === statusFilter
-  );
+  const filteredCategories = categories
+    .filter((cat) => statusFilter === "all" ? true : cat.status === statusFilter)
+    .filter((cat) => cat.name.toLowerCase().includes(searchTerm.toLowerCase()));
+
+  const totalPages = Math.ceil(filteredCategories.length / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentCategories = filteredCategories.slice(indexOfFirstItem, indexOfLastItem);
+
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
+  const getPaginationInfo = () => {
+    const visiblePages: number[] = [];
+    let showPrevEllipsis = false;
+    let showNextEllipsis = false;
+
+    if (totalPages <= 3) {
+      for (let i = 1; i <= totalPages; i++) {
+        visiblePages.push(i);
+      }
+    } else {
+      if (currentPage === 1) {
+        visiblePages.push(1, 2, 3);
+        showNextEllipsis = totalPages > 3;
+      } else if (currentPage === totalPages) {
+        visiblePages.push(totalPages - 2, totalPages - 1, totalPages);
+        showPrevEllipsis = totalPages > 3;
+      } else {
+        visiblePages.push(currentPage - 1, currentPage, currentPage + 1);
+        showPrevEllipsis = currentPage > 2;
+        showNextEllipsis = currentPage < totalPages - 1;
+      }
+    }
+
+    return { visiblePages, showPrevEllipsis, showNextEllipsis };
+  };
 
   if (loading) {
     return (
       <div className={styles.errorContainer}>
         <div className={styles.processingIndicator}>
-          <div className={styles.spinner}></div>
+          <FontAwesomeIcon icon={faRedo} spin />
           <p>Đang tải danh sách danh mục...</p>
         </div>
       </div>
@@ -208,13 +249,27 @@ export default function Category() {
       <div className={styles.titleContainer}>
         <h1>Quản Lý Danh Mục</h1>
         <div className={styles.filterContainer}>
+          <input
+            type="text"
+            placeholder="Tìm kiếm danh mục..."
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1);
+            }}
+            className={styles.searchInput}
+            aria-label="Tìm kiếm danh mục"
+          />
           <select
             className={styles.categorySelect}
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as "all" | "show" | "hidden")}
+            onChange={(e) => {
+              setStatusFilter(e.target.value as "all" | "show" | "hidden");
+              setCurrentPage(1);
+            }}
             aria-label="Lọc theo trạng thái"
           >
-            <option value="all">Tất cả</option>
+            <option value="all">Tất cả trạng thái</option>
             <option value="show">Hiển thị</option>
             <option value="hidden">Ẩn</option>
           </select>
@@ -234,15 +289,15 @@ export default function Category() {
             </tr>
           </thead>
           <tbody>
-            {filteredCategories.length === 0 ? (
+            {currentCategories.length === 0 ? (
               <tr>
                 <td colSpan={3} className={styles.emptyState}>
                   <h3>Không có danh mục</h3>
-                  <p>Vui lòng thêm danh mục mới để bắt đầu.</p>
+                  <p>Vui lòng thêm danh mục mới hoặc điều chỉnh bộ lọc/tìm kiếm.</p>
                 </td>
               </tr>
             ) : (
-              filteredCategories.map((category) => (
+              currentCategories.map((category) => (
                 <tr key={category._id} className={styles.productRow}>
                   <td>
                     {editingCategory?._id === category._id ? (
@@ -307,6 +362,67 @@ export default function Category() {
           </tbody>
         </table>
       </div>
+
+      {totalPages > 1 && (
+        <div className={styles.pagination}>
+          {(() => {
+            const { visiblePages, showPrevEllipsis, showNextEllipsis } = getPaginationInfo();
+            return (
+              <>
+                {showPrevEllipsis && (
+                  <>
+                    <button
+                      className={`${styles.pageLink} ${styles.firstLastPage}`}
+                      onClick={() => handlePageChange(1)}
+                      disabled={loading}
+                      title="Trang đầu tiên"
+                    >
+                      1
+                    </button>
+                    <div
+                      className={styles.ellipsis}
+                      onClick={() => handlePageChange(Math.max(1, currentPage - 3))}
+                      title="Trang trước đó"
+                    >
+                      ...
+                    </div>
+                  </>
+                )}
+                {visiblePages.map((page) => (
+                  <button
+                    key={page}
+                    className={`${styles.pageLink} ${currentPage === page ? styles.pageLinkActive : ""}`}
+                    onClick={() => handlePageChange(page)}
+                    disabled={loading}
+                    title={`Trang ${page}`}
+                  >
+                    {page}
+                  </button>
+                ))}
+                {showNextEllipsis && (
+                  <>
+                    <div
+                      className={styles.ellipsis}
+                      onClick={() => handlePageChange(Math.min(totalPages, currentPage + 3))}
+                      title="Trang tiếp theo"
+                    >
+                      ...
+                    </div>
+                    <button
+                      className={`${styles.pageLink} ${styles.firstLastPage}`}
+                      onClick={() => handlePageChange(totalPages)}
+                      disabled={loading}
+                      title="Trang cuối cùng"
+                    >
+                      {totalPages}
+                    </button>
+                  </>
+                )}
+              </>
+            );
+          })()}
+        </div>
+      )}
 
       {showConfirmPopup && (
         <div className={styles.modalOverlay}>

@@ -1,14 +1,13 @@
-/* === CSS VARIABLES === */
+/* Sử dụng các biến CSS từ file gốc */
 :root {
-  --primary-color: #4CAF50; /* Xanh lá chính */
-  --secondary-color: #004C59; /* Xanh đậm */
-  --error-color: #f44336; /* Đỏ */
-  --toggle-color: #2196F3; /* Xanh dương */
-  --background-color: #f8fafc; /* Nền chính */
-  --card-background: #ffffff; /* Nền thẻ */
-  --text-color: #334155; /* Màu chữ chính */
-  --text-muted: #64748b; /* Màu chữ phụ */
-  --border-color: #e2e8f0; /* Màu viền */
+  --primary-color: #4CAF50;
+  --secondary-color: #004C59;
+  --error-color: #f44336;
+  --background-color: #f8fafc;
+  --card-background: #ffffff;
+  --text-color: #334155;
+  --text-muted: #64748b;
+  --border-color: #e2e8f0;
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
   --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -166,8 +165,7 @@
   gap: 8px;
 }
 
-.editBtn,
-.toggleStatusBtn {
+.actionButtons button {
   width: 36px;
   height: 36px;
   border-radius: 6px;
@@ -187,7 +185,7 @@
 }
 
 .toggleStatusBtn {
-  background: var(--toggle-color);
+  background: #2196F3;
   color: white;
 }
 
@@ -196,10 +194,68 @@
   transform: translateY(-2px);
 }
 
-.editBtn:disabled,
-.toggleStatusBtn:disabled {
+.actionButtons button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* === PAGINATION === */
+.pagination {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  margin: 24px auto;
+  max-width: 1400px;
+}
+
+.pageLink {
+  min-width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--card-background);
+  color: var(--text-color);
+  font-size: 13px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.pageLink:hover {
+  background: #f8fafc;
+  border-color: var(--primary-color);
+}
+
+.pageLinkActive {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.pageLink:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ellipsis {
+  min-width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.ellipsis:hover {
+  color: var(--primary-color);
+}
+
+.firstLastPage {
+  font-weight: 600;
 }
 
 /* === MODAL === */
@@ -240,11 +296,6 @@
   margin-bottom: 20px;
 }
 
-.modalContent p b {
-  color: var(--text-color);
-  font-weight: 600;
-}
-
 .modalActions {
   display: flex;
   gap: 10px;
@@ -279,7 +330,7 @@
   background: #d32f2f;
 }
 
-/* === ERROR & LOADING STATES === */
+/* === ERROR CONTAINER === */
 .errorContainer {
   max-width: 1400px;
   margin: 24px auto;
@@ -290,26 +341,19 @@
   text-align: center;
 }
 
+/* === LOADING STATES === */
 .processingIndicator {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  padding: 12px 20px;
+  background: #2196F3;
+  color: white;
+  border-radius: 8px;
+  z-index: 1001;
   display: flex;
   align-items: center;
   gap: 8px;
-  justify-content: center;
-  padding: 12px;
-}
-
-.spinner {
-  width: 24px;
-  height: 24px;
-  border: 3px solid var(--border-color);
-  border-top: 3px solid var(--primary-color);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
 }
 
 /* === EMPTY STATE === */
@@ -333,8 +377,7 @@
 .searchInput:focus-visible,
 .categorySelect:focus-visible,
 .addProductBtn:focus-visible,
-.editBtn:focus-visible,
-.toggleStatusBtn:focus-visible,
+.pageLink:focus-visible,
 .confirmBtn:focus-visible,
 .cancelBtn:focus-visible {
   outline: 2px solid var(--primary-color);
@@ -359,7 +402,8 @@
 /* === RESPONSIVE DESIGN === */
 @media (max-width: 1280px) {
   .titleContainer,
-  .tableContainer {
+  .tableContainer,
+  .pagination {
     max-width: 100%;
     margin: 16px;
   }
@@ -369,6 +413,7 @@
     align-items: stretch;
   }
 
+  .searchInput,
   .categorySelect {
     min-width: 100%;
   }
@@ -383,19 +428,5 @@
   .productTable td {
     padding: 10px;
     font-size: 13px;
-  }
-
-  .searchInput,
-  .categorySelect {
-    font-size: 13px;
-    padding: 10px 36px 10px 12px;
-  }
-
-  .editBtn,
-  .toggleStatusBtn,
-  .confirmBtn,
-  .cancelBtn {
-    width: 32px;
-    height: 32px;
   }
 }

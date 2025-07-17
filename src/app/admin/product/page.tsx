@@ -518,8 +518,8 @@ export default function ProductPage() {
               <th>Tên sản phẩm</th>
               <th>Danh mục</th>
               <th>Brand</th>
+              <th>Kích hoạt</th> 
               <th>Trạng thái</th>
-              <th>Kích hoạt</th> {/* Thêm dòng này */}
               <th>Hành động</th>
             </tr>
           </thead>
@@ -552,8 +552,8 @@ export default function ProductPage() {
                       {categories.find((cat) => cat._id === product.id_category)?.name || "Chưa phân loại"}
                     </td>
                     <td>{brands.find((brand) => brand._id === product.id_brand)?.name || "Chưa phân loại"}</td>
-                    <td>{product.status === "show" ? "Hiển thị" : "Ẩn"}</td>
                     <td>{product.active ? "Có" : "Không"}</td> {/* Thêm dòng này */}
+                    <td>{product.status === "show" ? "Hiển thị" : "Ẩn"}</td>
                     <td className={styles.actionButtons}>
                       <button
                         className={styles.editBtn}
@@ -600,8 +600,8 @@ export default function ProductPage() {
                                   {brands.find((brand) => brand._id === product.id_brand)?.name ||
                                     "Chưa phân loại"}
                                 </p>
-                                <p><strong>Trạng thái:</strong> {product.status === "show" ? "Hiển thị" : "Ẩn"}</p>
                                 <p><strong>Kích hoạt:</strong> {product.active ? "Có" : "Không"}</p>
+                                <p><strong>Trạng thái:</strong> {product.status === "show" ? "Hiển thị" : "Ẩn"}</p>
                                 <p><strong>Lượt xem:</strong> {product.view}</p>
                                 <p><strong>Ngày tạo:</strong> {new Date(product.createdAt).toLocaleString()}</p>
                                 <p><strong>Ngày cập nhật:</strong> {new Date(product.updatedAt).toLocaleString()}</p>

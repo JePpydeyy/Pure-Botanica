@@ -114,7 +114,7 @@ const EditArticle = () => {
           status: article.status || "show",
           contentImages: [],
         });
-        setPreviewThumbnail(article.thumbnailUrl ? `${API_DOMAIN}/${article.thumbnailUrl}` : null);
+        setPreviewThumbnail(article.thumbnailUrl ? `${API_DOMAIN}/${article.thumbnailUrl}?t=${new Date().getTime()}` : null);
         if (editorRef.current) {
           editorRef.current.innerHTML = fixedContent;
         }
@@ -445,7 +445,15 @@ const EditArticle = () => {
           />
           {previewThumbnail && (
             <div className={styles.thumbnailPreview}>
-              <img src={previewThumbnail} alt="Thumbnail Preview" className={styles.previewImage} />
+              <img
+                src={previewThumbnail}
+                alt="Thumbnail Preview"
+                className={styles.previewImage}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src =
+                    "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+                }}
+              />
             </div>
           )}
         </div>

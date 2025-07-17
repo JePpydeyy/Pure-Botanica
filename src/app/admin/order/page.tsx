@@ -3,7 +3,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import styles from "./order.module.css";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 
 interface Option {
   stock: number;
@@ -49,17 +48,13 @@ interface Notification {
   type: "success" | "error";
 }
 
-const API_BASE_URL = "https://api-zeal.onrender.com";
-const FALLBACK_IMAGE_URL = "https://via.placeholder.com/60x60?text=Error";
+const FALLBACK_IMAGE_URL = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
 
-const normalizeImageUrl = (url: string): string => {
-  if (url.startsWith("https://res.cloudinary.com")) {
-    return url; // Giữ nguyên URL từ Cloudinary
+const normalizeImageUrl = (path: string): string => {
+  if (path && path.startsWith("http")) {
+    return `${path}?_t=${Date.now()}`; // Use full URL with cache-busting timestamp
   }
-  if (!url.startsWith("http://") && !url.startsWith("https://")) {
-    return `${API_BASE_URL}/${url}?_t=${Date.now()}`; // Thêm timestamp để phá cache
-  }
-  return url;
+  return FALLBACK_IMAGE_URL;
 };
 
 export default function OrderPage() {
@@ -80,6 +75,8 @@ export default function OrderPage() {
     message: "",
     type: "success",
   });
+  const [productDetails, setProductDetails] = useState<{ [key: string]: Product }>({}); // Store fetched product data
+  const [loadingProducts, setLoadingProducts] = useState<boolean>(false); // Loading state for product fetch
   const router = useRouter();
 
   const paymentStatusMapping = {
@@ -150,7 +147,7 @@ export default function OrderPage() {
       try {
         setError(null);
         const token = localStorage.getItem("token");
-        const res = await fetch(`${API_BASE_URL}/api/orders/admin/all`, {
+        const res = await fetch("https://api-zeal.onrender.com/api/orders/admin/all", {
           headers: { Authorization: `Bearer ${token}` },
           cache: "no-store",
         });
@@ -279,7 +276,7 @@ export default function OrderPage() {
       }
 
       const token = localStorage.getItem("token");
-      const response = await fetch(`${API_BASE_URL}/api/orders/update/${orderId}`, {
+      const response = await fetch(`https://api-zeal.onrender.com/api/orders/update/${orderId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -344,12 +341,48 @@ export default function OrderPage() {
       return;
     }
     setSelectedOrder(order);
+    fetchProductDetails(order); // Fetch product details when opening popup
     setShowPopup(true);
   };
 
   const closePopup = () => {
     setShowPopup(false);
     setSelectedOrder(null);
+    setProductDetails({}); // Clear product details when closing
+  };
+
+  const fetchProductDetails = async (order: Order) => {
+    setLoadingProducts(true);
+    try {
+      const token = localStorage.getItem("token");
+      const productPromises = order.items.map(async (item) => {
+        if (item.product && item.product._id) {
+          const res = await fetch(`https://api-zeal.onrender.com/api/products/${item.product._id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+            cache: "no-store",
+          });
+          if (!res.ok) {
+            throw new Error(`Failed to fetch product ${item.product._id}: ${res.status} ${res.statusText}`);
+          }
+          const data: Product = await res.json();
+          return { [item.product._id]: data };
+        }
+        return null;
+      });
+      const results = await Promise.all(productPromises);
+      const newProductDetails = results.reduce((acc, curr) => {
+        if (curr) {
+          return { ...acc, ...curr };
+        }
+        return acc;
+      }, {});
+      setProductDetails((prev) => ({ ...prev, ...newProductDetails }));
+    } catch (error) {
+      console.error("Error fetching product details:", error);
+      showNotification("Không thể tải chi tiết sản phẩm", "error");
+    } finally {
+      setLoadingProducts(false);
+    }
   };
 
   const getProductPrice = (product: Product | null, optionId: string) => {
@@ -364,9 +397,20 @@ export default function OrderPage() {
   };
 
   const getProductImage = (item: { product: Product | null; images: string[] }) => {
-    if (item.images && item.images.length > 0) {
-      return normalizeImageUrl(item.images[0]);
+    console.log("Item images:", item.images); // Debug log
+    // Use fetched product images as primary source
+    if (item.product && item.product._id && productDetails[item.product._id]?.images?.length > 0) {
+      const normalizedUrl = normalizeImageUrl(productDetails[item.product._id].images[0]);
+      console.log("Using fetched product images, Normalized URL:", normalizedUrl); // Debug log
+      return normalizedUrl;
     }
+    // Fallback to Order.items.images
+    if (item.images && item.images.length > 0 && item.images[0]) {
+      const normalizedUrl = normalizeImageUrl(item.images[0]);
+      console.log("Using item images, Normalized URL:", normalizedUrl); // Debug log
+      return normalizedUrl;
+    }
+    console.log("Returning fallback image"); // Debug log
     return FALLBACK_IMAGE_URL;
   };
 
@@ -387,6 +431,9 @@ export default function OrderPage() {
         <div className={`${styles.notification} ${styles[notification.type]}`}>
           {notification.message}
         </div>
+      )}
+      {loadingProducts && (
+        <div className={styles.loadingOverlay}>Đang tải chi tiết sản phẩm...</div>
       )}
       <div className={styles.title}>
         <h1>Danh Sách Đơn Hàng</h1>
@@ -513,7 +560,7 @@ export default function OrderPage() {
               {selectedOrder.items && selectedOrder.items.length > 0 ? (
                 selectedOrder.items.map((item, idx) => (
                   <li key={idx}>
-                    <Image
+                    <img
                       src={getProductImage(item)}
                       alt={item.product?.name || "Không xác định"}
                       width={60}
@@ -521,7 +568,13 @@ export default function OrderPage() {
                       className={styles.productImage}
                       onError={(e) => {
                         (e.target as HTMLImageElement).src = FALLBACK_IMAGE_URL;
-                        console.log(`Image load failed for ${item.product?.name || "Không xác định"}:`, item.images[0]);
+                        console.log(
+                          `Image load failed for ${item.product?.name || "Không xác định"}:`,
+                          item.images && item.images[0] ? item.images[0] : "No item images",
+                          item.product && item.product._id && productDetails[item.product._id]?.images?.[0]
+                            ? `Fetched product images: ${productDetails[item.product._id].images[0]}`
+                            : "No fetched product images"
+                        );
                       }}
                     />
                     <div className={styles.productInfo}>

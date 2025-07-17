@@ -107,9 +107,13 @@ const AdminNewsPage: React.FC = () => {
       });
       if (!res.ok) throw new Error(`Lỗi HTTP: ${res.status}`);
       const data: NewsItem = await res.json();
-      // Đảm bảo thumbnailUrl là URL đầy đủ
-      if (data.thumbnailUrl && !data.thumbnailUrl.startsWith("http")) {
-        data.thumbnailUrl = `${API_BASE_URL}/${data.thumbnailUrl}`;
+      // Đảm bảo thumbnailUrl là URL đầy đủ và thêm timestamp để tránh caching
+      if (data.thumbnailUrl) {
+        if (!data.thumbnailUrl.startsWith("http")) {
+          data.thumbnailUrl = `${API_BASE_URL}/${data.thumbnailUrl}?t=${new Date().getTime()}`;
+        } else {
+          data.thumbnailUrl += `?t=${new Date().getTime()}`;
+        }
       }
       setSelectedNews(data);
       setIsPopupOpen(true);
@@ -301,11 +305,10 @@ const AdminNewsPage: React.FC = () => {
                     src={selectedNews.thumbnailUrl}
                     alt={selectedNews.thumbnailCaption || selectedNews.title}
                     onError={(e) => {
-                      setImageError("Không thể tải hình ảnh thumbnail.");
-                      (e.target as HTMLImageElement).style.display = "none";
+                      (e.target as HTMLImageElement).src =
+                        "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
                     }}
                   />
-                  {imageError && <p className={styles.errorContainer}>{imageError}</p>}
                 </div>
               )}
               <div

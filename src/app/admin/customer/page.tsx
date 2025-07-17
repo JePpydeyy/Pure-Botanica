@@ -1,9 +1,10 @@
 "use client";
+
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./customer.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEdit, faPlus } from "@fortawesome/free-solid-svg-icons";
+import { faEdit, faTrash, faPlus, faCheck, faTimes } from "@fortawesome/free-solid-svg-icons";
 
 interface Customer {
   _id: string;
@@ -24,34 +25,21 @@ interface Notification {
   type: "success" | "error";
 }
 
-interface NewAdmin {
-  username: string;
-  email: string;
-  phone: string;
-  password: string;
-}
-
 export default function Customer() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmUpdateModalOpen, setIsConfirmUpdateModalOpen] = useState(false);
-  const [isAddAdminModalOpen, setIsAddAdminModalOpen] = useState(false);
-  const [newAdmin, setNewAdmin] = useState<NewAdmin>({
-    username: "",
-    email: "",
-    phone: "",
-    password: "",
-  });
+  const [isConfirmDeleteModalOpen, setIsConfirmDeleteModalOpen] = useState(false);
+  const [deleteCustomerId, setDeleteCustomerId] = useState<string | null>(null);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [notification, setNotification] = useState<Notification>({ show: false, message: "", type: "success" });
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<"user" | "admin">("user");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const [notification, setNotification] = useState<Notification>({ show: false, message: "", type: "success" });
   const customersPerPage = 9;
   const router = useRouter();
 
@@ -69,7 +57,8 @@ export default function Customer() {
     const token = localStorage.getItem("token");
     const role = localStorage.getItem("role");
     if (!token || role !== "admin") {
-      router.push("/user/login");
+      setNotification({ show: true, message: "Bạn không có quyền truy cập. Vui lòng đăng nhập với tài khoản admin.", type: "error" });
+      setTimeout(() => router.push("/user/login"), 3000);
     } else {
       setIsAuthorized(true);
     }
@@ -117,7 +106,6 @@ export default function Customer() {
                 new Date(customer.createdAt).toLocaleDateString("vi-VN").includes(searchQuery.toLowerCase()))
           )
         );
-        setLoading(false);
       } catch (err) {
         const errorMessage =
           err instanceof Error
@@ -125,15 +113,14 @@ export default function Customer() {
               ? "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!"
               : err.message || "Lỗi khi tải dữ liệu khách hàng!"
             : "Đã xảy ra lỗi không xác định";
-        setError(errorMessage);
         setNotification({ show: true, message: errorMessage, type: "error" });
         setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
-        setLoading(false);
-
         if (err instanceof Error && err.message === "Phiên đăng nhập hết hạn") {
           localStorage.clear();
-          router.push("/user/login");
+          setTimeout(() => router.push("/user/login"), 3000);
         }
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -214,17 +201,20 @@ export default function Customer() {
     return { visiblePages, showPrevEllipsis, showNextEllipsis };
   };
 
+  // Edit customer
   const openModal = (customer: Customer) => {
     setSelectedCustomer(customer);
     setIsModalOpen(true);
   };
 
+  // Confirm update
   const confirmUpdate = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     setIsModalOpen(false);
     setIsConfirmUpdateModalOpen(true);
   };
 
+  // Update customer info
   const updateCustomerInfo = async (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     if (!selectedCustomer) return;
@@ -285,55 +275,32 @@ export default function Customer() {
       setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
       if (err instanceof Error && err.message === "Phiên đăng nhập hết hạn") {
         localStorage.clear();
-        router.push("/user/login");
+        setTimeout(() => router.push("/user/login"), 3000);
       }
     }
   };
 
-  const openAddAdminModal = () => {
-    setNewAdmin({ username: "", email: "", phone: "", password: "" });
-    setIsAddAdminModalOpen(true);
+  // Confirm delete
+  const confirmDelete = (id: string) => {
+    setDeleteCustomerId(id);
+    setIsConfirmDeleteModalOpen(true);
   };
 
-  const handleAddAdmin = async (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
+  // Delete customer
+  const deleteCustomer = async () => {
+    if (!deleteCustomerId) return;
+
     try {
       const token = localStorage.getItem("token");
       if (!token) {
         throw new Error("No token found");
       }
 
-      // Basic validation
-      if (!newAdmin.username || !newAdmin.email || !newAdmin.phone || !newAdmin.password) {
-        throw new Error("Vui lòng điền đầy đủ thông tin");
-      }
-
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newAdmin.email)) {
-        throw new Error("Email không hợp lệ");
-      }
-
-      if (!/^\d{10,11}$/.test(newAdmin.phone)) {
-        throw new Error("Số điện thoại không hợp lệ");
-      }
-
-      if (newAdmin.password.length < 6) {
-        throw new Error("Mật khẩu phải có ít nhất 6 ký tự");
-      }
-
-      const res = await fetch("https://api-zeal.onrender.com/api/users/register", {
-        method: "POST",
+      const res = await fetch(`https://api-zeal.onrender.com/api/users/${deleteCustomerId}`, {
+        method: "DELETE",
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          ...newAdmin,
-          role: "admin",
-          status: "active",
-          address: "",
-          birthday: null,
-          listOrder: [],
-        }),
       });
 
       if (res.status === 401 || res.status === 403) {
@@ -342,98 +309,100 @@ export default function Customer() {
 
       if (!res.ok) {
         const errorData = await res.json();
-        throw new Error(errorData.message || "Thêm quản trị viên thất bại");
+        throw new Error(errorData.message || "Xóa thất bại");
       }
 
-      const newCustomer = await res.json();
-      setCustomers((prev) => [...prev, newCustomer]);
-      setFilteredCustomers((prev) => [...prev, newCustomer]);
-      setIsAddAdminModalOpen(false);
+      setCustomers((prev) => prev.filter((c) => c._id !== deleteCustomerId));
+      setFilteredCustomers((prev) => prev.filter((c) => c._id !== deleteCustomerId));
+      setIsConfirmDeleteModalOpen(false);
+      setDeleteCustomerId(null);
       setNotification({
         show: true,
-        message: "Thêm quản trị viên thành công!",
+        message: "Xóa khách hàng/quản trị viên thành công!",
         type: "success",
       });
       setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
+      setCurrentPage(1);
     } catch (err) {
       const errorMessage =
         err instanceof Error
           ? err.message === "Phiên đăng nhập hết hạn"
             ? "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!"
-            : err.message || "Có lỗi xảy ra khi thêm quản trị viên!"
+            : err.message || "Có lỗi xảy ra khi xóa!"
           : "Đã xảy ra lỗi không xác định";
       setNotification({ show: true, message: errorMessage, type: "error" });
       setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
       if (err instanceof Error && err.message === "Phiên đăng nhập hết hạn") {
         localStorage.clear();
-        router.push("/user/login");
+        setTimeout(() => router.push("/user/login"), 3000);
       }
     }
   };
 
   if (loading) {
     return (
-      <div className={styles.customerPage}>
+      <div className={styles.productManagementContainer}>
         <div className={styles.errorContainer}>
-          <p className={styles.errorMessage}>Đang tải dữ liệu khách hàng...</p>
+          <div className={styles.processingIndicator}>
+            <div className={styles.spinner}></div>
+            <p>Đang tải dữ liệu khách hàng...</p>
+          </div>
         </div>
       </div>
     );
   }
-
-  if (error) {
-    return (
-      <div className={styles.customerPage}>
-        <div className={styles.errorContainer}>
-          <p className={styles.errorMessage}>{error}</p>
-          <button type="button" className={styles.retryButton} onClick={() => window.location.reload()}>
-            Thử lại
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAuthorized) return null;
 
   return (
-    <div className={styles.customerPage}>
+    <div className={styles.productManagementContainer}>
       {notification.show && (
-        <div className={`${styles.notification} ${styles[notification.type]}`}>
-          {notification.message}
+        <div className={styles.modalOverlay}>
+          <div className={`${styles.modalContent} ${styles[notification.type]}`}>
+            <p>{notification.message}</p>
+            <button
+              className={styles.cancelBtn}
+              onClick={() => setNotification({ show: false, message: "", type: "success" })}
+              aria-label="Đóng thông báo"
+            >
+              <FontAwesomeIcon icon={faTimes} />
+            </button>
+          </div>
         </div>
       )}
       <div className={styles.titleContainer}>
-        <h1>{roleFilter === "user" ? "KHÁCH HÀNG" : "QUẢN TRỊ VIÊN"}</h1>
-        <div className={styles.searchContainer}>
+        <h1>{roleFilter === "user" ? "Quản Lý Khách Hàng" : "Quản Lý Quản Trị Viên"}</h1>
+        <div className={styles.filterContainer}>
           <input
             type="text"
             placeholder={`Tìm kiếm ${roleFilter === "user" ? "khách hàng" : "quản trị viên"} theo tên, email, số điện thoại, địa chỉ...`}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className={styles.searchInput}
+            aria-label={`Tìm kiếm ${roleFilter === "user" ? "khách hàng" : "quản trị viên"}`}
           />
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as "all" | "active" | "inactive")}
-            className={styles.statusFilter}
+            className={styles.categorySelect}
+            aria-label="Lọc theo trạng thái"
           >
             <option value="all">Tất cả trạng thái</option>
             <option value="active">Hoạt động</option>
             <option value="inactive">Không hoạt động</option>
           </select>
-          <button type="button" onClick={toggleRoleFilter} className={styles.btn}>
+          <button
+            type="button"
+            onClick={toggleRoleFilter}
+            className={styles.toggleRoleBtn}
+            aria-label={`Chuyển sang xem ${roleFilter === "user" ? "quản trị viên" : "khách hàng"}`}
+          >
             {roleFilter === "user" ? "Xem Quản Trị Viên" : "Xem Khách Hàng"}
-          </button>
-          <button type="button" onClick={openAddAdminModal} className={styles.btn}>
-            <FontAwesomeIcon icon={faPlus} /> Thêm Quản Trị Viên
           </button>
         </div>
       </div>
 
       <div className={styles.tableContainer}>
-        <table>
-          <thead>
+        <table className={styles.productTable}>
+          <thead className={styles.productTableThead}>
             <tr>
               <th>STT</th>
               <th>Tên</th>
@@ -448,30 +417,51 @@ export default function Customer() {
           <tbody>
             {currentCustomers.length > 0 ? (
               currentCustomers.map((customer, index) => (
-                <tr key={customer._id}>
+                <tr key={customer._id} className={styles.productRow}>
                   <td>{indexOfFirstCustomer + index + 1}</td>
                   <td>{customer.username}</td>
                   <td>{customer.email}</td>
                   <td>{customer.phone}</td>
-                  <td>{customer.status === "active" ? "Hoạt động" : "Không hoạt động"}</td>
+                  <td>
+                    <span
+                      className={
+                        customer.status === "active" ? styles.statusActive : styles.statusInactive
+                      }
+                    >
+                      {customer.status === "active" ? "Hoạt động" : "Không hoạt động"}
+                    </span>
+                  </td>
                   <td>{customer.role === "user" ? "Khách hàng" : "Quản trị viên"}</td>
                   <td>{new Date(customer.createdAt).toLocaleDateString("vi-VN", { year: "numeric", month: "2-digit", day: "2-digit" })}</td>
                   <td>
-                    <button
-                      type="button"
-                      className={styles.editBtn}
-                      onClick={() => openModal(customer)}
-                      title="Sửa thông tin"
-                    >
-                      <FontAwesomeIcon icon={faEdit} />
-                    </button>
+                    <div className={styles.actionButtons}>
+                      <button
+                        type="button"
+                        className={styles.editBtn}
+                        onClick={() => openModal(customer)}
+                        title="Sửa thông tin"
+                        aria-label="Sửa thông tin khách hàng"
+                      >
+                        <FontAwesomeIcon icon={faEdit} />
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.cancelBtn}
+                        onClick={() => confirmDelete(customer._id)}
+                        title="Xóa khách hàng"
+                        aria-label="Xóa khách hàng"
+                      >
+                        <FontAwesomeIcon icon={faTrash} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
             ) : (
               <tr>
                 <td colSpan={8} className={styles.emptyState}>
-                  Không có {roleFilter === "user" ? "khách hàng" : "quản trị viên"} nào
+                  <h3>Không có {roleFilter === "user" ? "khách hàng" : "quản trị viên"}</h3>
+                  <p>Chưa có {roleFilter === "user" ? "khách hàng" : "quản trị viên"} nào phù hợp với bộ lọc.</p>
                 </td>
               </tr>
             )}
@@ -492,6 +482,7 @@ export default function Customer() {
                       className={`${styles.pageLink} ${styles.firstLastPage}`}
                       onClick={() => handlePageChange(1)}
                       title="Trang đầu tiên"
+                      aria-label="Trang đầu tiên"
                     >
                       1
                     </button>
@@ -499,6 +490,8 @@ export default function Customer() {
                       className={styles.ellipsis}
                       onClick={() => handlePageChange(Math.max(1, currentPage - 3))}
                       title="Trang trước đó"
+                      role="button"
+                      aria-label="Trang trước đó"
                     >
                       ...
                     </div>
@@ -513,6 +506,7 @@ export default function Customer() {
                     }`}
                     onClick={() => handlePageChange(page)}
                     title={`Trang ${page}`}
+                    aria-label={`Trang ${page}`}
                   >
                     {page}
                   </button>
@@ -523,6 +517,8 @@ export default function Customer() {
                       className={styles.ellipsis}
                       onClick={() => handlePageChange(Math.min(totalPages, currentPage + 3))}
                       title="Trang tiếp theo"
+                      role="button"
+                      aria-label="Trang tiếp theo"
                     >
                       ...
                     </div>
@@ -531,6 +527,7 @@ export default function Customer() {
                       className={`${styles.pageLink} ${styles.firstLastPage}`}
                       onClick={() => handlePageChange(totalPages)}
                       title="Trang cuối cùng"
+                      aria-label="Trang cuối cùng"
                     >
                       {totalPages}
                     </button>
@@ -545,39 +542,64 @@ export default function Customer() {
       {isModalOpen && selectedCustomer && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
-            <h3>Chỉnh sửa thông tin {roleFilter === "user" ? "khách hàng" : "quản trị viên"}</h3>
-            <label>
-              Trạng thái:
-              <select
-                value={selectedCustomer.status}
-                onChange={(e) =>
-                  setSelectedCustomer({ ...selectedCustomer, status: e.target.value })
-                }
-              >
-                <option value="active">Hoạt động</option>
-                <option value="inactive">Không hoạt động</option>
-              </select>
-            </label>
-            <label>
-              Vai trò:
-              <select
-                value={selectedCustomer.role}
-                onChange={(e) =>
-                  setSelectedCustomer({ ...selectedCustomer, role: e.target.value })
-                }
-              >
-                <option value="user">Khách hàng</option>
-                <option value="admin">Quản trị viên</option>
-              </select>
-            </label>
-            <div className={styles.modalActions}>
-              <button type="button" className={styles.confirmBtn} onClick={confirmUpdate}>
-                Lưu
-              </button>
-              <button type="button" className={styles.cancelBtn} onClick={() => setIsModalOpen(false)}>
-                Hủy
-              </button>
-            </div>
+            <button
+              className={styles.cancelBtn}
+              onClick={() => setIsModalOpen(false)}
+              aria-label="Đóng form chỉnh sửa"
+            >
+              <FontAwesomeIcon icon={faTimes} />
+            </button>
+            <h2>Chỉnh sửa thông tin {roleFilter === "user" ? "khách hàng" : "quản trị viên"}</h2>
+            <form>
+              <div className={styles.formGroup}>
+                <label>Trạng thái:</label>
+                <select
+                  value={selectedCustomer.status}
+                  onChange={(e) =>
+                    setSelectedCustomer({ ...selectedCustomer, status: e.target.value })
+                  }
+                  className={styles.categorySelect}
+                  aria-label="Trạng thái khách hàng"
+                >
+                  <option value="active">Hoạt động</option>
+                  <option value="inactive">Không hoạt động</option>
+                </select>
+              </div>
+              <div className={styles.formGroup}>
+                <label>Vai trò:</label>
+                <select
+                  value={selectedCustomer.role}
+                  onChange={(e) =>
+                    setSelectedCustomer({ ...selectedCustomer, role: e.target.value })
+                  }
+                  className={styles.categorySelect}
+                  aria-label="Vai trò khách hàng"
+                >
+                  <option value="user">Khách hàng</option>
+                  <option value="admin">Quản trị viên</option>
+                </select>
+              </div>
+              <div className={styles.modalActions}>
+                <button
+                  type="button"
+                  className={styles.confirmBtn}
+                  onClick={confirmUpdate}
+                  title="Lưu"
+                  aria-label="Lưu thông tin khách hàng"
+                >
+                  <FontAwesomeIcon icon={faEdit} />
+                </button>
+                <button
+                  type="button"
+                  className={styles.cancelBtn}
+                  onClick={() => setIsModalOpen(false)}
+                  title="Hủy"
+                  aria-label="Hủy chỉnh sửa"
+                >
+                  <FontAwesomeIcon icon={faTimes} />
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -585,11 +607,17 @@ export default function Customer() {
       {isConfirmUpdateModalOpen && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
-            <h3>Xác nhận cập nhật</h3>
+            <h2>Xác Nhận Cập Nhật</h2>
             <p>Bạn có chắc muốn cập nhật thông tin {roleFilter === "user" ? "khách hàng" : "quản trị viên"} này?</p>
             <div className={styles.modalActions}>
-              <button type="button" className={styles.confirmBtn} onClick={updateCustomerInfo}>
-                Xác nhận
+              <button
+                type="button"
+                className={styles.confirmBtn}
+                onClick={updateCustomerInfo}
+                title="Xác nhận cập nhật"
+                aria-label="Xác nhận cập nhật thông tin"
+              >
+                <FontAwesomeIcon icon={faCheck} />
               </button>
               <button
                 type="button"
@@ -598,64 +626,42 @@ export default function Customer() {
                   setIsConfirmUpdateModalOpen(false);
                   setIsModalOpen(true);
                 }}
+                title="Hủy"
+                aria-label="Hủy cập nhật"
               >
-                Hủy
+                <FontAwesomeIcon icon={faTimes} />
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {isAddAdminModalOpen && (
+      {isConfirmDeleteModalOpen && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
-            <h3>Thêm Quản Trị Viên</h3>
-            <label>
-              Tên:
-              <input
-                type="text"
-                value={newAdmin.username}
-                onChange={(e) => setNewAdmin({ ...newAdmin, username: e.target.value })}
-                placeholder="Nhập tên quản trị viên"
-              />
-            </label>
-            <label>
-              Email:
-              <input
-                type="email"
-                value={newAdmin.email}
-                onChange={(e) => setNewAdmin({ ...newAdmin, email: e.target.value })}
-                placeholder="Nhập email"
-              />
-            </label>
-            <label>
-              Số điện thoại:
-              <input
-                type="text"
-                value={newAdmin.phone}
-                onChange={(e) => setNewAdmin({ ...newAdmin, phone: e.target.value })}
-                placeholder="Nhập số điện thoại"
-              />
-            </label>
-            <label>
-              Mật khẩu:
-              <input
-                type="password"
-                value={newAdmin.password}
-                onChange={(e) => setNewAdmin({ ...newAdmin, password: e.target.value })}
-                placeholder="Nhập mật khẩu"
-              />
-            </label>
+            <h2>Xác Nhận Xóa</h2>
+            <p>Bạn có chắc muốn xóa {roleFilter === "user" ? "khách hàng" : "quản trị viên"} này?</p>
             <div className={styles.modalActions}>
-              <button type="button" className={styles.confirmBtn} onClick={handleAddAdmin}>
-                Thêm
+              <button
+                type="button"
+                className={styles.confirmBtn}
+                onClick={deleteCustomer}
+                title="Xác nhận xóa"
+                aria-label="Xác nhận xóa khách hàng"
+              >
+                <FontAwesomeIcon icon={faCheck} />
               </button>
               <button
                 type="button"
                 className={styles.cancelBtn}
-                onClick={() => setIsAddAdminModalOpen(false)}
+                onClick={() => {
+                  setIsConfirmDeleteModalOpen(false);
+                  setDeleteCustomerId(null);
+                }}
+                title="Hủy"
+                aria-label="Hủy xóa khách hàng"
               >
-                Hủy
+                <FontAwesomeIcon icon={faTimes} />
               </button>
             </div>
           </div>

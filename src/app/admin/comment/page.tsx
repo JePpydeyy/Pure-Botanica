@@ -5,7 +5,7 @@ import styles from "./comment.module.css";
 import Image from "next/image";
 import Head from "next/head";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
+import { faEye, faEyeSlash, faTimes, faCheck } from "@fortawesome/free-solid-svg-icons";
 import { toast } from "react-toastify";
 
 interface User {
@@ -259,7 +259,10 @@ const CommentPage: React.FC = () => {
     return (
       <div className={styles.productManagementContainer}>
         <div className={styles.errorContainer}>
-          <p className={styles.errorMessage}>Đang kiểm tra quyền truy cập...</p>
+          <div className={styles.processingIndicator}>
+            <div className={styles.spinner}></div>
+            <p>Đang kiểm tra quyền truy cập...</p>
+          </div>
         </div>
       </div>
     );
@@ -269,7 +272,10 @@ const CommentPage: React.FC = () => {
     return (
       <div className={styles.productManagementContainer}>
         <div className={styles.errorContainer}>
-          <p className={styles.errorMessage}>Đang tải danh sách bình luận...</p>
+          <div className={styles.processingIndicator}>
+            <div className={styles.spinner}></div>
+            <p>Đang tải danh sách bình luận...</p>
+          </div>
         </div>
       </div>
     );
@@ -285,11 +291,8 @@ const CommentPage: React.FC = () => {
           {notification.message}
         </div>
       )}
-      {loading && comments.length > 0 && (
-        <div className={styles.processingIndicator}>Đang xử lý...</div>
-      )}
       <div className={styles.titleContainer}>
-        <h1>QUẢN LÝ BÌNH LUẬN</h1>
+        <h1>Quản Lý Bình Luận</h1>
         <div className={styles.filterContainer}>
           <input
             type="text"
@@ -297,11 +300,13 @@ const CommentPage: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className={styles.searchInput}
+            aria-label="Tìm kiếm bình luận"
           />
           <select
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
             className={styles.categorySelect}
+            aria-label="Lọc theo trạng thái bình luận"
           >
             <option value="all">Tất cả trạng thái</option>
             <option value="show">Hiển thị</option>
@@ -340,9 +345,9 @@ const CommentPage: React.FC = () => {
                             : "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg"
                         }
                         alt={comment.product?.name || "Sản phẩm"}
-                        width={50}
-                        height={50}
-                        className={styles.productTableImage}
+                        width={60}
+                        height={60}
+                        className={styles.detailImage}
                         onError={(e) => {
                           (e.target as HTMLImageElement).src = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
                         }}
@@ -365,40 +370,37 @@ const CommentPage: React.FC = () => {
                         }}
                         disabled={loading || !token}
                         title={comment.status === "show" ? "Ẩn bình luận" : "Hiển thị bình luận"}
+                        aria-label={comment.status === "show" ? "Ẩn bình luận" : "Hiển thị bình luận"}
                       >
                         <FontAwesomeIcon icon={comment.status === "show" ? faEyeSlash : faEye} />
                       </button>
                     </td>
                   </tr>
-                    {selectedCommentId === comment._id && (
-                      <tr className={styles.detailsRow}>
-                        <td colSpan={6}>
-                          <div className={styles.productDetails}>
-                            <h3>Chi tiết bình luận</h3>
-                            <div className={styles.detailsContainer}>
-                              <div className={styles.detailsSection}>
-                                <h4>Thông tin người dùng</h4>
-                                <div className={styles.detailsGrid}>
-                                  <p>
-                                    <strong>Tên người dùng:</strong>{" "}
-                                    {comment.user?.username || "Không có"}
-                                  </p>
-                                  <p>
-                                    <strong>Email:</strong> {comment.user?.email || "Không có"}
-                                  </p>
-                                </div>
-                              </div>
-                              <div className={styles.detailsSection}>
-                                <h4>Nội dung bình luận</h4>
-                                <div className={styles.descriptionContent}>
-                                  {comment.content}
-                                </div>
-                              </div>
+                  {selectedCommentId === comment._id && (
+                    <tr className={styles.detailsRow}>
+                      <td colSpan={6}>
+                        <div className={styles.detailsContainer}>
+                          <h4>Chi tiết bình luận</h4>
+                          <div className={styles.detailsSection}>
+                            <h5>Thông tin người dùng</h5>
+                            <div className={styles.detailsGrid}>
+                              <p>
+                                <strong>Tên người dùng:</strong>{" "}
+                                {comment.user?.username || "Không có"}
+                              </p>
+                              <p>
+                                <strong>Email:</strong> {comment.user?.email || "Không có"}
+                              </p>
                             </div>
                           </div>
-                        </td>
-                      </tr>
-                    )}
+                          <div className={styles.detailsSection}>
+                            <h5>Nội dung bình luận</h5>
+                            <p>{comment.content}</p>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
                 </React.Fragment>
               ))
             ) : (
@@ -425,6 +427,7 @@ const CommentPage: React.FC = () => {
                       onClick={() => handlePageChange(1)}
                       disabled={loading || !token}
                       title="Trang đầu tiên"
+                      aria-label="Trang đầu tiên"
                     >
                       1
                     </button>
@@ -432,6 +435,8 @@ const CommentPage: React.FC = () => {
                       className={styles.ellipsis}
                       onClick={() => handlePageChange(Math.max(1, currentPage - 3))}
                       title="Trang trước đó"
+                      role="button"
+                      aria-label="Trang trước đó"
                     >
                       ...
                     </div>
@@ -446,6 +451,7 @@ const CommentPage: React.FC = () => {
                     onClick={() => handlePageChange(page)}
                     disabled={loading || !token}
                     title={`Trang ${page}`}
+                    aria-label={`Trang ${page}`}
                   >
                     {page}
                   </button>
@@ -456,6 +462,8 @@ const CommentPage: React.FC = () => {
                       className={styles.ellipsis}
                       onClick={() => handlePageChange(Math.min(totalPages, currentPage + 3))}
                       title="Trang tiếp theo"
+                      role="button"
+                      aria-label="Trang tiếp theo"
                     >
                       ...
                     </div>
@@ -464,6 +472,7 @@ const CommentPage: React.FC = () => {
                       onClick={() => handlePageChange(totalPages)}
                       disabled={loading || !token}
                       title="Trang cuối cùng"
+                      aria-label="Trang cuối cùng"
                     >
                       {totalPages}
                     </button>
@@ -480,8 +489,12 @@ const CommentPage: React.FC = () => {
             <h2>Xác nhận thay đổi trạng thái</h2>
             <p>{toggleMessage}</p>
             <div className={styles.modalActions}>
-              <button className={styles.confirmBtn} onClick={handleToggleStatus}>
-                Xác nhận
+              <button
+                className={styles.confirmBtn}
+                onClick={handleToggleStatus}
+                aria-label="Xác nhận thay đổi trạng thái"
+              >
+                <FontAwesomeIcon icon={faCheck} />
               </button>
               <button
                 className={styles.cancelBtn}
@@ -490,8 +503,9 @@ const CommentPage: React.FC = () => {
                   setToggleCommentId(null);
                   setToggleMessage("");
                 }}
+                aria-label="Hủy thay đổi trạng thái"
               >
-                Hủy
+                <FontAwesomeIcon icon={faTimes} />
               </button>
             </div>
           </div>

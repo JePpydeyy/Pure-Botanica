@@ -520,6 +520,7 @@ export default function ProductPage() {
               <th>Danh mục</th>
               <th>Brand</th>
               <th>Trạng thái</th>
+              <th>Kích hoạt</th> {/* Thêm dòng này */}
               <th>Hành động</th>
             </tr>
           </thead>
@@ -553,6 +554,7 @@ export default function ProductPage() {
                     </td>
                     <td>{brands.find((brand) => brand._id === product.id_brand)?.name || "Chưa phân loại"}</td>
                     <td>{product.status === "show" ? "Hiển thị" : "Ẩn"}</td>
+                    <td>{product.active ? "Có" : "Không"}</td> {/* Thêm dòng này */}
                     <td className={styles.actionButtons}>
                       <button
                         className={styles.editBtn}
@@ -680,7 +682,7 @@ export default function ProductPage() {
               ))
             ) : (
               <tr>
-                <td colSpan={6} className="text-center py-4">
+                <td colSpan={7} className="text-center py-4">
                   Không có sản phẩm nào
                 </td>
               </tr>

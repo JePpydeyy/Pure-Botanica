@@ -6,6 +6,7 @@ import styles from "./add_product.module.css";
 
 // Định nghĩa giao diện TypeScript
 interface Category {
+  status: string;
   _id: string;
   name: string;
 }
@@ -514,11 +515,13 @@ const AddProduct = () => {
                 required
               >
                 <option value="">-- Chọn danh mục --</option>
-                {categories.map((cat) => (
-                  <option key={cat._id} value={cat._id}>
-                    {cat.name}
-                  </option>
-                ))}
+                {categories
+                  .filter((cat) => cat.status !== "hidden")
+                  .map((cat) => (
+                    <option key={cat._id} value={cat._id}>
+                      {cat.name}
+                    </option>
+                  ))}
               </select>
             </div>
             <div className={styles.formGroup}>
@@ -531,11 +534,13 @@ const AddProduct = () => {
                 required
               >
                 <option value="">-- Chọn thương hiệu --</option>
-                {brands.map((brand) => (
-                  <option key={brand._id} value={brand._id}>
-                    {brand.name}
-                  </option>
-                ))}
+                {brands
+                  .filter((brand) => brand.status !== "hidden")
+                  .map((brand) => (
+                    <option key={brand._id} value={brand._id}>
+                      {brand.name}
+                    </option>
+                  ))}
               </select>
             </div>
           </div>

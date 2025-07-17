@@ -5,7 +5,7 @@ import type { Category } from "@/app/components/category_interface";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEdit, faEye, faEyeSlash, faCheck, faTimes } from "@fortawesome/free-solid-svg-icons";
+import { faEdit, faEye, faEyeSlash, faCheck, faTimes, faPlus } from "@fortawesome/free-solid-svg-icons";
 import { toast } from "react-toastify";
 
 interface Product {
@@ -22,6 +22,8 @@ export default function Category() {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [showConfirmPopup, setShowConfirmPopup] = useState<{ id: string; name: string; action: "ẩn" | "hiển thị" } | null>(null);
+  const [showStockWarning, setShowStockWarning] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<"all" | "show" | "hidden">("all");
   const router = useRouter();
 
   useEffect(() => {
@@ -57,7 +59,6 @@ export default function Category() {
     fetchCategories();
   }, [router]);
 
-  // Kiểm tra điều kiện ẩn danh mục
   const checkCategoryCanHide = useCallback(async (categoryId: string): Promise<boolean> => {
     if (!token) {
       toast.error("Vui lòng đăng nhập lại!");
@@ -74,17 +75,14 @@ export default function Category() {
       if (!res.ok) throw new Error("Không thể kiểm tra sản phẩm của danh mục");
       const products: Product[] = await res.json();
 
-      // Nếu không có sản phẩm => được phép ẩn
       if (!products || products.length === 0) return true;
 
-      // Nếu có sản phẩm, kiểm tra tất cả stock đều = 0
       const allStockZero = products.every(
         (product) =>
           Array.isArray(product.option) && product.option.every((opt) => Number(opt.stock) === 0)
       );
       if (allStockZero) return true;
 
-      // Nếu còn sản phẩm có stock > 0 thì không cho ẩn
       toast.error("Không thể ẩn danh mục vì vẫn còn sản phẩm có tồn kho!");
       return false;
     } catch (error: any) {
@@ -93,7 +91,6 @@ export default function Category() {
     }
   }, [token, router]);
 
-  // Xử lý khi ấn nút ẩn/hiển thị
   const handleToggleVisibility = useCallback(async (id: string) => {
     if (!token) {
       toast.error("Vui lòng đăng nhập để thực hiện thao tác này!");
@@ -113,7 +110,6 @@ export default function Category() {
     });
   }, [categories, token]);
 
-  // Xác nhận chuyển trạng thái
   const confirmToggleVisibility = useCallback(async () => {
     if (!showConfirmPopup || !token) return;
     const { id, name, action } = showConfirmPopup;
@@ -130,7 +126,11 @@ export default function Category() {
       );
       const result = await res.json();
       if (!res.ok) {
-        toast.error(result.message || `Không thể ${action} danh mục "${name}"`);
+        if (res.status === 400) {
+          setShowStockWarning(name);
+        } else {
+          toast.error(result.message || `Không thể ${action} danh mục "${name}"`);
+        }
         return;
       }
       setCategories((prev) => prev.map((cat) => (cat._id === id ? result.category : cat)));
@@ -142,7 +142,6 @@ export default function Category() {
     }
   }, [showConfirmPopup, token, router]);
 
-  // Sửa tên danh mục
   const handleEdit = useCallback((id: string) => {
     const category = categories.find((cat) => cat._id === id);
     if (category) {
@@ -150,7 +149,6 @@ export default function Category() {
     }
   }, [categories]);
 
-  // Lưu tên danh mục
   const handleUpdate = useCallback(async (id: string, updatedName: string) => {
     if (!token) {
       toast.error("Vui lòng đăng nhập để thực hiện thao tác này!");
@@ -190,122 +188,167 @@ export default function Category() {
     }
   }, [token, router]);
 
+  const filteredCategories = categories.filter((cat) =>
+    statusFilter === "all" ? true : cat.status === statusFilter
+  );
+
   if (loading) {
     return (
-      <div className="text-center py-10">
-        <div className={styles.spinner}></div>
-        <p>Đang tải danh sách danh mục...</p>
+      <div className={styles.errorContainer}>
+        <div className={styles.processingIndicator}>
+          <div className={styles.spinner}></div>
+          <p>Đang tải danh sách danh mục...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className={styles.containerCategory}>
-      <div className={styles.formTableCategory}>
-        <div className={styles.nameTableCategory}>
-          <span className={styles.span}>Danh Mục</span>
-          <div className={styles.formBtnAddNewCategory}>
-            <Link href="/admin/add_category" className={styles.btnAddNewCategory}>
-              Thêm danh mục
-            </Link>
-          </div>
+    <div className={styles.productManagementContainer}>
+      <div className={styles.titleContainer}>
+        <h1>Quản Lý Danh Mục</h1>
+        <div className={styles.filterContainer}>
+          <select
+            className={styles.categorySelect}
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as "all" | "show" | "hidden")}
+            aria-label="Lọc theo trạng thái"
+          >
+            <option value="all">Tất cả</option>
+            <option value="show">Hiển thị</option>
+            <option value="hidden">Ẩn</option>
+          </select>
+          <Link href="/admin/add_category" className={styles.addProductBtn}>
+            <FontAwesomeIcon icon={faPlus} />
+          </Link>
         </div>
+      </div>
 
-        <table className={styles.categoryTable}>
-          <thead>
-            <tr className={styles.categoryTableTr}>
+      <div className={styles.tableContainer}>
+        <table className={styles.productTable}>
+          <thead className={styles.productTableThead}>
+            <tr>
               <th>Tên Danh Mục</th>
               <th>Trạng Thái</th>
               <th>Hành Động</th>
             </tr>
           </thead>
           <tbody>
-            {categories.map((category) => (
-              <tr key={category._id}>
-                <td>
-                  {editingCategory?._id === category._id ? (
-                    <input
-                      type="text"
-                      value={editingCategory.name}
-                      onChange={(e) =>
-                        setEditingCategory({ ...editingCategory, name: e.target.value })
-                      }
-                      className={styles.editInput}
-                      aria-label="Chỉnh sửa tên danh mục"
-                    />
-                  ) : (
-                    category.name
-                  )}
-                </td>
-                <td>{category.status === "show" ? "Hiển thị" : "Ẩn"}</td>
-                <td className={styles.categoryTableTdLast}>
-                  {editingCategory?._id === category._id ? (
-                    <>
-                      <button
-                        className={styles.btnSave}
-                        onClick={() => handleUpdate(category._id, editingCategory.name)}
-                        title="Lưu"
-                        aria-label="Lưu thay đổi danh mục"
-                      >
-                        <FontAwesomeIcon icon={faCheck} />
-                      </button>
-                      <button
-                        className={styles.btnCancel}
-                        onClick={() => setEditingCategory(null)}
-                        title="Hủy"
-                        aria-label="Hủy chỉnh sửa danh mục"
-                      >
-                        <FontAwesomeIcon icon={faTimes} />
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        className={styles.btnEdit}
-                        onClick={() => handleEdit(category._id)}
-                        title="Chỉnh sửa"
-                        aria-label="Chỉnh sửa danh mục"
-                      >
-                        <FontAwesomeIcon icon={faEdit} />
-                      </button>
-                      <button
-                        className={styles.btnRemove}
-                        onClick={() => handleToggleVisibility(category._id)}
-                        title={category.status === "show" ? "Ẩn danh mục" : "Hiển thị danh mục"}
-                        aria-label={category.status === "show" ? "Ẩn danh mục" : "Hiển thị danh mục"}
-                      >
-                        <FontAwesomeIcon icon={category.status === "show" ? faEyeSlash : faEye} />
-                      </button>
-                    </>
-                  )}
+            {filteredCategories.length === 0 ? (
+              <tr>
+                <td colSpan={3} className={styles.emptyState}>
+                  <h3>Không có danh mục</h3>
+                  <p>Vui lòng thêm danh mục mới để bắt đầu.</p>
                 </td>
               </tr>
-            ))}
+            ) : (
+              filteredCategories.map((category) => (
+                <tr key={category._id} className={styles.productRow}>
+                  <td>
+                    {editingCategory?._id === category._id ? (
+                      <input
+                        type="text"
+                        value={editingCategory.name}
+                        onChange={(e) =>
+                          setEditingCategory({ ...editingCategory, name: e.target.value })
+                        }
+                        className={styles.searchInput}
+                        aria-label="Chỉnh sửa tên danh mục"
+                      />
+                    ) : (
+                      category.name
+                    )}
+                  </td>
+                  <td>{category.status === "show" ? "Hiển thị" : "Ẩn"}</td>
+                  <td className={styles.actionButtons}>
+                    {editingCategory?._id === category._id ? (
+                      <>
+                        <button
+                          className={styles.editBtn}
+                          onClick={() => handleUpdate(category._id, editingCategory.name)}
+                          title="Lưu"
+                          aria-label="Lưu thay đổi danh mục"
+                        >
+                          <FontAwesomeIcon icon={faCheck} />
+                        </button>
+                        <button
+                          className={styles.toggleStatusBtn}
+                          onClick={() => setEditingCategory(null)}
+                          title="Hủy"
+                          aria-label="Hủy chỉnh sửa danh mục"
+                        >
+                          <FontAwesomeIcon icon={faTimes} />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          className={styles.editBtn}
+                          onClick={() => handleEdit(category._id)}
+                          title="Chỉnh sửa"
+                          aria-label="Chỉnh sửa danh mục"
+                        >
+                          <FontAwesomeIcon icon={faEdit} />
+                        </button>
+                        <button
+                          className={styles.toggleStatusBtn}
+                          onClick={() => handleToggleVisibility(category._id)}
+                          title={category.status === "show" ? "Ẩn danh mục" : "Hiển thị danh mục"}
+                          aria-label={category.status === "show" ? "Ẩn danh mục" : "Hiển thị danh mục"}
+                        >
+                          <FontAwesomeIcon icon={category.status === "show" ? faEyeSlash : faEye} />
+                        </button>
+                      </>
+                    )}
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
 
       {showConfirmPopup && (
-        <div className={styles.warningPopup}>
-          <div className={styles.warningContent}>
-            <h3>Xác nhận</h3>
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <h2>Xác nhận</h2>
             <p>
               Bạn có chắc chắn muốn {showConfirmPopup.action} danh mục "{showConfirmPopup.name}" không?
             </p>
-            <div className={styles.confirmButtons}>
+            <div className={styles.modalActions}>
               <button
-                className={styles.btnSave}
+                className={styles.confirmBtn}
                 onClick={confirmToggleVisibility}
                 aria-label="Xác nhận hành động"
               >
-                Xác nhận
+                <FontAwesomeIcon icon={faCheck} />
               </button>
               <button
-                className={styles.btnCancel}
+                className={styles.cancelBtn}
                 onClick={() => setShowConfirmPopup(null)}
                 aria-label="Hủy hành động"
               >
-                Hủy
+                <FontAwesomeIcon icon={faTimes} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showStockWarning && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <h2>Cảnh báo</h2>
+            <p>
+              Không thể ẩn danh mục "<b>{showStockWarning}</b>" vì vẫn còn sản phẩm có tồn kho!
+            </p>
+            <div className={styles.modalActions}>
+              <button
+                className={styles.cancelBtn}
+                onClick={() => setShowStockWarning(null)}
+                aria-label="Đóng cảnh báo"
+              >
+                <FontAwesomeIcon icon={faTimes} />
               </button>
             </div>
           </div>

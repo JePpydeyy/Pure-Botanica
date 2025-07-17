@@ -4,6 +4,8 @@ import React, { useEffect, useState, useCallback, useMemo } from "react";
 import styles from "./order.module.css";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCheck, faTimes } from "@fortawesome/free-solid-svg-icons";
 
 interface Option {
   stock: number;
@@ -54,10 +56,10 @@ const FALLBACK_IMAGE_URL = "https://via.placeholder.com/60x60?text=Error";
 
 const normalizeImageUrl = (url: string): string => {
   if (url.startsWith("https://res.cloudinary.com")) {
-    return url; // Giữ nguyên URL từ Cloudinary
+    return url;
   }
   if (!url.startsWith("http://") && !url.startsWith("https://")) {
-    return `${API_BASE_URL}/${url}?_t=${Date.now()}`; // Thêm timestamp để phá cache
+    return `${API_BASE_URL}/${url}?_t=${Date.now()}`;
   }
   return url;
 };
@@ -80,6 +82,8 @@ export default function OrderPage() {
     message: "",
     type: "success",
   });
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const router = useRouter();
 
   const paymentStatusMapping = {
@@ -123,7 +127,6 @@ export default function OrderPage() {
     return [addressLine, ward, district, cityOrProvince].filter(Boolean).join(", ") || "Chưa có địa chỉ";
   };
 
-  // Show notification and auto-hide after 3 seconds
   const showNotification = (message: string, type: "success" | "error") => {
     setNotification({ show: true, message, type });
     setTimeout(() => {
@@ -131,7 +134,6 @@ export default function OrderPage() {
     }, 3000);
   };
 
-  // Check admin role and token
   useEffect(() => {
     const token = localStorage.getItem("token");
     const role = localStorage.getItem("role");
@@ -144,7 +146,6 @@ export default function OrderPage() {
     }
   }, [router]);
 
-  // Fetch orders
   useEffect(() => {
     const fetchOrders = async () => {
       try {
@@ -181,7 +182,6 @@ export default function OrderPage() {
     fetchOrders();
   }, [router]);
 
-  // Debounce filter function
   const debounce = <T extends (...args: any[]) => void>(func: T, wait: number) => {
     let timeout: NodeJS.Timeout;
     return (...args: Parameters<T>) => {
@@ -190,7 +190,6 @@ export default function OrderPage() {
     };
   };
 
-  // Filter orders based on search query and shipping status
   const filterOrders = useCallback(
     (query: string, shippingStatus: string) => {
       const filtered = orders.filter((order) => {
@@ -219,7 +218,6 @@ export default function OrderPage() {
     debouncedFilter(searchQuery, shippingStatusFilter);
   }, [searchQuery, shippingStatusFilter, debouncedFilter]);
 
-  // Reset filters
   const resetFilters = () => {
     setSearchQuery("");
     setShippingStatusFilter("all");
@@ -370,65 +368,80 @@ export default function OrderPage() {
     return FALLBACK_IMAGE_URL;
   };
 
+  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
+
+  const currentOrders = useMemo(
+    () =>
+      filteredOrders.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+      ),
+    [filteredOrders, currentPage]
+  );
+
+  const handlePageChange = (page: number) => {
+    if (page < 1 || page > totalPages) return;
+    setCurrentPage(page);
+  };
+
   if (error) {
     return (
       <div className={styles.errorContainer}>
         <p className={styles.errorMessage}>{error}</p>
         <button className={styles.retryButton} onClick={() => window.location.reload()}>
-          Thử lại
+          <FontAwesomeIcon icon={faTimes} />
         </button>
       </div>
     );
   }
 
   return (
-    <div className={styles.orderContainer}>
+    <div className={styles.productManagementContainer}>
       {notification.show && (
         <div className={`${styles.notification} ${styles[notification.type]}`}>
           {notification.message}
         </div>
       )}
-      <div className={styles.title}>
-        <h1>Danh Sách Đơn Hàng</h1>
-      </div>
-      <div className={styles.searchContainer}>
-        <input
-          type="text"
-          placeholder="Tìm kiếm theo tên, ID đơn hàng hoặc địa chỉ..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className={styles.searchInput}
-        />
-        <select
-          value={shippingStatusFilter}
-          onChange={(e) => setShippingStatusFilter(e.target.value)}
-          className={styles.statusFilter}
-        >
-          {allStatuses.map((status) => (
-            <option key={status.value} value={status.value}>
-              {status.label}
-            </option>
-          ))}
-        </select>
-        <button type="button" onClick={resetFilters} className={styles.resetButton}>
-          Xóa bộ lọc
-        </button>
+      <div className={styles.titleContainer}>
+        <h1>Quản Lý Đơn Hàng</h1>
+        <div className={styles.filterContainer}>
+          <input
+            type="text"
+            placeholder="Tìm kiếm theo tên, ID đơn hàng hoặc địa chỉ..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className={styles.searchInput}
+            aria-label="Tìm kiếm đơn hàng"
+          />
+          <select
+            value={shippingStatusFilter}
+            onChange={(e) => setShippingStatusFilter(e.target.value)}
+            className={styles.categorySelect}
+            aria-label="Lọc theo trạng thái vận chuyển"
+          >
+            {allStatuses.map((status) => (
+              <option key={status.value} value={status.value}>
+                {status.label}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
       <div className={styles.tableContainer}>
-        <table className={styles.orderTable}>
-          <thead>
+        <table className={styles.productTable}>
+          <thead className={styles.productTableThead}>
             <tr>
-              <th data-label="ID">ID</th>
-              <th data-label="Tên">Tên</th>
-              <th data-label="Tổng Tiền">Tổng Tiền</th>
-              <th data-label="Ngày">Ngày</th>
-              <th data-label="Trạng Thái Thanh Toán">Trạng Thái Thanh Toán</th>
-              <th data-label="Trạng Thái Vận Chuyển">Trạng Thái Vận Chuyển</th>
-              <th data-label="Phương Thức Thanh Toán"></th>
+              <th>ID</th>
+              <th>Tên</th>
+              <th>Tổng Tiền</th>
+              <th>Ngày</th>
+              <th>Trạng Thái Thanh Toán</th>
+              <th>Trạng Thái Vận Chuyển</th>
+              <th>Phương Thức Thanh Toán</th>
             </tr>
           </thead>
           <tbody>
-            {filteredOrders.length === 0 ? (
+            {currentOrders.length === 0 ? (
               <tr>
                 <td colSpan={7} className={styles.emptyState}>
                   <h3>{searchQuery || shippingStatusFilter !== "all" ? "Không tìm thấy đơn hàng" : "Chưa có đơn hàng"}</h3>
@@ -440,20 +453,20 @@ export default function OrderPage() {
                 </td>
               </tr>
             ) : (
-              filteredOrders.map((order, index) => (
-                <tr key={order._id} onClick={(e) => handleOrderClick(order, e)}>
-                  <td data-label="ID">{index + 1}</td>
-                  <td data-label="Tên">{order.user.username || "Không xác định"}</td>
-                  <td data-label="Tổng Tiền">{order.total.toLocaleString()} VND</td>
-                  <td data-label="Ngày">{formatDate(order.createdAt)}</td>
-                  <td data-label="Trạng Thái Thanh Toán">{getVietnamesePaymentStatus(order.paymentStatus)}</td>
-                  <td data-label="Trạng Thái Vận Chuyển">
+              currentOrders.map((order, index) => (
+                <tr key={order._id} className={styles.productRow} onClick={(e) => handleOrderClick(order, e)}>
+                  <td>{(currentPage - 1) * itemsPerPage + index + 1}</td>
+                  <td>{order.user.username || "Không xác định"}</td>
+                  <td>{order.total.toLocaleString()} VND</td>
+                  <td>{formatDate(order.createdAt)}</td>
+                  <td>{getVietnamesePaymentStatus(order.paymentStatus)}</td>
+                  <td>
                     <select
                       value={getVietnameseShippingStatus(order.shippingStatus)}
                       onChange={(e) =>
                         handleShippingStatusChange(order._id, e.target.value, order.shippingStatus)
                       }
-                      className={styles.statusSelect}
+                      className={styles.categorySelect}
                       onClick={(e) => e.stopPropagation()}
                       disabled={order.shippingStatus === "returned"}
                     >
@@ -472,7 +485,7 @@ export default function OrderPage() {
                       ))}
                     </select>
                   </td>
-                  <td data-label="Phương Thức Thanh Toán">
+                  <td>
                     {order.paymentMethod === "cod"
                       ? "Thanh toán khi nhận hàng"
                       : order.paymentMethod === "bank"
@@ -487,65 +500,73 @@ export default function OrderPage() {
       </div>
 
       {showPopup && selectedOrder && (
-        <div className={styles.popupOverlay} onClick={closePopup}>
-          <div className={styles.orderDetail} onClick={(e) => e.stopPropagation()}>
-            <button className={styles.closeButton} onClick={closePopup} aria-label="Đóng chi tiết đơn hàng">
-              ×
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <button className={styles.cancelBtn} onClick={closePopup} aria-label="Đóng chi tiết đơn hàng">
+              <FontAwesomeIcon icon={faTimes} />
             </button>
             <h2>Chi Tiết Đơn Hàng</h2>
-            <p>
-              <strong>Khách hàng:</strong> {selectedOrder.user.username || "Không xác định"}
-            </p>
-            <p>
-              <strong>Địa chỉ:</strong> {formatAddress(selectedOrder.address)}
-            </p>
-            <p>
-              <strong>Ngày:</strong> {formatDate(selectedOrder.createdAt)}
-            </p>
-            <p>
-              <strong>Trạng thái thanh toán:</strong> {getVietnamesePaymentStatus(selectedOrder.paymentStatus)}
-            </p>
-            <p>
-              <strong>Trạng thái vận chuyển:</strong> {getVietnameseShippingStatus(selectedOrder.shippingStatus)}
-            </p>
-            <h3>Sản phẩm trong đơn hàng:</h3>
-            <ul>
-              {selectedOrder.items && selectedOrder.items.length > 0 ? (
-                selectedOrder.items.map((item, idx) => (
-                  <li key={idx}>
-                    <Image
-                      src={getProductImage(item)}
-                      alt={item.product?.name || "Không xác định"}
-                      width={60}
-                      height={60}
-                      className={styles.productImage}
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = FALLBACK_IMAGE_URL;
-                        console.log(`Image load failed for ${item.product?.name || "Không xác định"}:`, item.images[0]);
-                      }}
-                    />
-                    <div className={styles.productInfo}>
-                      <div className={styles.productName}>{item.product?.name || "Không xác định"}</div>
-                      <div className={styles.productPrice}>
-                        {item.quantity} x {getProductPrice(item.product, item.optionId).toLocaleString()} VND
-                      </div>
-                    </div>
-                  </li>
-                ))
-              ) : (
-                <li>Không có sản phẩm trong đơn hàng</li>
-              )}
-            </ul>
-            <div className={styles.total}>
-              Tổng tiền đơn hàng: {selectedOrder.total.toLocaleString()} VND
+            <div className={styles.detailsContainer}>
+              <div className={styles.detailsSection}>
+                <h4>Thông Tin Khách Hàng</h4>
+                <p><strong>Tên:</strong> {selectedOrder.user.username || "Không xác định"}</p>
+                <p><strong>Email:</strong> {selectedOrder.user.email || "Không xác định"}</p>
+                <p><strong>Địa chỉ:</strong> {formatAddress(selectedOrder.address)}</p>
+              </div>
+              <div className={styles.detailsSection}>
+                <h4>Thông Tin Đơn Hàng</h4>
+                <p><strong>Ngày:</strong> {formatDate(selectedOrder.createdAt)}</p>
+                <p><strong>Trạng thái thanh toán:</strong> {getVietnamesePaymentStatus(selectedOrder.paymentStatus)}</p>
+                <p><strong>Trạng thái vận chuyển:</strong> {getVietnameseShippingStatus(selectedOrder.shippingStatus)}</p>
+                <p><strong>Phương thức thanh toán:</strong>
+                  {selectedOrder.paymentMethod === "cod"
+                    ? "Thanh toán khi nhận hàng"
+                    : selectedOrder.paymentMethod === "bank"
+                    ? "Chuyển khoản"
+                    : selectedOrder.paymentMethod || "Không xác định"}
+                </p>
+              </div>
+              <div className={styles.detailsSection}>
+                <h4>Sản phẩm trong đơn hàng</h4>
+                {selectedOrder.items && selectedOrder.items.length > 0 ? (
+                  <ul className={styles.imageGallery}>
+                    {selectedOrder.items.map((item, idx) => (
+                      <li key={idx} className={styles.detailsGrid}>
+                        <Image
+                          src={getProductImage(item)}
+                          alt={item.product?.name || "Không xác định"}
+                          width={100}
+                          height={100}
+                          className={styles.detailImage}
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = FALLBACK_IMAGE_URL;
+                            console.log(`Image load failed for ${item.product?.name || "Không xác định"}:`, item.images[0]);
+                          }}
+                        />
+                        <div>
+                          <p><strong>Tên:</strong> {item.product?.name || "Không xác định"}</p>
+                          <p><strong>Số lượng:</strong> {item.quantity}</p>
+                          <p><strong>Giá:</strong> {getProductPrice(item.product, item.optionId).toLocaleString()} VND</p>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>Không có sản phẩm trong đơn hàng</p>
+                )}
+              </div>
+              <div className={styles.detailsSection}>
+                <h4>Tổng tiền</h4>
+                <p>{selectedOrder.total.toLocaleString()} VND</p>
+              </div>
             </div>
           </div>
         </div>
       )}
 
       {showConfirm && (
-        <div className={styles.popupOverlay} onClick={cancelConfirm}>
-          <div className={styles.confirmModal} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
             <h2>Xác Nhận Thay Đổi Trạng Thái</h2>
             <p>
               Bạn có chắc chắn muốn chuyển trạng thái vận chuyển sang{" "}
@@ -560,23 +581,51 @@ export default function OrderPage() {
                 </>
               ) : null}
             </p>
-            <div className={styles.confirmButtons}>
+            <div className={styles.modalActions}>
               <button
-                className={styles.confirmButton}
+                className={styles.confirmBtn}
                 onClick={confirmStatusChange}
                 aria-label="Xác nhận thay đổi trạng thái"
               >
-                Xác Nhận
+                <FontAwesomeIcon icon={faCheck} />
               </button>
               <button
-                className={styles.cancelButton}
+                className={styles.cancelBtn}
                 onClick={cancelConfirm}
                 aria-label="Hủy thay đổi trạng thái"
               >
-                Hủy
+                <FontAwesomeIcon icon={faTimes} />
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className={styles.pagination}>
+          <button
+            className={`${styles.pageLink} ${currentPage === 1 ? styles.pageLinkDisabled : ""}`}
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+          >
+            &lt;
+          </button>
+          {Array.from({ length: totalPages }, (_, i) => (
+            <button
+              key={i + 1}
+              className={`${styles.pageLink} ${currentPage === i + 1 ? styles.pageLinkActive : ""}`}
+              onClick={() => handlePageChange(i + 1)}
+            >
+              {i + 1}
+            </button>
+          ))}
+          <button
+            className={`${styles.pageLink} ${currentPage === totalPages ? styles.pageLinkDisabled : ""}`}
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+          >
+            &gt;
+          </button>
         </div>
       )}
     </div>

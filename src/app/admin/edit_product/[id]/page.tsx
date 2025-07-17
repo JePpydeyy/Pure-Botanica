@@ -18,8 +18,8 @@ interface Product {
   slug: string;
   status: "show" | "hidden";
   view: number;
-  id_brand: string;
-  id_category: string;
+  id_brand: string | { _id: string; name?: string };
+  id_category: string | { _id: string; name?: string };
   images: string[];
   short_description: string;
   description: string;
@@ -582,11 +582,13 @@ const EditProduct = () => {
                 required
               >
                 <option value="">-- Chọn danh mục --</option>
-                {categories.map((cat) => (
-                  <option key={cat._id} value={cat._id}>
-                    {cat.name}
-                  </option>
-                ))}
+                {categories
+                  .filter((cat: any) => cat.status !== "hidden")
+                  .map((cat) => (
+                    <option key={cat._id} value={cat._id}>
+                      {cat.name}
+                    </option>
+                  ))}
               </select>
             </div>
           </div>
@@ -601,11 +603,13 @@ const EditProduct = () => {
                 required
               >
                 <option value="">-- Chọn thương hiệu --</option>
-                {brands.map((brand) => (
-                  <option key={brand._id} value={brand._id}>
-                    {brand.name}
-                  </option>
-                ))}
+                {brands
+                  .filter((brand: any) => brand.status !== "hidden")
+                  .map((brand) => (
+                    <option key={brand._id} value={brand._id}>
+                      {brand.name}
+                    </option>
+                  ))}
               </select>
             </div>
             <div className={styles.formGroup}>

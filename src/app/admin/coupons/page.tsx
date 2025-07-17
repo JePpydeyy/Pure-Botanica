@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import styles from "./coupon.module.css";
 import type { Coupon } from "@/app/components/coupon_interface";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEdit, faTrash, faPlus, faTimes, faCheck, faRedo } from '@fortawesome/free-solid-svg-icons';
+import { faEdit, faTrash, faPlus, faTimes, faCheck } from '@fortawesome/free-solid-svg-icons';
 
 interface Pagination {
   page: number;
@@ -27,7 +27,7 @@ export default function CouponPage() {
   const [filteredCoupons, setFilteredCoupons] = useState<Coupon[]>([]);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [notification, setNotification] = useState<Notification>({ show: false, message: "", type: "success" });
   const [pagination, setPagination] = useState<Pagination>({
     page: 1,
     limit: 10,
@@ -39,7 +39,6 @@ export default function CouponPage() {
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteCouponId, setDeleteCouponId] = useState<string | null>(null);
-  const [notification, setNotification] = useState<Notification>({ show: false, message: "", type: "success" });
   const [formData, setFormData] = useState<FormData>({
     code: "",
     discountType: "percentage",
@@ -58,7 +57,8 @@ export default function CouponPage() {
     const role = localStorage.getItem("role");
 
     if (!token || role !== "admin") {
-      router.push("/user/login");
+      setNotification({ show: true, message: "Bạn không có quyền truy cập. Vui lòng đăng nhập với tài khoản admin.", type: "error" });
+      setTimeout(() => router.push("/user/login"), 3000);
     } else {
       setIsAuthorized(true);
     }
@@ -104,7 +104,6 @@ export default function CouponPage() {
         setCoupons(data.coupons || []);
         setFilteredCoupons(data.coupons || []);
         setPagination(data.pagination || pagination);
-        setLoading(false);
       } catch (err) {
         const errorMessage =
           err instanceof Error
@@ -112,20 +111,19 @@ export default function CouponPage() {
               ? "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!"
               : "Lỗi khi tải dữ liệu khuyến mãi!"
             : "Đã xảy ra lỗi không xác định";
-        setError(errorMessage);
         setNotification({ show: true, message: errorMessage, type: "error" });
         setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
-        setLoading(false);
-
         if (err instanceof Error && err.message === "Phiên đăng nhập hết hạn") {
           localStorage.clear();
-          router.push("/user/login");
+          setTimeout(() => router.push("/user/login"), 3000);
         }
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchCoupons();
-  }, [isAuthorized, pagination.page, pagination.limit, searchQuery, statusFilter, router]);
+  }, [isAuthorized, pagination.page, pagination.limit, searchQuery, statusFilter]);
 
   // Handle client-side filtering as fallback
   useEffect(() => {
@@ -148,6 +146,7 @@ export default function CouponPage() {
       ...prev,
       total: filtered.length,
       totalPages: Math.ceil(filtered.length / prev.limit),
+      page: 1,
     }));
   }, [coupons, searchQuery, statusFilter]);
 
@@ -221,6 +220,10 @@ export default function CouponPage() {
           : "Đã xảy ra lỗi không xác định";
       setNotification({ show: true, message: errorMessage, type: "error" });
       setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
+      if (err instanceof Error && err.message === "Phiên đăng nhập hết hạn") {
+        localStorage.clear();
+        setTimeout(() => router.push("/user/login"), 3000);
+      }
     }
   };
 
@@ -286,7 +289,7 @@ export default function CouponPage() {
       setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
       if (err instanceof Error && err.message === "Phiên đăng nhập hết hạn") {
         localStorage.clear();
-        router.push("/user/login");
+        setTimeout(() => router.push("/user/login"), 3000);
       }
     }
   };
@@ -327,36 +330,35 @@ export default function CouponPage() {
 
   if (loading) {
     return (
-      <div className={styles.couponPage}>
+      <div className={styles.productManagementContainer}>
         <div className={styles.errorContainer}>
-          <p className={styles.errorMessage}>Đang tải mã giảm giá...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className={styles.couponPage}>
-        <div className={styles.errorContainer}>
-          <p className={styles.errorMessage}>{error}</p>
-          <button className={styles.retryButton} onClick={() => window.location.reload()}>
-            <FontAwesomeIcon icon={faRedo} />
-          </button>
+          <div className={styles.processingIndicator}>
+            <div className={styles.spinner}></div>
+            <p>Đang tải mã giảm giá...</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={styles.couponPage}>
+    <div className={styles.productManagementContainer}>
       {notification.show && (
-        <div className={`${styles.notification} ${styles[notification.type]}`}>
-          {notification.message}
+        <div className={styles.modalOverlay}>
+          <div className={`${styles.modalContent} ${styles[notification.type]}`}>
+            <p>{notification.message}</p>
+            <button
+              className={styles.cancelBtn}
+              onClick={() => setNotification({ show: false, message: "", type: "success" })}
+              aria-label="Đóng thông báo"
+            >
+              <FontAwesomeIcon icon={faTimes} />
+            </button>
+          </div>
         </div>
       )}
       <div className={styles.titleContainer}>
-        <h1>QUẢN LÝ MÃ GIẢM GIÁ</h1>
+        <h1>Quản Lý Mã Giảm Giá</h1>
         <div className={styles.filterContainer}>
           <input
             type="text"
@@ -364,11 +366,13 @@ export default function CouponPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className={styles.searchInput}
+            aria-label="Tìm kiếm mã giảm giá"
           />
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as "all" | "active" | "inactive")}
             className={styles.categorySelect}
+            aria-label="Lọc theo trạng thái mã giảm giá"
           >
             <option value="all">Tất cả trạng thái</option>
             <option value="active">Hoạt động</option>
@@ -377,15 +381,15 @@ export default function CouponPage() {
           <button
             className={styles.addProductBtn}
             onClick={() => setShowModal(true)}
-            title="Thêm mã giảm giá"
+            aria-label="Thêm mã giảm giá mới"
           >
             <FontAwesomeIcon icon={faPlus} />
           </button>
         </div>
       </div>
       <div className={styles.tableContainer}>
-        <table className={styles.table}>
-          <thead>
+        <table className={styles.productTable}>
+          <thead className={styles.productTableThead}>
             <tr>
               <th>STT</th>
               <th>Mã giảm giá</th>
@@ -407,7 +411,7 @@ export default function CouponPage() {
                   pagination.page * pagination.limit
                 )
                 .map((coupon, index) => (
-                  <tr key={coupon._id}>
+                  <tr key={coupon._id} className={styles.productRow}>
                     <td>{(pagination.page - 1) * pagination.limit + index + 1}</td>
                     <td>{coupon.code}</td>
                     <td>{coupon.discountType === "percentage" ? "Phần trăm" : "Cố định"}</td>
@@ -439,13 +443,15 @@ export default function CouponPage() {
                           className={styles.editBtn}
                           onClick={() => handleEdit(coupon)}
                           title="Sửa mã giảm giá"
+                          aria-label="Sửa mã giảm giá"
                         >
                           <FontAwesomeIcon icon={faEdit} />
                         </button>
                         <button
-                          className={styles.deleteBtn}
+                          className={styles.cancelBtn}
                           onClick={() => confirmDelete(coupon._id)}
                           title="Xóa mã giảm giá"
+                          aria-label="Xóa mã giảm giá"
                         >
                           <FontAwesomeIcon icon={faTrash} />
                         </button>
@@ -456,7 +462,8 @@ export default function CouponPage() {
             ) : (
               <tr>
                 <td colSpan={10} className={styles.emptyState}>
-                  Không có mã giảm giá nào.
+                  <h3>Không có mã giảm giá</h3>
+                  <p>Chưa có mã giảm giá nào phù hợp với bộ lọc.</p>
                 </td>
               </tr>
             )}
@@ -476,6 +483,7 @@ export default function CouponPage() {
                       onClick={() => handlePageChange(1)}
                       disabled={loading}
                       title="Trang đầu tiên"
+                      aria-label="Trang đầu tiên"
                     >
                       1
                     </button>
@@ -483,6 +491,8 @@ export default function CouponPage() {
                       className={styles.ellipsis}
                       onClick={() => handlePageChange(Math.max(1, pagination.page - 3))}
                       title="Trang trước đó"
+                      role="button"
+                      aria-label="Trang trước đó"
                     >
                       ...
                     </div>
@@ -497,6 +507,7 @@ export default function CouponPage() {
                     onClick={() => handlePageChange(page)}
                     disabled={loading}
                     title={`Trang ${page}`}
+                    aria-label={`Trang ${page}`}
                   >
                     {page}
                   </button>
@@ -507,6 +518,8 @@ export default function CouponPage() {
                       className={styles.ellipsis}
                       onClick={() => handlePageChange(Math.min(pagination.totalPages, pagination.page + 3))}
                       title="Trang tiếp theo"
+                      role="button"
+                      aria-label="Trang tiếp theo"
                     >
                       ...
                     </div>
@@ -515,6 +528,7 @@ export default function CouponPage() {
                       onClick={() => handlePageChange(pagination.totalPages)}
                       disabled={loading}
                       title="Trang cuối cùng"
+                      aria-label="Trang cuối cùng"
                     >
                       {pagination.totalPages}
                     </button>
@@ -527,7 +541,7 @@ export default function CouponPage() {
       )}
       {showModal && (
         <div className={styles.modalOverlay}>
-          <div className={styles.modal}>
+          <div className={styles.modalContent}>
             <h2>{formData._id ? "Sửa mã giảm giá" : "Thêm mã giảm giá"}</h2>
             <form onSubmit={handleSubmit}>
               <div className={styles.formGroup}>
@@ -536,8 +550,10 @@ export default function CouponPage() {
                   type="text"
                   value={formData.code}
                   onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                  className={styles.formInput}
                   required
                   disabled={!!formData._id}
+                  aria-label="Mã giảm giá"
                 />
               </div>
               <div className={styles.formGroup}>
@@ -547,7 +563,9 @@ export default function CouponPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, discountType: e.target.value as "percentage" | "fixed" })
                   }
+                  className={styles.categorySelect}
                   required
+                  aria-label="Loại giảm giá"
                 >
                   <option value="percentage">Phần trăm</option>
                   <option value="fixed">Cố định</option>
@@ -561,9 +579,11 @@ export default function CouponPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, discountValue: Number(e.target.value) })
                   }
+                  className={styles.formInput}
                   required
                   min="0"
-                  disabled={!!formData._id} // Thêm dòng này để không cho sửa khi cập nhật
+                  disabled={!!formData._id}
+                  aria-label="Giá trị giảm"
                 />
               </div>
               <div className={styles.formGroup}>
@@ -574,7 +594,9 @@ export default function CouponPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, minOrderValue: Number(e.target.value) })
                   }
+                  className={styles.formInput}
                   min="0"
+                  aria-label="Đơn hàng tối thiểu"
                 />
               </div>
               <div className={styles.formGroup}>
@@ -585,6 +607,8 @@ export default function CouponPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, expiryDate: e.target.value })
                   }
+                  className={styles.formInput}
+                  aria-label="Ngày hết hạn"
                 />
               </div>
               <div className={styles.formGroup}>
@@ -598,7 +622,9 @@ export default function CouponPage() {
                       usageLimit: e.target.value ? Number(e.target.value) : null,
                     })
                   }
+                  className={styles.formInput}
                   min="0"
+                  aria-label="Số lần sử dụng"
                 />
               </div>
               <div className={styles.formGroup}>
@@ -606,23 +632,31 @@ export default function CouponPage() {
                 <input
                   type="number"
                   value={formData.usedCount ?? 0}
+                  className={styles.formInput}
                   disabled
+                  aria-label="Số lượt đã dùng"
                 />
               </div>
               <div className={styles.formGroup}>
-                <label>Trạng thái:</label>
-                <input
-                  type="checkbox"
-                  checked={formData.isActive}
-                  onChange={(e) =>
-                    setFormData({ ...formData, isActive: e.target.checked })
-                  }
-                />
-                <span>Hoạt động</span>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={formData.isActive}
+                    onChange={(e) =>
+                      setFormData({ ...formData, isActive: e.target.checked })
+                    }
+                    aria-label="Trạng thái mã giảm giá"
+                  />
+                  <span>Hoạt động</span>
+                </label>
               </div>
-              <div className={styles.formActions}>
-                <button type="submit" className={styles.confirmBtn}>
-                  {formData._id ? "Cập nhật" : "Thêm"}
+              <div className={styles.modalActions}>
+                <button
+                  type="submit"
+                  className={styles.confirmBtn}
+                  aria-label={formData._id ? "Cập nhật mã giảm giá" : "Thêm mã giảm giá"}
+                >
+                  <FontAwesomeIcon icon={formData._id ? faEdit : faPlus} />
                 </button>
                 <button
                   type="button"
@@ -640,8 +674,9 @@ export default function CouponPage() {
                       usedCount: 0,
                     });
                   }}
+                  aria-label="Hủy"
                 >
-                  Hủy
+                  <FontAwesomeIcon icon={faTimes} />
                 </button>
               </div>
             </form>
@@ -651,10 +686,14 @@ export default function CouponPage() {
       {showDeleteModal && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
-            <h2>Xác nhận xóa</h2>
+            <h2>Xác Nhận Xóa</h2>
             <p>Bạn có chắc muốn xóa mã giảm giá này?</p>
             <div className={styles.modalActions}>
-              <button className={styles.confirmBtn} onClick={handleDelete}>
+              <button
+                className={styles.confirmBtn}
+                onClick={handleDelete}
+                aria-label="Xác nhận xóa mã giảm giá"
+              >
                 <FontAwesomeIcon icon={faCheck} />
               </button>
               <button
@@ -663,6 +702,7 @@ export default function CouponPage() {
                   setShowDeleteModal(false);
                   setDeleteCouponId(null);
                 }}
+                aria-label="Hủy xóa mã giảm giá"
               >
                 <FontAwesomeIcon icon={faTimes} />
               </button>

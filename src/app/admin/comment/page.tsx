@@ -58,9 +58,9 @@ const CommentPage: React.FC = () => {
   const router = useRouter();
 
   const normalizeImageUrl = (path: string): string => {
-    return path.startsWith("/images/")
-      ? `https://api-zeal.onrender.com${path}`
-      : `https://api-zeal.onrender.com/images/${path.replace(/^images\//, "")}`;
+    return path.startsWith("")
+      ? `${path}`
+      : `${path.replace(/^images\//, "")}`;
   };
 
   useEffect(() => {

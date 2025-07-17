@@ -101,6 +101,9 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
             { href: "/admin/customer", label: "Khách hàng" },
             { href: "/admin/interface_config", label: "Cấu hình giao diện" },
             { href: "/admin/payment", label: "Thanh toán online" },
+            { href: "/admin/contact", label: "Liên hệ" },
+            { href: "/", label: "Truy cập trang khách" },
+
           ].map((item) => (
             <Link key={item.href} href={item.href} className="menu-item">
               <span>{item.label}</span>

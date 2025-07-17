@@ -1,0 +1,299 @@
+/* === LAYOUT === */
+.contactManagementContainer {
+  padding: 24px;
+  background: #f9fafb;
+  min-height: 100vh;
+  font-family: 'Inter', sans-serif;
+}
+
+/* === TITLE BAR === */
+.titleContainer {
+  justify-content: space-between;
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.titleContainer h1 {
+  color: #2e7d32;
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  margin-top: 100px;
+}
+
+/* === FILTER + ADD === */
+.filterContainer {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.searchInput,
+.categorySelect {
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+  transition: 0.3s;
+  background-color: #fff;
+}
+
+.searchInput:focus,
+.categorySelect:focus {
+  border-color: #2e7d32;
+  box-shadow: 0 0 4px rgba(46, 125, 50, 0.3);
+}
+
+/* === TABLE CONTAINER === */
+.tableContainer {
+  margin: 24px auto;
+  width: 100%;
+  max-width: 1240px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  overflow-x: auto;
+  background-color: #fff;
+}
+
+/* === TABLE STYLING === */
+.productTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.productTableThead {
+  background-color: #2e7d32;
+  color: white;
+}
+
+.productTableThead th {
+  text-transform: uppercase;
+  padding: 14px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.productTable td {
+  padding: 14px;
+  color: #333;
+  vertical-align: middle;
+  border-top: 1px solid #eee;
+}
+
+.productRow:hover {
+  background-color: #f8f9fa;
+}
+
+/* === STATUS === */
+.statusShow {
+  background-color: #e6f4ea;
+  color: #2e7d32;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 500;
+  display: inline-block;
+}
+
+.statusHidden {
+  background-color: #fce8e6;
+  color: #c62828;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 500;
+  display: inline-block;
+}
+
+/* === ACTIONS === */
+.actionButtons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toggleStatusBtn,
+.cancelBtn {
+  background: transparent;
+  color: #000;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 6px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.toggleStatusBtn:hover {
+  background-color: #fff3e0;
+}
+
+.cancelBtn:hover {
+  background-color: #ffebee;
+}
+
+.toggleStatusBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* === PAGINATION === */
+.pagination {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.paginationBtn {
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #fff;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.paginationBtn:hover:not(:disabled) {
+  background-color: #e0e0e0;
+}
+
+.paginationBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.paginationBtn.active {
+  background-color: #2e7d32;
+  color: white;
+  border-color: #2e7d32;
+}
+
+/* === POPUPS === */
+.popupOverlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.popupForm {
+  background: white;
+  padding: 24px;
+  border-radius: 10px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.popupTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: #2e7d32;
+  margin-bottom: 16px;
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.addProductBtn {
+  background-color: #2e7d32;
+  color: #fff;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background-color 0.3s ease;
+}
+
+.addProductBtn:hover {
+  background-color: #1b5e20;
+}
+
+.cancelBtn {
+  background-color: #999;
+  color: white;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.cancelBtn:hover {
+  background-color: #777;
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 768px) {
+  .titleContainer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .filterContainer {
+    flex-direction: column;
+    width: 100%;
+    align-items: stretch;
+  }
+
+  .tableContainer {
+    margin-left: 0;
+    padding: 0 12px;
+  }
+}
+
+/* Add these to contactAdmin.module.css */
+
+/* === VIEW DETAILS BUTTON === */
+.viewDetailsBtn {
+  background: transparent;
+  color: #000;
+  border: 1px solid #2e7d32;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.viewDetailsBtn:hover {
+  background-color: #e6f4ea;
+}
+
+/* === PROCESS BUTTON === */
+.processBtn {
+  background: transparent;
+  color: #2e7d32;
+  border: 1px solid #2e7d32;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.processBtn:hover:not(:disabled) {
+  background-color: #e6f4ea;
+}
+
+.processBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

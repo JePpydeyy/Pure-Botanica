@@ -15,7 +15,6 @@ const ERROR_IMAGE_URL = "https://png.pngtree.com/png-vector/20210227/ourlarge/pn
 const TIMEOUT_DURATION = 10000;
 const MIN_COMMENT_LENGTH = 3;
 const TOAST_DURATION = 3000;
-const LOGIN_REDIRECT_DELAY = 3000; // Thời gian chờ trước khi chuyển hướng đến trang đăng nhập (3 giây)
 
 // Hàm tiện ích: Định dạng giá tiền
 const formatPrice = (price: number): string => {
@@ -324,10 +323,7 @@ export default function DetailPage() {
     if (!product?._id) return;
     const token = localStorage.getItem("token");
     if (!token) {
-      showCartToast("error", "Vui lòng đăng nhập để thêm vào danh sách yêu thích!");
-      setTimeout(() => {
-        router.push("/user/login");
-      }, LOGIN_REDIRECT_DELAY);
+      showCartToast("error", "Vui lòng đăng nhập để sử dụng chức năng này!");
       return;
     }
 
@@ -359,7 +355,7 @@ export default function DetailPage() {
         localStorage.removeItem("token");
         setTimeout(() => {
           router.push("/user/login");
-        }, LOGIN_REDIRECT_DELAY);
+        }, TOAST_DURATION);
       } else if (error instanceof Error && error.message.includes("400")) {
         showCartToast("error", "ProductId không hợp lệ!");
       } else if (error instanceof Error && error.message.includes("404")) {
@@ -382,7 +378,7 @@ export default function DetailPage() {
       showCommentError("error", "Vui lòng đăng nhập để gửi bình luận!");
       setTimeout(() => {
         router.push("/user/login");
-      }, LOGIN_REDIRECT_DELAY);
+      }, TOAST_DURATION);
       return;
     }
 
@@ -577,7 +573,7 @@ export default function DetailPage() {
               <button
                 className={styles["wishlist-button"]}
                 onClick={addToWishlist}
-                disabled={!userId && !addingToCart} // Vô hiệu hóa nếu chưa đăng nhập
+                disabled={addingToCart} // Vô hiệu hóa khi đang thêm vào giỏ hàng
                 aria-label={isFavorite ? "Đã nằm trong danh sách yêu thích" : "Đưa vào danh sách yêu thích của bạn"}
               >
                 <i

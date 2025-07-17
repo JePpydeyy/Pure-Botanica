@@ -104,10 +104,7 @@ export default function ConfigPage() {
             if (data.paths && data.paths.length > 0) {
               setPreviews((prev) => ({
                 ...prev,
-                [key]: key === "banner1" || key === "decor"
-                ? data.paths
-                : data.paths[0],
-
+                [key]: key === "banner1" || key === "decor" ? data.paths : data.paths[0],
               }));
             } else {
               setPreviews((prev) => ({
@@ -123,8 +120,8 @@ export default function ConfigPage() {
           } else {
             console.warn(`No images found for ${key}: ${res.status} ${res.statusText}`);
             setPreviews((prev) => ({
-                ...prev,
-                [key]: key === "banner1" || key === "decor" ? [] : null,
+              ...prev,
+              [key]: key === "banner1" || key === "decor" ? [] : null,
             }));
           }
         } catch (error) {
@@ -206,7 +203,7 @@ export default function ConfigPage() {
     const files = formData.getAll(type) as File[];
 
     if (files.length > maxFiles || (files.length === 0 && maxFiles > 0)) {
-      setMessage(`Không có hình nào được tải lên`);
+      setMessage(`Không có hình nào được tải lên hoặc vượt quá số lượng cho phép`);
       setMessageType("warning");
       setIsToastVisible(true);
       setLoading(false);
@@ -214,13 +211,7 @@ export default function ConfigPage() {
     }
 
     formData.delete(type);
-    if (Array.isArray(files)) {
-      files.forEach((file) => formData.append(type, file));
-    } else if (files && files.length > 0) {
-      formData.append(type, files[0]);
-    } else if (files && typeof files === "object") {
-      formData.append(type, files as File);
-    }
+    files.forEach((file) => formData.append(type, file));
 
     try {
       const response = await fetch(url, {
@@ -239,9 +230,7 @@ export default function ConfigPage() {
         if (data.paths && data.paths.length > 0) {
           setPreviews((prev) => ({
             ...prev,
-            [type]: type === "banner1" || type === "decor"
-              ? data.paths
-              : data.paths[0],
+            [type]: type === "banner1" || type === "decor" ? data.paths : data.paths[0],
           }));
         }
 
@@ -259,6 +248,13 @@ export default function ConfigPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Hàm xử lý URL ảnh
+  const getImageUrl = (image: string | null): string => {
+    if (!image) return "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+    // Thêm cache buster cho URL từ MongoDB (bắt đầu bằng http)
+    return image.startsWith("http") ? `${image}?_t=${Date.now()}` : image;
   };
 
   const renderForm = (type: string, label: string, multiple = false, maxFiles = 1) => (
@@ -281,7 +277,7 @@ export default function ConfigPage() {
               {(previews[type as keyof PreviewType] as string[]).map((src: string, index: number) => (
                 <img
                   key={index}
-                  src={src}
+                  src={getImageUrl(src)} // Sử dụng getImageUrl để thêm cache buster cho URL MongoDB
                   alt={`${label} Preview ${index + 1}`}
                   className={styles.previewImage}
                   onError={(e) => {
@@ -296,8 +292,7 @@ export default function ConfigPage() {
           previews[type as keyof PreviewType] && (
             <div className={styles.previewContainer}>
               <img
-                src={`${previews[type as keyof PreviewType]}?_t=${Date.now()}`}
-
+                src={getImageUrl(previews[type as keyof PreviewType] as string)} // Sử dụng getImageUrl
                 alt={`${label} Preview`}
                 className={styles.previewImage}
                 onError={(e) => {

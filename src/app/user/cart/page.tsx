@@ -19,6 +19,12 @@ export default function CartPage() {
   const [cartMessage, setCartMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const router = useRouter();
   const { setCheckoutData } = useCart();
+  const [cacheBuster, setCacheBuster] = useState(""); // Thêm cacheBuster
+
+  // Tạo cacheBuster sau khi hydration
+  useEffect(() => {
+    setCacheBuster(`t=${Date.now()}`);
+  }, []);
 
   // Decode token to get userId
   useEffect(() => {
@@ -322,8 +328,17 @@ export default function CartPage() {
 
   // Get image URL
   const getImageUrl = (image: string): string => {
-    if (!image) return "https://via.placeholder.com/100x100?text=No+Image";
-    return `https://api-zeal.onrender.com/${image}`;
+    if (!image || typeof image !== "string" || image.trim() === "") {
+      console.warn("Invalid image URL detected, using fallback:", "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg");
+      return "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+    }
+    try {
+      new URL(image); // Validate URL
+      return image;
+    } catch (e) {
+      console.warn("Invalid URL format for image:", image, "using fallback:", "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg");
+      return "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+    }
   };
 
   return (
@@ -364,20 +379,22 @@ export default function CartPage() {
                       className={styles["cart-row"]}
                     >
                       <td className={`${styles["cart-cell"]} ${styles.product}`}>
-                       <img
+                        <Image
                           src={
                             item.product.images && item.product.images.length > 0
-                              ? getImageUrl(item.product.images[0])
-                              : "https://via.placeholder.com/100x100?text=No+Image"
+                              ? `${getImageUrl(item.product.images[0])}?${cacheBuster}`
+                              : "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg"
                           }
                           alt={item.product.name || "Sản phẩm"}
                           width={100}
                           height={100}
+                          quality={100}
                           className={styles["cart-image"]}
                           onError={(e) => {
-                            (e.currentTarget as HTMLImageElement).src = "https://via.placeholder.com/100x100?text=No+Image";
+                            console.log(`Image load failed for ${item.product.name}, switched to 404 fallback`);
+                            (e.target as HTMLImageElement).src = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
                           }}
-/>
+                        />
                         <span>
                           {item.product.name || "Sản phẩm không xác định"}
                           {item.option && ` - ${item.option.value}`}

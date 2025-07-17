@@ -139,7 +139,6 @@ export default function Home() {
           { key: "decor", endpoint: "decor-images" },
         ];
 
-        const baseUrl = "https://api-zeal.onrender.com";
         const bannerData: { banner1: string[]; banner2: string | null; banner3: string | null; decor: string[] } = {
           banner1: [],
           banner2: null,
@@ -156,9 +155,9 @@ export default function Home() {
               const data = await res.json();
               if (data.paths && data.paths.length > 0) {
                 if (key === "banner1" || key === "decor") {
-                  (bannerData as any)[key] = data.paths.map((p: string) => `${baseUrl}/${p}`);
+                  (bannerData as any)[key] = data.paths; // Sử dụng trực tiếp URL từ MongoDB
                 } else {
-                  (bannerData as any)[key] = `${baseUrl}/${data.paths[0]}`;
+                  (bannerData as any)[key] = data.paths[0]; // Sử dụng trực tiếp URL từ MongoDB
                 }
               }
             } else {
@@ -190,16 +189,20 @@ export default function Home() {
 
   // Xử lý URL ảnh
   const getImageUrl = (image: string): string => {
-    if (!image) return "/api/placeholder/200/200";
-    return image.startsWith("http") ? image : `https://api-zeal.onrender.com/${image}`;
+    if (!image) return "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg"; // Trả về hình ảnh 404 nếu không có hình ảnh
+    return image; // Trả về URL trực tiếp từ MongoDB
   };
 
   return (
     <div className={styles.mainContainer}>
       <div className={styles.banner}>
         <img
-          src={banners.banner1[0] ? `${getImageUrl(banners.banner1[0])}?${cacheBuster}` : "/images/bannerhome1.png"}
+          src={banners.banner1[0] ? `${getImageUrl(banners.banner1[0])}?${cacheBuster}` : "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg"}
           alt="Main Banner"
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+            console.log("Main Banner image load failed, switched to 404 fallback");
+          }}
         />
       </div>
 
@@ -222,8 +225,12 @@ export default function Home() {
                       <div className={styles.newProductBadge}>New</div>
                       <div className={styles.newProductImage}>
                         <img
-                          src={getImageUrl(product.images?.[0] || "")}
+                          src={`${getImageUrl(product.images?.[0] || "")}?${cacheBuster}`}
                           alt={product.name}
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+                            console.log(`New Product ${product.name} image load failed, switched to 404 fallback`);
+                          }}
                         />
                       </div>
                       <div className={styles.newProductDetails}>
@@ -270,18 +277,26 @@ export default function Home() {
 
       <div className={styles.bannerContainer}>
         <img
-          src={banners.banner2 ? `${getImageUrl(banners.banner2)}?${cacheBuster}` : "/images/bannersale.png"}
+          src={banners.banner2 ? `${getImageUrl(banners.banner2)}?${cacheBuster}` : "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg"}
           alt="Banner Sale"
           className={styles.bannerImage}
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+            console.log("Banner Sale image load failed, switched to 404 fallback");
+          }}
         />
       </div>
 
       <section className={styles.botanicalGallery}>
         <div className={styles.botanicalFrameLeft}>
           <img
-            src={banners.decor[0] ? `${getImageUrl(banners.decor[0])}?${cacheBuster}` : "/images/cosmetics nature_1.png"}
+            src={banners.decor[0] ? `${getImageUrl(banners.decor[0])}?${cacheBuster}` : "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg"}
             alt="Sản phẩm Pure Botanica với lá xanh và hoa"
             className={styles.botanicalPhoto}
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+              console.log("Botanical Left image load failed, switched to 404 fallback");
+            }}
           />
           <div className={styles.botanicalCaption}>
             Hãy để Pure Botanica nâng niu làn da của bạn <br />
@@ -290,9 +305,13 @@ export default function Home() {
         </div>
         <div className={styles.botanicalFrameRight}>
           <img
-            src={banners.decor[1] ? `${getImageUrl(banners.decor[1])}?${cacheBuster}` : "/images/cosmetics-nature-2.png"}
+            src={banners.decor[1] ? `${getImageUrl(banners.decor[1])}?${cacheBuster}` : "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg"}
             alt="Bộ sưu tập sản phẩm Pure Botanica"
             className={styles.botanicalPhoto}
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+              console.log("Botanical Right image load failed, switched to 404 fallback");
+            }}
           />
           <div className={styles.botanicalCaption}>
             Chúng tôi chọn thiên nhiên, bạn chọn sự an lành
@@ -312,8 +331,12 @@ export default function Home() {
                   <div className={styles.bestSellingBadge}>Hot</div>
                   <div className={styles.bestSellingImage}>
                     <img
-                      src={getImageUrl(product.images?.[0] || "")}
+                      src={`${getImageUrl(product.images?.[0] || "")}?${cacheBuster}`}
                       alt={product.name}
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+                        console.log(`Best Selling ${product.name} image load failed, switched to 404 fallback`);
+                      }}
                     />
                   </div>
                   <div className={styles.bestSellingDetails}>
@@ -335,9 +358,13 @@ export default function Home() {
 
       <div className={styles.brandValueSection}>
         <img
-          src={banners.banner3 ? `${getImageUrl(banners.banner3)}?${cacheBuster}` : "/images/thuonghieu1.png"}
+          src={banners.banner3 ? `${getImageUrl(banners.banner3)}?${cacheBuster}` : "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg"}
           alt="Background with Natural Ingredients"
           className={styles.brandBackground}
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+            console.log("Brand Value image load failed, switched to 404 fallback");
+          }}
         />
         <div className={styles.brandContent}>
           <h2 className={styles.brandTitle}>Giá trị thương hiệu</h2>
@@ -361,8 +388,12 @@ export default function Home() {
             brands.map((brand) => (
               <img
                 key={brand._id}
-                src={getImageUrl(brand.logoImg)}
+                src={`${getImageUrl(brand.logoImg)}?${cacheBuster}`}
                 alt={`Thương hiệu ${brand.name}`}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+                  console.log(`Brand ${brand.name} logo load failed, switched to 404 fallback`);
+                }}
               />
             ))
           ) : (

@@ -18,17 +18,16 @@ interface Order {
   discount?: number;
   subtotal?: number;
   paymentCode?: string;
-  // Thêm thông tin địa chỉ giao hàng từ đơn hàng
   address?: {
     addressLine: string;
-    ward: string; 
+    ward: string;
     district: string;
     cityOrProvince: string;
   };
-  sdt?: string; // Số điện thoại từ đơn hàng
+  sdt?: string;
   note?: string;
   items: {
-    product: { _id: string; name?: string; price?: number; images?: string[]; option?: any[] };
+    product: { _id: string; name?: string; price?: number; images?: string[]; option?: any[] } | null;
     optionId?: string;
     quantity: number;
   }[];
@@ -49,10 +48,19 @@ const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
   });
 };
 
-const getImageUrl = (image: string): string => {
-  if (!image) return "/images/placeholder.png";
-  const cleanImage = image.startsWith("images/") ? image : `images/${image}`;
-  return `https://api-zeal.onrender.com/${cleanImage}`;
+const getImageUrl = (image: string | null | undefined): string => {
+  if (!image || image.trim() === "") {
+    return "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+  }
+  try {
+    if (image.startsWith("http://") || image.startsWith("https://")) {
+      return `${image}${image.includes("?") ? "&" : "?"}_t=${Date.now()}`;
+    }
+    return "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+  } catch (e) {
+    console.error(`Invalid URL detected: ${image}`, e);
+    return "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+  }
 };
 
 export default function UserProfile() {
@@ -67,10 +75,10 @@ export default function UserProfile() {
   const [paymentMap, setPaymentMap] = useState<Record<string, string>>({});
 
   const getProductPrice = (product: any, optionId?: string) => {
-    if (!product) return 0;
+    if (!product || !product.price) return 0;
     if (optionId && Array.isArray(product.option)) {
-      const opt = product.option.find((o: any) => o._id === optionId);
-      if (opt) return opt.discount_price && opt.discount_price > 0 ? opt.discount_price : opt.price;
+      const opt = product.option.find((o: any) => o?._id === optionId);
+      if (opt) return opt.discount_price && opt.discount_price > 0 ? opt.discount_price : opt.price || 0;
     }
     return product.price || 0;
   };
@@ -132,6 +140,7 @@ export default function UserProfile() {
         throw new Error("Lỗi khi tải danh sách đơn hàng.");
       }
       const data = await res.json();
+      console.log("Orders data:", data); // Debug log
       let ordersData: Order[] = [];
       if (data.status === "success" && Array.isArray(data.data)) {
         ordersData = data.data;
@@ -257,18 +266,14 @@ export default function UserProfile() {
     </div>
   );
 
-  // Hàm format địa chỉ
   const formatAddress = (address: any) => {
     if (!address) return "Chưa cập nhật";
-    
     if (typeof address === "string") {
       return address;
     }
-    
     if (typeof address === "object" && address.addressLine) {
       return `${address.addressLine}, ${address.ward}, ${address.district}, ${address.cityOrProvince}`;
     }
-    
     return "Chưa cập nhật";
   };
 
@@ -410,8 +415,8 @@ export default function UserProfile() {
                 {selectedOrder.items.map((item, index) => {
                   const price = getProductPrice(item.product, item.optionId);
                   let optionValue = "";
-                  if (item.product.option && item.optionId) {
-                    const opt = item.product.option.find((o: any) => o._id === item.optionId);
+                  if (item.product && item.product.option && Array.isArray(item.product.option) && item.optionId) {
+                    const opt = item.product.option.find((o: any) => o?._id === item.optionId);
                     if (opt && opt.value) optionValue = opt.value;
                   }
                   return (
@@ -419,18 +424,22 @@ export default function UserProfile() {
                       <div className={styles.cartItemImage}>
                         <Image
                           src={
-                            item.product.images && item.product.images.length > 0
+                            item.product && item.product.images && item.product.images.length > 0
                               ? getImageUrl(item.product.images[0])
-                              : "https://via.placeholder.com/100x100?text=No+Image"
+                              : "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg"
                           }
-                          alt={item.product.name || "Sản phẩm"}
+                          alt={item.product?.name || "Sản phẩm"}
                           width={100}
                           height={100}
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+                            console.error(`Không thể tải hình ảnh sản phẩm: ${item.product?.name || "Unknown"}`);
+                          }}
                         />
                       </div>
                       <div className={styles.productInfo}>
                         <div className={styles.cartItemName}>
-                          {item.product.name}
+                          {item.product?.name || "Sản phẩm không xác định"}
                           {optionValue && <span style={{ color: "#888", fontWeight: 400 }}> ({optionValue})</span>}
                         </div>
                         <div className={styles.cartItemDesc}>Số lượng: {item.quantity}</div>
@@ -458,8 +467,7 @@ export default function UserProfile() {
                     (Tổng giá bao gồm tất cả các loại thuế và phí)
                   </div>
                 </div>
-                
-                {/* Hiển thị ghi chú nếu có */}
+
                 {selectedOrder.note && (
                   <div className={styles.noteSection}>
                     <h3>Ghi chú đơn hàng</h3>
@@ -490,8 +498,7 @@ export default function UserProfile() {
                     </a>
                   </div>
                 )}
-                
-                {/* Phần địa chỉ nhận hàng - ưu tiên lấy từ đơn hàng */}
+
                 <div className={styles.addressSection}>
                   <h3>Địa chỉ nhận hàng</h3>
                   <p><strong>Tên:</strong> {user.username}</p>
@@ -506,7 +513,7 @@ export default function UserProfile() {
                   </p>
                   <p><strong>Giao hàng:</strong> Giao Hàng Nhanh</p>
                 </div>
-                
+
                 <button
                   className={styles.backButton}
                   onClick={() => setSelectedOrder(null)}

@@ -9,6 +9,9 @@ import { Brand } from "@/app/components/Brand_interface";
 import { Product } from "@/app/components/product_interface";
 import ToastNotification from "../ToastNotification/ToastNotification";
 
+const API_BASE_URL = "https://api-zeal.onrender.com";
+const ERROR_IMAGE_URL = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+
 const PRICE_RANGES = [
   { label: "100.000đ - 300.000đ", value: "100-300" },
   { label: "300.000đ - 500.000đ", value: "300-500" },
@@ -23,9 +26,17 @@ const formatPrice = (price: number | undefined | null): string => {
 };
 
 const getImageUrl = (image: string): string => {
-  if (!image) return "/images/placeholder.png";
-  const cleanImage = image.startsWith("/") ? image.substring(1) : image;
-  return `https://api-zeal.onrender.com/${cleanImage}`;
+  if (!image || typeof image !== "string" || image.trim() === "") {
+    console.warn("Invalid image URL detected, using fallback:", ERROR_IMAGE_URL);
+    return ERROR_IMAGE_URL;
+  }
+  try {
+    new URL(image); // Validate URL
+    return image;
+  } catch (e) {
+    console.warn("Invalid URL format for image:", image, "using fallback:", ERROR_IMAGE_URL);
+    return ERROR_IMAGE_URL;
+  }
 };
 
 const getProductPrice = (product: Product): number => {
@@ -52,6 +63,7 @@ export default function ProductPage() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [favoriteProducts, setFavoriteProducts] = useState<string[]>([]);
+  const [cacheBuster, setCacheBuster] = useState(""); // Thêm cacheBuster
 
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [selectedPriceRange, setSelectedPriceRange] = useState<string>("");
@@ -59,6 +71,11 @@ export default function ProductPage() {
   const productsPerPage = 9;
   const searchParams = useSearchParams();
   const searchQuery = searchParams.get("query")?.toLowerCase() || "";
+
+  // Tạo cacheBuster sau khi hydration
+  useEffect(() => {
+    setCacheBuster(`t=${Date.now()}`);
+  }, []);
 
   // Load initial favorites from localStorage
   useEffect(() => {
@@ -72,7 +89,7 @@ export default function ProductPage() {
   useEffect(() => {
     const fetchBrands = async () => {
       try {
-        const res = await fetch("https://api-zeal.onrender.com/api/brands", {
+        const res = await fetch(`${API_BASE_URL}/api/brands`, {
           cache: "no-store",
         });
         if (!res.ok) throw new Error(`Lỗi tải thương hiệu: ${res.status}`);
@@ -92,20 +109,24 @@ export default function ProductPage() {
       setIsLoading(true);
       setError(null);
       try {
-        const response = await fetch("https://api-zeal.onrender.com/api/products/active", {
+        const response = await fetch(`${API_BASE_URL}/api/products/active`, {
           cache: "no-store",
         });
         if (!response.ok) {
           throw new Error(`Lỗi tải sản phẩm: ${response.status}`);
         }
         const data: Product[] = await response.json();
-        const processedProducts = data.map(product => ({
-          ...product,
-          price: getProductPrice(product),
-          stock: getProductStock(product),
-          brandName: brands.find(b => b._id === product.id_brand)?.name || "",
-          images: product.images?.map(img => getImageUrl(img)) || [],
-        }));
+        console.log("Raw product data:", data); // Debug raw data
+        const processedProducts = data.map(product => {
+          const validImages = (product.images || []).filter(img => typeof img === "string" && img.trim() !== "").map(img => getImageUrl(img));
+          return {
+            ...product,
+            price: getProductPrice(product),
+            stock: getProductStock(product),
+            brandName: brands.find(b => b._id === product.id_brand)?.name || "",
+            images: validImages.length > 0 ? validImages : [ERROR_IMAGE_URL],
+          };
+        });
         setProducts(processedProducts);
         setFilteredProducts(processedProducts);
       } catch (error) {
@@ -122,7 +143,7 @@ export default function ProductPage() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const res = await fetch("https://api-zeal.onrender.com/api/categories", {
+        const res = await fetch(`${API_BASE_URL}/api/categories`, {
           cache: "no-store",
         });
         if (!res.ok) {
@@ -144,11 +165,11 @@ export default function ProductPage() {
       const token = localStorage.getItem("token");
       if (!token) {
         setFavoriteProducts([]);
-        localStorage.removeItem("favoriteProducts"); // Clear invalid state
+        localStorage.removeItem("favoriteProducts");
         return;
       }
       try {
-        const response = await fetch("https://api-zeal.onrender.com/api/users/favorite-products", {
+        const response = await fetch(`${API_BASE_URL}/api/users/favorite-products`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -176,14 +197,14 @@ export default function ProductPage() {
           throw new Error(`Lỗi tải danh sách yêu thích: ${response.status}`);
         }
         const data = await response.json();
-        const newFavorites = data.favoriteProducts.map((item: any) => item._id); // Extract _id from detailed response
+        const newFavorites = data.favoriteProducts.map((item: any) => item._id);
         setFavoriteProducts(newFavorites);
-        localStorage.setItem("favoriteProducts", JSON.stringify(newFavorites)); // Sync with localStorage
+        localStorage.setItem("favoriteProducts", JSON.stringify(newFavorites));
       } catch (error) {
         console.error("Lỗi khi lấy danh sách yêu thích:", error);
         const savedFavorites = localStorage.getItem("favoriteProducts");
         if (savedFavorites) {
-          setFavoriteProducts(JSON.parse(savedFavorites)); // Fallback to localStorage
+          setFavoriteProducts(JSON.parse(savedFavorites));
         } else {
           setFavoriteProducts([]);
         }
@@ -313,7 +334,7 @@ export default function ProductPage() {
     try {
       if (favoriteProducts.includes(productId)) {
         const response = await fetch(
-          `https://api-zeal.onrender.com/api/users/favorite-products/${productId}`,
+          `${API_BASE_URL}/api/users/favorite-products/${productId}`,
           {
             method: "DELETE",
             headers: {
@@ -346,7 +367,7 @@ export default function ProductPage() {
         localStorage.setItem("favoriteProducts", JSON.stringify(updatedFavorites));
         showToast("success", data.message || "Đã xóa khỏi danh sách yêu thích!");
       } else {
-        const response = await fetch("https://api-zeal.onrender.com/api/users/favorite-products", {
+        const response = await fetch(`${API_BASE_URL}/api/users/favorite-products`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -479,14 +500,18 @@ export default function ProductPage() {
                     <Image
                       src={
                         product.images && product.images.length > 0
-                          ? product.images[0]
-                          : "https://via.placeholder.com/300x200?text=No+Image"
+                          ? `${getImageUrl(product.images[0])}?${cacheBuster}`
+                          : ERROR_IMAGE_URL
                       }
                       alt={product?.name || "Sản phẩm"}
                       width={300}
                       height={200}
                       quality={100}
                       className={styles["product-image"]}
+                      onError={(e) => {
+                        console.log(`Image load failed for ${product.name}, switched to 404 fallback`);
+                        (e.target as HTMLImageElement).src = ERROR_IMAGE_URL;
+                      }}
                     />
                     <div className={styles["product-details"]}>
                       <h4 className={styles["product-item-name"]}>{product?.name || "Tên sản phẩm"}</h4>
@@ -611,14 +636,19 @@ export default function ProductPage() {
                   <div className={styles["best-selling-image"]}>
                     <Image
                       src={
-                        product.images?.[0] ||
-                        "https://via.placeholder.com/200x200?text=No+Image"
+                        product.images?.[0]
+                          ? `${getImageUrl(product.images[0])}?${cacheBuster}`
+                          : ERROR_IMAGE_URL
                       }
                       alt={product?.name || "Sản phẩm"}
                       width={200}
                       height={200}
                       quality={100}
                       className={styles["best-selling-product-image"]}
+                      onError={(e) => {
+                        console.log(`Best Selling ${product.name} image load failed, switched to 404 fallback`);
+                        (e.target as HTMLImageElement).src = ERROR_IMAGE_URL;
+                      }}
                     />
                   </div>
                   <div className={styles["best-selling-details"]}>

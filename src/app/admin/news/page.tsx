@@ -13,6 +13,7 @@ import {
   faChevronRight,
 } from "@fortawesome/free-solid-svg-icons";
 import Link from "next/link";
+import ToastNotification from "../../user/ToastNotification/ToastNotification";
 
 interface NewsItem {
   _id: string;
@@ -27,9 +28,9 @@ interface NewsItem {
 }
 
 const API_BASE_URL = "https://api-zeal.onrender.com";
+const VIEW_THRESHOLD = 1; // Ngưỡng lượt xem để hiển thị popup xác nhận
 
 const processContentImages = (content: string): string => {
-  // Xử lý tất cả các src không bắt đầu bằng http hoặc https
   return content.replace(/src="([^"]+)"/g, (match, src) => {
     if (!src.startsWith("http://") && !src.startsWith("https://")) {
       return `src="${API_BASE_URL}/${src}"`;
@@ -48,15 +49,29 @@ const AdminNewsPage: React.FC = () => {
   const [isPopupOpen, setIsPopupOpen] = useState<boolean>(false);
   const [imageError, setImageError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const itemsPerPage = 10;
+  const [notification, setNotification] = useState({
+    show: false,
+    message: "",
+    type: "success" as "success" | "error",
+  });
+  const [confirmPopup, setConfirmPopup] = useState<{
+    show: boolean;
+    newsId: string | null;
+    currentStatus: "show" | "hidden" | null;
+  }>({ show: false, newsId: null, currentStatus: null });
+  const [deleteConfirmPopup, setDeleteConfirmPopup] = useState<{
+    show: boolean;
+    newsId: string | null;
+  }>({ show: false, newsId: null });
 
+  const itemsPerPage = 10;
   const totalPages = Math.ceil(newsList.length / itemsPerPage);
 
   const fetchNews = async (): Promise<void> => {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-        alert("Token xác thực không tồn tại. Vui lòng đăng nhập lại!");
+        showNotification("Token xác thực không tồn tại. Vui lòng đăng nhập lại!", "error");
         return;
       }
       const res = await fetch(`${API_BASE_URL}/api/news`, {
@@ -68,7 +83,7 @@ const AdminNewsPage: React.FC = () => {
       setNewsList(data);
     } catch (err) {
       console.error("Lỗi khi tải tin tức:", err);
-      alert("Đã xảy ra lỗi khi tải danh sách tin tức.");
+      showNotification("Đã xảy ra lỗi khi tải danh sách tin tức.", "error");
     } finally {
       setLoading(false);
     }
@@ -77,6 +92,17 @@ const AdminNewsPage: React.FC = () => {
   useEffect(() => {
     fetchNews();
   }, []);
+
+  const showNotification = (message: string, type: "success" | "error") => {
+    setNotification({ show: true, message, type });
+    setTimeout(() => {
+      setNotification({ show: false, message: "", type: "success" });
+    }, 3000);
+  };
+
+  const handleCloseToast = () => {
+    setNotification({ show: false, message: "", type: "success" });
+  };
 
   const filteredNews = newsList
     .filter((item) => {
@@ -107,19 +133,29 @@ const AdminNewsPage: React.FC = () => {
       });
       if (!res.ok) throw new Error(`Lỗi HTTP: ${res.status}`);
       const data: NewsItem = await res.json();
-      // Đảm bảo thumbnailUrl là URL đầy đủ
-      if (data.thumbnailUrl && !data.thumbnailUrl.startsWith("http")) {
-        data.thumbnailUrl = `${API_BASE_URL}/${data.thumbnailUrl}`;
+      if (data.thumbnailUrl) {
+        if (!data.thumbnailUrl.startsWith("http")) {
+          data.thumbnailUrl = `${API_BASE_URL}/${data.thumbnailUrl}?t=${new Date().getTime()}`;
+        } else {
+          data.thumbnailUrl += `?t=${new Date().getTime()}`;
+        }
       }
       setSelectedNews(data);
       setIsPopupOpen(true);
     } catch (err) {
       console.error("Lỗi khi tải chi tiết bài viết:", err);
+      showNotification("Lỗi khi tải chi tiết bài viết.", "error");
     }
   };
 
   const toggleVisibility = async (id: string, currentStatus: "show" | "hidden"): Promise<void> => {
     try {
+      const newsItem = newsList.find((item) => item._id === id);
+      if (newsItem && currentStatus === "show" && newsItem.views > VIEW_THRESHOLD) {
+        setConfirmPopup({ show: true, newsId: id, currentStatus });
+        return;
+      }
+
       const token = localStorage.getItem("token");
       const res = await fetch(`${API_BASE_URL}/api/news/${id}/toggle-visibility`, {
         method: "PUT",
@@ -133,12 +169,47 @@ const AdminNewsPage: React.FC = () => {
       setNewsList((prev) =>
         prev.map((item) => (item._id === id ? { ...item, status: newStatus } : item))
       );
+      showNotification(`Đã ${newStatus === "show" ? "hiển thị" : "ẩn"} bài viết thành công!`, "success");
     } catch (err) {
-      alert("Lỗi khi đổi trạng thái.");
+      showNotification("Lỗi khi đổi trạng thái.", "error");
+    }
+  };
+
+  const confirmToggleVisibility = async () => {
+    if (!confirmPopup.newsId || !confirmPopup.currentStatus) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE_URL}/api/news/${confirmPopup.newsId}/toggle-visibility`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      if (!res.ok) throw new Error("Cập nhật trạng thái thất bại.");
+      const newStatus = confirmPopup.currentStatus === "show" ? "hidden" : "show";
+      setNewsList((prev) =>
+        prev.map((item) => (item._id === confirmPopup.newsId ? { ...item, status: newStatus } : item))
+      );
+      showNotification(`Đã ẩn bài viết thành công!`, "success");
+    } catch (err) {
+      showNotification("Lỗi khi đổi trạng thái.", "error");
+    } finally {
+      setConfirmPopup({ show: false, newsId: null, currentStatus: null });
     }
   };
 
   const handleDelete = async (id: string): Promise<void> => {
+    const newsItem = newsList.find((item) => item._id === id);
+    if (newsItem && newsItem.views > VIEW_THRESHOLD) {
+      setDeleteConfirmPopup({ show: true, newsId: id });
+      return;
+    }
+    await confirmDelete(id);
+  };
+
+  const confirmDelete = async (id: string): Promise<void> => {
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(`${API_BASE_URL}/api/news/${id}`, {
@@ -147,8 +218,11 @@ const AdminNewsPage: React.FC = () => {
       });
       if (!res.ok) throw new Error("Xóa thất bại.");
       setNewsList((prev) => prev.filter((item) => item._id !== id));
+      showNotification("Xóa bài viết thành công!", "success");
     } catch (err) {
-      alert("Lỗi khi xóa bài viết.");
+      showNotification("Lỗi khi xóa bài viết.", "error");
+    } finally {
+      setDeleteConfirmPopup({ show: false, newsId: null });
     }
   };
 
@@ -166,6 +240,14 @@ const AdminNewsPage: React.FC = () => {
 
   return (
     <div className={styles.NewManagementContainer}>
+      {notification.message && (
+        <ToastNotification
+          type={notification.type as "success" | "error"}
+          message={notification.message}
+          onClose={handleCloseToast}
+        />
+      )}
+
       <div className={styles.titleContainer}>
         <h1>QUẢN LÝ TIN TỨC</h1>
         <div className={styles.filterContainer}>
@@ -260,7 +342,6 @@ const AdminNewsPage: React.FC = () => {
           </tbody>
         </table>
 
-        {/* PHÂN TRANG */}
         {totalPages > 1 && (
           <div className={styles.paginationContainer}>
             <button
@@ -301,11 +382,10 @@ const AdminNewsPage: React.FC = () => {
                     src={selectedNews.thumbnailUrl}
                     alt={selectedNews.thumbnailCaption || selectedNews.title}
                     onError={(e) => {
-                      setImageError("Không thể tải hình ảnh thumbnail.");
-                      (e.target as HTMLImageElement).style.display = "none";
+                      (e.target as HTMLImageElement).src =
+                        "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
                     }}
                   />
-                  {imageError && <p className={styles.errorContainer}>{imageError}</p>}
                 </div>
               )}
               <div
@@ -319,6 +399,68 @@ const AdminNewsPage: React.FC = () => {
                 }}
               />
               {imageError && <p className={styles.errorContainer}>{imageError}</p>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmPopup.show && (
+        <div className={styles.popupOverlay} onClick={() => setConfirmPopup({ show: false, newsId: null, currentStatus: null })}>
+          <div className={styles.popupContent} onClick={(e) => e.stopPropagation()}>
+            <button
+              className={styles.closePopupBtn}
+              onClick={() => setConfirmPopup({ show: false, newsId: null, currentStatus: null })}
+            >
+              <FontAwesomeIcon icon={faTimes} />
+            </button>
+            <h2 className={styles.popupTitle}>Xác nhận ẩn bài viết</h2>
+            <div className={styles.popupDetails}>
+              <p>Bài viết này có hơn {VIEW_THRESHOLD} lượt xem. Bạn có chắc chắn muốn ẩn bài viết?</p>
+              <div className={styles.popupActions}>
+                <button
+                  className={styles.cancelBtn}
+                  onClick={() => setConfirmPopup({ show: false, newsId: null, currentStatus: null })}
+                >
+                  Hủy
+                </button>
+                <button
+                  className={styles.submitBtn}
+                  onClick={confirmToggleVisibility}
+                >
+                  Xác nhận
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteConfirmPopup.show && (
+        <div className={styles.popupOverlay} onClick={() => setDeleteConfirmPopup({ show: false, newsId: null })}>
+          <div className={styles.popupContent} onClick={(e) => e.stopPropagation()}>
+            <button
+              className={styles.closePopupBtn}
+              onClick={() => setDeleteConfirmPopup({ show: false, newsId: null })}
+            >
+              <FontAwesomeIcon icon={faTimes} />
+            </button>
+            <h2 className={styles.popupTitle}>Xác nhận xóa bài viết</h2>
+            <div className={styles.popupDetails}>
+              <p>Bài viết này có hơn {VIEW_THRESHOLD} lượt xem. Bạn có chắc chắn muốn xóa bài viết?</p>
+              <div className={styles.popupActions}>
+                <button
+                  className={styles.cancelBtn}
+                  onClick={() => setDeleteConfirmPopup({ show: false, newsId: null })}
+                >
+                  Hủy
+                </button>
+                <button
+                  className={styles.submitBtn}
+                  onClick={() => deleteConfirmPopup.newsId && confirmDelete(deleteConfirmPopup.newsId)}
+                >
+                  Xác nhận
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -1,11 +1,13 @@
 "use client";
+
 import React, { useState, useEffect } from "react";
-import emailjs from "emailjs-com"; // Import emailjs
+import emailjs from "emailjs-com";
 import styles from "./contact.module.css";
 
 const SERVICE_ID = "service_trjvfth"; // Thay bằng SERVICE_ID của bạn
 const TEMPLATE_ID = "template_kzvwn07"; // Thay bằng TEMPLATE_ID của bạn
 const PUBLIC_KEY = "5fm4LNMvD5wK_zt6a"; // Thay bằng PUBLIC_KEY của bạn
+const API_BASE_URL = "https://api-zeal.onrender.com";
 
 const ContactPage: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -14,26 +16,45 @@ const ContactPage: React.FC = () => {
     email: "",
     message: "",
   });
-  const [logo, setLogo] = useState("/images/logo_web.png"); // State để lưu URL logo
+  const [logo, setLogo] = useState<string | null>(null); // Không dùng logo tĩnh mặc định
   const [loading, setLoading] = useState(true);
+  const [logoError, setLogoError] = useState<string | null>(null);
+  const [cacheBuster, setCacheBuster] = useState<string>("");
+
+  // Tạo cacheBuster để tránh cache hình ảnh
+  useEffect(() => {
+    setCacheBuster(`_t=${Date.now()}`);
+  }, []);
+
+  // Hàm xử lý URL ảnh
+  const getImageUrl = (image: string | null): string => {
+    if (!image) return "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+    // Thêm cache buster cho URL từ MongoDB (bắt đầu bằng http)
+    return image.startsWith("http") ? `${image}?${cacheBuster}` : image;
+  };
 
   // Fetch logo từ API khi component mount
   useEffect(() => {
     const fetchLogo = async () => {
       try {
-        const response = await fetch("https://api-zeal.onrender.com/api/interfaces/logo-shop", {
+        setLoading(true);
+        setLogoError(null);
+        const response = await fetch(`${API_BASE_URL}/api/interfaces/logo-shop`, {
           cache: "no-store",
         });
         if (!response.ok) {
-          throw new Error("Không thể lấy logo");
+          throw new Error(`Lỗi HTTP: ${response.status} ${response.statusText}`);
         }
         const data = await response.json();
         if (data.paths && data.paths.length > 0) {
-          setLogo(`https://api-zeal.onrender.com/${data.paths[0]}`);
+          setLogo(data.paths[0]); // Sử dụng URL trực tiếp từ MongoDB
+        } else {
+          setLogo(null); // Không có logo, hiển thị 404
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Lỗi khi lấy logo:", error);
-        // Giữ logo mặc định nếu lỗi
+        setLogoError(error.message || "Không thể tải logo");
+        setLogo(null); // Hiển thị hình ảnh 404 nếu lỗi
       } finally {
         setLoading(false);
       }
@@ -78,8 +99,17 @@ const ContactPage: React.FC = () => {
             <div className={styles.logo}>
               {loading ? (
                 <p>Đang tải logo...</p>
+              ) : logoError ? (
+                <p className={styles.errorContainer}>Lỗi: {logoError}</p>
               ) : (
-                <img src={logo} alt="Pure Botanica Logo" />
+                <img
+                  src={getImageUrl(logo)} // Sử dụng getImageUrl để thêm cache buster
+                  alt="Pure Botanica Logo"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+                    console.log("Không thể tải hình ảnh logo:", logo);
+                  }}
+                />
               )}
               <div className={styles.slogan}>
                 <p>"Nurtured by Nature</p>

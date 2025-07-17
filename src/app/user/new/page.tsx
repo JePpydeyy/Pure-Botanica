@@ -20,17 +20,10 @@ interface NewsItem {
 const API_BASE_URL = "https://api-zeal.onrender.com";
 const POSTS_PER_PAGE = 6;
 
-const processContentImages = (content: string): string => {
-  return content.replace(
-    /src="images\/([^"]+)"/g,
-    `src="${API_BASE_URL}/images/$1"`
-  );
-};
-
 export default function NewsPage() {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [banner, setBanner] = useState<string>("/images/banner.png"); // Mặc định là banner tĩnh
+  const [banner, setBanner] = useState<string | null>(null); // Không dùng banner tĩnh mặc định
   const [bannerLoading, setBannerLoading] = useState<boolean>(true);
   const [bannerError, setBannerError] = useState<string | null>(null);
   const [cacheBuster, setCacheBuster] = useState<string>("");
@@ -39,8 +32,15 @@ export default function NewsPage() {
 
   // Tạo cacheBuster để tránh cache hình ảnh
   useEffect(() => {
-    setCacheBuster(`v=${Date.now()}`);
+    setCacheBuster(`_t=${Date.now()}`);
   }, []);
+
+  // Hàm xử lý URL ảnh
+  const getImageUrl = (image: string | null): string => {
+    if (!image) return "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+    // Thêm cache buster cho URL từ MongoDB (bắt đầu bằng http)
+    return image.startsWith("http") ? `${image}?${cacheBuster}` : image;
+  };
 
   // Fetch banner từ API
   useEffect(() => {
@@ -56,14 +56,14 @@ export default function NewsPage() {
         }
         const data = await response.json();
         if (data.paths && data.paths.length > 0) {
-          setBanner(`${API_BASE_URL}/${data.paths[0]}`);
+          setBanner(data.paths[0]); // Sử dụng URL trực tiếp từ MongoDB
         } else {
           throw new Error("Không tìm thấy banner trong dữ liệu API");
         }
       } catch (error: any) {
         console.error("Lỗi khi lấy banner:", error);
         setBannerError(error.message || "Không thể tải banner");
-        setBanner("/images/banner.png"); // Fallback về banner tĩnh
+        setBanner(null); // Không dùng banner tĩnh, để hiển thị 404
       } finally {
         setBannerLoading(false);
       }
@@ -114,13 +114,13 @@ export default function NewsPage() {
         <p className={styles.errorContainer}>Lỗi: {bannerError}</p>
       ) : (
         <img
-          src={banner ? `${banner}?${cacheBuster}` : "/images/banner.png"}
+          src={getImageUrl(banner)} // Sử dụng getImageUrl để thêm cache buster
           alt="Banner"
           className={styles.banner}
           loading="lazy"
           onError={(e) => {
             setBannerError("Không thể tải hình ảnh banner.");
-            (e.target as HTMLImageElement).src = "/images/banner.png";
+            (e.target as HTMLImageElement).src = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
           }}
         />
       )}
@@ -151,7 +151,7 @@ export default function NewsPage() {
                   </div>
                 ) : (
                   <img
-                    src={`${API_BASE_URL}/${item.thumbnailUrl}`}
+                    src={getImageUrl(item.thumbnailUrl)} // Sử dụng URL trực tiếp từ MongoDB
                     alt={item.thumbnailCaption}
                     className={styles.hotNewImage}
                     onError={() => handleImageError(item._id)}
@@ -187,7 +187,7 @@ export default function NewsPage() {
                   </div>
                 ) : (
                   <img
-                    src={`${API_BASE_URL}/${item.thumbnailUrl}`}
+                    src={getImageUrl(item.thumbnailUrl)} // Sử dụng URL trực tiếp từ MongoDB
                     alt={item.thumbnailCaption}
                     className={styles.newsImage}
                     onError={() => handleImageError(item._id)}
@@ -214,11 +214,9 @@ export default function NewsPage() {
                   <p
                     className={styles.sectionDescription}
                     dangerouslySetInnerHTML={{
-                      __html: processContentImages(
-                        item.content
-                          .replace(/<(?!\/?(b|strong)\b)[^>]*>/gi, "")
-                          .slice(0, 200) + "..."
-                      ),
+                      __html: item.content
+                        .replace(/<(?!\/?(b|strong)\b)[^>]*>/gi, "") // Loại bỏ các thẻ HTML trừ <b> và <strong>
+                        .slice(0, 200) + "...",
                     }}
                   />
                   <Link

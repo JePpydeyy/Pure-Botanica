@@ -10,7 +10,6 @@ import { useCart } from "../context/CartContext";
 import { CartItem } from "../../components/cart_interface";
 import { CheckoutData, FormData, UserInfo } from "../../components/checkout_interface";
 
-
 export default function CheckoutPage() {
   const router = useRouter();
   const { checkoutData, setCheckoutData } = useCart();
@@ -47,6 +46,12 @@ export default function CheckoutPage() {
   const [cities, setCities] = useState<any[]>([]);
   const [districts, setDistricts] = useState<any[]>([]);
   const [wards, setWards] = useState<any[]>([]);
+  const [cacheBuster, setCacheBuster] = useState(""); // Thêm cacheBuster
+
+  // Tạo cacheBuster sau khi hydration
+  useEffect(() => {
+    setCacheBuster(`t=${Date.now()}`);
+  }, []);
 
   // Set isClient to true
   useEffect(() => {
@@ -322,9 +327,7 @@ export default function CheckoutPage() {
 
     // Kiểm tra token
     const token = localStorage.getItem("token");
-    if (!
-
- token) {
+    if (!token) {
       toast.error("Vui lòng đăng nhập để thanh toán");
       setIsLoading(false);
       return;
@@ -455,9 +458,17 @@ export default function CheckoutPage() {
   };
 
   const getImageUrl = (image: string | undefined): string => {
-    if (!image) return "https://via.placeholder.com/50x50?text=No+Image";
-    const baseUrl = "https://api-zeal.onrender.com/";
-    return `${baseUrl}${image}`;
+    if (!image || typeof image !== "string" || image.trim() === "") {
+      console.warn("Invalid image URL detected, using fallback:", "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg");
+      return "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+    }
+    try {
+      new URL(image); // Validate URL
+      return image;
+    } catch (e) {
+      console.warn("Invalid URL format for image:", image, "using fallback:", "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg");
+      return "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+    }
   };
 
   return (
@@ -774,14 +785,20 @@ export default function CheckoutPage() {
               return (
                 <div key={index} className={styles.cartItem}>
                   <div className={styles.cartItemImage}>
-                    <img
-                      src={imageUrl}
+                    <Image
+                      src={
+                        item.product.images && item.product.images.length > 0
+                          ? `${getImageUrl(item.product.images[0])}?${cacheBuster}`
+                          : "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg"
+                      }
                       alt={item.product.name || "Sản phẩm"}
                       width={70}
                       height={70}
+                      quality={100}
                       className={styles.cartItemImage}
                       onError={(e) => {
-                        (e.currentTarget as HTMLImageElement).src = "https://via.placeholder.com/50x50?text=No+Image";
+                        console.log(`Image load failed for ${item.product.name}, switched to 404 fallback`);
+                        (e.target as HTMLImageElement).src = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
                       }}
                     />
                   </div>

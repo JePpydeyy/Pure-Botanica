@@ -1,4 +1,5 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
@@ -27,27 +28,18 @@ export default function NewsDetailPage() {
   const [showNotification, setShowNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
   const [notificationType, setNotificationType] = useState<'success' | 'error' | ''>('');
+  const [cacheBuster, setCacheBuster] = useState<string>("");
 
-  // Normalize image URLs
-  const normalizeImageUrl = (path: string): string => {
-    if (!path) return '/images/placeholder.png';
-    return path.startsWith('/images/')
-      ? `https://api-zeal.onrender.com${path}`
-      : `https://api-zeal.onrender.com/images/${path.replace(/^images\//, '')}`;
-  };
+  // Tạo cacheBuster để tránh cache hình ảnh
+  useEffect(() => {
+    setCacheBuster(`_t=${Date.now()}`);
+  }, []);
 
-  // Process HTML content to normalize image URLs
-  const normalizeContentImages = (content: string): string => {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(content, 'text/html');
-    const images = doc.querySelectorAll('img');
-    images.forEach((img) => {
-      const src = img.getAttribute('src');
-      if (src) {
-        img.setAttribute('src', normalizeImageUrl(src));
-      }
-    });
-    return doc.body.innerHTML;
+  // Hàm xử lý URL ảnh
+  const getImageUrl = (image: string | null): string => {
+    if (!image) return "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+    // Thêm cache buster cho URL từ MongoDB (bắt đầu bằng http)
+    return image.startsWith("http") ? `${image}?${cacheBuster}` : image;
   };
 
   // Show notification with auto-dismiss
@@ -87,8 +79,7 @@ export default function NewsDetailPage() {
         }
         setNews({
           ...data,
-          thumbnailUrl: normalizeImageUrl(data.thumbnailUrl),
-          content: normalizeContentImages(data.content),
+          thumbnailUrl: getImageUrl(data.thumbnailUrl), // Sử dụng getImageUrl
         });
 
         // Fetch related news
@@ -103,7 +94,7 @@ export default function NewsDetailPage() {
           .filter((item) => item.slug !== data.slug)
           .map((item) => ({
             ...item,
-            thumbnailUrl: normalizeImageUrl(item.thumbnailUrl),
+            thumbnailUrl: getImageUrl(item.thumbnailUrl), // Sử dụng getImageUrl
           }));
         const shuffled = others.sort(() => 0.5 - Math.random());
         const selected = shuffled.slice(0, 3);
@@ -151,13 +142,13 @@ export default function NewsDetailPage() {
         <div className={styles.newsSection}>
           <div className={styles.newsimageWrapper}>
             <img
-              src={news.thumbnailUrl}
+              src={getImageUrl(news.thumbnailUrl)} // Sử dụng getImageUrl
               alt={news.thumbnailCaption}
               width={690}
               height={448}
               className={styles.newsimage}
               onError={(e) => {
-                e.currentTarget.src = '/images/placeholder.png';
+                e.currentTarget.src = 'https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg';
                 console.error(`Error loading thumbnail for news ${news.title}: ${news.thumbnailUrl}`);
               }}
             />
@@ -165,7 +156,7 @@ export default function NewsDetailPage() {
 
           <div
             className={styles.newsText}
-            dangerouslySetInnerHTML={{ __html: news.content }}
+            dangerouslySetInnerHTML={{ __html: news.content }} // Sử dụng content trực tiếp
           />
         </div>
 
@@ -180,13 +171,13 @@ export default function NewsDetailPage() {
               >
                 <div className={styles.newsRelatedItem}>
                   <img
-                    src={item.thumbnailUrl}
+                    src={getImageUrl(item.thumbnailUrl)} // Sử dụng getImageUrl
                     alt={item.thumbnailCaption}
                     width={410}
                     height={250}
                     className={styles.newsRelatedimage}
                     onError={(e) => {
-                      e.currentTarget.src = '/images/placeholder.png';
+                      e.currentTarget.src = 'https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg';
                       console.error(`Error loading related news image for ${item.title}: ${item.thumbnailUrl}`);
                     }}
                   />

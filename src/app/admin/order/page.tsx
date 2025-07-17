@@ -5,7 +5,7 @@ import styles from "./order.module.css";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCheck, faTimes } from "@fortawesome/free-solid-svg-icons";
+import { faTimes } from "@fortawesome/free-solid-svg-icons";
 
 interface Option {
   stock: number;
@@ -587,7 +587,7 @@ export default function OrderPage() {
                 onClick={confirmStatusChange}
                 aria-label="Xác nhận thay đổi trạng thái"
               >
-                <FontAwesomeIcon icon={faCheck} />
+                <FontAwesomeIcon icon={faTimes} />
               </button>
               <button
                 className={styles.cancelBtn}

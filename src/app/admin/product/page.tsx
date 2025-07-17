@@ -79,7 +79,6 @@ export default function ProductPage() {
     return `https://api-zeal.onrender.com${path.startsWith("/") ? "" : "/"}${path}`;
   };
 
-
   // Kiểm tra quyền admin
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -656,7 +655,7 @@ export default function ProductPage() {
                               <div className={styles.imageGallery}>
                                 {product.images.length > 0 ? (
                                   product.images.map((img, index) => (
-                                    <Image
+                                    <img
                                       key={index}
                                       src={normalizeImageUrl(img)}
                                       alt={`${product.name} hình ${index + 1}`}
@@ -664,7 +663,8 @@ export default function ProductPage() {
                                       height={120}
                                       className={styles.detailImage}
                                       onError={(e) => {
-                                        (e.target as HTMLImageElement).src = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+                                        (e.target as HTMLImageElement).src =
+                                          "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
                                       }}
                                     />
                                   ))

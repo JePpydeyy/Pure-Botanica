@@ -6,44 +6,92 @@ import styles from "./about.module.css";
 const API_BASE_URL = "https://api-zeal.onrender.com";
 
 export default function AboutPage() {
-  const [banner, setBanner] = useState<string>("/images/banner.png"); // Mặc định là banner tĩnh
+  const [banner, setBanner] = useState<string | null>(null); // Không dùng banner tĩnh mặc định
+  const [suppBanner1, setSuppBanner1] = useState<string | null>(null);
+  const [suppBanner2, setSuppBanner2] = useState<string | null>(null);
+  const [suppBanner3, setSuppBanner3] = useState<string | null>(null);
   const [bannerLoading, setBannerLoading] = useState<boolean>(true);
   const [bannerError, setBannerError] = useState<string | null>(null);
   const [cacheBuster, setCacheBuster] = useState<string>("");
 
   // Tạo cacheBuster để tránh cache hình ảnh
   useEffect(() => {
-    setCacheBuster(`v=${Date.now()}`);
+    setCacheBuster(`_t=${Date.now()}`);
   }, []);
 
-  // Fetch banner từ API
+  // Hàm xử lý URL ảnh
+  const getImageUrl = (image: string | null): string => {
+    if (!image) return "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+    // Thêm cache buster cho URL từ MongoDB (bắt đầu bằng http)
+    return image.startsWith("http") ? `${image}?${cacheBuster}` : image;
+  };
+
+  // Fetch banner và các hình ảnh bổ sung từ API
   useEffect(() => {
-    const fetchBanner = async () => {
+    const fetchImages = async () => {
       try {
         setBannerLoading(true);
         setBannerError(null);
-        const response = await fetch(`${API_BASE_URL}/api/interfaces/banner-about`, {
+
+        // Fetch banner-about
+        const bannerResponse = await fetch(`${API_BASE_URL}/api/interfaces/banner-about`, {
           cache: "no-store",
         });
-        if (!response.ok) {
-          throw new Error(`Lỗi HTTP: ${response.status} ${response.statusText}`);
+        if (!bannerResponse.ok) {
+          throw new Error(`Lỗi HTTP (banner-about): ${bannerResponse.status} ${bannerResponse.statusText}`);
         }
-        const data = await response.json();
-        if (data.paths && data.paths.length > 0) {
-          setBanner(`${API_BASE_URL}/${data.paths[0]}`);
+        const bannerData = await bannerResponse.json();
+        if (bannerData.paths && bannerData.paths.length > 0) {
+          setBanner(bannerData.paths[0]); // Sử dụng URL trực tiếp từ MongoDB
         } else {
-          throw new Error("Không tìm thấy banner trong dữ liệu API");
+          setBanner(null); // Không có banner, hiển thị 404
+        }
+
+        // Fetch suppbanner1 (giả định endpoint là /api/interfaces/supp-banner1)
+        const suppBanner1Response = await fetch(`${API_BASE_URL}/api/interfaces/supp-banner1`, {
+          cache: "no-store",
+        });
+        if (suppBanner1Response.ok) {
+          const suppBanner1Data = await suppBanner1Response.json();
+          setSuppBanner1(suppBanner1Data.paths && suppBanner1Data.paths.length > 0 ? suppBanner1Data.paths[0] : null);
+        } else {
+          setSuppBanner1(null);
+        }
+
+        // Fetch suppbanner2 (giả định endpoint là /api/interfaces/supp-banner2)
+        const suppBanner2Response = await fetch(`${API_BASE_URL}/api/interfaces/supp-banner2`, {
+          cache: "no-store",
+        });
+        if (suppBanner2Response.ok) {
+          const suppBanner2Data = await suppBanner2Response.json();
+          setSuppBanner2(suppBanner2Data.paths && suppBanner2Data.paths.length > 0 ? suppBanner2Data.paths[0] : null);
+        } else {
+          setSuppBanner2(null);
+        }
+
+        // Fetch suppbanner3 (giả định endpoint là /api/interfaces/supp-banner3)
+        const suppBanner3Response = await fetch(`${API_BASE_URL}/api/interfaces/supp-banner3`, {
+          cache: "no-store",
+        });
+        if (suppBanner3Response.ok) {
+          const suppBanner3Data = await suppBanner3Response.json();
+          setSuppBanner3(suppBanner3Data.paths && suppBanner3Data.paths.length > 0 ? suppBanner3Data.paths[0] : null);
+        } else {
+          setSuppBanner3(null);
         }
       } catch (error: any) {
-        console.error("Lỗi khi lấy banner:", error);
-        setBannerError(error.message || "Không thể tải banner");
-        setBanner("/images/banner.png"); // Fallback về banner tĩnh
+        console.error("Lỗi khi lấy hình ảnh:", error);
+        setBannerError(error.message || "Không thể tải hình ảnh");
+        setBanner(null);
+        setSuppBanner1(null);
+        setSuppBanner2(null);
+        setSuppBanner3(null);
       } finally {
         setBannerLoading(false);
       }
     };
 
-    fetchBanner();
+    fetchImages();
   }, []);
 
   return (
@@ -56,11 +104,11 @@ export default function AboutPage() {
           <p className={styles.errorContainer}>Lỗi: {bannerError}</p>
         ) : (
           <img
-            src={banner ? `${banner}?${cacheBuster}` : "/images/banner.png"}
+            src={getImageUrl(banner)} // Sử dụng getImageUrl để thêm cache buster
             alt="Banner Pure-Botanica"
             onError={(e) => {
               setBannerError("Không thể tải hình ảnh banner.");
-              (e.target as HTMLImageElement).src = "/images/banner.png";
+              (e.target as HTMLImageElement).src = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
             }}
           />
         )}
@@ -99,7 +147,14 @@ export default function AboutPage() {
             yêu thương môi trường xung quanh, hãy đồng hành cùng chúng tôi vì một tương lai tốt đẹp hơn!
           </p>
 
-          <img src="images/suppbanner1.png" alt="Ý Nghĩa Thương Hiệu Pure-Botanica" />
+          <img
+            src={getImageUrl(suppBanner1)} // Sử dụng URL từ MongoDB
+            alt="Ý Nghĩa Thương Hiệu Pure-Botanica"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+              console.log("Không thể tải hình ảnh suppbanner1.");
+            }}
+          />
         </section>
 
         {/* Sứ Mệnh */}
@@ -113,7 +168,14 @@ export default function AboutPage() {
           <p>
             Hành trình gian nan tìm đến vẻ đẹp thật sự không phải là nhiệm vụ của riêng bạn, chúng tôi sẽ cùng bạn đi trên hành trình đó. Luôn luôn là như vậy, mãi mãi là như vậy.
           </p>
-          <img src="images/suppbanner2.png" alt="Sứ Mệnh Pure-Botanica" />
+          <img
+            src={getImageUrl(suppBanner2)} // Sử dụng URL từ MongoDB
+            alt="Sứ Mệnh Pure-Botanica"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+              console.log("Không thể tải hình ảnh suppbanner2.");
+            }}
+          />
         </section>
 
         {/* Cam Kết Luôn Đi Đôi Với Hành Động */}
@@ -170,7 +232,14 @@ export default function AboutPage() {
           </div>
 
           <div className={styles.brandValueRight}>
-            <img src="images/suppbanner3.png" alt="Giá Trị Thương Hiệu Pure-Botanica" />
+            <img
+              src={getImageUrl(suppBanner3)} // Sử dụng URL từ MongoDB
+              alt="Giá Trị Thương Hiệu Pure-Botanica"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+                console.log("Không thể tải hình ảnh suppbanner3.");
+              }}
+            />
           </div>
           <div className={styles.brandValueBottom}>
             <p>

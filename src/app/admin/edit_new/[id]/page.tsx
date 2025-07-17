@@ -14,6 +14,7 @@ import {
   faLink,
 } from "@fortawesome/free-solid-svg-icons";
 import styles from "./edit_new.module.css";
+import ToastNotification from "../../../user/ToastNotification/ToastNotification";
 
 config.autoAddCss = false;
 
@@ -28,6 +29,7 @@ interface Article {
 }
 
 const API_DOMAIN = "https://api-zeal.onrender.com";
+const FALLBACK_IMAGE = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
 
 const EditArticle = () => {
   const router = useRouter();
@@ -114,7 +116,10 @@ const EditArticle = () => {
           status: article.status || "show",
           contentImages: [],
         });
-        setPreviewThumbnail(article.thumbnailUrl ? `${API_DOMAIN}/${article.thumbnailUrl}` : null);
+
+        // Không nối API_DOMAIN, chỉ dùng thumbnailUrl trả về từ API
+        setPreviewThumbnail(article.thumbnailUrl || null);
+
         if (editorRef.current) {
           editorRef.current.innerHTML = fixedContent;
         }
@@ -315,6 +320,15 @@ const EditArticle = () => {
     }
   };
 
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    e.currentTarget.onerror = null;
+    e.currentTarget.src = FALLBACK_IMAGE;
+  };
+
+  const handleCloseToast = () => {
+    setNotification({ show: false, message: "", type: "success" });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
@@ -386,10 +400,12 @@ const EditArticle = () => {
     <div className={styles.addArticleContainer}>
       <h1 className={styles.title}>Chỉnh sửa bài viết</h1>
 
-      {notification.show && (
-        <div className={`${styles.notification} ${styles[notification.type]}`}>
-          {notification.message}
-        </div>
+      {notification.message && (
+        <ToastNotification
+          type={notification.type as "success" | "error"}
+          message={notification.message}
+          onClose={handleCloseToast}
+        />
       )}
 
       <form onSubmit={handleSubmit} className={styles.form}>
@@ -443,11 +459,14 @@ const EditArticle = () => {
             ref={thumbnailInputRef}
             className={styles.input}
           />
-          {previewThumbnail && (
-            <div className={styles.thumbnailPreview}>
-              <img src={previewThumbnail} alt="Thumbnail Preview" className={styles.previewImage} />
-            </div>
-          )}
+          <div className={styles.thumbnailPreview}>
+            <img
+              src={previewThumbnail || FALLBACK_IMAGE}
+              alt="Thumbnail Preview"
+              className={styles.previewImage}
+              onError={handleImageError}
+            />
+          </div>
         </div>
 
         <div className={styles.formGroup}>

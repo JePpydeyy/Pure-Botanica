@@ -9,6 +9,7 @@ import { Comment } from "@/app/components/comment_interface";
 
 // Biến môi trường
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api-zeal.onrender.com";
+const ERROR_IMAGE_URL = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
 
 // Hằng số
 const TIMEOUT_DURATION = 10000;
@@ -23,11 +24,17 @@ const formatPrice = (price: number): string => {
 
 // Hàm tiện ích: Lấy URL hình ảnh
 const getImageUrl = (image: string): string => {
-  if (!image) return "/images/placeholder.png";
-  if (image.startsWith("http://") || image.startsWith("https://")) return image;
-  if (image.startsWith("images/")) return `https://api-zeal.onrender.com/${image}`;
-  if (image.startsWith("/images/")) return `https://api-zeal.onrender.com${image}`;
-  return `https://api-zeal.onrender.com/images/${image}`;
+  if (!image || typeof image !== "string" || image.trim() === "") {
+    console.warn("Invalid image URL detected, using fallback:", ERROR_IMAGE_URL);
+    return ERROR_IMAGE_URL;
+  }
+  try {
+    new URL(image); // Validate URL
+    return image;
+  } catch (e) {
+    console.warn("Invalid URL format for image:", image, "using fallback:", ERROR_IMAGE_URL);
+    return ERROR_IMAGE_URL;
+  }
 };
 
 // Hàm tiện ích: Giải mã token JWT
@@ -133,6 +140,7 @@ export default function DetailPage() {
   const { id } = useParams();
   const router = useRouter();
   const identifier = useMemo(() => (Array.isArray(id) ? id[0] : id), [id]);
+  const [cacheBuster, setCacheBuster] = useState(""); // Thêm cacheBuster
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -149,6 +157,11 @@ export default function DetailPage() {
   const { userId, username } = useUserInfo();
   const { message: cartMessage, showToast: showCartToast, hideToast: hideCartToast } = useToast();
   const { message: commentError, showToast: showCommentError, hideToast: hideCommentError } = useToast();
+
+  // Tạo cacheBuster sau khi hydration
+  useEffect(() => {
+    setCacheBuster(`t=${Date.now()}`);
+  }, []);
 
   // Đặt lại số lượng khi thay đổi tùy chọn
   useEffect(() => {
@@ -422,12 +435,16 @@ export default function DetailPage() {
                 onClick={() => setCurrentImageIndex(index)}
               >
                 <Image
-                  src={getImageUrl(image)}
+                  src={`${getImageUrl(image)}?${cacheBuster}`}
                   alt={`${product.name} thumbnail ${index + 1}`}
                   width={100}
                   height={100}
                   quality={100}
                   className={styles.thumbnailImg}
+                  onError={(e) => {
+                    console.log(`Thumbnail ${index + 1} for ${product.name} load failed, switched to 404 fallback`);
+                    (e.target as HTMLImageElement).src = ERROR_IMAGE_URL;
+                  }}
                 />
               </div>
             ))}
@@ -436,12 +453,20 @@ export default function DetailPage() {
           <div className={styles["product-image-container"]}>
             <div className={styles["product-main-image"]}>
               <Image
-                src={getImageUrl(product.images?.[currentImageIndex] || "")}
+                src={
+                  product.images?.[currentImageIndex]
+                    ? `${getImageUrl(product.images[currentImageIndex])}?${cacheBuster}`
+                    : ERROR_IMAGE_URL
+                }
                 alt={product.name}
                 width={300}
                 height={200}
                 quality={100}
                 className={styles["mainImg"]}
+                onError={(e) => {
+                  console.log(`Main image for ${product.name} load failed, switched to 404 fallback`);
+                  (e.target as HTMLImageElement).src = ERROR_IMAGE_URL;
+                }}
               />
             </div>
             <div className={styles["product-dots"]}>

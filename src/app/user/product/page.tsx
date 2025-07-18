@@ -9,10 +9,10 @@ import { Brand } from "@/app/components/Brand_interface";
 import { Product } from "@/app/components/product_interface";
 import ToastNotification from "../ToastNotification/ToastNotification";
 
-const API_BASE_URL = "https://api-zeal.onrender.com";
-const ERROR_IMAGE_URL = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+const API_BASE_URL: string = "https://api-zeal.onrender.com";
+const ERROR_IMAGE_URL: string = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
 
-const PRICE_RANGES = [
+const PRICE_RANGES: { label: string; value: string }[] = [
   { label: "100.000đ - 300.000đ", value: "100-300" },
   { label: "300.000đ - 500.000đ", value: "300-500" },
   { label: "500.000đ trở lên", value: "500+" },
@@ -53,6 +53,11 @@ const getProductStock = (product: Product): number => {
   return 0;
 };
 
+// Type guard để kiểm tra id_category là Category
+const isCategory = (id_category: Category | string | null | undefined): id_category is Category => {
+  return id_category != null && typeof id_category === "object" && "_id" in id_category;
+};
+
 export default function ProductPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
@@ -63,14 +68,14 @@ export default function ProductPage() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [favoriteProducts, setFavoriteProducts] = useState<string[]>([]);
-  const [cacheBuster, setCacheBuster] = useState(""); // Thêm cacheBuster
+  const [cacheBuster, setCacheBuster] = useState<string>("");
 
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [selectedPriceRange, setSelectedPriceRange] = useState<string>("");
 
-  const productsPerPage = 9;
+  const productsPerPage: number = 9;
   const searchParams = useSearchParams();
-  const searchQuery = searchParams.get("query")?.toLowerCase() || "";
+  const searchQuery: string = searchParams.get("query")?.toLowerCase() || "";
 
   // Tạo cacheBuster sau khi hydration
   useEffect(() => {
@@ -197,7 +202,7 @@ export default function ProductPage() {
           throw new Error(`Lỗi tải danh sách yêu thích: ${response.status}`);
         }
         const data = await response.json();
-        const newFavorites = data.favoriteProducts.map((item: any) => item._id);
+        const newFavorites: string[] = data.favoriteProducts.map((item: any) => item._id);
         setFavoriteProducts(newFavorites);
         localStorage.setItem("favoriteProducts", JSON.stringify(newFavorites));
       } catch (error) {
@@ -226,9 +231,13 @@ export default function ProductPage() {
     const decodedCategory = decodeURIComponent(categoryFromUrl);
     const foundCategory = categories.find(cat => cat.name === decodedCategory);
     if (foundCategory) {
-      const filtered = products.filter(product => 
-        product.id_category && product.id_category._id === foundCategory._id
-      );
+      const filtered = products.filter(product => {
+        if (!product.id_category) return false;
+        if (typeof product.id_category === "string") {
+          return product.id_category === foundCategory._id;
+        }
+        return isCategory(product.id_category) && product.id_category._id === foundCategory._id;
+      });
       setActiveCategory(decodedCategory);
       setFilteredProducts(filtered);
     } else if (decodedCategory === "Tất cả") {
@@ -243,13 +252,17 @@ export default function ProductPage() {
 
   // Apply sidebar filters (category, brand, price, search)
   useEffect(() => {
-    let filtered = [...products];
+    let filtered: Product[] = [...products];
     if (activeCategory) {
       const foundCategory = categories.find(cat => cat.name === activeCategory);
       if (foundCategory) {
-        filtered = filtered.filter(product => 
-          product.id_category && product.id_category._id === foundCategory._id
-        );
+        filtered = filtered.filter(product => {
+          if (!product.id_category) return false;
+          if (typeof product.id_category === "string") {
+            return product.id_category === foundCategory._id;
+          }
+          return isCategory(product.id_category) && product.id_category._id === foundCategory._id;
+        });
       }
     }
     if (selectedBrands.length > 0) {
@@ -273,16 +286,20 @@ export default function ProductPage() {
     setCurrentPage(1);
   }, [products, activeCategory, selectedBrands, selectedPriceRange, searchQuery, categories]);
 
-  const filterProducts = (categoryName: string) => {
+  const filterProducts = (categoryName: string): void => {
     if (activeCategory === categoryName) {
       setActiveCategory(null);
       setFilteredProducts(products);
     } else {
       const foundCategory = categories.find(cat => cat.name === categoryName);
       if (foundCategory) {
-        const filtered = products.filter(product => 
-          product.id_category && product.id_category._id === foundCategory._id
-        );
+        const filtered = products.filter(product => {
+          if (!product.id_category) return false;
+          if (typeof product.id_category === "string") {
+            return product.id_category === foundCategory._id;
+          }
+          return isCategory(product.id_category) && product.id_category._id === foundCategory._id;
+        });
         setFilteredProducts(filtered);
         setActiveCategory(categoryName);
       }
@@ -290,10 +307,10 @@ export default function ProductPage() {
     setCurrentPage(1);
   };
 
-  const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
-  const indexOfLastProduct = currentPage * productsPerPage;
-  const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
-  const currentProducts = filteredProducts.slice(indexOfFirstProduct, indexOfLastProduct);
+  const totalPages: number = Math.ceil(filteredProducts.length / productsPerPage);
+  const indexOfLastProduct: number = currentPage * productsPerPage;
+  const indexOfFirstProduct: number = indexOfLastProduct - productsPerPage;
+  const currentProducts: Product[] = filteredProducts.slice(indexOfFirstProduct, indexOfLastProduct);
 
   useEffect(() => {
     if (currentPage > totalPages && totalPages > 0) {
@@ -312,25 +329,25 @@ export default function ProductPage() {
     return validProducts.sort((a, b) => (b.stock || 0) - (a.stock || 0)).slice(0, count);
   };
 
-  const bestSellingProducts = getTopStockProducts(products, 5);
+  const bestSellingProducts: Product[] = getTopStockProducts(products, 5);
 
   const useToast = () => {
     const [message, setMessage] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
-    const TOAST_DURATION = 3000;
+    const TOAST_DURATION: number = 3000;
 
-    const showToast = (type: "success" | "error" | "info", text: string) => {
+    const showToast = (type: "success" | "error" | "info", text: string): void => {
       setMessage({ type, text });
       setTimeout(() => setMessage(null), TOAST_DURATION);
     };
 
-    const hideToast = () => setMessage(null);
+    const hideToast = (): void => setMessage(null);
 
     return { message, showToast, hideToast };
   };
 
   const { message, showToast, hideToast } = useToast();
 
-  const addToWishlist = async (productId: string) => {
+  const addToWishlist = async (productId: string): Promise<void> => {
     const token = localStorage.getItem("token");
     if (!token) {
       showToast("error", "Vui lòng đăng nhập để thêm vào danh sách yêu thích!");
@@ -368,7 +385,7 @@ export default function ProductPage() {
           throw new Error("Không thể xóa khỏi danh sách yêu thích!");
         }
         const data = await response.json();
-        const updatedFavorites: string[] = [];
+        const updatedFavorites: string[] = favoriteProducts.filter(id => id !== productId);
         setFavoriteProducts(updatedFavorites);
         localStorage.setItem("favoriteProducts", JSON.stringify(updatedFavorites));
         showToast("success", data.message || "Đã xóa khỏi danh sách yêu thích!");
@@ -400,7 +417,7 @@ export default function ProductPage() {
           throw new Error("Không thể thêm vào danh sách yêu thích!");
         }
         const data = await response.json();
-        const updatedFavorites = [...favoriteProducts, productId];
+        const updatedFavorites: string[] = [...favoriteProducts, productId];
         setFavoriteProducts(updatedFavorites);
         localStorage.setItem("favoriteProducts", JSON.stringify(updatedFavorites));
         showToast("success", data.message || "Đã thêm vào danh sách yêu thích!");
@@ -411,7 +428,7 @@ export default function ProductPage() {
     }
   };
 
-  const isProductInWishlist = (productId: string) => {
+  const isProductInWishlist = (productId: string): boolean => {
     return favoriteProducts.includes(productId);
   };
 
@@ -428,7 +445,7 @@ export default function ProductPage() {
           <ul className={styles["menu-list"]}>
             {categories.length > 0 ? (
               categories
-                .filter(category => category.status === "show") // Chỉ hiển thị danh mục có status: "show"
+                .filter(category => category.status === "show")
                 .map(category => (
                   <li
                     key={category._id}
@@ -453,7 +470,7 @@ export default function ProductPage() {
           <hr />
           <ul className={styles.filterList}>
             {brands
-              .filter(brand => brand.status === "show") // Chỉ hiển thị thương hiệu có status: "show"
+              .filter(brand => brand.status === "show")
               .map(brand => (
                 <li key={brand._id} className={styles.filterItem}>
                   <span
@@ -582,9 +599,9 @@ export default function ProductPage() {
                 <i className="fa-solid fa-chevron-left"></i>
               </button>
               {(() => {
-                const paginationRange = [];
-                let start = Math.max(1, currentPage - 1);
-                let end = Math.min(totalPages, start + 2);
+                const paginationRange: React.ReactNode[] = [];
+                let start: number = Math.max(1, currentPage - 1);
+                let end: number = Math.min(totalPages, start + 2);
                 if (end - start < 2) {
                   start = Math.max(1, end - 2);
                 }

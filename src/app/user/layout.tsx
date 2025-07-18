@@ -178,6 +178,15 @@ export default async function RootLayout({
                 </div>
               </div>
             </footer>
+            <script
+        data-name-bot="BOT CHAT"
+        src="https://app.preny.ai/embed-global.js"
+        data-button-style="width:300px;height:300px;"
+        data-language="vi"
+        async
+        defer
+        data-preny-bot-id="687a5528c6a004caf5668ced"
+      ></script>s
           </CartProvider>
         </AuthProvider>
       </body>

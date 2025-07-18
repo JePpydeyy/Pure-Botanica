@@ -188,7 +188,7 @@ export default function ContactAdmin() {
       <div className={styles.titleContainer}>
         <h1>QUẢN LÝ LIÊN HỆ</h1>
         <div className={styles.filterContainer}>
-          <input
+          <input 
             type="text"
             placeholder="Tìm theo họ tên..."
             className={styles.searchInput}

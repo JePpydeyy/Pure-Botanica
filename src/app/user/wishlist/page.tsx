@@ -14,16 +14,11 @@ interface Product {
   id_category: { status: string };
   slug: string;
   short_description: string;
-}
-
-// Interface cho phản hồi API /api/products/:identifier
-interface ProductResponse {
-  _id: string;
-  name: string;
-  images: string[];
-  id_category: { status: string };
-  slug: string;
-  short_description: string;
+  status?: string;
+  active?: boolean;
+  isActive?: boolean;
+  price?: number;
+  option?: { discount_price?: number; price?: number; stock?: number }[];
 }
 
 // Hook toast message
@@ -46,11 +41,11 @@ const getImageUrl = (filename?: string): string => {
     return "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
   }
   try {
-    new URL(filename); // Validate URL
+    new URL(filename);
     return filename;
   } catch (e) {
     console.warn("Invalid URL format for image:", filename, "using fallback:", "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg");
-    return ("https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg");
+    return "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
   }
 };
 
@@ -63,36 +58,10 @@ const truncateDescription = (description: string, wordLimit: number = 20) => {
   return description;
 };
 
-// Hàm lấy chi tiết sản phẩm nếu thiếu slug hoặc short_description
-const fetchProductDetails = async (productId: string, token: string): Promise<Product> => {
-  try {
-    const { data } = await axios.get<ProductResponse>(`https://api-zeal.onrender.com/api/products/${productId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    return {
-      _id: productId,
-      slug: data.slug || productId,
-      short_description: data.short_description || "Không có mô tả",
-      images: data.images || [],
-      name: data.name || "Sản phẩm không xác định",
-      id_category: data.id_category || { status: "show" },
-    };
-  } catch (err) {
-    console.error(`Lỗi khi lấy chi tiết sản phẩm ${productId}:`, err);
-    return {
-      _id: productId,
-      slug: productId,
-      short_description: "Không có mô tả",
-      images: [],
-      name: "Sản phẩm không xác định",
-      id_category: { status: "show" },
-    };
-  }
-};
-
 // Trang danh sách yêu thích của người dùng
 export default function WishlistPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [favoriteProducts, setFavoriteProducts] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const { message, showToast, hideToast } = useToast();
@@ -105,53 +74,82 @@ export default function WishlistPage() {
     router.push(`/user/detail/${slug}`);
   };
 
-  // Fetch sản phẩm yêu thích
+  // Fetch danh sách sản phẩm active từ /api/products/active
   useEffect(() => {
-    const fetchWishlist = async () => {
-      const token = getToken();
-      if (!token) {
-        showToast("error", "Vui lòng đăng nhập để sử dụng chức năng này!");
-        setLoading(false);
-        setTimeout(() => {
-          router.push("/user/login");
-        }, 3000);
-        return;
-      }
-
+    const fetchActiveProducts = async () => {
+      setLoading(true);
       try {
-        const { data } = await axios.get<{ favoriteProducts: Product[] }>(
-          "https://api-zeal.onrender.com/api/users/favorite-products",
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        console.log("Dữ liệu favoriteProducts:", data.favoriteProducts); // Debug API response
-        const productsWithDetails = await Promise.all(
-          (data.favoriteProducts || []).map(async (product: Product) => {
-            if (!product.slug || !product.short_description) {
-              return { ...product, ...(await fetchProductDetails(product._id, token)) };
-            }
-            return product;
-          })
-        );
-        setProducts(productsWithDetails);
-      } catch (err: any) {
-        const status = err.response?.status;
-        const errorMap: { [key: number]: string } = {
-          400: "User ID không hợp lệ.",
-          401: "Người dùng không được xác thực hoặc token không hợp lệ.",
-          404: "Không tìm thấy người dùng.",
-          500: "Lỗi server, có thể do kết nối database.",
-        };
-        const errorMessage = errorMap[status] || "Không thể tải danh sách yêu thích.";
-        showToast("error", errorMessage);
-        console.error("Lỗi khi lấy danh sách yêu thích:", err);
+        const response = await fetch("https://api-zeal.onrender.com/api/products/active", {
+          cache: "no-store",
+        });
+        if (!response.ok) {
+          throw new Error(`Lỗi tải sản phẩm: ${response.status}`);
+        }
+        const data: Product[] = await response.json();
+        console.log("Dữ liệu active products:", data); // Debug dữ liệu từ API
+        setProducts(data);
+      } catch (err) {
+        console.error("Lỗi khi tải sản phẩm active:", err);
+        showToast("error", "Không thể tải danh sách sản phẩm.");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchWishlist();
+    fetchActiveProducts();
+  }, []);
+
+  // Fetch danh sách yêu thích từ /api/users/favorite-products
+  useEffect(() => {
+    const fetchFavoriteProducts = async () => {
+      const token = getToken();
+      if (!token) {
+        setFavoriteProducts([]);
+        localStorage.removeItem("favoriteProducts");
+        return;
+      }
+      try {
+        const response = await fetch("https://api-zeal.onrender.com/api/users/favorite-products", {
+          headers: { Authorization: `Bearer ${token}` },
+          cache: "no-store",
+        });
+        if (!response.ok) {
+          if (response.status === 401) {
+            localStorage.removeItem("token");
+            setFavoriteProducts([]);
+            showToast("error", "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!");
+            return;
+          } else if (response.status === 400) {
+            setFavoriteProducts([]);
+            showToast("error", "User ID không hợp lệ!");
+            return;
+          } else if (response.status === 404) {
+            setFavoriteProducts([]);
+            showToast("error", "Không tìm thấy người dùng!");
+            return;
+          } else if (response.status === 500) {
+            setFavoriteProducts([]);
+            showToast("error", "Lỗi server. Vui lòng thử lại sau!");
+            return;
+          }
+          throw new Error(`Lỗi tải danh sách yêu thích: ${response.status}`);
+        }
+        const data = await response.json();
+        const newFavorites: string[] = data.favoriteProducts.map((item: any) => item._id);
+        setFavoriteProducts(newFavorites);
+        localStorage.setItem("favoriteProducts", JSON.stringify(newFavorites));
+      } catch (err) {
+        console.error("Lỗi khi lấy danh sách yêu thích:", err);
+        const savedFavorites = localStorage.getItem("favoriteProducts");
+        if (savedFavorites) {
+          setFavoriteProducts(JSON.parse(savedFavorites));
+        } else {
+          setFavoriteProducts([]);
+        }
+      }
+    };
+
+    fetchFavoriteProducts();
   }, []);
 
   // Xóa sản phẩm khỏi danh sách yêu thích
@@ -172,7 +170,7 @@ export default function WishlistPage() {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      setProducts((prev) => prev.filter((p) => p._id !== productId));
+      setFavoriteProducts((prev) => prev.filter((id) => id !== productId));
       showToast("success", "Đã xóa sản phẩm khỏi danh sách yêu thích!");
     } catch (err) {
       showToast("error", "Không thể xóa sản phẩm khỏi danh sách yêu thích!");
@@ -183,15 +181,19 @@ export default function WishlistPage() {
   // UI hiển thị
   if (loading) return <div className="text-center py-10">Đang tải...</div>;
 
+  const wishlistProducts = products.filter((product) =>
+    favoriteProducts.includes(product._id)
+  );
+
   return (
     <div className={styles.container}>
       <h1 className={styles["wishlist-title"]}>Danh sách yêu thích</h1>
 
-      {products.length === 0 ? (
+      {wishlistProducts.length === 0 ? (
         <p className="text-center py-10">Bạn chưa thêm sản phẩm nào vào danh sách yêu thích.</p>
       ) : (
         <ul className={styles.productList}>
-          {products.map((product) => (
+          {wishlistProducts.map((product) => (
             <li key={product._id} className={styles.productItem}>
               <button onClick={() => navigateToDetail(product.slug)} className={styles.productImageButton}>
                 <img

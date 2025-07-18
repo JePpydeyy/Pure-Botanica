@@ -1,10 +1,14 @@
+
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import styles from "./Userinfo.module.css";
 import { User } from "@/app/components/user_interface";
+
+const API_BASE_URL = "https://api-zeal.onrender.com";
+const ERROR_IMAGE_URL = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
 
 interface Order {
   _id: string;
@@ -33,6 +37,14 @@ interface Order {
   }[];
 }
 
+interface Product {
+  _id: string;
+  name: string;
+  images: string[];
+  option: { _id: string; price: number; discount_price?: number; value: string }[];
+  price: number;
+}
+
 const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
   const token = localStorage.getItem("token");
   if (!token) {
@@ -48,40 +60,85 @@ const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
   });
 };
 
-const getImageUrl = (image: string | null | undefined): string => {
-  if (!image || image.trim() === "") {
-    return "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+const getImageUrl = (image: string, productName: string, cacheBuster: string): string => {
+  if (!image || typeof image !== "string" || image.trim() === "") {
+    console.warn(`Invalid image URL for product "${productName}", using fallback: ${ERROR_IMAGE_URL}`);
+    return ERROR_IMAGE_URL;
   }
   try {
     if (image.startsWith("http://") || image.startsWith("https://")) {
-      return `${image}${image.includes("?") ? "&" : "?"}_t=${Date.now()}`;
+      return `${image}${image.includes("?") ? "&" : "?"}${cacheBuster}`;
     }
-    return "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+    const url = `${API_BASE_URL}/${image}?${cacheBuster}`;
+    console.log(`Generated image URL for product "${productName}": ${url}`);
+    return url;
   } catch (e) {
-    console.error(`Invalid URL detected: ${image}`, e);
-    return "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+    console.warn(`Invalid URL format for product "${productName}": ${image}, using fallback: ${ERROR_IMAGE_URL}`, e);
+    return ERROR_IMAGE_URL;
   }
+};
+
+const getProductPrice = (product: any, productName: string): number => {
+  if (!product) {
+    console.warn(`Product is null or undefined: ${productName}`);
+    return 0;
+  }
+  if (product.price) {
+    return product.price;
+  }
+  if (!product.option || !Array.isArray(product.option) || product.option.length === 0) {
+    console.warn(`Invalid or missing options for product "${productName}"`);
+    return 0;
+  }
+  const firstOption = product.option[0];
+  if (!firstOption) {
+    console.warn(`No valid option found for product "${productName}"`);
+    return 0;
+  }
+  const price = firstOption.discount_price && firstOption.discount_price > 0 ? firstOption.discount_price : firstOption.price || 0;
+  console.log(`Price for product "${productName}": ${price}`);
+  return price;
+};
+
+const formatPrice = (price: number | undefined | null): string => {
+  if (price === undefined || price === null || isNaN(price)) {
+    return "Giá không khả dụng";
+  }
+  return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "đ";
+};
+
+const useToast = () => {
+  const [message, setMessage] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
+  const TOAST_DURATION = 3000;
+
+  const showToast = (type: "success" | "error" | "info", text: string) => {
+    setMessage({ type, text });
+    setTimeout(() => setMessage(null), TOAST_DURATION);
+  };
+
+  return { message, showToast, hideToast: () => setMessage(null) };
 };
 
 export default function UserProfile() {
   const [user, setUser] = useState<User | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [selectedSection, setSelectedSection] = useState<"profile" | "orders">("profile");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [selectedSection, setSelectedSection] = useState<"profile" | "orders" | "wishlist">("profile");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [ordersLoading, setOrdersLoading] = useState<boolean>(false);
   const [ordersError, setOrdersError] = useState<string | null>(null);
+  const [wishlistLoading, setWishlistLoading] = useState<boolean>(false);
+  const [wishlistError, setWishlistError] = useState<string | null>(null);
   const [paymentMap, setPaymentMap] = useState<Record<string, string>>({});
+  const [cacheBuster, setCacheBuster] = useState(""); // Thêm cacheBuster
+  const { message, showToast, hideToast } = useToast();
 
-  const getProductPrice = (product: any, optionId?: string) => {
-    if (!product || !product.price) return 0;
-    if (optionId && Array.isArray(product.option)) {
-      const opt = product.option.find((o: any) => o?._id === optionId);
-      if (opt) return opt.discount_price && opt.discount_price > 0 ? opt.discount_price : opt.price || 0;
-    }
-    return product.price || 0;
-  };
+  // Tạo cacheBuster sau khi hydration
+  useEffect(() => {
+    setCacheBuster(`t=${Date.now()}`);
+  }, []);
 
   const fetchUserInfo = async () => {
     try {
@@ -89,7 +146,7 @@ export default function UserProfile() {
       if (!userId || userId === "undefined" || !userId.match(/^[0-9a-fA-F]{24}$/)) {
         throw new Error("Không tìm thấy hoặc userId không hợp lệ. Vui lòng đăng nhập lại.");
       }
-      const res = await fetchWithAuth(`https://api-zeal.onrender.com/api/users/userinfo?id=${userId}`);
+      const res = await fetchWithAuth(`${API_BASE_URL}/api/users/userinfo?id=${userId}`);
       if (!res.ok) {
         if (res.status === 401) {
           throw new Error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
@@ -129,7 +186,9 @@ export default function UserProfile() {
     setOrdersLoading(true);
     setOrdersError(null);
     try {
-      const res = await fetchWithAuth(`https://api-zeal.onrender.com/api/orders/user/${userId}`);
+      const res = await fetchWithAuth(`${API_BASE_URL}/api/orders/user/${userId}`, {
+        cache: "no-store",
+      });
       if (!res.ok) {
         if (res.status === 401) {
           throw new Error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
@@ -140,7 +199,6 @@ export default function UserProfile() {
         throw new Error("Lỗi khi tải danh sách đơn hàng.");
       }
       const data = await res.json();
-      console.log("Orders data:", data); // Debug log
       let ordersData: Order[] = [];
       if (data.status === "success" && Array.isArray(data.data)) {
         ordersData = data.data;
@@ -151,9 +209,32 @@ export default function UserProfile() {
       } else {
         ordersData = [];
       }
+      console.log("Orders data:", ordersData); // Debug
+      // Lấy danh sách sản phẩm từ /api/products/active
+      const productsRes = await fetch(`${API_BASE_URL}/api/products/active`, {
+        cache: "no-store",
+      });
+      if (!productsRes.ok) {
+        throw new Error(`Lỗi tải sản phẩm: ${productsRes.status}`);
+      }
+      const productsData: Product[] = await productsRes.json();
+      console.log("Products data:", productsData); // Debug
+      ordersData = ordersData.map(order => ({
+        ...order,
+        items: order.items.map(item => ({
+          ...item,
+          product: item.product
+            ? {
+                ...item.product,
+                ...productsData.find(p => p._id === item.product?._id),
+                images: (item.product.images || []).filter(img => typeof img === "string" && img.trim() !== "").map(img => getImageUrl(img, item.product?.name || "Unknown", cacheBuster)),
+                price: getProductPrice(productsData.find(p => p._id === item.product?._id) || item.product, item.product?.name || "Unknown"),
+              }
+            : null,
+        })),
+      }));
       setOrders(ordersData);
-
-      const paymentRes = await fetchWithAuth("https://api-zeal.onrender.com/api/payments/get-by-user", {
+      const paymentRes = await fetchWithAuth(`${API_BASE_URL}/api/payments/get-by-user`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId }),
@@ -182,9 +263,107 @@ export default function UserProfile() {
     }
   };
 
+  const fetchWishlist = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setWishlistError("Vui lòng đăng nhập để xem danh sách yêu thích.");
+      showToast("error", "Vui lòng đăng nhập để xem danh sách yêu thích!");
+      setWishlistLoading(false);
+      window.location.href = "/user/login";
+      return;
+    }
+
+    setWishlistLoading(true);
+    setWishlistError(null);
+    try {
+      const res = await fetchWithAuth(`${API_BASE_URL}/api/users/favorite-products`, {
+        cache: "no-store",
+      });
+      if (!res.ok) {
+        const status = res.status;
+        const errorMap: { [key: number]: string } = {
+          400: "User ID không hợp lệ.",
+          401: "Người dùng không được xác thực hoặc token không hợp lệ.",
+          404: "Không tìm thấy người dùng.",
+          500: "Lỗi server, có thể do kết nối database.",
+        };
+        const errorMessage = errorMap[status] || "Không thể tải danh sách yêu thích.";
+        throw new Error(errorMessage);
+      }
+      const data = await res.json();
+      console.log("Wishlist data:", data); // Debug
+      if (!Array.isArray(data.favoriteProducts)) {
+        console.warn("Invalid favoriteProducts format:", data);
+        setProducts([]);
+        return;
+      }
+      // Lấy danh sách sản phẩm từ /api/products/active
+      const productsRes = await fetch(`${API_BASE_URL}/api/products/active`, {
+        cache: "no-store",
+      });
+      if (!productsRes.ok) {
+        throw new Error(`Lỗi tải sản phẩm: ${productsRes.status}`);
+      }
+      const productsData: Product[] = await productsRes.json();
+      console.log("Products data:", productsData); // Debug
+      const processedProducts = data.favoriteProducts.map((favProduct: any) => {
+        const fullProduct = productsData.find(p => p._id === favProduct._id) || favProduct;
+        return {
+          ...favProduct,
+          images: (fullProduct.images || []).filter((img: string) => typeof img === "string" && img.trim() !== "").map((img: string) => getImageUrl(img, fullProduct.name || "Unknown", cacheBuster)),
+          price: getProductPrice(fullProduct, fullProduct.name || "Unknown"),
+        };
+      });
+      setProducts(processedProducts);
+    } catch (err: any) {
+      setWishlistError(err.message || "Không thể tải danh sách yêu thích.");
+      showToast("error", err.message || "Không thể tải danh sách yêu thích!");
+    } finally {
+      setWishlistLoading(false);
+    }
+  };
+
+  const removeFromWishlist = useCallback(async (productId: string) => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      showToast("error", "Vui lòng đăng nhập để xóa sản phẩm!");
+      return;
+    }
+
+    try {
+      const res = await fetchWithAuth(`${API_BASE_URL}/api/users/favorite-products/${productId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        if (res.status === 401) {
+          localStorage.removeItem("token");
+          showToast("error", "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!");
+          return;
+        } else if (res.status === 400) {
+          showToast("error", "ProductId không hợp lệ!");
+          return;
+        } else if (res.status === 404) {
+          showToast("error", "Không tìm thấy người dùng!");
+          return;
+        } else if (res.status === 500) {
+          showToast("error", "Lỗi server. Vui lòng thử lại sau!");
+          return;
+        }
+        throw new Error("Không thể xóa sản phẩm khỏi danh sách yêu thích.");
+      }
+      setProducts((prev) => prev.filter((p) => p._id !== productId));
+      showToast("success", "Đã xóa sản phẩm khỏi danh sách yêu thích!");
+    } catch (err: any) {
+      showToast("error", err.message || "Không thể xóa sản phẩm khỏi danh sách yêu thích!");
+      console.error("Lỗi xóa sản phẩm:", err);
+    }
+  }, [showToast]);
+
   const fetchOrderById = async (orderId: string) => {
     try {
-      const res = await fetchWithAuth(`https://api-zeal.onrender.com/api/orders/order/${orderId}`);
+      const res = await fetchWithAuth(`${API_BASE_URL}/api/orders/order/${orderId}`, {
+        cache: "no-store",
+      });
       if (!res.ok) {
         if (res.status === 401) {
           throw new Error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
@@ -194,12 +373,35 @@ export default function UserProfile() {
         throw new Error("Lỗi khi tải chi tiết đơn hàng.");
       }
       const data = await res.json();
-      console.log("Order data:", data); // Debug log
       if (!data || !data._id || !data.items || !Array.isArray(data.items)) {
         throw new Error("Dữ liệu đơn hàng không hợp lệ.");
       }
-      const paymentCode = paymentMap[data._id];
-      setSelectedOrder({ ...data, paymentCode });
+      console.log("Order details:", data); // Debug
+      // Lấy danh sách sản phẩm từ /api/products/active
+      const productsRes = await fetch(`${API_BASE_URL}/api/products/active`, {
+        cache: "no-store",
+      });
+      if (!productsRes.ok) {
+        throw new Error(`Lỗi tải sản phẩm: ${productsRes.status}`);
+      }
+      const productsData: Product[] = await productsRes.json();
+      console.log("Products data:", productsData); // Debug
+      const processedOrder = {
+        ...data,
+        items: data.items.map((item: any) => ({
+          ...item,
+          product: item.product
+            ? {
+                ...item.product,
+                ...productsData.find(p => p._id === item.product?._id),
+                images: (item.product.images || []).filter((img: string) => typeof img === "string" && img.trim() !== "").map((img: string) => getImageUrl(img, item.product?.name || "Unknown", cacheBuster)),
+                price: getProductPrice(productsData.find(p => p._id === item.product?._id) || item.product, item.product?.name || "Unknown"),
+              }
+            : null,
+        })),
+        paymentCode: paymentMap[data._id],
+      };
+      setSelectedOrder(processedOrder);
     } catch (err: any) {
       setError(err.message || "Lỗi khi tải chi tiết đơn hàng.");
     } finally {
@@ -212,14 +414,6 @@ export default function UserProfile() {
     if (userId) {
       fetchOrders(userId);
     }
-  };
-
-  const formatPrice = (price: number) => {
-    const numericPrice = Number(price) || 0;
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    }).format(numericPrice);
   };
 
   const renderOrderStatus = (order: Order) => (
@@ -294,6 +488,7 @@ export default function UserProfile() {
         }
         await fetchUserInfo();
         await fetchOrders(userId);
+        await fetchWishlist();
       } catch (err: any) {
         setError(err.message || "Lỗi khi tải dữ liệu.");
       } finally {
@@ -332,6 +527,15 @@ export default function UserProfile() {
             }}
           >
             Đơn hàng
+          </li>
+          <li
+            className={`${styles.menuItem} ${selectedSection === "wishlist" ? styles.active : ""}`}
+            onClick={() => {
+              setSelectedSection("wishlist");
+              setSelectedOrder(null);
+            }}
+          >
+            Sản phẩm yêu thích
           </li>
         </ul>
       </div>
@@ -413,7 +617,7 @@ export default function UserProfile() {
                   <span>Tổng</span>
                 </div>
                 {selectedOrder.items.map((item, index) => {
-                  const price = getProductPrice(item.product, item.optionId);
+                  const price = item.product ? getProductPrice(item.product, item.product.name || "Unknown") : 0;
                   let optionValue = "";
                   if (item.product && item.product.option && Array.isArray(item.product.option) && item.optionId) {
                     const opt = item.product.option.find((o: any) => o?._id === item.optionId);
@@ -425,15 +629,16 @@ export default function UserProfile() {
                         <Image
                           src={
                             item.product && item.product.images && item.product.images.length > 0
-                              ? getImageUrl(item.product.images[0])
-                              : "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg"
+                              ? item.product.images[0]
+                              : ERROR_IMAGE_URL
                           }
                           alt={item.product?.name || "Sản phẩm"}
                           width={100}
                           height={100}
+                          quality={100}
                           onError={(e) => {
-                            (e.target as HTMLImageElement).src = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
-                            console.error(`Không thể tải hình ảnh sản phẩm: ${item.product?.name || "Unknown"}`);
+                            console.error(`Image load failed for product "${item.product?.name || "Unknown"}"`);
+                            (e.target as HTMLImageElement).src = ERROR_IMAGE_URL;
                           }}
                         />
                       </div>
@@ -520,6 +725,62 @@ export default function UserProfile() {
                 >
                   Trở lại
                 </button>
+              </div>
+            )}
+          </>
+        )}
+
+        {selectedSection === "wishlist" && (
+          <>
+            <h2 className={styles.title}>Sản phẩm yêu thích</h2>
+            {wishlistLoading && <p className={styles.loading}>Đang tải danh sách yêu thích...</p>}
+            {wishlistError && (
+              <div className={styles.error}>
+                <p>{wishlistError}</p>
+                <button onClick={fetchWishlist} className={styles.editButton}>
+                  Thử lại
+                </button>
+              </div>
+            )}
+            {!wishlistLoading && !wishlistError && (
+              <>
+                {products.length === 0 ? (
+                  <p className={styles.infoRow}>Chưa có sản phẩm yêu thích</p>
+                ) : (
+                  <div className={styles.wishlistCards}>
+                    {products.map((product) => (
+                      <div key={product._id} className={styles.wishlistCard}>
+                        <Image
+                          src={product.images && product.images.length > 0 ? product.images[0] : ERROR_IMAGE_URL}
+                          alt={product.name}
+                          width={100}
+                          height={100}
+                          quality={100}
+                          onError={(e) => {
+                            console.error(`Image load failed for product "${product.name}"`);
+                            (e.target as HTMLImageElement).src = ERROR_IMAGE_URL;
+                          }}
+                        />
+                        <div className={styles.wishlistInfo}>
+                          <h3>{product.name}</h3>
+                          <p>{formatPrice(product.price)}</p>
+                          <span
+                            className={styles.removeIcon}
+                            onClick={() => removeFromWishlist(product._id)}
+                            style={{ cursor: "pointer", color: "#e74c3c", fontSize: "20px" }}
+                          >
+                            ×
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+            {message && (
+              <div className={styles.toastNotification}>
+                <p className={`${styles[message.type]}`}>{message.text}</p>
               </div>
             )}
           </>

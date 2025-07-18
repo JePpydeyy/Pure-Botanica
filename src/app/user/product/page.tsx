@@ -226,7 +226,9 @@ export default function ProductPage() {
     const decodedCategory = decodeURIComponent(categoryFromUrl);
     const foundCategory = categories.find(cat => cat.name === decodedCategory);
     if (foundCategory) {
-      const filtered = products.filter(product => product.id_category === foundCategory._id);
+      const filtered = products.filter(product => 
+        product.id_category && product.id_category._id === foundCategory._id
+      );
       setActiveCategory(decodedCategory);
       setFilteredProducts(filtered);
     } else if (decodedCategory === "Tất cả") {
@@ -245,7 +247,9 @@ export default function ProductPage() {
     if (activeCategory) {
       const foundCategory = categories.find(cat => cat.name === activeCategory);
       if (foundCategory) {
-        filtered = filtered.filter(product => product.id_category === foundCategory._id);
+        filtered = filtered.filter(product => 
+          product.id_category && product.id_category._id === foundCategory._id
+        );
       }
     }
     if (selectedBrands.length > 0) {
@@ -276,7 +280,9 @@ export default function ProductPage() {
     } else {
       const foundCategory = categories.find(cat => cat.name === categoryName);
       if (foundCategory) {
-        const filtered = products.filter(product => product.id_category === foundCategory._id);
+        const filtered = products.filter(product => 
+          product.id_category && product.id_category._id === foundCategory._id
+        );
         setFilteredProducts(filtered);
         setActiveCategory(categoryName);
       }
@@ -421,21 +427,23 @@ export default function ProductPage() {
           <hr />
           <ul className={styles["menu-list"]}>
             {categories.length > 0 ? (
-              categories.map(category => (
-                <li
-                  key={category._id}
-                  className={styles["menu-list-item"]}
-                  onClick={() => filterProducts(category.name)}
-                >
-                  <span
-                    className={`${styles.filterOption} ${
-                      activeCategory === category.name ? styles.active : ""
-                    }`}
+              categories
+                .filter(category => category.status === "show") // Chỉ hiển thị danh mục có status: "show"
+                .map(category => (
+                  <li
+                    key={category._id}
+                    className={styles["menu-list-item"]}
+                    onClick={() => filterProducts(category.name)}
                   >
-                    {category.name}
-                  </span>
-                </li>
-              ))
+                    <span
+                      className={`${styles.filterOption} ${
+                        activeCategory === category.name ? styles.active : ""
+                      }`}
+                    >
+                      {category.name}
+                    </span>
+                  </li>
+                ))
             ) : (
               <li className={styles["no-products"]}>Không có danh mục nào.</li>
             )}
@@ -444,24 +452,26 @@ export default function ProductPage() {
           <h3 className={styles["sidebar-title"]}>THƯƠNG HIỆU</h3>
           <hr />
           <ul className={styles.filterList}>
-            {brands.map(brand => (
-              <li key={brand._id} className={styles.filterItem}>
-                <span
-                  className={`${styles.filterOption} ${
-                    selectedBrands.includes(brand.name) ? styles.active : ""
-                  }`}
-                  onClick={() =>
-                    setSelectedBrands(prev =>
-                      prev.includes(brand.name)
-                        ? prev.filter(b => b !== brand.name)
-                        : [...prev, brand.name]
-                    )
-                  }
-                >
-                  {brand.name}
-                </span>
-              </li>
-            ))}
+            {brands
+              .filter(brand => brand.status === "show") // Chỉ hiển thị thương hiệu có status: "show"
+              .map(brand => (
+                <li key={brand._id} className={styles.filterItem}>
+                  <span
+                    className={`${styles.filterOption} ${
+                      selectedBrands.includes(brand.name) ? styles.active : ""
+                    }`}
+                    onClick={() =>
+                      setSelectedBrands(prev =>
+                        prev.includes(brand.name)
+                          ? prev.filter(b => b !== brand.name)
+                          : [...prev, brand.name]
+                      )
+                    }
+                  >
+                    {brand.name}
+                  </span>
+                </li>
+              ))}
           </ul>
 
           <h3 className={styles["sidebar-title"]}>PHÂN KHÚC SẢN PHẨM</h3>

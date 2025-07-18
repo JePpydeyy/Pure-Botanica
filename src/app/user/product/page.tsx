@@ -227,7 +227,10 @@ export default function ProductPage() {
     const foundCategory = categories.find(cat => cat.name === decodedCategory);
     if (foundCategory) {
       const filtered = products.filter(product => 
-        product.id_category && product.id_category._id === foundCategory._id
+        product.id_category && (
+          (typeof product.id_category === "object" && product.id_category !== null && typeof (product.id_category as { _id?: string })._id === "string" && (product.id_category as { _id: string })._id === foundCategory._id) ||
+          (typeof product.id_category === "string" && product.id_category === foundCategory._id)
+        )
       );
       setActiveCategory(decodedCategory);
       setFilteredProducts(filtered);
@@ -248,7 +251,11 @@ export default function ProductPage() {
       const foundCategory = categories.find(cat => cat.name === activeCategory);
       if (foundCategory) {
         filtered = filtered.filter(product => 
-          product.id_category && product.id_category._id === foundCategory._id
+          product.id_category &&
+          (
+            (typeof product.id_category === "object" && product.id_category !== null && (product.id_category as { _id?: string })._id === foundCategory._id) ||
+            (typeof product.id_category === "string" && product.id_category === foundCategory._id)
+          )
         );
       }
     }
@@ -281,7 +288,11 @@ export default function ProductPage() {
       const foundCategory = categories.find(cat => cat.name === categoryName);
       if (foundCategory) {
         const filtered = products.filter(product => 
-          product.id_category && product.id_category._id === foundCategory._id
+          product.id_category &&
+          (
+            (typeof product.id_category === "object" && product.id_category !== null && (product.id_category as { _id?: string })._id === foundCategory._id) ||
+            (typeof product.id_category === "string" && product.id_category === foundCategory._id)
+          )
         );
         setFilteredProducts(filtered);
         setActiveCategory(categoryName);

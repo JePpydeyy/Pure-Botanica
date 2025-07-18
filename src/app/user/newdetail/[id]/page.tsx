@@ -38,7 +38,6 @@ export default function NewsDetailPage() {
   // Hàm xử lý URL ảnh
   const getImageUrl = (image: string | null): string => {
     if (!image) return "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
-    // Thêm cache buster cho URL từ MongoDB (bắt đầu bằng http)
     return image.startsWith("http") ? `${image}?${cacheBuster}` : image;
   };
 
@@ -79,7 +78,7 @@ export default function NewsDetailPage() {
         }
         setNews({
           ...data,
-          thumbnailUrl: getImageUrl(data.thumbnailUrl), // Sử dụng getImageUrl
+          thumbnailUrl: getImageUrl(data.thumbnailUrl),
         });
 
         // Fetch related news
@@ -94,7 +93,7 @@ export default function NewsDetailPage() {
           .filter((item) => item.slug !== data.slug)
           .map((item) => ({
             ...item,
-            thumbnailUrl: getImageUrl(item.thumbnailUrl), // Sử dụng getImageUrl
+            thumbnailUrl: getImageUrl(item.thumbnailUrl),
           }));
         const shuffled = others.sort(() => 0.5 - Math.random());
         const selected = shuffled.slice(0, 3);
@@ -142,7 +141,7 @@ export default function NewsDetailPage() {
         <div className={styles.newsSection}>
           <div className={styles.newsimageWrapper}>
             <img
-              src={getImageUrl(news.thumbnailUrl)} // Sử dụng getImageUrl
+              src={getImageUrl(news.thumbnailUrl)}
               alt={news.thumbnailCaption}
               width={690}
               height={448}
@@ -156,7 +155,7 @@ export default function NewsDetailPage() {
 
           <div
             className={styles.newsText}
-            dangerouslySetInnerHTML={{ __html: news.content }} // Sử dụng content trực tiếp
+            dangerouslySetInnerHTML={{ __html: news.content }}
           />
         </div>
 
@@ -171,7 +170,7 @@ export default function NewsDetailPage() {
               >
                 <div className={styles.newsRelatedItem}>
                   <img
-                    src={getImageUrl(item.thumbnailUrl)} // Sử dụng getImageUrl
+                    src={getImageUrl(item.thumbnailUrl)}
                     alt={item.thumbnailCaption}
                     width={410}
                     height={250}

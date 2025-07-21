@@ -76,7 +76,7 @@ export default function Customer() {
           throw new Error("No token found");
         }
 
-        const res = await fetch("https://api-zeal.onrender.com/api/users", {
+        const res = await fetch("http://localhost:10000/api/users", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -226,7 +226,7 @@ export default function Customer() {
       }
 
       const res = await fetch(
-        `https://api-zeal.onrender.com/api/users/update/${selectedCustomer._id}`,
+        `http://localhost:10000/api/users/update/${selectedCustomer._id}`,
         {
           method: "PUT",
           headers: {
@@ -296,7 +296,7 @@ export default function Customer() {
         throw new Error("No token found");
       }
 
-      const res = await fetch(`https://api-zeal.onrender.com/api/users/${deleteCustomerId}`, {
+      const res = await fetch(`http://localhost:10000/api/users/${deleteCustomerId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,

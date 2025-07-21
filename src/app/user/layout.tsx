@@ -30,7 +30,7 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const category: Category[] = await getCategories("https://api-zeal.onrender.com/api/categories");
+  const categories: Category[] = await getCategories("https://api-zeal.onrender.com/api/categories");
 
   const fetchImage = async (type: "favicon" | "logo-shop"): Promise<string> => {
     console.log(`Fetching ${type}... at ${new Date().toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" })}`);
@@ -52,6 +52,9 @@ export default async function RootLayout({
   const faviconPath = await fetchImage("favicon");
   const logoPath = await fetchImage("logo-shop");
   console.log("Resolved logoPath:", logoPath);
+
+  // Filter categories to only include those with status "show"
+  const showCategories = categories.filter((category) => category.status === "show");
 
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
@@ -87,7 +90,7 @@ export default async function RootLayout({
                     <Link href="/user/product" className="dropdown">
                       Sản phẩm
                     </Link>
-                    <CategoryList categories={category} />
+                    <CategoryList categories={showCategories} />
                   </div>
                   <Link href="/user/about">Về chúng tôi</Link>
                   <Link href="/user/contact">Liên hệ</Link>
@@ -109,7 +112,7 @@ export default async function RootLayout({
             </header>
 
             <main>{children}</main>
-    
+
             <footer className="footer">
               <div className="footer-container">
                 <div className="footer-logo">
@@ -126,12 +129,13 @@ export default async function RootLayout({
                   <div className="footer-column">
                     <h4>SẢN PHẨM</h4>
                     <ul>
-                      <li><Link href="#">Chăm sóc da</Link></li>
-                      <li><Link href="#">Chăm sóc tóc</Link></li>
-                      <li><Link href="#">Chăm sóc cơ thể</Link></li>
-                      <li><Link href="#">Bộ trang điểm</Link></li>
-                      <li><Link href="#">Hương thơm</Link></li>
-                      <li><Link href="#">Mẹ và bé</Link></li>
+                      {showCategories.map((category) => (
+                        <li key={category._id}>
+                          <Link href={`/user/product?category=${encodeURIComponent(category.name)}`}>
+                            {category.name}
+                          </Link>
+                        </li>
+                      ))}
                     </ul>
                   </div>
                   <div className="footer-column">
@@ -196,17 +200,26 @@ export default async function RootLayout({
 
 // Hàm lấy danh mục
 async function getCategories(url: string): Promise<Category[]> {
-  let res = await fetch(url, { cache: "no-store" });
-  if (!res.ok) return [];
-
-  let data = await res.json();
-  if (!Array.isArray(data)) return [];
-
-  return data.map((category: any) => ({
-    _id: category._id,
-    name: category.name,
-    isHidden: category.isHidden || false,
-    status: category.status,
-    createdAt: category.createdAt,
-  }));
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) {
+      console.error(`Fetch categories failed at ${new Date().toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" })}:`, res.status, res.statusText);
+      return [];
+    }
+    const data = await res.json();
+    if (!Array.isArray(data)) {
+      console.error(`Invalid categories data at ${new Date().toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" })}:`, data);
+      return [];
+    }
+    return data.map((category: any) => ({
+      _id: category._id,
+      name: category.name,
+      status: category.status,
+      createdAt: category.createdAt,
+      __v: category.__v,
+    }));
+  } catch (error) {
+    console.error(`Error fetching categories at ${new Date().toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" })}:`, error);
+    return [];
+  }
 }

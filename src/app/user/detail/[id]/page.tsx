@@ -232,8 +232,6 @@ export default function DetailPage() {
       fetchFavoriteProducts();
     }
   }, [identifier, product?._id, showCartToast]);
-
-  // Lấy danh sách bình luận của sản phẩm
   useEffect(() => {
     const fetchComments = async () => {
       if (!product?._id) {

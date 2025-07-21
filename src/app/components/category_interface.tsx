@@ -1,7 +1,7 @@
-export interface Category{
-    status: string;
-    isHidden: any;
-    _id: string;
-    name: string;
-    createdAt: string;
+export interface Category {
+  _id: string;
+  name: string;
+  status: "show" | "hidden";
+  createdAt: string;
+  __v?: number;
 }

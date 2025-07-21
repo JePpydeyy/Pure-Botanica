@@ -36,7 +36,7 @@ interface Order {
     _id: string;
     username: string;
     email: string;
-  };
+  } | null; // Allow user to be null
   createdAt: string;
   paymentStatus: string;
   shippingStatus: string;
@@ -170,8 +170,15 @@ export default function OrderPage() {
         if (!Array.isArray(data)) {
           throw new Error("Dữ liệu đơn hàng không hợp lệ");
         }
-        setOrders(data);
-        setFilteredOrders(data);
+        // Log orders with null user for debugging
+        const invalidOrders = data.filter(order => !order.user);
+        if (invalidOrders.length > 0) {
+          console.warn("Found orders with null user:", invalidOrders);
+        }
+        // Optionally filter out invalid orders
+        const validOrders = data; // Change to `data.filter(order => order.user)` if you want to exclude null users
+        setOrders(validOrders);
+        setFilteredOrders(validOrders);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
         console.error("Lỗi khi tải danh sách đơn hàng:", errorMessage);
@@ -194,7 +201,7 @@ export default function OrderPage() {
     (query: string, shippingStatus: string) => {
       const filtered = orders.filter((order) => {
         const searchLower = query.toLowerCase();
-        const username = order.user.username?.toLowerCase() || "";
+        const username = order.user?.username?.toLowerCase() || "";
         const orderId = order._id.toLowerCase();
         const address = formatAddress(order.address).toLowerCase();
         const matchesSearch =
@@ -456,7 +463,7 @@ export default function OrderPage() {
               currentOrders.map((order, index) => (
                 <tr key={order._id} className={styles.productRow} onClick={(e) => handleOrderClick(order, e)}>
                   <td>{(currentPage - 1) * itemsPerPage + index + 1}</td>
-                  <td>{order.user.username || "Không xác định"}</td>
+                  <td>{order.user?.username || "Không xác định"}</td>
                   <td>{order.total.toLocaleString()} VND</td>
                   <td>{formatDate(order.createdAt)}</td>
                   <td>{getVietnamesePaymentStatus(order.paymentStatus)}</td>
@@ -509,8 +516,8 @@ export default function OrderPage() {
             <div className={styles.detailsContainer}>
               <div className={styles.detailsSection}>
                 <h4>Thông Tin Khách Hàng</h4>
-                <p><strong>Tên:</strong> {selectedOrder.user.username || "Không xác định"}</p>
-                <p><strong>Email:</strong> {selectedOrder.user.email || "Không xác định"}</p>
+                <p><strong>Tên:</strong> {selectedOrder.user?.username || "Không xác định"}</p>
+                <p><strong>Email:</strong> {selectedOrder.user?.email || "Không xác định"}</p>
                 <p><strong>Địa chỉ:</strong> {formatAddress(selectedOrder.address)}</p>
               </div>
               <div className={styles.detailsSection}>
@@ -570,7 +577,7 @@ export default function OrderPage() {
             <h2>Xác Nhận Thay Đổi Trạng Thái</h2>
             <p>
               Bạn có chắc chắn muốn chuyển trạng thái vận chuyển sang{" "}
-              <strong>{showConfirm.newStatus}</strong>?{" "}
+              <strong>{showConfirm.newStatus}</strong>? Genus?{" "}
               {showConfirm.newStatus === "Đã giao hàng" ? (
                 <>
                   Trạng thái thanh toán sẽ được cập nhật thành <strong>Đã thanh toán</strong>.
@@ -587,14 +594,14 @@ export default function OrderPage() {
                 onClick={confirmStatusChange}
                 aria-label="Xác nhận thay đổi trạng thái"
               >
-                <FontAwesomeIcon icon={faTimes} />
+                Xác nhận
               </button>
               <button
                 className={styles.cancelBtn}
                 onClick={cancelConfirm}
                 aria-label="Hủy thay đổi trạng thái"
               >
-                <FontAwesomeIcon icon={faTimes} />
+                Hủy
               </button>
             </div>
           </div>

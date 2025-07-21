@@ -6,7 +6,6 @@ import { Line } from "react-chartjs-2";
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { jwtDecode } from "jwt-decode";
-import Link from "next/link";
 
 ChartJS.register(CategoryScale, LinearScale, LineElement, PointElement, Title, Tooltip, Legend);
 
@@ -57,7 +56,6 @@ interface Stats {
   newComments: number;
 }
 
-// Utility function to format currency in VND
 const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
 };
@@ -65,6 +63,8 @@ const formatCurrency = (amount: number): string => {
 export default function AD_Home() {
   const router = useRouter();
   const [timePeriod, setTimePeriod] = useState<"week" | "month" | "year">("week");
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [chartData, setChartData] = useState<{
     labels: string[];
     datasets: {
@@ -91,11 +91,15 @@ export default function AD_Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const today = useMemo(() => {
-    const date = new Date();
-    date.setHours(0, 0, 0, 0);
-    return date;
+  const years = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    return Array.from({ length: 10 }, (_, i) => currentYear - i);
   }, []);
+
+  const months = [
+    "Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5", "Tháng 6",
+    "Tháng 7", "Tháng 8", "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12",
+  ];
 
   const chartOptions = useMemo(
     () => ({
@@ -106,9 +110,16 @@ export default function AD_Home() {
         title: {
           display: true,
           text: `Báo cáo doanh thu theo ${
-            timePeriod === "week" ? "ngày trong tuần" : timePeriod === "month" ? "ngày trong tháng" : "tháng trong năm"
+            timePeriod === "week" ? `tuần (${months[selectedMonth]} ${selectedYear})` :
+            timePeriod === "month" ? `tháng (${months[selectedMonth]} ${selectedYear})` :
+            `năm ${selectedYear}`
           }`,
           font: { size: 16 },
+        },
+        tooltip: {
+          callbacks: {
+            label: (context: any) => `Doanh thu: ${formatCurrency(context.raw)}`,
+          },
         },
       },
       scales: {
@@ -116,12 +127,8 @@ export default function AD_Home() {
           beginAtZero: true,
           title: { display: true, text: "VND" },
           ticks: {
-            callback: function (tickValue: string | number, index: number, ticks: any) {
-              if (typeof tickValue === "number") {
-                return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(tickValue);
-              }
-              return tickValue;
-            },
+            callback: (tickValue: string | number) =>
+              typeof tickValue === "number" ? formatCurrency(tickValue) : tickValue,
           },
         },
         x: {
@@ -135,24 +142,24 @@ export default function AD_Home() {
         },
       },
     }),
-    [timePeriod]
+    [timePeriod, selectedMonth, selectedYear]
   );
 
   const calculateRevenue = useMemo(
     () => {
-      return (orders: Order[], period: string) => {
+      return (orders: Order[], period: string, month: number, year: number) => {
         const validOrders = orders.filter((o) => o.paymentStatus === "completed" && o.total >= 0);
         const labels: string[] = [];
         const revenueData: number[] = [];
 
         if (period === "week") {
           const daysOfWeek = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"];
-          const currentDayOfWeek = today.getDay();
-          const daysSinceMonday = currentDayOfWeek === 0 ? 6 : currentDayOfWeek - 1;
-          const monday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - daysSinceMonday);
+          const firstDayOfMonth = new Date(year, month, 1);
+          const firstMonday = new Date(year, month, 1 + ((8 - firstDayOfMonth.getDay()) % 7));
+          if (firstDayOfMonth.getDay() === 0) firstMonday.setDate(firstMonday.getDate() - 7);
 
           for (let i = 0; i < 7; i++) {
-            const day = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i);
+            const day = new Date(firstMonday.getFullYear(), firstMonday.getMonth(), firstMonday.getDate() + i);
             const dayIndex = day.getDay();
             labels.push(daysOfWeek[dayIndex === 0 ? 6 : dayIndex - 1]);
             const dayRevenue = validOrders
@@ -168,16 +175,15 @@ export default function AD_Home() {
             revenueData.push(dayRevenue);
           }
         } else if (period === "month") {
-          const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+          const daysInMonth = new Date(year, month + 1, 0).getDate();
           for (let i = 1; i <= daysInMonth; i++) {
-            const day = new Date(today.getFullYear(), today.getMonth(), i);
-            labels.push(`${i}/${day.getMonth() + 1}`);
+            labels.push(`${i}/${month + 1}`);
             const dayRevenue = validOrders
               .filter((order) => {
                 const orderDate = new Date(order.createdAt);
                 return (
-                  orderDate.getFullYear() === day.getFullYear() &&
-                  orderDate.getMonth() === day.getMonth() &&
+                  orderDate.getFullYear() === year &&
+                  orderDate.getMonth() === month &&
                   orderDate.getDate() === i
                 );
               })
@@ -185,17 +191,12 @@ export default function AD_Home() {
             revenueData.push(dayRevenue);
           }
         } else if (period === "year") {
-          const monthsOfYear = [
-            "Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5", "Tháng 6",
-            "Tháng 7", "Tháng 8", "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12",
-          ];
           for (let i = 0; i < 12; i++) {
-            const monthStart = new Date(today.getFullYear(), i, 1);
-            labels.push(monthsOfYear[i]);
+            labels.push(months[i]);
             const monthRevenue = validOrders
               .filter((order) => {
                 const orderDate = new Date(order.createdAt);
-                return orderDate.getFullYear() === today.getFullYear() && orderDate.getMonth() === i;
+                return orderDate.getFullYear() === year && orderDate.getMonth() === i;
               })
               .reduce((sum, order) => sum + order.total, 0);
             revenueData.push(monthRevenue);
@@ -216,7 +217,7 @@ export default function AD_Home() {
         };
       };
     },
-    [today]
+    []
   );
 
   useEffect(() => {
@@ -240,6 +241,7 @@ export default function AD_Home() {
 
     const fetchData = async () => {
       setLoading(true);
+      setError(null);
       try {
         const [ordersRes, usersRes, commentsRes] = await Promise.all([
           fetch("https://api-zeal.onrender.com/api/orders/admin/all", {
@@ -252,6 +254,10 @@ export default function AD_Home() {
             headers: { Authorization: `Bearer ${token}` },
           }),
         ]);
+
+        if (!ordersRes.ok || !usersRes.ok) {
+          throw new Error("Lỗi khi tải dữ liệu từ API.");
+        }
 
         const [orders, users] = await Promise.all([
           ordersRes.json() as Promise<Order[]>,
@@ -267,29 +273,31 @@ export default function AD_Home() {
 
         const isInPeriod = (date: Date) => {
           if (timePeriod === "week") {
-            // Đầu tuần (Thứ 2)
-            const currentDay = today.getDay();
-            const daysSinceMonday = currentDay === 0 ? 6 : currentDay - 1;
-            const monday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - daysSinceMonday);
-            return date >= monday;
+            const firstDayOfMonth = new Date(selectedYear, selectedMonth, 1);
+            const firstMonday = new Date(selectedYear, selectedMonth, 1 + ((8 - firstDayOfMonth.getDay()) % 7));
+            if (firstDayOfMonth.getDay() === 0) firstMonday.setDate(firstMonday.getDate() - 7);
+            const weekEnd = new Date(firstMonday.getFullYear(), firstMonday.getMonth(), firstMonday.getDate() + 6);
+            return date >= firstMonday && date <= weekEnd;
           }
           if (timePeriod === "month") {
-            // Đầu tháng
-            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-            return date >= firstDay;
+            const firstDay = new Date(selectedYear, selectedMonth, 1);
+            const lastDay = new Date(selectedYear, selectedMonth + 1, 0);
+            return date >= firstDay && date <= lastDay;
           }
-          // Đầu năm
-          const firstDayYear = new Date(today.getFullYear(), 0, 1);
-          return date >= firstDayYear;
+          const firstDayYear = new Date(selectedYear, 0, 1);
+          const lastDayYear = new Date(selectedYear, 11, 31);
+          return date >= firstDayYear && date <= lastDayYear;
         };
 
         const ordersInPeriod = orders.filter((o) => isInPeriod(new Date(o.createdAt)));
-        const revenue = ordersInPeriod.filter((o) => o.paymentStatus === "completed").reduce((sum, o) => sum + o.total, 0);
+        const revenue = ordersInPeriod
+          .filter((o) => o.paymentStatus === "completed")
+          .reduce((sum, o) => sum + o.total, 0);
         const newUsers = users.filter((u) => isInPeriod(new Date(u.createdAt))).length;
         const newComments = comments.filter((c) => isInPeriod(new Date(c.createdAt))).length;
 
         setStats({ orders: ordersInPeriod.length, newUsers, revenue, newComments });
-        setChartData(calculateRevenue(orders, timePeriod));
+        setChartData(calculateRevenue(orders, timePeriod, selectedMonth, selectedYear));
         setRecentOrders(
           orders
             .filter((o) => o.paymentStatus === "completed")
@@ -298,14 +306,14 @@ export default function AD_Home() {
         );
       } catch (err) {
         console.error("Lỗi khi tải dữ liệu:", err);
-        setError("Lỗi khi tải dữ liệu.");
+        setError("Không thể tải dữ liệu. Vui lòng thử lại sau.");
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [timePeriod, today, router, calculateRevenue]);
+  }, [timePeriod, selectedMonth, selectedYear, router, calculateRevenue]);
 
   return (
     <div className={styles.mainContent}>
@@ -321,42 +329,69 @@ export default function AD_Home() {
               key={p}
               onClick={() => setTimePeriod(p)}
               className={`${styles.timePeriodButton} ${timePeriod === p ? styles.active : ""}`}
+              disabled={loading}
             >
               {p === "week" ? "Tuần" : p === "month" ? "Tháng" : "Năm"}
             </button>
           ))}
         </div>
+        <div className={styles.dateSelectors}>
+          <select
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(Number(e.target.value))}
+            className={styles.select}
+            disabled={loading}
+          >
+            {months.map((month, index) => (
+              <option key={index} value={index}>
+                {month}
+              </option>
+            ))}
+          </select>
+          <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(Number(e.target.value))}
+            className={styles.select}
+            disabled={loading}
+          >
+            {years.map((year) => (
+              <option key={year} value={year}>
+                {year}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <section className={styles.statsContainer}>
         <div className={styles.statBox}>
-          <h3>{stats.orders}</h3>
+          <h3>{loading ? "..." : stats.orders}</h3>
           <p>Đơn hàng</p>
         </div>
         <div className={styles.statBox}>
-          <h3>{stats.newUsers}</h3>
+          <h3>{loading ? "..." : stats.newUsers}</h3>
           <p>Người dùng mới</p>
         </div>
         <div className={styles.statBox}>
-          <h3>{formatCurrency(stats.revenue)}</h3>
+          <h3>{loading ? "..." : formatCurrency(stats.revenue)}</h3>
           <p>Doanh thu</p>
         </div>
         <div className={styles.statBox}>
-          <h3>{stats.newComments}</h3>
+          <h3>{loading ? "..." : stats.newComments}</h3>
           <p>Bình luận mới</p>
         </div>
       </section>
 
       <section className={styles.chartContainer}>
         {loading ? (
-          <p className={styles.loadingMessage}>Đang tải biểu đồ...</p>
+          <div className={styles.loadingContainer}>
+            <div className={styles.spinner}></div>
+            <p>Đang tải biểu đồ...</p>
+          </div>
         ) : error ? (
           <p className={styles.errorMessage}>{error}</p>
         ) : (
-          <>
-            <div className={styles.chartHeader}></div>
-            <Line data={chartData} options={chartOptions} />
-          </>
+          <Line data={chartData} options={chartOptions} />
         )}
       </section>
 
@@ -375,7 +410,13 @@ export default function AD_Home() {
               </tr>
             </thead>
             <tbody>
-              {recentOrders.length > 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={4} style={{ textAlign: "center" }}>
+                    Đang tải...
+                  </td>
+                </tr>
+              ) : recentOrders.length > 0 ? (
                 recentOrders.map((order) => (
                   <tr key={order._id} className={styles.tableRow}>
                     <td>{order._id.slice(-6)}</td>

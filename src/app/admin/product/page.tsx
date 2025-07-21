@@ -128,7 +128,6 @@ export default function ProductPage() {
         throw new Error("Dữ liệu danh mục không phải mảng.");
       }
 
-      // Chuẩn hóa dữ liệu danh mục
       const normalizedCategories: Category[] = data.map((cat: any) => {
         const categoryId = typeof cat._id === "object" && cat._id.$oid ? cat._id.$oid : cat._id;
         return {
@@ -183,7 +182,6 @@ export default function ProductPage() {
         throw new Error("Dữ liệu thương hiệu không hợp lệ, không phải là mảng");
       }
 
-      // Chuẩn hóa dữ liệu thương hiệu
       const normalizedBrands: Brand[] = data.map((brand: any) => ({
         _id: typeof brand._id === "object" && brand._id.$oid ? brand._id.$oid : brand._id,
         name: brand.name || "Thương hiệu không tên",
@@ -232,7 +230,6 @@ export default function ProductPage() {
         throw new Error("Dữ liệu sản phẩm không hợp lệ, không phải là mảng");
       }
 
-      // Chuẩn hóa dữ liệu sản phẩm
       const normalizedProducts: Product[] = data.map((prod: any) => {
         let id_category: string;
         if (prod.id_category && typeof prod.id_category === "object" && prod.id_category._id) {
@@ -338,7 +335,7 @@ export default function ProductPage() {
             : "Bạn có chắc chắn muốn ẩn Sản Phẩm này?"
         );
       } else {
-        setToggleMessage("Bạn có chắc chắn muốn hiển thị Sản Phẩm này?");
+        setToggleMessage("Bạn có chắc chắn muốn hiển thị Sản Phẩm thể thao này?");
       }
       setToggleSlug(slug);
       setIsTogglingStatus(true);
@@ -513,179 +510,20 @@ export default function ProductPage() {
       <div className={styles.tableContainer}>
         <table className={styles.productTable}>
           <thead className={styles.productTableThead}>
-            <tr>
-              <th>Ảnh</th>
-              <th>Tên sản phẩm</th>
-              <th>Danh mục</th>
-              <th>Brand</th>
-              <th>Kích hoạt</th> 
-              <th>Trạng thái</th>
-              <th>Hành động</th>
-            </tr>
+            <tr><th>Ảnh</th><th>Tên sản phẩm</th><th>Danh mục</th><th>Brand</th><th>Kích hoạt</th><th>Trạng thái</th><th>Hành động</th></tr>
           </thead>
           <tbody>
             {currentProducts.length > 0 ? (
               currentProducts.map((product) => (
                 <React.Fragment key={product._id}>
-                  <tr
-                    onClick={() => handleToggleDetails(product._id)}
-                    className={`${styles.productRow} ${
-                      expandedProductId === product._id ? styles.productRowActive : ""
-                    }`}
-                    style={{ cursor: "pointer" }}
-                  >
-                    <td>
-                      <img
-                        src={normalizeImageUrl(product.images[0])}
-                        alt={product.name}
-                        width={50}
-                        height={50}
-                        className={styles.productTableImage}
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src =
-                            "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
-                        }}
-                      />
-                    </td>
-                    <td>{product.name}</td>
-                    <td>
-                      {categories.find((cat) => cat._id === product.id_category)?.name || "Chưa phân loại"}
-                    </td>
-                    <td>{brands.find((brand) => brand._id === product.id_brand)?.name || "Chưa phân loại"}</td>
-                    <td>{product.active ? "Có" : "Không"}</td> {/* Thêm dòng này */}
-                    <td>{product.status === "show" ? "Hiển thị" : "Ẩn"}</td>
-                    <td className={styles.actionButtons}>
-                      <button
-                        className={styles.editBtn}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          router.push(`/admin/edit_product/${product.slug}`);
-                        }}
-                        disabled={loading}
-                        title="Sửa sản phẩm"
-                      >
-                        <FontAwesomeIcon icon={faEdit} />
-                      </button>
-                      <button
-                        className={styles.toggleStatusBtn}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          confirmToggleStatus(product.slug);
-                        }}
-                        disabled={loading}
-                        title={product.status === "show" ? "Ẩn sản phẩm" : "Hiển thị sản phẩm"}
-                      >
-                        <FontAwesomeIcon icon={product.status === "show" ? faEyeSlash : faEye} />
-                      </button>
-                    </td>
-                  </tr>
+                  <tr onClick={() => handleToggleDetails(product._id)} className={`${styles.productRow} ${expandedProductId === product._id ? styles.productRowActive : ""}`} style={{cursor: "pointer"}}><td><img src={normalizeImageUrl(product.images[0])} alt={product.name} width={50} height={50} className={styles.productTableImage} onError={(e) => {(e.target as HTMLImageElement).src = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";}}/></td><td>{product.name}</td><td>{categories.find((cat) => cat._id === product.id_category)?.name || "Chưa phân loại"}</td><td>{brands.find((brand) => brand._id === product.id_brand)?.name || "Chưa phân loại"}</td><td>{product.active ? "Có" : "Không"}</td><td>{product.status === "show" ? "Hiển thị" : "Ẩn"}</td><td className={styles.actionButtons}><button className={styles.editBtn} onClick={(e) => {e.stopPropagation();router.push(`/admin/edit_product/${product.slug}`);}} disabled={loading} title="Sửa sản phẩm"><FontAwesomeIcon icon={faEdit} /></button><button className={styles.toggleStatusBtn} onClick={(e) => {e.stopPropagation();confirmToggleStatus(product.slug);}} disabled={loading} title={product.status === "show" ? "Ẩn sản phẩm" : "Hiển thị sản phẩm"}><FontAwesomeIcon icon={product.status === "show" ? faEyeSlash : faEye} /></button></td></tr>
                   {expandedProductId === product._id && (
-                    <tr className={styles.detailsRow}>
-                      <td colSpan={6}>
-                        <div className={styles.productDetails}>
-                          <h3>Chi tiết sản phẩm</h3>
-                          <div className={styles.detailsContainer}>
-                            <div className={styles.detailsSection}>
-                              <h4>Thông tin cơ bản</h4>
-                              <div className={styles.detailsGrid}>
-                                <p><strong>Tên sản phẩm:</strong> {product.name}</p>
-                                <p><strong>Slug:</strong> {product.slug}</p>
-                                <p>
-                                  <strong>Danh mục:</strong>{" "}
-                                  {categories.find((cat) => cat._id === product.id_category)?.name ||
-                                    "Chưa phân loại"}
-                                </p>
-                                <p>
-                                  <strong>Thương hiệu:</strong>{" "}
-                                  {brands.find((brand) => brand._id === product.id_brand)?.name ||
-                                    "Chưa phân loại"}
-                                </p>
-                                <p><strong>Kích hoạt:</strong> {product.active ? "Có" : "Không"}</p>
-                                <p><strong>Trạng thái:</strong> {product.status === "show" ? "Hiển thị" : "Ẩn"}</p>
-                                <p><strong>Lượt xem:</strong> {product.view}</p>
-                                <p><strong>Ngày tạo:</strong> {new Date(product.createdAt).toLocaleString()}</p>
-                                <p><strong>Ngày cập nhật:</strong> {new Date(product.updatedAt).toLocaleString()}</p>
-                              </div>
-                            </div>
-                            <div className={styles.detailsSection}>
-                              <h4>Mô tả sản phẩm</h4>
-                              <p><strong>Mô tả ngắn:</strong> {product.short_description}</p>
-                              <br></br>
-                              <p><strong>Mô tả chi tiết:</strong></p>
-                              <div
-                                className={styles.descriptionContent}
-                                dangerouslySetInnerHTML={{ __html: product.description }}
-                              />
-                            </div>
-                            <div className={styles.detailsSection}>
-                              <h4>Tùy chọn sản phẩm</h4>
-                              <table className={styles.optionsTable}>
-                                <thead>
-                                  <tr>
-                                    <th>Kích thước</th>
-                                    <th>Giá</th>
-                                    <th>Giá khuyến mãi</th>
-                                    <th>Tồn kho</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {product.option.length > 0 ? (
-                                    product.option.map((opt, index) => (
-                                      <tr key={index}>
-                                        <td>{opt.value}</td>
-                                        <td>{opt.price.toLocaleString()}₫</td>
-                                        <td>
-                                          {opt.discount_price ? opt.discount_price.toLocaleString() + "₫" : "Không có"}
-                                        </td>
-                                        <td>{opt.stock}</td>
-                                      </tr>
-                                    ))
-                                  ) : (
-                                    <tr>
-                                      <td colSpan={4} className="text-center">
-                                        Không có tùy chọn nào
-                                      </td>
-                                    </tr>
-                                  )}
-                                </tbody>
-                              </table>
-                            </div>
-                            <div className={styles.detailsSection}>
-                              <h4>Hình ảnh sản phẩm</h4>
-                              <div className={styles.imageGallery}>
-                                {product.images.length > 0 ? (
-                                  product.images.map((img, index) => (
-                                    <img
-                                      key={index}
-                                      src={normalizeImageUrl(img)}
-                                      alt={`${product.name} hình ${index + 1}`}
-                                      width={120}
-                                      height={120}
-                                      className={styles.detailImage}
-                                      onError={(e) => {
-                                        (e.target as HTMLImageElement).src =
-                                          "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
-                                      }}
-                                    />
-                                  ))
-                                ) : (
-                                  <p>Không có hình ảnh</p>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
+                    <tr className={styles.detailsRow}><td colSpan={7}><div className={styles.productDetails}><h3>Chi tiết sản phẩm</h3><div className={styles.detailsContainer}><div className={styles.detailsSection}><h4>Thông tin cơ bản</h4><div className={styles.detailsGrid}><p><strong>Tên sản phẩm:</strong> {product.name}</p><p><strong>Slug:</strong> {product.slug}</p><p><strong>Danh mục:</strong> {categories.find((cat) => cat._id === product.id_category)?.name || "Chưa phân loại"}</p><p><strong>Thương hiệu:</strong> {brands.find((brand) => brand._id === product.id_brand)?.name || "Chưa phân loại"}</p><p><strong>Kích hoạt:</strong> {product.active ? "Có" : "Không"}</p><p><strong>Trạng thái:</strong> {product.status === "show" ? "Hiển thị" : "Ẩn"}</p><p><strong>Lượt xem:</strong> {product.view}</p><p><strong>Ngày tạo:</strong> {new Date(product.createdAt).toLocaleString()}</p><p><strong>Ngày cập nhật:</strong> {new Date(product.updatedAt).toLocaleString()}</p></div></div><div className={styles.detailsSection}><h4>Mô tả sản phẩm</h4><p><strong>Mô tả ngắn:</strong> {product.short_description}</p><br/><p><strong>Mô tả chi tiết:</strong></p><div className={styles.descriptionContent} dangerouslySetInnerHTML={{ __html: product.description }}/></div><div className={styles.detailsSection}><h4>Tùy chọn sản phẩm</h4><table className={styles.optionsTable}><thead><tr><th>Kích thước</th><th>Giá</th><th>Giá khuyến mãi</th><th>Tồn kho</th></tr></thead><tbody>{product.option.length > 0 ? product.option.map((opt, index) => (<tr key={index}><td>{opt.value}</td><td>{opt.price.toLocaleString()}₫</td><td>{opt.discount_price ? opt.discount_price.toLocaleString() + "₫" : "Không có"}</td><td>{opt.stock}</td></tr>)) : (<tr><td colSpan={4} className="text-center">Không có tùy chọn nào</td></tr>)}</tbody></table></div><div className={styles.detailsSection}><h4>Hình ảnh sản phẩm</h4><div className={styles.imageGallery}>{product.images.length > 0 ? product.images.map((img, index) => (<img key={index} src={normalizeImageUrl(img)} alt={`${product.name} hình ${index + 1}`} width={120} height={120} className={styles.detailImage} onError={(e) => {(e.target as HTMLImageElement).src = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";}}/>) ) : (<p>Không có hình ảnh</p>)}</div></div></div></div></td></tr>
                   )}
                 </React.Fragment>
               ))
             ) : (
-              <tr>
-                <td colSpan={7} className="text-center py-4">
-                  Không có sản phẩm nào
-                </td>
-              </tr>
+              <tr><td colSpan={7} className="text-center py-4">Không có sản phẩm nào</td></tr>
             )}
           </tbody>
         </table>

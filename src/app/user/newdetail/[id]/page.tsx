@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -26,9 +26,11 @@ export default function NewsDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showNotification, setShowNotification] = useState(false);
-  const [notificationMessage, setNotificationMessage] = useState('');
-  const [notificationType, setNotificationType] = useState<'success' | 'error' | ''>('');
+  const [notificationMessage, setNotificationMessage] = useState("");
+  const [notificationType, setNotificationType] = useState<"success" | "error" | "">("");
   const [cacheBuster, setCacheBuster] = useState<string>("");
+
+  const calledRef = useRef(false); // Ngăn useEffect chạy lại
 
   // Tạo cacheBuster để tránh cache hình ảnh
   useEffect(() => {
@@ -41,32 +43,29 @@ export default function NewsDetailPage() {
     return image.startsWith("http") ? `${image}?${cacheBuster}` : image;
   };
 
-  // Show notification with auto-dismiss
-  const showNotificationMessage = (message: string, type: 'success' | 'error') => {
+  // Show notification
+  const showNotificationMessage = (message: string, type: "success" | "error") => {
     setNotificationMessage(message);
     setNotificationType(type);
     setShowNotification(true);
     setTimeout(() => {
       setShowNotification(false);
-      setNotificationMessage('');
-      setNotificationType('');
+      setNotificationMessage("");
+      setNotificationType("");
     }, 3000);
   };
 
   useEffect(() => {
-    if (!id) {
-      setError("Slug không được cung cấp.");
-      setLoading(false);
-      return;
-    }
+    if (!id || calledRef.current) return;
+    calledRef.current = true;
 
     const slugString = Array.isArray(id) ? id[0] : id;
 
     const fetchNews = async () => {
       try {
-        // Gọi API mà không gửi token
+        // Gọi API lấy bài viết
         const res = await fetch(`https://api-zeal.onrender.com/api/news/${slugString}`, {
-          cache: 'no-store',
+          cache: "no-store",
         });
 
         if (!res.ok) {
@@ -81,9 +80,9 @@ export default function NewsDetailPage() {
           thumbnailUrl: getImageUrl(data.thumbnailUrl),
         });
 
-        // Fetch related news
-        const allNewsRes = await fetch('https://api-zeal.onrender.com/api/news', {
-          cache: 'no-store',
+        // Gọi API lấy các bài viết khác
+        const allNewsRes = await fetch("https://api-zeal.onrender.com/api/news", {
+          cache: "no-store",
         });
         if (!allNewsRes.ok) {
           throw new Error(`Lỗi khi lấy danh sách bài viết: ${await allNewsRes.text()}`);
@@ -101,7 +100,7 @@ export default function NewsDetailPage() {
         setLoading(false);
       } catch (err: any) {
         setError(err.message);
-        showNotificationMessage(`Lỗi: ${err.message}`, 'error');
+        showNotificationMessage(`Lỗi: ${err.message}`, "error");
         setLoading(false);
       }
     };
@@ -120,6 +119,7 @@ export default function NewsDetailPage() {
           {notificationMessage}
         </div>
       )}
+
       <section className={styles.newsArticle}>
         <div className={styles.newsHeader}>
           <p className={styles.newsTitle}>{news.title}</p>
@@ -147,8 +147,11 @@ export default function NewsDetailPage() {
               height={448}
               className={styles.newsimage}
               onError={(e) => {
-                e.currentTarget.src = 'https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg';
-                console.error(`Error loading thumbnail for news ${news.title}: ${news.thumbnailUrl}`);
+                e.currentTarget.src =
+                  "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+                console.error(
+                  `Error loading thumbnail for news ${news.title}: ${news.thumbnailUrl}`
+                );
               }}
             />
           </div>
@@ -176,8 +179,11 @@ export default function NewsDetailPage() {
                     height={250}
                     className={styles.newsRelatedimage}
                     onError={(e) => {
-                      e.currentTarget.src = 'https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg';
-                      console.error(`Error loading related news image for ${item.title}: ${item.thumbnailUrl}`);
+                      e.currentTarget.src =
+                        "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+                      console.error(
+                        `Error loading related news image for ${item.title}: ${item.thumbnailUrl}`
+                      );
                     }}
                   />
                   <p className={styles.newsRelatedText}>{item.title}</p>

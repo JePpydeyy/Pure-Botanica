@@ -58,6 +58,7 @@ const decodeToken = (token: string) => {
 const useUserInfo = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [username, setUsername] = useState<string>("Người dùng");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -72,9 +73,10 @@ const useUserInfo = () => {
         }
       }
     }
+    setLoading(false);
   }, []);
 
-  return { userId, username };
+  return { userId, username, loading };
 };
 
 // Hook tùy chỉnh: Quản lý thông báo toast
@@ -152,8 +154,9 @@ export default function DetailPage() {
   const [selectedOptionIndex, setSelectedOptionIndex] = useState(0);
   const [favoriteProducts, setFavoriteProducts] = useState<string[]>([]);
   const [isFavorite, setIsFavorite] = useState<boolean>(false);
+  const [rating, setRating] = useState<number>(0); // Thêm state cho rating
 
-  const { userId, username } = useUserInfo();
+  const { userId, username, loading: userLoading } = useUserInfo();
   const { message: cartMessage, showToast: showCartToast, hideToast: hideCartToast } = useToast();
   const { message: commentError, showToast: showCommentError, hideToast: hideCommentError } = useToast();
 
@@ -169,7 +172,6 @@ export default function DetailPage() {
 
   // Lấy thông tin sản phẩm và danh sách yêu thích
   useEffect(() => {
-    // Hàm lấy thông tin sản phẩm theo identifier (ID hoặc slug)
     const fetchProduct = async () => {
       if (!identifier) {
         setLoading(false);
@@ -197,7 +199,6 @@ export default function DetailPage() {
       }
     };
 
-    // Hàm lấy danh sách sản phẩm yêu thích của người dùng
     const fetchFavoriteProducts = async () => {
       const token = localStorage.getItem("token");
       if (!token || !product?._id) {
@@ -232,6 +233,7 @@ export default function DetailPage() {
       fetchFavoriteProducts();
     }
   }, [identifier, product?._id, showCartToast]);
+
   useEffect(() => {
     const fetchComments = async () => {
       if (!product?._id) {
@@ -372,6 +374,10 @@ export default function DetailPage() {
       showCommentError("error", "Bình luận phải có ít nhất 3 ký tự!");
       return;
     }
+    if (userLoading) {
+      showCommentError("error", "Đang tải thông tin người dùng, vui lòng đợi!");
+      return;
+    }
     if (!userId) {
       showCommentError("error", "Vui lòng đăng nhập để gửi bình luận!");
       setTimeout(() => {
@@ -388,26 +394,24 @@ export default function DetailPage() {
           userId,
           productId: product._id,
           content: newComment.trim(),
+          rating, // Gửi rating cùng với bình luận
         }),
       });
 
-      setComments((prev) => [
-        {
-          ...response,
-          user: { username },
-          createdAt: new Date().toISOString(),
-        },
-        ...prev,
-      ]);
+      // Re-fetch comments to ensure the latest data with username
+      const updatedComments = await apiRequest(`/api/comments/product/${product._id}`);
+      setComments(Array.isArray(updatedComments) ? updatedComments : []);
+
       setNewComment("");
-      showCommentError("success", "Bình luận đã được gửi!");
+      setRating(0); // Reset rating
+      showCommentError("success", "Đánh giá đã được gửi!");
     } catch (error) {
       console.error("Lỗi khi gửi bình luận:", error);
-      showCommentError("error", "Lỗi khi gửi bình luận!");
+      showCommentError("error", "Lỗi khi gửi đánh giá!");
     } finally {
       setSubmittingComment(false);
     }
-  }, [product?._id, newComment, userId, username, showCommentError, router]);
+  }, [product?._id, newComment, userId, userLoading, rating, showCommentError, router]);
 
   // Trạng thái loading và lỗi
   if (loading) return <p className="text-center py-10">Đang tải chi tiết sản phẩm...</p>;
@@ -572,14 +576,14 @@ export default function DetailPage() {
                 className={styles["wishlist-button"]}
                 onClick={addToWishlist}
                 disabled={addingToCart} // Vô hiệu hóa khi đang thêm vào giỏ hàng
-                aria-label={isFavorite ? "Đã nằm trong danh sách yêu thích" : "Đưa vào danh sách yêu thích của bạn"}
+                aria-label={isFavorite ? "Đã nằm trong danh sách yêu thích" : "Thêm vào danh sách yêu thích của bạn"}
               >
                 <i
                   className={`fas fa-heart ${isFavorite ? styles.favorited : styles.notFavorited}`}
                   style={{ color: isFavorite ? "#ff0000" : "#000000" }}
                 ></i>
                 <span style={{ marginLeft: "8px" }}>
-                  {isFavorite ? "Đã nằm trong danh sách yêu thích" : "Đưa vào danh sách yêu thích của bạn"}
+                  {isFavorite ? "Đã nằm trong danh sách yêu thích" : "Thêm vào danh sách yêu thích của bạn"}
                 </span>
               </button>
             </div>
@@ -602,18 +606,145 @@ export default function DetailPage() {
         </div>
       </div>
 
-      {/* Phần bình luận */}
+      {/* Phần bình luận với layout mới */}
       <div className={styles.cr}>
         <div className={styles["customer-review"]}>
-          <h1 className={styles["review-main-title"]}>Đánh giá từ khách hàng</h1>
+          <h1 className={styles["review-main-title"]}>ĐÁNH GIÁ TỪ KHÁCH HÀNG ĐÃ MUA</h1>
 
-          <div className={styles["write-review-section"]}>
-            <h2 className={styles["review-title"]}>Viết bình luận của bạn</h2>
+          {/* Rating Overview */}
+          <div className={styles["rating-overview"]}>
+            <div className={styles["rating-summary"]}>
+              <div className={styles["average-rating"]}>0.0</div>
+              <div className={styles["stars-display"]}>
+                <span className={`${styles["star-display"]} ${styles["star-empty"]}`}>★</span>
+                <span className={`${styles["star-display"]} ${styles["star-empty"]}`}>★</span>
+                <span className={`${styles["star-display"]} ${styles["star-empty"]}`}>★</span>
+                <span className={`${styles["star-display"]} ${styles["star-empty"]}`}>★</span>
+                <span className={`${styles["star-display"]} ${styles["star-empty"]}`}>★</span>
+              </div>
+              <div className={styles["rating-text"]}>Theo 0 đánh giá</div>
+            </div>
+
+            <div className={styles["rating-breakdown"]}>
+              <div className={styles["rating-row"]}>
+                <div className={styles["star-count"]}>
+                  <span className={styles["star-icon"]}>★</span>
+                  <span className={styles["star-icon"]}>★</span>
+                  <span className={styles["star-icon"]}>★</span>
+                  <span className={styles["star-icon"]}>★</span>
+                  <span className={styles["star-icon"]}>★</span>
+                </div>
+                <div className={styles["rating-bar-container"]}>
+                  <div className={styles["rating-bar"]} style={{ width: "0%" }}></div>
+                </div>
+                <div className={styles["rating-count"]}>(0)</div>
+              </div>
+
+              <div className={styles["rating-row"]}>
+                <div className={styles["star-count"]}>
+                  <span className={styles["star-icon"]}>★</span>
+                  <span className={styles["star-icon"]}>★</span>
+                  <span className={styles["star-icon"]}>★</span>
+                  <span className={styles["star-icon"]}>★</span>
+                  <span className={`${styles["star-icon"]} ${styles["star-empty"]}`}>☆</span>
+                </div>
+                <div className={styles["rating-bar-container"]}>
+                  <div className={styles["rating-bar"]} style={{ width: "0%" }}></div>
+                </div>
+                <div className={styles["rating-count"]}>(0)</div>
+              </div>
+
+              <div className={styles["rating-row"]}>
+                <div className={styles["star-count"]}>
+                  <span className={styles["star-icon"]}>★</span>
+                  <span className={styles["star-icon"]}>★</span>
+                  <span className={styles["star-icon"]}>★</span>
+                  <span className={`${styles["star-icon"]} ${styles["star-empty"]}`}>☆</span>
+                  <span className={`${styles["star-icon"]} ${styles["star-empty"]}`}>☆</span>
+                </div>
+                <div className={styles["rating-bar-container"]}>
+                  <div className={styles["rating-bar"]} style={{ width: "0%" }}></div>
+                </div>
+                <div className={styles["rating-count"]}>(0)</div>
+              </div>
+
+              <div className={styles["rating-row"]}>
+                <div className={styles["star-count"]}>
+                  <span className={styles["star-icon"]}>★</span>
+                  <span className={styles["star-icon"]}>★</span>
+                  <span className={`${styles["star-icon"]} ${styles["star-empty"]}`}>☆</span>
+                  <span className={`${styles["star-icon"]} ${styles["star-empty"]}`}>☆</span>
+                  <span className={`${styles["star-icon"]} ${styles["star-empty"]}`}>☆</span>
+                </div>
+                <div className={styles["rating-bar-container"]}>
+                  <div className={styles["rating-bar"]} style={{ width: "0%" }}></div>
+                </div>
+                <div className={styles["rating-count"]}>(0)</div>
+              </div>
+
+              <div className={styles["rating-row"]}>
+                <div className={styles["star-count"]}>
+                  <span className={styles["star-icon"]}>★</span>
+                  <span className={`${styles["star-icon"]} ${styles["star-empty"]}`}>☆</span>
+                  <span className={`${styles["star-icon"]} ${styles["star-empty"]}`}>☆</span>
+                  <span className={`${styles["star-icon"]} ${styles["star-empty"]}`}>☆</span>
+                  <span className={`${styles["star-icon"]} ${styles["star-empty"]}`}>☆</span>
+                </div>
+                <div className={styles["rating-bar-container"]}>
+                  <div className={styles["rating-bar"]} style={{ width: "0%" }}></div>
+                </div>
+                <div className={styles["rating-count"]}>(0)</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Filter Section */}
+          <div className={styles["filter-section"]}>
+            <span className={styles["filter-label"]}>Lọc đánh giá:</span>
+            <button className={`${styles["filter-button"]} ${styles.active}`}>Tất cả</button>
+            <button className={styles["filter-button"]}>5 ★</button>
+            <button className={styles["filter-button"]}>4 ★</button>
+            <button className={styles["filter-button"]}>3 ★</button>
+            <button className={styles["filter-button"]}>2 ★</button>
+            <button className={styles["filter-button"]}>1 ★</button>
+          </div>
+
+          {/* Write Review Button */}
+          <div className={styles["write-review-container"]}>
+            <button
+              className={styles["write-review"]}
+              onClick={() => {
+                const form = document.getElementById("reviewForm");
+                if (form) {
+                  form.classList.toggle(styles.active);
+                }
+              }}
+            >
+              <span>✏️</span>
+              VIẾT ĐÁNH GIÁ
+            </button>
+          </div>
+
+          {/* Write Review Form */}
+          <div className={styles["write-review-section"]} id="reviewForm">
+            <h2 className={styles["review-form-title"]}>Viết đánh giá của bạn</h2>
+            <div className={styles["star-rating"]}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <span
+                  key={star}
+                  className={`${styles.star} ${star <= rating ? styles["star-filled"] : ""}`}
+                  onClick={() => setRating(star)}
+                  style={{ cursor: "pointer" }}
+                >
+                  ★
+                </span>
+              ))}
+            </div>
             <textarea
               className={styles["comment-input"]}
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
-              placeholder="Nhập bình luận của bạn..."
+              placeholder="Nhập đánh giá của bạn..."
               rows={4}
               maxLength={500}
             />
@@ -624,31 +755,62 @@ export default function DetailPage() {
                 onClose={hideCommentError}
               />
             )}
-            <button
-              className={styles["submit-comment"]}
-              onClick={submitComment}
-              disabled={submittingComment || !newComment.trim()}
-            >
-              {submittingComment ? "Đang gửi..." : "Gửi bình luận"}
-            </button>
+            <div className={styles["form-buttons"]}>
+              <button
+                className={styles["submit-comment"]}
+                onClick={submitComment}
+                disabled={submittingComment || !newComment.trim() || userLoading}
+              >
+                {submittingComment ? "Đang gửi..." : "Gửi đánh giá"}
+              </button>
+              <button
+                className={styles["cancel-comment"]}
+                onClick={() => {
+                  const form = document.getElementById("reviewForm");
+                  if (form) {
+                    form.classList.remove(styles.active);
+                  }
+                  setNewComment("");
+                  setRating(0);
+                }}
+              >
+                Hủy
+              </button>
+            </div>
           </div>
 
-          {/* Danh sách bình luận */}
-          {comments.length > 0 ? (
-            comments.map((comment, index) => (
-              <div key={comment._id || `comment-${index}`} className={styles.review}>
-                <h3 className={styles["review-title"]}>
-                  {comment.user?.username || "Ẩn danh"}
-                </h3>
-                <time className={styles["review-date"]}>
-                  Ngày: {new Date(comment.createdAt).toLocaleDateString("vi-VN")}
-                </time>
-                <p className={styles.comment}>{comment.content}</p>
+          {/* Reviews Container */}
+          <div className={styles["reviews-container"]}>
+            {comments.length > 0 ? (
+              comments.map((comment, index) => (
+                <div key={comment._id || `comment-${index}`} className={styles.review}>
+                  <h3 className={styles["review-title"]}>
+                    {comment.user?.username || "Ẩn danh"}
+                  </h3>
+                  <div className={styles["star-rating"]}>
+                    {Array(5)
+                      .fill(0)
+                      .map((_, i) => (
+                        <span
+                          key={i}
+                          className={`${styles.star} ${i < (comment.rating || 0) ? styles["star-filled"] : ""}`}
+                        >
+                          ★
+                        </span>
+                      ))}
+                  </div>
+                  <time className={styles["review-date"]}>
+                    Ngày: {new Date(comment.createdAt).toLocaleDateString("vi-VN")}
+                  </time>
+                  <p className={styles.comment}>{comment.content}</p>
+                </div>
+              ))
+            ) : (
+              <div className={styles["no-reviews"]}>
+                Chưa có đánh giá nào cho sản phẩm này.
               </div>
-            ))
-          ) : (
-            <p>Chưa có bình luận nào cho sản phẩm này.</p>
-          )}
+            )}
+          </div>
         </div>
       </div>
 

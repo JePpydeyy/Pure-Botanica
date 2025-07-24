@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import styles from "./contact.module.css";
+import ToastNotification from "../ToastNotification/ToastNotification"; 
 
 const API_BASE_URL = "https://api-zeal.onrender.com";
 
@@ -28,6 +29,23 @@ const ContactPage: React.FC = () => {
     if (!image) return "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
     return image.startsWith("http") ? `${image}?${cacheBuster}` : image;
   };
+
+  // Hook tùy chỉnh: Quản lý thông báo toast
+  const useToast = () => {
+    const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+    const TOAST_DURATION = 3000;
+
+    const showToast = (type: "success" | "error", text: string) => {
+      setMessage({ type, text });
+      setTimeout(() => setMessage(null), TOAST_DURATION);
+    };
+
+    const hideToast = () => setMessage(null);
+
+    return { message, showToast, hideToast };
+  };
+
+  const { message: toastMessage, showToast, hideToast } = useToast();
 
   // Fetch logo từ API khi component mount
   useEffect(() => {
@@ -87,11 +105,12 @@ const ContactPage: React.FC = () => {
       }
 
       const result = await response.json();
-      alert("Cảm ơn bạn đã liên hệ với Pure Botanica!");
+      showToast("success", "Cảm ơn bạn đã liên hệ với Pure Botanica!");
       setFormData({ fullName: "", phone: "", email: "", message: "" });
     } catch (error: any) {
       console.error("Lỗi khi gửi thông tin liên hệ:", error);
       setFormError(error.message || "Đã xảy ra lỗi khi gửi thông tin. Vui lòng thử lại sau.");
+      showToast("error", "Đã xảy ra lỗi khi gửi thông tin. Vui lòng thử lại sau.");
     }
   };
 
@@ -218,6 +237,15 @@ const ContactPage: React.FC = () => {
               Gửi cho Pure Botanica
             </button>
           </form>
+
+          {/* Toast Notification */}
+          {toastMessage && (
+            <ToastNotification
+              message={toastMessage.text}
+              type={toastMessage.type}
+              onClose={hideToast}
+            />
+          )}
         </div>
       </div>
     </div>

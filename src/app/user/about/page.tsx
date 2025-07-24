@@ -47,38 +47,10 @@ export default function AboutPage() {
           setBanner(null); // Không có banner, hiển thị 404
         }
 
-        // Fetch suppbanner1 (giả định endpoint là /api/interfaces/supp-banner1)
-        const suppBanner1Response = await fetch(`${API_BASE_URL}/api/interfaces/supp-banner1`, {
-          cache: "no-store",
-        });
-        if (suppBanner1Response.ok) {
-          const suppBanner1Data = await suppBanner1Response.json();
-          setSuppBanner1(suppBanner1Data.paths && suppBanner1Data.paths.length > 0 ? suppBanner1Data.paths[0] : null);
-        } else {
-          setSuppBanner1(null);
-        }
-
-        // Fetch suppbanner2 (giả định endpoint là /api/interfaces/supp-banner2)
-        const suppBanner2Response = await fetch(`${API_BASE_URL}/api/interfaces/supp-banner2`, {
-          cache: "no-store",
-        });
-        if (suppBanner2Response.ok) {
-          const suppBanner2Data = await suppBanner2Response.json();
-          setSuppBanner2(suppBanner2Data.paths && suppBanner2Data.paths.length > 0 ? suppBanner2Data.paths[0] : null);
-        } else {
-          setSuppBanner2(null);
-        }
-
-        // Fetch suppbanner3 (giả định endpoint là /api/interfaces/supp-banner3)
-        const suppBanner3Response = await fetch(`${API_BASE_URL}/api/interfaces/supp-banner3`, {
-          cache: "no-store",
-        });
-        if (suppBanner3Response.ok) {
-          const suppBanner3Data = await suppBanner3Response.json();
-          setSuppBanner3(suppBanner3Data.paths && suppBanner3Data.paths.length > 0 ? suppBanner3Data.paths[0] : null);
-        } else {
-          setSuppBanner3(null);
-        }
+        // Gán URL tĩnh cho suppBanner1, suppBanner2, suppBanner3
+        setSuppBanner1("https://res.cloudinary.com/dgud3sqyn/image/upload/v1753240678/z6832260795269_3fcad37853adf88e86e08834c79fa7cc_dmeyrc.jpg");
+        setSuppBanner2("https://res.cloudinary.com/dgud3sqyn/image/upload/v1753240678/z6832260863473_beef7242521359f2bbc51b07e27faa7a_qj6zkh.jpg");
+        setSuppBanner3("https://res.cloudinary.com/dgud3sqyn/image/upload/v1753240678/z6832260901438_8fedfe2768a1503deb1a8d3582476706_kysayp.jpg");
       } catch (error: any) {
         console.error("Lỗi khi lấy hình ảnh:", error);
         setBannerError(error.message || "Không thể tải hình ảnh");
@@ -148,7 +120,7 @@ export default function AboutPage() {
           </p>
 
           <img
-            src={getImageUrl(suppBanner1)} // Sử dụng URL từ MongoDB
+            src={getImageUrl(suppBanner1)} // Sử dụng URL tĩnh từ Cloudinary
             alt="Ý Nghĩa Thương Hiệu Pure-Botanica"
             onError={(e) => {
               (e.target as HTMLImageElement).src = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
@@ -169,7 +141,7 @@ export default function AboutPage() {
             Hành trình gian nan tìm đến vẻ đẹp thật sự không phải là nhiệm vụ của riêng bạn, chúng tôi sẽ cùng bạn đi trên hành trình đó. Luôn luôn là như vậy, mãi mãi là như vậy.
           </p>
           <img
-            src={getImageUrl(suppBanner2)} // Sử dụng URL từ MongoDB
+            src={getImageUrl(suppBanner2)} // Sử dụng URL tĩnh từ Cloudinary
             alt="Sứ Mệnh Pure-Botanica"
             onError={(e) => {
               (e.target as HTMLImageElement).src = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
@@ -233,7 +205,7 @@ export default function AboutPage() {
 
           <div className={styles.brandValueRight}>
             <img
-              src={getImageUrl(suppBanner3)} // Sử dụng URL từ MongoDB
+              src={getImageUrl(suppBanner3)} // Sử dụng URL tĩnh từ Cloudinary
               alt="Giá Trị Thương Hiệu Pure-Botanica"
               onError={(e) => {
                 (e.target as HTMLImageElement).src = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";

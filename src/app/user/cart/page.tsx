@@ -9,6 +9,72 @@ import { useCart } from "../context/CartContext";
 import ToastNotification from "../ToastNotification/ToastNotification";
 import { Cart, CartItem } from "@/app/components/cart_interface";
 
+// Biến môi trường
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api-zeal.onrender.com";
+const ERROR_IMAGE_URL = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+const TIMEOUT_DURATION = 10000;
+
+// Hàm tiện ích: Lấy URL hình ảnh
+const getImageUrl = (image: string): string => {
+  if (!image || typeof image !== "string" || image.trim() === "") {
+    console.warn("Invalid image URL detected, using fallback:", ERROR_IMAGE_URL);
+    return ERROR_IMAGE_URL;
+  }
+  try {
+    new URL(image);
+    return image;
+  } catch (e) {
+    const cleanImage = image.startsWith("/") ? image.substring(1) : image;
+    const fullUrl = `${API_BASE_URL}/${cleanImage}`;
+    console.log("Constructed image URL:", fullUrl);
+    return fullUrl;
+  }
+};
+
+// Hàm API: Gửi yêu cầu đến API với xử lý timeout
+const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
+  const url = `${API_BASE_URL}${endpoint}`;
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
+  const defaultHeaders = {
+    "Content-Type": "application/json",
+    ...(token && { Authorization: `Bearer ${token}` }),
+  };
+
+  const config: RequestInit = {
+    ...options,
+    headers: {
+      ...defaultHeaders,
+      ...options.headers,
+    },
+  };
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_DURATION);
+
+  try {
+    const response = await fetch(url, {
+      ...config,
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `Lỗi HTTP: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error("Yêu cầu bị timeout");
+    }
+    throw error;
+  }
+};
+
 export default function CartPage() {
   const [cart, setCart] = useState<Cart | null>(null);
   const [loading, setLoading] = useState(true);
@@ -19,7 +85,7 @@ export default function CartPage() {
   const [cartMessage, setCartMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const router = useRouter();
   const { setCheckoutData } = useCart();
-  const [cacheBuster, setCacheBuster] = useState(""); // Thêm cacheBuster
+  const [cacheBuster, setCacheBuster] = useState("");
 
   // Tạo cacheBuster sau khi hydration
   useEffect(() => {
@@ -38,7 +104,7 @@ export default function CartPage() {
 
     try {
       const base64Url = token.split(".")[1];
-      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+      const base64 = base64Url.replace(/-/, "+").replace(/_/, "/");
       const jsonPayload = decodeURIComponent(
         atob(base64)
           .split("")
@@ -66,22 +132,26 @@ export default function CartPage() {
     if (!userId) return;
 
     try {
-      const response = await fetch(
-        `https://api-zeal.onrender.com/api/carts?userId=${userId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token") || ''}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Không thể lấy dữ liệu giỏ hàng");
+      const cartData = await apiRequest(`/api/carts?userId=${userId}`);
+      // Validate cart items
+      if (cartData && Array.isArray(cartData.items)) {
+        const validItems = cartData.items.filter(
+          (item: CartItem) =>
+            item.product &&
+            item.product._id &&
+            item.product.name &&
+            Array.isArray(item.product.images) &&
+            item.option &&
+            typeof item.option._id === "string" &&
+            typeof item.option.price === "number" &&
+            typeof item.option.stock === "number"
+        );
+        setCart({ ...cartData, items: validItems });
+        console.log("Fetched cart data:", { ...cartData, items: validItems });
+      } else {
+        setCart({ ...cartData, items: [] });
+        console.warn("Invalid cart data, setting empty items:", cartData);
       }
-
-      const cartData = await response.json();
-      setCart(cartData);
       setLoading(false);
     } catch (err) {
       setCartMessage({ type: "error", text: (err as Error).message || "Lỗi không xác định khi tải giỏ hàng" });
@@ -97,17 +167,16 @@ export default function CartPage() {
   }, [userId]);
 
   // Get product price from option
-  const getProductPrice = (option: CartItem["option"]): number => {
-    if (!option) return 0;
-    return option.discount_price && option.discount_price > 0
-      ? option.discount_price
-      : option.price || 0;
+  const getProductPrice = (option: CartItem["option"] | null | undefined): number => {
+    if (!option || typeof option.price !== "number") return 0;
+    return option.discount_price && option.discount_price > 0 ? option.discount_price : option.price;
   };
 
-  // Calculate subtotal
+  // Calculate subtotal, excluding out-of-stock or invalid items
   const calculateSubtotal = (): number => {
     if (!cart || !cart.items || cart.items.length === 0) return 0;
     return cart.items.reduce((total, item) => {
+      if (!item.option || (item.option.stock ?? 0) <= 0) return total; // Skip invalid or out-of-stock items
       const price = getProductPrice(item.option);
       return total + price * item.quantity;
     }, 0);
@@ -127,14 +196,22 @@ export default function CartPage() {
       return;
     }
 
+    const item = cart?.items.find((i) => i.product._id === productId && i.option?._id === optionId);
+    if (!item || !item.option) {
+      setCartMessage({ type: "error", text: "Sản phẩm không hợp lệ" });
+      setTimeout(() => setCartMessage(null), 3000);
+      return;
+    }
+    if ((item.option.stock ?? 0) <= currentQuantity) {
+      setCartMessage({ type: "error", text: "Sản phẩm đã hết hàng hoặc số lượng vượt quá tồn kho" });
+      setTimeout(() => setCartMessage(null), 3000);
+      return;
+    }
+
     const newQuantity = currentQuantity + 1;
     try {
-      const response = await fetch(`https://api-zeal.onrender.com/api/carts/update`, {
+      await apiRequest(`/api/carts/update`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token") || ''}`,
-        },
         body: JSON.stringify({
           userId,
           productId,
@@ -142,12 +219,6 @@ export default function CartPage() {
           quantity: newQuantity,
         }),
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Không thể cập nhật số lượng");
-      }
-
       await fetchCart();
     } catch (err) {
       setCartMessage({ type: "error", text: (err as Error).message || "Lỗi không xác định khi tăng số lượng" });
@@ -168,18 +239,21 @@ export default function CartPage() {
     }
 
     if (currentQuantity <= 1) {
-      await removeItem(cart?._id || '', productId, optionId);
+      await removeItem(cart?._id || "", productId, optionId);
+      return;
+    }
+
+    const item = cart?.items.find((i) => i.product._id === productId && i.option?._id === optionId);
+    if (!item || !item.option) {
+      setCartMessage({ type: "error", text: "Sản phẩm không hợp lệ" });
+      setTimeout(() => setCartMessage(null), 3000);
       return;
     }
 
     const newQuantity = currentQuantity - 1;
     try {
-      const response = await fetch(`https://api-zeal.onrender.com/api/carts/update`, {
+      await apiRequest(`/api/carts/update`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token") || ''}`,
-        },
         body: JSON.stringify({
           userId,
           productId,
@@ -187,12 +261,6 @@ export default function CartPage() {
           quantity: newQuantity,
         }),
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Không thể cập nhật số lượng");
-      }
-
       await fetchCart();
     } catch (err) {
       setCartMessage({ type: "error", text: (err as Error).message || "Lỗi không xác định khi giảm số lượng" });
@@ -213,25 +281,11 @@ export default function CartPage() {
     }
 
     try {
-      console.log("Removing item:", { userId, cartId, productId, optionId }); // Debug log
-      const response = await fetch(
-        `https://api-zeal.onrender.com/api/carts/remove/${cartId}/${productId}/${optionId}?userId=${userId}`,
-        {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token") || ''}`,
-          },
-        }
-      );
-
-      const responseData = await response.json();
+      console.log("Removing item:", { userId, cartId, productId, optionId });
+      const responseData = await apiRequest(`/api/carts/remove/${cartId}/${productId}/${optionId}?userId=${userId}`, {
+        method: "DELETE",
+      });
       console.log("Remove response:", responseData);
-
-      if (!response.ok) {
-        throw new Error(responseData.error || responseData.message || "Không thể xóa sản phẩm");
-      }
-
       await fetchCart();
       setCartMessage({ type: "success", text: "Sản phẩm đã được xóa khỏi giỏ hàng!" });
       setTimeout(() => setCartMessage(null), 3000);
@@ -260,30 +314,13 @@ export default function CartPage() {
     }
 
     try {
-      const response = await fetch(
-        `https://api-zeal.onrender.com/api/carts/update-price`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token") || ''}`,
-          },
-          body: JSON.stringify({
-            userId,
-            couponCode,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        setCartMessage({ type: "error", text: errorData.error || "Mã giảm giá không hợp lệ" });
-        setDiscount(0);
-        setTimeout(() => setCartMessage(null), 3000);
-        return;
-      }
-
-      const data = await response.json();
+      const data = await apiRequest(`/api/carts/update-price`, {
+        method: "POST",
+        body: JSON.stringify({
+          userId,
+          couponCode,
+        }),
+      });
       setDiscount(data.discount || 0);
       setCartMessage({ type: "success", text: "Mã giảm giá đã được áp dụng!" });
       setTimeout(() => setCartMessage(null), 3000);
@@ -306,11 +343,19 @@ export default function CartPage() {
       return;
     }
 
+    // Exclude out-of-stock or invalid items from checkout
+    const validItems = cart.items.filter((item) => item.option && (item.option.stock ?? 0) > 0);
+    if (validItems.length === 0) {
+      setCartMessage({ type: "error", text: "Không có sản phẩm nào trong giỏ hàng có sẵn để thanh toán" });
+      setTimeout(() => setCartMessage(null), 3000);
+      return;
+    }
+
     const subtotal = calculateSubtotal();
     const finalTotal = total || subtotal;
 
     const checkoutData = {
-      cart,
+      cart: { ...cart, items: validItems },
       userId,
       couponCode,
       subtotal,
@@ -324,21 +369,6 @@ export default function CartPage() {
 
     setCheckoutData(checkoutData);
     router.push("/user/checkout");
-  };
-
-  // Get image URL
-  const getImageUrl = (image: string): string => {
-    if (!image || typeof image !== "string" || image.trim() === "") {
-      console.warn("Invalid image URL detected, using fallback:", "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg");
-      return "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
-    }
-    try {
-      new URL(image); // Validate URL
-      return image;
-    } catch (e) {
-      console.warn("Invalid URL format for image:", image, "using fallback:", "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg");
-      return "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
-    }
   };
 
   return (
@@ -373,17 +403,18 @@ export default function CartPage() {
               <tbody className={styles["cart-tbody"]}>
                 {cart.items.map((item, index) => {
                   const itemPrice = getProductPrice(item.option);
+                  const isOutOfStock = !item.option || (item.option.stock ?? 0) <= 0;
                   return (
                     <tr
-                      key={`${item.product._id}-${item.option._id}-${index}`}
-                      className={styles["cart-row"]}
+                      key={`${item.product._id}-${item.option?._id ?? index}-${index}`}
+                      className={`${styles["cart-row"]} ${isOutOfStock ? styles["out-of-stock"] : ""}`}
                     >
                       <td className={`${styles["cart-cell"]} ${styles.product}`}>
                         <Image
                           src={
                             item.product.images && item.product.images.length > 0
                               ? `${getImageUrl(item.product.images[0])}?${cacheBuster}`
-                              : "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg"
+                              : ERROR_IMAGE_URL
                           }
                           alt={item.product.name || "Sản phẩm"}
                           width={100}
@@ -391,57 +422,44 @@ export default function CartPage() {
                           quality={100}
                           className={styles["cart-image"]}
                           onError={(e) => {
-                            console.log(`Image load failed for ${item.product.name}, switched to 404 fallback`);
-                            (e.target as HTMLImageElement).src = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+                            console.error(`Image load failed for ${item.product.name}, switched to fallback`);
+                            e.currentTarget.src = ERROR_IMAGE_URL;
                           }}
                         />
                         <span>
                           {item.product.name || "Sản phẩm không xác định"}
                           {item.option && ` - ${item.option.value}`}
+                          {isOutOfStock && <span className={styles["out-of-stock-label"]}>(Hết hàng)</span>}
                         </span>
                       </td>
                       <td className={styles["cart-cell"]}>
-                        {formatPrice(itemPrice)}
+                        {itemPrice > 0 ? formatPrice(itemPrice) : "N/A"}
                       </td>
-                      <td
-                        className={`${styles["cart-cell"]} ${styles["quantity-controls"]}`}
-                      >
+                      <td className={`${styles["cart-cell"]} ${styles["quantity-controls"]}`}>
                         <button
                           className={`${styles["quantity-btn"]} ${styles.minus}`}
-                          onClick={() =>
-                            decreaseQuantity(
-                              item.product._id,
-                              item.option._id,
-                              item.quantity
-                            )
-                          }
+                          onClick={() => decreaseQuantity(item.product._id, item.option?._id ?? "", item.quantity)}
+                          disabled={isOutOfStock}
                         >
                           -
                         </button>
                         <span className={styles.quantity}>{item.quantity}</span>
                         <button
                           className={`${styles["quantity-btn"]} ${styles.plus}`}
-                          onClick={() =>
-                            increaseQuantity(
-                              item.product._id,
-                              item.option._id,
-                              item.quantity
-                            )
-                          }
+                          onClick={() => increaseQuantity(item.product._id, item.option?._id ?? "", item.quantity)}
+                          disabled={isOutOfStock}
                         >
                           +
                         </button>
                       </td>
                       <td className={styles["cart-cell"]}>
-                        {formatPrice(itemPrice * item.quantity)}
+                        {isOutOfStock ? "N/A" : formatPrice(itemPrice * item.quantity)}
                       </td>
                       <td className={styles["cart-cell"]}>
                         <i
                           className="fa-solid fa-trash"
-                          onClick={() =>
-                            removeItem(cart._id, item.product._id, item.option._id)
-                          }
-                          style={{ cursor: "pointer" }}
+                          onClick={() => removeItem(cart._id, item.product._id, item.option?._id ?? "")}
+                          style={{ cursor: isOutOfStock ? "not-allowed" : "pointer", opacity: isOutOfStock ? 0.5 : 1 }}
                         ></i>
                       </td>
                     </tr>
@@ -486,7 +504,7 @@ export default function CartPage() {
           <button
             className={styles.checkout}
             onClick={handleCheckout}
-            disabled={!cart || !cart.items || cart.items.length === 0}
+            disabled={!cart || !cart.items || cart.items.every((item) => !item.option || (item.option.stock ?? 0) <= 0)}
           >
             Thanh toán
           </button>

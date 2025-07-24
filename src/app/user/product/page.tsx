@@ -428,6 +428,7 @@ export default function ProductPage() {
     }
   };
 
+  
   const isProductInWishlist = (productId: string): boolean => {
     return favoriteProducts.includes(productId);
   };

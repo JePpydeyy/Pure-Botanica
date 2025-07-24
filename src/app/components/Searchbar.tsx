@@ -2,34 +2,115 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { Product } from "./product_interface";
 
+// Biến môi trường
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api-zeal.onrender.com";
+const ERROR_IMAGE_URL = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+const TIMEOUT_DURATION = 10000;
+
+// Hàm tiện ích: Lấy URL hình ảnh (tái sử dụng từ DetailPage)
 const getImageUrl = (image: string): string => {
-  if (!image || typeof image !== "string") return "https://via.placeholder.com/40x40?text=No+Image";
-  const cleanImage = image.startsWith("/") ? image.substring(1) : image;
-  return `https://api-zeal.onrender.com/${cleanImage}`;
+  if (!image || typeof image !== "string" || image.trim() === "") {
+    console.warn("Invalid image URL detected, using fallback:", ERROR_IMAGE_URL);
+    return ERROR_IMAGE_URL;
+  }
+  try {
+    new URL(image); // Kiểm tra xem image đã là URL đầy đủ chưa
+    return image;
+  } catch (e) {
+    // Nếu không phải URL đầy đủ, ghép với API_BASE_URL
+    const cleanImage = image.startsWith("/") ? image.substring(1) : image;
+    const fullUrl = `${API_BASE_URL}/${cleanImage}`;
+    console.log("Constructed image URL:", fullUrl);
+    return fullUrl;
+  }
+};
+
+// Hàm API: Gửi yêu cầu đến API với xử lý timeout (tái sử dụng từ DetailPage)
+const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
+  const url = `${API_BASE_URL}${endpoint}`;
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
+  const defaultHeaders = {
+    "Content-Type": "application/json",
+    ...(token && { Authorization: `Bearer ${token}` }),
+  };
+
+  const config: RequestInit = {
+    ...options,
+    headers: {
+      ...defaultHeaders,
+      ...options.headers,
+    },
+  };
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_DURATION);
+
+  try {
+    const response = await fetch(url, {
+      ...config,
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `Lỗi HTTP: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error("Yêu cầu bị timeout");
+    }
+    throw error;
+  }
 };
 
 export default function SearchBar() {
   const [query, setQuery] = useState("");
-  const [allProducts, setAllProducts] = useState([]);
-  const [suggestions, setSuggestions] = useState([]);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [suggestions, setSuggestions] = useState<Product[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [cacheBuster, setCacheBuster] = useState("");
   const router = useRouter();
+
+  // Tạo cacheBuster sau khi hydration
+  useEffect(() => {
+    setCacheBuster(`t=${Date.now()}`);
+  }, []);
 
   useEffect(() => {
     async function fetchProducts() {
       setIsLoading(true);
       try {
-        const res = await fetch("https://api-zeal.onrender.com/api/products/active");
-        if (!res.ok) {
-          throw new Error(`HTTP error! Status: ${res.status}`);
-        }
-        const data = await res.json();
+        const data = await apiRequest("/api/products/active");
         if (Array.isArray(data)) {
-          setAllProducts(data);
+          // Validate and filter products to match Product interface
+          const validProducts = data.filter(
+            (product): product is Product =>
+              product &&
+              typeof product.name === "string" &&
+              Array.isArray(product.images) &&
+              Array.isArray(product.option)
+          );
+          setAllProducts(validProducts);
+          console.log("Fetched products:", validProducts);
         } else if (Array.isArray(data.products)) {
-          setAllProducts(data.products);
+          const validProducts = data.products.filter(
+            (product): product is Product =>
+              product &&
+              typeof product.name === "string" &&
+              Array.isArray(product.images) &&
+              Array.isArray(product.option)
+          );
+          setAllProducts(validProducts);
+          console.log("Fetched products from data.products:", validProducts);
         } else {
           setAllProducts([]);
           console.error("Unexpected API response format:", data);
@@ -50,7 +131,7 @@ export default function SearchBar() {
       setSuggestions([]);
       return;
     }
-    const filtered = allProducts.filter(product => {
+    const filtered = allProducts.filter((product) => {
       if (!product.name || typeof product.name !== "string") {
         console.warn("Invalid product name:", product);
         return false;
@@ -61,7 +142,7 @@ export default function SearchBar() {
     setSuggestions(filtered);
   }, [query, allProducts]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setShowSuggestions(false);
     if (query.trim()) {
@@ -69,7 +150,7 @@ export default function SearchBar() {
     }
   };
 
-  const handleSelect = (productId) => {
+  const handleSelect = (productId: string) => {
     setShowSuggestions(false);
     setQuery("");
     router.push(`/user/detail/${productId}`);
@@ -139,11 +220,12 @@ export default function SearchBar() {
                 <Image
                   src={
                     item.images && item.images.length > 0 && typeof item.images[0] === "string"
-                      ? getImageUrl(item.images[0])
-                      : "https://via.placeholder.com/40x40?text=No+Image"
+                      ? `${getImageUrl(item.images[0])}?${cacheBuster}`
+                      : ERROR_IMAGE_URL
                   }
                   onError={(e) => {
-                    e.currentTarget.src = "https://via.placeholder.com/40x40?text=No+Image";
+                    console.error(`Image for ${item.name || "product"} failed to load, switching to fallback`);
+                    e.currentTarget.src = ERROR_IMAGE_URL;
                   }}
                   alt={item.name || "Sản phẩm"}
                   width={44}

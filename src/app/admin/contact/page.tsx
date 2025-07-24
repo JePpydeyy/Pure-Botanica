@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import styles from "./contactAdmin.module.css"; // Updated to use the new CSS
+import styles from "./contactAdmin.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPenToSquare, faTrash, faTimes, faPlus } from "@fortawesome/free-solid-svg-icons";
 import ToastNotification from "../../user/ToastNotification/ToastNotification";
@@ -11,6 +11,7 @@ export default function ContactAdmin() {
   const [contacts, setContacts] = useState<any[]>([]);
   const [filteredContacts, setFilteredContacts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showConfirmEditPopup, setShowConfirmEditPopup] = useState(false);
   const [showConfirmDeletePopup, setShowConfirmDeletePopup] = useState(false);
   const [showDetailsPopup, setShowDetailsPopup] = useState(false);
@@ -31,51 +32,48 @@ export default function ContactAdmin() {
 
   const showNotification = (message: string, type: "success" | "error") => {
     setNotification({ show: true, message, type });
+    setTimeout(() => setNotification((prev) => ({ ...prev, show: false })), 3000);
   };
 
   useEffect(() => {
     const role = localStorage.getItem("role");
     if (!token || role !== "admin") {
       showNotification("Không tìm thấy token hoặc không có quyền admin. Vui lòng đăng nhập lại.", "error");
-      router.push("/user/login");
+      setTimeout(() => router.push("/user/login"), 1000); // Delay to show notification
+      return;
     }
-  }, [router, token]);
 
-  useEffect(() => {
     const fetchData = async () => {
-      if (!token) {
-        showNotification("Không tìm thấy token. Vui lòng đăng nhập lại.", "error");
-        router.push("/user/login");
-        return;
-      }
+  setLoading(true);
+  setError(null);
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // Increase to 15 seconds
+    const res = await fetch("https://api-zeal.onrender.com/api/contacts", {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: controller.signal,
+      cache: "no-store",
+    });
+    clearTimeout(timeoutId);
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`Lỗi khi tải danh sách liên hệ: ${res.status} ${errorText}`);
+    }
+    const data = await res.json();
+    if (!data.contacts || !Array.isArray(data.contacts)) {
+      throw new Error("Dữ liệu trả về không hợp lệ từ API.");
+    }
+    setContacts(data.contacts);
+    setFilteredContacts(data.contacts);
+  } catch (error: any) {
+    console.error("Fetch error:", error.message);
+    setError(error.message || "Không thể tải dữ liệu. Vui lòng thử lại sau.");
+    showNotification(`Lỗi khi tải dữ liệu: ${error.message}`, "error");
+  } finally {
+    setLoading(false);
+  }
+};
 
-      try {
-        const res = await fetch("https://api-zeal.onrender.com/api/contacts", {
-          headers: { Authorization: `Bearer ${token}` },
-          cache: "no-store",
-        });
-        if (res.status === 401 || res.status === 403) {
-          showNotification("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.", "error");
-          localStorage.removeItem("token");
-          localStorage.removeItem("role");
-          localStorage.removeItem("email");
-          router.push("/user/login");
-          return;
-        }
-        if (!res.ok) {
-          const errorText = await res.text();
-          throw new Error(`Lỗi khi tải danh sách liên hệ: ${res.status} ${errorText}`);
-        }
-        const data = await res.json();
-        setContacts(data.contacts);
-        setFilteredContacts(data.contacts);
-      } catch (error: any) {
-        console.error("Lỗi khi tải dữ liệu:", error.message);
-        showNotification(`Lỗi khi tải dữ liệu: ${error.message}`, "error");
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchData();
   }, [router, token]);
 
@@ -185,6 +183,7 @@ export default function ContactAdmin() {
           onClose={() => setNotification({ show: false, message: "", type: "success" })}
         />
       )}
+      {error && <p className={styles.errorContainer}>{error}</p>}
       <div className={styles.titleContainer}>
         <h1>QUẢN LÝ LIÊN HỆ</h1>
         <div className={styles.filterContainer}>
@@ -222,8 +221,10 @@ export default function ContactAdmin() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} className={styles.errorContainer}>
-                  Đang tải danh sách liên hệ...
+                <td colSpan={6} className={styles.loadingSkeleton}>
+                  <div className={styles.skeletonRow}></div>
+                  <div className={styles.skeletonRow}></div>
+                  <div className={styles.skeletonRow}></div>
                 </td>
               </tr>
             ) : currentItems.length === 0 ? (

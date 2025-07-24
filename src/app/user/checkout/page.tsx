@@ -52,6 +52,10 @@ export default function CheckoutPage() {
   const [wards, setWards] = useState<any[]>([]);
   const [cacheBuster, setCacheBuster] = useState("");
 
+<<<<<<< HEAD
+=======
+  
+>>>>>>> 5ad70dc0bc8fa72f96c08359a686e6035c2e84c9
   useEffect(() => {
     setCacheBuster(`t=${Date.now()}`);
     setIsClient(true);
@@ -361,6 +365,10 @@ export default function CheckoutPage() {
       }
     }
 
+<<<<<<< HEAD
+=======
+    
+>>>>>>> 5ad70dc0bc8fa72f96c08359a686e6035c2e84c9
     const cleanData = {
       userId,
       addressLine: formData.addressLine.trim(),

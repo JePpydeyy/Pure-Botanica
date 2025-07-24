@@ -69,15 +69,19 @@ export default function Brands() {
       );
       if (!productsRes.ok) throw new Error("Lỗi khi tải danh sách sản phẩm");
       const productsData = await productsRes.json();
+      console.log("Products data:", productsData);
+
       const counts = productsData.reduce(
         (acc: { [key: string]: number }, product: any) => {
-          if (product.id_brand && product.status === "show" && product.isActive) {
+          if (product.id_brand) {
             acc[product.id_brand] = (acc[product.id_brand] || 0) + 1;
+            console.log(`Counting product for brand ${product.id_brand}`);
           }
           return acc;
         },
         {}
       );
+      console.log("Product counts:", counts);
       setProductCounts(counts);
     } catch (error: any) {
       console.error("Error fetching product counts:", error);

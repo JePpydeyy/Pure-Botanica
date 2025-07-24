@@ -133,29 +133,9 @@ export default function NewsDetailPage() {
               {news.views ?? 0} lượt xem
             </span>
           </div>
-          <p className={styles.newsIntro}>
-            {news.content.replace(/<[^>]+>/g, "").slice(0, 300)}...
-          </p>
         </div>
 
         <div className={styles.newsSection}>
-          <div className={styles.newsimageWrapper}>
-            <img
-              src={getImageUrl(news.thumbnailUrl)}
-              alt={news.thumbnailCaption}
-              width={690}
-              height={448}
-              className={styles.newsimage}
-              onError={(e) => {
-                e.currentTarget.src =
-                  "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
-                console.error(
-                  `Error loading thumbnail for news ${news.title}: ${news.thumbnailUrl}`
-                );
-              }}
-            />
-          </div>
-
           <div
             className={styles.newsText}
             dangerouslySetInnerHTML={{ __html: news.content }}

@@ -5,7 +5,7 @@ import styles from "./order.module.css";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTimes } from "@fortawesome/free-solid-svg-icons";
+import { faTimes, faCheck } from "@fortawesome/free-solid-svg-icons";
 
 interface Option {
   stock: number;
@@ -36,7 +36,7 @@ interface Order {
     _id: string;
     username: string;
     email: string;
-  } | null; // Allow user to be null
+  } | null;
   createdAt: string;
   paymentStatus: string;
   shippingStatus: string;
@@ -115,7 +115,6 @@ export default function OrderPage() {
   };
 
   const allStatuses = [
-    { value: "all", label: "Tất cả trạng thái" },
     { value: "pending", label: "Chờ xử lý" },
     { value: "in_transit", label: "Đang vận chuyển" },
     { value: "delivered", label: "Đã giao hàng" },
@@ -170,13 +169,11 @@ export default function OrderPage() {
         if (!Array.isArray(data)) {
           throw new Error("Dữ liệu đơn hàng không hợp lệ");
         }
-        // Log orders with null user for debugging
         const invalidOrders = data.filter(order => !order.user);
         if (invalidOrders.length > 0) {
           console.warn("Found orders with null user:", invalidOrders);
         }
-        // Optionally filter out invalid orders
-        const validOrders = data; // Change to `data.filter(order => order.user)` if you want to exclude null users
+        const validOrders = data;
         setOrders(validOrders);
         setFilteredOrders(validOrders);
       } catch (error) {
@@ -435,40 +432,7 @@ export default function OrderPage() {
         </div>
       </div>
       <div className={styles.tableContainer}>
-        <table className={styles.productTable}>
-          <thead className={styles.productTableThead}>
-            <tr>
-              <th>ID</th>
-              <th>Tên</th>
-              <th>Tổng Tiền</th>
-              <th>Ngày</th>
-              <th>Trạng Thái Thanh Toán</th>
-              <th>Trạng Thái Vận Chuyển</th>
-              <th>Phương Thức Thanh Toán</th>
-            </tr>
-          </thead>
-          <tbody>
-            {currentOrders.length === 0 ? (
-              <tr>
-                <td colSpan={7} className={styles.emptyState}>
-                  <h3>{searchQuery || shippingStatusFilter !== "all" ? "Không tìm thấy đơn hàng" : "Chưa có đơn hàng"}</h3>
-                  <p>
-                    {(searchQuery || shippingStatusFilter !== "all")
-                      ? "Không có đơn hàng nào khớp với bộ lọc."
-                      : "Hiện tại không có đơn hàng nào để hiển thị."}
-                  </p>
-                </td>
-              </tr>
-            ) : (
-              currentOrders.map((order, index) => (
-                <tr key={order._id} className={styles.productRow} onClick={(e) => handleOrderClick(order, e)}>
-                  <td>{(currentPage - 1) * itemsPerPage + index + 1}</td>
-                  <td>{order.user?.username || "Không xác định"}</td>
-                  <td>{order.total.toLocaleString()} VND</td>
-                  <td>{formatDate(order.createdAt)}</td>
-                  <td>{getVietnamesePaymentStatus(order.paymentStatus)}</td>
-                  <td>
-                    <select
+        <table className={styles.productTable}><thead className={styles.productTableThead}><tr><th>ID</th><th>Tên</th><th>Tổng Tiền</th><th>Ngày</th><th>Trạng Thái Thanh Toán</th><th>Trạng Thái Vận Chuyển</th><th>Phương Thức Thanh Toán</th></tr></thead><tbody>{currentOrders.length === 0 ? (<tr><td colSpan={7} className={styles.emptyState}><h3>{searchQuery || shippingStatusFilter !== "all" ? "Không tìm thấy đơn hàng" : "Chưa có đơn hàng"}</h3><p>{(searchQuery || shippingStatusFilter !== "all") ? "Không có đơn hàng nào khớp với bộ lọc." : "Hiện tại không có đơn hàng nào để hiển thị."}</p></td></tr>) : (currentOrders.map((order, index) => (<tr key={order._id} className={styles.productRow} onClick={(e) => handleOrderClick(order, e)}><td>{(currentPage - 1) * itemsPerPage + index + 1}</td><td>{order.user?.username || "Không xác định"}</td><td>{order.total.toLocaleString()} VND</td><td>{formatDate(order.createdAt)}</td><td>{getVietnamesePaymentStatus(order.paymentStatus)}</td><td><select
                       value={getVietnameseShippingStatus(order.shippingStatus)}
                       onChange={(e) =>
                         handleShippingStatusChange(order._id, e.target.value, order.shippingStatus)
@@ -476,8 +440,7 @@ export default function OrderPage() {
                       className={styles.categorySelect}
                       onClick={(e) => e.stopPropagation()}
                       disabled={order.shippingStatus === "returned"}
-                    >
-                      {allStatuses.map((status) => (
+                    >{allStatuses.map((status) => (
                         <option
                           key={status.value}
                           value={status.label}
@@ -486,26 +449,9 @@ export default function OrderPage() {
                             (!statusProgression[order.shippingStatus].includes(status.value) &&
                               status.value !== order.shippingStatus)
                           }
-                        >
-                          {status.label}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  <td>
-                    {order.paymentMethod === "cod"
-                      ? "Thanh toán khi nhận hàng"
-                      : order.paymentMethod === "bank"
-                      ? "Chuyển khoản"
-                      : order.paymentMethod || "Không xác định"}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                        >{status.label}</option>
+                      ))}</select></td><td>{order.paymentMethod === "cod" ? "Thanh toán khi nhận hàng" : order.paymentMethod === "bank" ? "Chuyển khoản" : order.paymentMethod || "Không xác định"}</td></tr>)))}</tbody></table>
       </div>
-
       {showPopup && selectedOrder && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
@@ -553,7 +499,6 @@ export default function OrderPage() {
                         <div>
                           <p><strong>Tên:</strong> {item.product?.name || "Không xác định"}</p>
                           <p><strong>Số lượng:</strong> {item.quantity}</p>
-                          <p><strong>Giá:</strong> {getProductPrice(item.product, item.optionId).toLocaleString()} VND</p>
                         </div>
                       </li>
                     ))}
@@ -570,14 +515,13 @@ export default function OrderPage() {
           </div>
         </div>
       )}
-
       {showConfirm && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
             <h2>Xác Nhận Thay Đổi Trạng Thái</h2>
             <p>
               Bạn có chắc chắn muốn chuyển trạng thái vận chuyển sang{" "}
-              <strong>{showConfirm.newStatus}</strong>? Genus?{" "}
+              <strong>{showConfirm.newStatus}</strong>?{" "}
               {showConfirm.newStatus === "Đã giao hàng" ? (
                 <>
                   Trạng thái thanh toán sẽ được cập nhật thành <strong>Đã thanh toán</strong>.
@@ -593,21 +537,22 @@ export default function OrderPage() {
                 className={styles.confirmBtn}
                 onClick={confirmStatusChange}
                 aria-label="Xác nhận thay đổi trạng thái"
+                title="Xác nhận"
               >
-                Xác nhận
+                <FontAwesomeIcon icon={faCheck} />
               </button>
               <button
                 className={styles.cancelBtn}
                 onClick={cancelConfirm}
                 aria-label="Hủy thay đổi trạng thái"
+                title="Hủy"
               >
-                Hủy
+                <FontAwesomeIcon icon={faTimes} />
               </button>
             </div>
           </div>
         </div>
       )}
-
       {totalPages > 1 && (
         <div className={styles.pagination}>
           <button

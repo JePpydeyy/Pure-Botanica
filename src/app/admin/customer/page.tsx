@@ -76,7 +76,7 @@ export default function Customer() {
           throw new Error("No token found");
         }
 
-        const res = await fetch("http://localhost:10000/api/users", {
+        const res = await fetch("https://api-zeal.onrender.com/api/users", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -226,7 +226,7 @@ export default function Customer() {
       }
 
       const res = await fetch(
-        `http://localhost:10000/api/users/update/${selectedCustomer._id}`,
+        `https://api-zeal.onrender.com/api/users/update/${selectedCustomer._id}`,
         {
           method: "PUT",
           headers: {
@@ -296,7 +296,7 @@ export default function Customer() {
         throw new Error("No token found");
       }
 
-      const res = await fetch(`http://localhost:10000/api/users/${deleteCustomerId}`, {
+      const res = await fetch(`https://api-zeal.onrender.com/api/users/${deleteCustomerId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -387,7 +387,7 @@ export default function Customer() {
           >
             <option value="all">Tất cả trạng thái</option>
             <option value="active">Hoạt động</option>
-            <option value="inactive">Không hoạt động</option>
+            <option value="inactive">Khóa tài khoản</option>
           </select>
           <button
             type="button"
@@ -428,7 +428,7 @@ export default function Customer() {
                         customer.status === "active" ? styles.statusActive : styles.statusInactive
                       }
                     >
-                      {customer.status === "active" ? "Hoạt động" : "Không hoạt động"}
+                      {customer.status === "active" ? "Hoạt động" : "Khóa tài khoản"}
                     </span>
                   </td>
                   <td>{customer.role === "user" ? "Khách hàng" : "Quản trị viên"}</td>
@@ -542,13 +542,7 @@ export default function Customer() {
       {isModalOpen && selectedCustomer && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
-            <button
-              className={styles.cancelBtn}
-              onClick={() => setIsModalOpen(false)}
-              aria-label="Đóng form chỉnh sửa"
-            >
-              <FontAwesomeIcon icon={faTimes} />
-            </button>
+
             <h2>Chỉnh sửa thông tin {roleFilter === "user" ? "khách hàng" : "quản trị viên"}</h2>
             <form>
               <div className={styles.formGroup}>
@@ -562,7 +556,7 @@ export default function Customer() {
                   aria-label="Trạng thái khách hàng"
                 >
                   <option value="active">Hoạt động</option>
-                  <option value="inactive">Không hoạt động</option>
+                  <option value="inactive">Khóa tài khoản</option>
                 </select>
               </div>
               <div className={styles.formGroup}>

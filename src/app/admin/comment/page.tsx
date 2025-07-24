@@ -57,10 +57,20 @@ const CommentPage: React.FC = () => {
   const commentsPerPage = 9;
   const router = useRouter();
 
+  const formatDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    return date.toLocaleString("vi-VN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
+  };
+
   const normalizeImageUrl = (path: string): string => {
-    return path.startsWith("")
-      ? `${path}`
-      : `${path.replace(/^images\//, "")}`;
+    return path.startsWith("") ? `${path}` : `${path.replace(/^images\//, "")}`;
   };
 
   useEffect(() => {
@@ -322,95 +332,18 @@ const CommentPage: React.FC = () => {
               <th>Người dùng</th>
               <th>Sản phẩm</th>
               <th>Nội dung</th>
+              <th>Ngày bình luận</th>
               <th>Trạng thái</th>
               <th>Hành động</th>
             </tr>
           </thead>
           <tbody>
             {currentComments.length > 0 ? (
-              currentComments.map((comment) => (
-                <React.Fragment key={comment._id}>
-                  <tr
-                    onClick={() => handleToggleDetails(comment._id)}
-                    className={`${styles.productRow} ${
-                      selectedCommentId === comment._id ? styles.productRowActive : ""
-                    }`}
-                    style={{ cursor: "pointer" }}
-                  >
-                    <td>
-                      <Image
-                        src={
-                          comment.product?.images && comment.product.images.length > 0
-                            ? normalizeImageUrl(comment.product.images[0])
-                            : "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg"
-                        }
-                        alt={comment.product?.name || "Sản phẩm"}
-                        width={60}
-                        height={60}
-                        className={styles.detailImage}
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
-                        }}
-                      />
-                    </td>
-                    <td>
-                      {comment.user
-                        ? `${comment.user.username} (${comment.user.email})`
-                        : "Người dùng không tồn tại"}
-                    </td>
-                    <td>{comment.product?.name || "Sản phẩm không tồn tại"}</td>
-                    <td>{comment.content}</td>
-                    <td>{comment.status === "show" ? "Hiển thị" : "Ẩn"}</td>
-                    <td className={styles.actionButtons}>
-                      <button
-                        className={styles.toggleStatusBtn}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          confirmToggleStatus(comment._id);
-                        }}
-                        disabled={loading || !token}
-                        title={comment.status === "show" ? "Ẩn bình luận" : "Hiển thị bình luận"}
-                        aria-label={comment.status === "show" ? "Ẩn bình luận" : "Hiển thị bình luận"}
-                      >
-                        <FontAwesomeIcon icon={comment.status === "show" ? faEyeSlash : faEye} />
-                      </button>
-                    </td>
-                  </tr>
-                  {selectedCommentId === comment._id && (
-                    <tr className={styles.detailsRow}>
-                      <td colSpan={6}>
-                        <div className={styles.detailsContainer}>
-                          <h4>Chi tiết bình luận</h4>
-                          <div className={styles.detailsSection}>
-                            <h5>Thông tin người dùng</h5>
-                            <div className={styles.detailsGrid}>
-                              <p>
-                                <strong>Tên người dùng:</strong>{" "}
-                                {comment.user?.username || "Không có"}
-                              </p>
-                              <p>
-                                <strong>Email:</strong> {comment.user?.email || "Không có"}
-                              </p>
-                            </div>
-                          </div>
-                          <div className={styles.detailsSection}>
-                            <h5>Nội dung bình luận</h5>
-                            <p>{comment.content}</p>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </React.Fragment>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={6} className={styles.emptyState}>
-                  <h3>Không có bình luận</h3>
-                  <p>Chưa có bình luận nào phù hợp với bộ lọc.</p>
-                </td>
-              </tr>
-            )}
+              currentComments.map((comment) => (<React.Fragment key={comment._id}>
+                <tr onClick={() => handleToggleDetails(comment._id)} className={`${styles.productRow} ${selectedCommentId === comment._id ? styles.productRowActive : ""}`} style={{ cursor: "pointer" }}><td><Image src={comment.product?.images && comment.product.images.length > 0 ? normalizeImageUrl(comment.product.images[0]) : "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg"} alt={comment.product?.name || "Sản phẩm"} width={60} height={60} className={styles.detailImage} onError={(e) => { (e.target as HTMLImageElement).src = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg"; }} /></td><td>{comment.user ? `${comment.user.username} (${comment.user.email})` : "Người dùng không tồn tại"}</td><td>{comment.product?.name || "Sản phẩm không tồn tại"}</td><td>{comment.content}</td><td>{formatDate(comment.createdAt)}</td><td>{comment.status === "show" ? "Hiển thị" : "Ẩn"}</td><td className={styles.actionButtons}><button className={styles.toggleStatusBtn} onClick={(e) => { e.stopPropagation(); confirmToggleStatus(comment._id); }} disabled={loading || !token} title={comment.status === "show" ? "Ẩn bình luận" : "Hiển thị bình luận"} aria-label={comment.status === "show" ? "Ẩn bình luận" : "Hiển thị bình luận"}><FontAwesomeIcon icon={comment.status === "show" ? faEyeSlash : faEye} /></button></td></tr>
+                {selectedCommentId === comment._id && (<tr className={styles.detailsRow}><td colSpan={7}><div className={styles.detailsContainer}><h4>Chi tiết bình luận</h4><div className={styles.detailsSection}><h5>Thông tin người dùng</h5><div className={styles.detailsGrid}><p><strong>Tên người dùng:</strong> {comment.user?.username || "Không có"}</p><p><strong>Email:</strong> {comment.user?.email || "Không có"}</p></div></div><div className={styles.detailsSection}><h5>Nội dung bình luận</h5><p>{comment.content}</p></div><div className={styles.detailsSection}><h5>Ngày bình luận</h5><p>{formatDate(comment.createdAt)}</p></div></div></td></tr>)}
+              </React.Fragment>))
+            ) : (<tr><td colSpan={7} className={styles.emptyState}><h3>Không có bình luận</h3><p>Chưa có bình luận nào phù hợp với bộ lọc.</p></td></tr>)}
           </tbody>
         </table>
       </div>

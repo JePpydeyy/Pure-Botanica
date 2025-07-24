@@ -572,14 +572,14 @@ export default function DetailPage() {
                 className={styles["wishlist-button"]}
                 onClick={addToWishlist}
                 disabled={addingToCart} // Vô hiệu hóa khi đang thêm vào giỏ hàng
-                aria-label={isFavorite ? "Đã nằm trong danh sách yêu thích" : "Đưa vào danh sách yêu thích của bạn"}
+                aria-label={isFavorite ? "Đã nằm trong danh sách yêu thích" : "Thêm vào danh sách yêu thích của bạn"}
               >
                 <i
                   className={`fas fa-heart ${isFavorite ? styles.favorited : styles.notFavorited}`}
                   style={{ color: isFavorite ? "#ff0000" : "#000000" }}
                 ></i>
                 <span style={{ marginLeft: "8px" }}>
-                  {isFavorite ? "Đã nằm trong danh sách yêu thích" : "Đưa vào danh sách yêu thích của bạn"}
+                  {isFavorite ? "Đã nằm trong danh sách yêu thích" : "Thêm vào danh sách yêu thích của bạn"}
                 </span>
               </button>
             </div>
@@ -602,55 +602,204 @@ export default function DetailPage() {
         </div>
       </div>
 
-      {/* Phần bình luận */}
-      <div className={styles.cr}>
-        <div className={styles["customer-review"]}>
-          <h1 className={styles["review-main-title"]}>Đánh giá từ khách hàng</h1>
 
-          <div className={styles["write-review-section"]}>
-            <h2 className={styles["review-title"]}>Viết bình luận của bạn</h2>
-            <textarea
-              className={styles["comment-input"]}
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              placeholder="Nhập bình luận của bạn..."
-              rows={4}
-              maxLength={500}
-            />
-            {commentError && (
-              <ToastNotification
-                message={commentError.text}
-                type={commentError.type}
-                onClose={hideCommentError}
-              />
-            )}
-            <button
-              className={styles["submit-comment"]}
-              onClick={submitComment}
-              disabled={submittingComment || !newComment.trim()}
-            >
-              {submittingComment ? "Đang gửi..." : "Gửi bình luận"}
-            </button>
+
+{/* Phần bình luận với layout mới */}
+<div className={styles.cr}>
+  <div className={styles["customer-review"]}>
+    <h1 className={styles["review-main-title"]}>ĐÁNH GIÁ TỪ KHÁCH HÀNG ĐÃ MUA</h1>
+
+    {/* Rating Overview */}
+    <div className={styles["rating-overview"]}>
+      <div className={styles["rating-summary"]}>
+        <div className={styles["average-rating"]}>0.0</div>
+        <div className={styles["stars-display"]}>
+          <span className={`${styles["star-display"]} ${styles["star-empty"]}`}>★</span>
+          <span className={`${styles["star-display"]} ${styles["star-empty"]}`}>★</span>
+          <span className={`${styles["star-display"]} ${styles["star-empty"]}`}>★</span>
+          <span className={`${styles["star-display"]} ${styles["star-empty"]}`}>★</span>
+          <span className={`${styles["star-display"]} ${styles["star-empty"]}`}>★</span>
+        </div>
+        <div className={styles["rating-text"]}>Theo 0 đánh giá</div>
+      </div>
+
+      <div className={styles["rating-breakdown"]}>
+        <div className={styles["rating-row"]}>
+          <div className={styles["star-count"]}>
+            <span className={styles["star-icon"]}>★</span>
+            <span className={styles["star-icon"]}>★</span>
+            <span className={styles["star-icon"]}>★</span>
+            <span className={styles["star-icon"]}>★</span>
+            <span className={styles["star-icon"]}>★</span>
           </div>
+          <div className={styles["rating-bar-container"]}>
+            <div className={styles["rating-bar"]} style={{ width: "0%" }}></div>
+          </div>
+          <div className={styles["rating-count"]}>(0)</div>
+        </div>
 
-          {/* Danh sách bình luận */}
-          {comments.length > 0 ? (
-            comments.map((comment, index) => (
-              <div key={comment._id || `comment-${index}`} className={styles.review}>
-                <h3 className={styles["review-title"]}>
-                  {comment.user?.username || "Ẩn danh"}
-                </h3>
-                <time className={styles["review-date"]}>
-                  Ngày: {new Date(comment.createdAt).toLocaleDateString("vi-VN")}
-                </time>
-                <p className={styles.comment}>{comment.content}</p>
-              </div>
-            ))
-          ) : (
-            <p>Chưa có bình luận nào cho sản phẩm này.</p>
-          )}
+        <div className={styles["rating-row"]}>
+          <div className={styles["star-count"]}>
+            <span className={styles["star-icon"]}>★</span>
+            <span className={styles["star-icon"]}>★</span>
+            <span className={styles["star-icon"]}>★</span>
+            <span className={styles["star-icon"]}>★</span>
+            <span className={`${styles["star-icon"]} ${styles["star-empty"]}`}>☆</span>
+          </div>
+          <div className={styles["rating-bar-container"]}>
+            <div className={styles["rating-bar"]} style={{ width: "0%" }}></div>
+          </div>
+          <div className={styles["rating-count"]}>(0)</div>
+        </div>
+
+        <div className={styles["rating-row"]}>
+          <div className={styles["star-count"]}>
+            <span className={styles["star-icon"]}>★</span>
+            <span className={styles["star-icon"]}>★</span>
+            <span className={styles["star-icon"]}>★</span>
+            <span className={`${styles["star-icon"]} ${styles["star-empty"]}`}>☆</span>
+            <span className={`${styles["star-icon"]} ${styles["star-empty"]}`}>☆</span>
+          </div>
+          <div className={styles["rating-bar-container"]}>
+            <div className={styles["rating-bar"]} style={{ width: "0%" }}></div>
+          </div>
+          <div className={styles["rating-count"]}>(0)</div>
+        </div>
+
+        <div className={styles["rating-row"]}>
+          <div className={styles["star-count"]}>
+            <span className={styles["star-icon"]}>★</span>
+            <span className={styles["star-icon"]}>★</span>
+            <span className={`${styles["star-icon"]} ${styles["star-empty"]}`}>☆</span>
+            <span className={`${styles["star-icon"]} ${styles["star-empty"]}`}>☆</span>
+            <span className={`${styles["star-icon"]} ${styles["star-empty"]}`}>☆</span>
+          </div>
+          <div className={styles["rating-bar-container"]}>
+            <div className={styles["rating-bar"]} style={{ width: "0%" }}></div>
+          </div>
+          <div className={styles["rating-count"]}>(0)</div>
+        </div>
+
+        <div className={styles["rating-row"]}>
+          <div className={styles["star-count"]}>
+            <span className={styles["star-icon"]}>★</span>
+            <span className={`${styles["star-icon"]} ${styles["star-empty"]}`}>☆</span>
+            <span className={`${styles["star-icon"]} ${styles["star-empty"]}`}>☆</span>
+            <span className={`${styles["star-icon"]} ${styles["star-empty"]}`}>☆</span>
+            <span className={`${styles["star-icon"]} ${styles["star-empty"]}`}>☆</span>
+          </div>
+          <div className={styles["rating-bar-container"]}>
+            <div className={styles["rating-bar"]} style={{ width: "0%" }}></div>
+          </div>
+          <div className={styles["rating-count"]}>(0)</div>
         </div>
       </div>
+    </div>
+
+    {/* Filter Section */}
+    <div className={styles["filter-section"]}>
+      <span className={styles["filter-label"]}>Lọc đánh giá:</span>
+      <button className={`${styles["filter-button"]} ${styles.active}`}>Tất cả</button>
+      <button className={styles["filter-button"]}>5 ★</button>
+      <button className={styles["filter-button"]}>4 ★</button>
+      <button className={styles["filter-button"]}>3 ★</button>
+      <button className={styles["filter-button"]}>2 ★</button>
+      <button className={styles["filter-button"]}>1 ★</button>
+    </div>
+
+    {/* Write Review Button */}
+    <div className={styles["write-review-container"]}>
+      <button 
+        className={styles["write-review"]} 
+        onClick={() => {
+          const form = document.getElementById('reviewForm');
+          if (form) {
+            form.classList.toggle(styles.active);
+          }
+        }}
+      >
+        <span>✏️</span>
+        VIẾT ĐÁNH GIÁ
+      </button>
+    </div>
+
+    {/* Write Review Form */}
+    <div className={styles["write-review-section"]} id="reviewForm">
+      <h2 className={styles["review-form-title"]}>Viết đánh giá của bạn</h2>
+      <div className={styles["star-rating"]}>
+        <span className={styles.star}>★</span>
+        <span className={styles.star}>★</span>
+        <span className={styles.star}>★</span>
+        <span className={styles.star}>★</span>
+        <span className={styles.star}>★</span>
+      </div>
+      <textarea
+        className={styles["comment-input"]}
+        value={newComment}
+        onChange={(e) => setNewComment(e.target.value)}
+        placeholder="Nhập đánh giá của bạn..."
+        rows={4}
+        maxLength={500}
+      />
+      {commentError && (
+        <ToastNotification
+          message={commentError.text}
+          type={commentError.type}
+          onClose={hideCommentError}
+        />
+      )}
+      <div className={styles["form-buttons"]}>
+        <button
+          className={styles["submit-comment"]}
+          onClick={submitComment}
+          disabled={submittingComment || !newComment.trim()}
+        >
+          {submittingComment ? "Đang gửi..." : "Gửi đánh giá"}
+        </button>
+        <button 
+          className={styles["cancel-comment"]} 
+          onClick={() => {
+            const form = document.getElementById('reviewForm');
+            if (form) {
+              form.classList.remove(styles.active);
+            }
+            setNewComment("");
+          }}
+        >
+          Hủy
+        </button>
+      </div>
+    </div>
+
+    {/* Reviews Container */}
+    <div className={styles["reviews-container"]}>
+      {comments.length > 0 ? (
+        comments.map((comment, index) => (
+          <div key={comment._id || `comment-${index}`} className={styles.review}>
+            <h3 className={styles["review-title"]}>
+              {comment.user?.username || "Ẩn danh"}
+            </h3>
+            <div className={styles["star-rating"]}>
+              <span className={styles.star}>★</span>
+              <span className={styles.star}>★</span>
+              <span className={styles.star}>★</span>
+              <span className={styles.star}>★</span>
+              <span className={styles.star}>★</span>
+            </div>
+            <time className={styles["review-date"]}>
+              Ngày: {new Date(comment.createdAt).toLocaleDateString("vi-VN")}
+            </time>
+            <p className={styles.comment}>{comment.content}</p>
+          </div>
+        ))
+      ) : (
+        <div className={styles["no-reviews"]}>
+          Chưa có đánh giá nào cho sản phẩm này.
+        </div>
+      )}
+    </div>
+  </div>
+</div>
 
       {/* Phần liên hệ */}
       <section className={styles["product-contact-section"]}>

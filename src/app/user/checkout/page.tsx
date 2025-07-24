@@ -48,7 +48,7 @@ export default function CheckoutPage() {
   const [wards, setWards] = useState<any[]>([]);
   const [cacheBuster, setCacheBuster] = useState(""); // Thêm cacheBuster
 
-  // Tạo cacheBuster sau khi hydration
+  
   useEffect(() => {
     setCacheBuster(`t=${Date.now()}`);
   }, []);
@@ -359,7 +359,7 @@ export default function CheckoutPage() {
       }
     }
 
-    // Dữ liệu gửi đi
+    
     const cleanData = {
       userId,
       addressLine: formData.addressLine.trim(),

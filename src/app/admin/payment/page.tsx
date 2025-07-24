@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import styles from "./PaymentHistoryPage.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTimes } from "@fortawesome/free-solid-svg-icons";
+import moment from "moment-timezone";
 
 interface Payment {
   paymentCode: string;
@@ -50,7 +51,6 @@ export default function PaymentHistoryPage() {
   const formatDate = (dateString: string | null) => {
     if (!dateString || dateString.trim() === "") return "Chưa có";
 
-    // Thử định dạng dd/mm/yyyy
     const dateTimeMatch = dateString.match(/(\d{2})\/(\d{2})\/(\d{4})/);
     if (dateTimeMatch) {
       const [, day, month, year] = dateTimeMatch;
@@ -60,7 +60,6 @@ export default function PaymentHistoryPage() {
       }
     }
 
-    // Thử định dạng ISO 8601
     const parsedDate = new Date(dateString);
     if (!isNaN(parsedDate.getTime())) {
       return `${parsedDate.getDate().toString().padStart(2, "0")}-${(parsedDate.getMonth() + 1)
@@ -68,7 +67,7 @@ export default function PaymentHistoryPage() {
         .padStart(2, "0")}-${parsedDate.getFullYear()}`;
     }
 
-    console.warn("Ngày không hợp lệ từ API:", dateString);
+    console.warn("Invalid date from API:", dateString);
     return "Ngày không hợp lệ";
   };
 
@@ -77,14 +76,31 @@ export default function PaymentHistoryPage() {
     setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
   };
 
+  const getUserIdFromToken = (token: string | null): string | null => {
+    if (!token) return null;
+    try {
+      const base64Url = token.split(".")[1];
+      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split("")
+          .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+          .join("")
+      );
+      const decoded = JSON.parse(jsonPayload);
+      return decoded.id || decoded.sub || null;
+    } catch (error) {
+      console.error("Error decoding token:", error);
+      return null;
+    }
+  };
+
   useEffect(() => {
     const token = localStorage.getItem("token");
     const role = localStorage.getItem("role");
     if (!token || role !== "admin") {
       showNotification("Vui lòng đăng nhập với quyền admin!", "error");
-      localStorage.removeItem("token");
-      localStorage.removeItem("role");
-      localStorage.removeItem("email");
+      localStorage.clear();
       router.push("/user/login");
     }
   }, [router]);
@@ -95,31 +111,54 @@ export default function PaymentHistoryPage() {
         setLoading(true);
         setError(null);
         const token = localStorage.getItem("token");
-        const res = await fetch("https://api-zeal.onrender.com/api/payments/get-payments", {
-          headers: { Authorization: `Bearer ${token}` },
-          method: "POST",
-          body: JSON.stringify({}),
-          cache: "no-store",
-        });
-        if (res.status === 401 || res.status === 403) {
-          showNotification("Phiên đăng nhập hết hạn!", "error");
-          localStorage.removeItem("token");
-          localStorage.removeItem("role");
-          localStorage.removeItem("email");
+        if (!token) {
+          showNotification("Không tìm thấy token, vui lòng đăng nhập lại!", "error");
+          localStorage.clear();
           router.push("/user/login");
           return;
         }
-        if (!res.ok) throw new Error(`Lỗi API: ${res.status} ${res.statusText}`);
+
+        const userId = getUserIdFromToken(token);
+        if (!userId) {
+          showNotification("Không thể lấy userId từ token, vui lòng kiểm tra token!", "error");
+          return;
+        }
+
+        const res = await fetch("https://api-zeal.onrender.com/api/payments/get-by-user", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          method: "POST",
+          body: JSON.stringify({ userId }),
+          cache: "no-store",
+        });
+
+        console.log("API Response Status:", res.status);
+        const contentType = res.headers.get("content-type");
+        if (!res.ok) {
+          const errorText = await res.text();
+          throw new Error(`API Error: ${res.status} - ${errorText || res.statusText}`);
+        }
+        if (!contentType || !contentType.includes("application/json")) {
+          throw new Error("Response is not JSON");
+        }
         const data = await res.json();
-        if (!Array.isArray(data.data)) throw new Error("Dữ liệu không hợp lệ");
-        console.log("Dữ liệu từ API:", data.data);
-        setPayments(data.data);
-        setFilteredPayments(data.data);
+        console.log("API Response Data:", data);
+        if (!Array.isArray(data.data)) throw new Error("Data is not an array from API");
+
+        // Validate payment data
+        const validPayments = data.data.filter((payment: Payment) =>
+          payment.paymentCode && payment.status && payment.orderId
+        );
+        console.log("Valid payments:", validPayments);
+        setPayments(validPayments);
+        setFilteredPayments(validPayments);
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
-        console.error("Lỗi khi tải lịch sử thanh toán:", errorMessage);
-        setError("Không thể tải lịch sử thanh toán.");
-        showNotification("Không thể tải lịch sử thanh toán", "error");
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+        console.error("Error fetching payment history:", errorMessage);
+        setError(`Không thể tải lịch sử thanh toán: ${errorMessage}`);
+        showNotification(`Không thể tải lịch sử thanh toán: ${errorMessage}`, "error");
       } finally {
         setLoading(false);
       }
@@ -129,18 +168,22 @@ export default function PaymentHistoryPage() {
 
   const filterPayments = useCallback(
     (query: string, status: "all" | "pending" | "success" | "expired" | "failed") => {
+      console.log("Filtering with query:", query, "status:", status);
       const filtered = payments.filter((payment) => {
-        const searchLower = query.toLowerCase();
-        const paymentCode = payment.paymentCode.toLowerCase();
-        const bankUserName = payment.bankUserName.toLowerCase();
-        const orderId = payment.orderId.toLowerCase();
+        const searchLower = query.toLowerCase().trim();
+        const paymentCode = payment.paymentCode ? payment.paymentCode.toLowerCase() : "";
+        const bankUserName = payment.bankUserName ? payment.bankUserName.toLowerCase() : "";
+        const orderId = payment.orderId ? payment.orderId.toLowerCase() : "";
+        const description = payment.description ? payment.description.toLowerCase() : "";
         return (
           (status === "all" || payment.status === status) &&
           (paymentCode.includes(searchLower) ||
             bankUserName.includes(searchLower) ||
-            orderId.includes(searchLower))
+            orderId.includes(searchLower) ||
+            description.includes(searchLower))
         );
       });
+      console.log("Filtered payments:", filtered);
       setFilteredPayments(filtered);
       setCurrentPage(1);
     },
@@ -174,7 +217,6 @@ export default function PaymentHistoryPage() {
     setSelectedPayment(null);
   };
 
-  // Pagination
   const totalPages = Math.ceil(filteredPayments.length / paymentsPerPage);
   const indexOfLastPayment = currentPage * paymentsPerPage;
   const indexOfFirstPayment = indexOfLastPayment - paymentsPerPage;
@@ -263,7 +305,7 @@ export default function PaymentHistoryPage() {
         <div className={styles.filterContainer}>
           <input
             type="text"
-            placeholder="Tìm kiếm theo mã thanh toán, tên người chuyển hoặc ID đơn hàng..."
+            placeholder="Tìm kiếm theo mã thanh toán, tên người chuyển, ID đơn hàng hoặc nội dung..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className={styles.searchInput}
@@ -335,7 +377,7 @@ export default function PaymentHistoryPage() {
                       {statusMapping[payment.status] || payment.status}
                     </span>
                   </td>
-                  <td>{payment.orderId}</td>
+                  <td>{payment.orderId ? payment.orderId.slice(0, 5) : "N/A"}</td>
                 </tr>
               ))
             )}
@@ -429,7 +471,7 @@ export default function PaymentHistoryPage() {
               </div>
               <div className={styles.detailItem}>
                 <dt>ID Đơn Hàng</dt>
-                <dd>{selectedPayment.orderId}</dd>
+                <dd>{selectedPayment.orderId ? selectedPayment.orderId.slice(0, 5) : "N/A"}</dd>
               </div>
               <div className={styles.detailItem}>
                 <dt>Ngày Giao Dịch</dt>

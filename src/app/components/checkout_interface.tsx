@@ -1,8 +1,5 @@
 import { Cart } from "./cart_interface";
 
-
-
-
 export interface FormData {
   fullName: string;
   addressLine: string;
@@ -11,7 +8,7 @@ export interface FormData {
   cityOrProvince: string;
   sdt: string;
   note: string;
-  paymentMethod: "bank" | "cod";
+  paymentMethod: "bank" | "cod" | "vnpay" | "momo";
 }
 
 export interface UserInfo {
@@ -42,8 +39,9 @@ export interface UserInfo {
     cityOrProvince: string;
   };
 }
-// Interface cho dữ liệu thanh toán
- export interface CheckoutData {
+
+export interface CheckoutData {
+  order: any;
   cart: Cart;
   couponCode?: string;
   subtotal: number;

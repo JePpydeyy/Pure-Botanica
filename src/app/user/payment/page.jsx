@@ -196,7 +196,6 @@ export default function PaymentOnline() {
       <ToastContainer position="top-right" autoClose={3000} />
       <div className={styles.header}>
         <h2>Thanh Toán Online</h2>
-        {error && <p className={styles.error}>{error}</p>}
         <div className={styles.qrContainer}>
           <div className={styles.qrInfo}>
             <p><span>Ngân Hàng:</span> MBBANK</p>
@@ -208,7 +207,6 @@ export default function PaymentOnline() {
             </p>
             <p><span>Nội dung chuyển khoản:</span> {paymentCode || "N/A"}</p>
             <p><span>Trạng thái:</span> {message}</p>
-            <p><span>Thời gian còn lại:</span> {formatTimeLeft(timeLeft)}</p>
             {order?.transactionId && (
               <>
                 <p><span>Mã giao dịch:</span> {order.transactionId}</p>

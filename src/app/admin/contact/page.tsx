@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import styles from './contactAdmin.module.css'; // Updated to use the new CSS
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPenToSquare, faTrash, faPlus } from '@fortawesome/free-solid-svg-icons';
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import styles from "./contactAdmin.module.css"; // Updated to use the new CSS
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faPenToSquare, faTrash, faTimes, faPlus } from "@fortawesome/free-solid-svg-icons";
 import ToastNotification from "../../user/ToastNotification/ToastNotification";
 
 export default function ContactAdmin() {
@@ -15,51 +15,51 @@ export default function ContactAdmin() {
   const [showConfirmDeletePopup, setShowConfirmDeletePopup] = useState(false);
   const [showDetailsPopup, setShowDetailsPopup] = useState(false);
   const [selectedContact, setSelectedContact] = useState<any | null>(null);
-  const [searchName, setSearchName] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'Chưa xử lý' | 'Đã xử lý'>('all');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | 'none'>('none');
+  const [searchName, setSearchName] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "Chưa xử lý" | "Đã xử lý">("all");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc" | "none">("none");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
-  const [notification, setNotification] = useState<{ show: boolean; message: string; type: 'success' | 'error' }>({
+  const [notification, setNotification] = useState<{ show: boolean; message: string; type: "success" | "error" }>({
     show: false,
-    message: '',
-    type: 'success',
+    message: "",
+    type: "success",
   });
 
   const router = useRouter();
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
-  const showNotification = (message: string, type: 'success' | 'error') => {
+  const showNotification = (message: string, type: "success" | "error") => {
     setNotification({ show: true, message, type });
   };
 
   useEffect(() => {
-    const role = localStorage.getItem('role');
-    if (!token || role !== 'admin') {
-      showNotification('Không tìm thấy token hoặc không có quyền admin. Vui lòng đăng nhập lại.', 'error');
-      router.push('/user/login');
+    const role = localStorage.getItem("role");
+    if (!token || role !== "admin") {
+      showNotification("Không tìm thấy token hoặc không có quyền admin. Vui lòng đăng nhập lại.", "error");
+      router.push("/user/login");
     }
   }, [router, token]);
 
   useEffect(() => {
     const fetchData = async () => {
       if (!token) {
-        showNotification('Không tìm thấy token. Vui lòng đăng nhập lại.', 'error');
-        router.push('/user/login');
+        showNotification("Không tìm thấy token. Vui lòng đăng nhập lại.", "error");
+        router.push("/user/login");
         return;
       }
 
       try {
-        const res = await fetch('https://api-zeal.onrender.com/api/contacts', {
+        const res = await fetch("https://api-zeal.onrender.com/api/contacts", {
           headers: { Authorization: `Bearer ${token}` },
-          cache: 'no-store',
+          cache: "no-store",
         });
         if (res.status === 401 || res.status === 403) {
-          showNotification('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.', 'error');
-          localStorage.removeItem('token');
-          localStorage.removeItem('role');
-          localStorage.removeItem('email');
-          router.push('/user/login');
+          showNotification("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.", "error");
+          localStorage.removeItem("token");
+          localStorage.removeItem("role");
+          localStorage.removeItem("email");
+          router.push("/user/login");
           return;
         }
         if (!res.ok) {
@@ -70,8 +70,8 @@ export default function ContactAdmin() {
         setContacts(data.contacts);
         setFilteredContacts(data.contacts);
       } catch (error: any) {
-        console.error('Lỗi khi tải dữ liệu:', error.message);
-        showNotification(`Lỗi khi tải dữ liệu: ${error.message}`, 'error');
+        console.error("Lỗi khi tải dữ liệu:", error.message);
+        showNotification(`Lỗi khi tải dữ liệu: ${error.message}`, "error");
       } finally {
         setLoading(false);
       }
@@ -84,7 +84,7 @@ export default function ContactAdmin() {
     if (searchName.trim()) {
       filtered = filtered.filter((c) => c.fullName.toLowerCase().includes(searchName.toLowerCase()));
     }
-    if (statusFilter !== 'all') {
+    if (statusFilter !== "all") {
       filtered = filtered.filter((c) => c.status === statusFilter);
     }
     setFilteredContacts(filtered);
@@ -92,8 +92,8 @@ export default function ContactAdmin() {
 
   const handleUpdateStatus = async (id: string) => {
     if (!token) {
-      showNotification('Không tìm thấy token. Vui lòng đăng nhập lại.', 'error');
-      router.push('/user/login');
+      showNotification("Không tìm thấy token. Vui lòng đăng nhập lại.", "error");
+      router.push("/user/login");
       return;
     }
 
@@ -102,19 +102,19 @@ export default function ContactAdmin() {
 
     try {
       const res = await fetch(`https://api-zeal.onrender.com/api/contacts/${id}`, {
-        method: 'PUT',
+        method: "PUT",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ status: 'Đã xử lý' }),
+        body: JSON.stringify({ status: "Đã xử lý" }),
       });
       if (res.status === 401 || res.status === 403) {
-        showNotification('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.', 'error');
-        localStorage.removeItem('token');
-        localStorage.removeItem('role');
-        localStorage.removeItem('email');
-        router.push('/user/login');
+        showNotification("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.", "error");
+        localStorage.removeItem("token");
+        localStorage.removeItem("role");
+        localStorage.removeItem("email");
+        router.push("/user/login");
         return;
       }
       if (!res.ok) {
@@ -123,9 +123,9 @@ export default function ContactAdmin() {
       }
       const result = await res.json();
       setContacts((prev) => prev.map((c) => (c._id === id ? result.contact : c)));
-      showNotification(result.message, 'success');
+      showNotification(result.message, "success");
     } catch (error: any) {
-      showNotification(`Lỗi khi thay đổi trạng thái: ${error.message}`, 'error');
+      showNotification(`Lỗi khi thay đổi trạng thái: ${error.message}`, "error");
     } finally {
       setShowConfirmEditPopup(false);
     }
@@ -133,23 +133,23 @@ export default function ContactAdmin() {
 
   const handleDeleteContact = async () => {
     if (!selectedContact || !token) {
-      showNotification('Không tìm thấy token hoặc liên hệ. Vui lòng thử lại.', 'error');
+      showNotification("Không tìm thấy token hoặc liên hệ. Vui lòng thử lại.", "error");
       return;
     }
 
     try {
       const res = await fetch(`https://api-zeal.onrender.com/api/contacts/${selectedContact._id}`, {
-        method: 'DELETE',
+        method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
       if (res.status === 401 || res.status === 403) {
-        showNotification('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.', 'error');
-        localStorage.removeItem('token');
-        localStorage.removeItem('role');
-        localStorage.removeItem('email');
-        router.push('/user/login');
+        showNotification("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.", "error");
+        localStorage.removeItem("token");
+        localStorage.removeItem("role");
+        localStorage.removeItem("email");
+        router.push("/user/login");
         return;
       }
       if (!res.ok) {
@@ -158,9 +158,9 @@ export default function ContactAdmin() {
       }
       const result = await res.json();
       setContacts((prev) => prev.filter((c) => c._id !== selectedContact._id));
-      showNotification(result.message, 'success');
+      showNotification(result.message, "success");
     } catch (error: any) {
-      showNotification(`Lỗi khi xóa liên hệ: ${error.message}`, 'error');
+      showNotification(`Lỗi khi xóa liên hệ: ${error.message}`, "error");
     } finally {
       setShowConfirmDeletePopup(false);
       setSelectedContact(null);
@@ -182,13 +182,13 @@ export default function ContactAdmin() {
         <ToastNotification
           message={notification.message}
           type={notification.type}
-          onClose={() => setNotification({ show: false, message: '', type: 'success' })}
+          onClose={() => setNotification({ show: false, message: "", type: "success" })}
         />
       )}
       <div className={styles.titleContainer}>
         <h1>QUẢN LÝ LIÊN HỆ</h1>
         <div className={styles.filterContainer}>
-          <input 
+          <input
             type="text"
             placeholder="Tìm theo họ tên..."
             className={styles.searchInput}
@@ -198,7 +198,7 @@ export default function ContactAdmin() {
           <select
             className={styles.categorySelect}
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as 'all' | 'Chưa xử lý' | 'Đã xử lý')}
+            onChange={(e) => setStatusFilter(e.target.value as "all" | "Chưa xử lý" | "Đã xử lý")}
           >
             <option value="all">Tất cả trạng thái</option>
             <option value="Chưa xử lý">Chưa xử lý</option>
@@ -237,10 +237,12 @@ export default function ContactAdmin() {
                 <tr key={contact._id} className={styles.productRow}>
                   <td>{contact.fullName}</td>
                   <td>{contact.email}</td>
-                  <td>{contact.phone || 'N/A'}</td>
-                  <td>{contact.message || 'N/A'}</td>
+                  <td>{contact.phone || "N/A"}</td>
+                  <td>{contact.message || "N/A"}</td>
                   <td>
-                    <span className={contact.status === 'Chưa xử lý' ? styles.statusHidden : styles.statusShow}>
+                    <span
+                      className={contact.status === "Chưa xử lý" ? styles.statusHidden : styles.statusShow}
+                    >
                       {contact.status}
                     </span>
                   </td>
@@ -263,7 +265,7 @@ export default function ContactAdmin() {
                           setShowConfirmEditPopup(true);
                         }}
                         title="Chuyển thành đã xử lý"
-                        disabled={contact.status === 'Đã xử lý'}
+                        disabled={contact.status === "Đã xử lý"}
                       >
                         Xử lý
                       </button>
@@ -299,7 +301,7 @@ export default function ContactAdmin() {
             <button
               key={i + 1}
               onClick={() => paginate(i + 1)}
-              className={`${styles.paginationBtn} ${currentPage === i + 1 ? styles.active : ''}`}
+              className={`${styles.paginationBtn} ${currentPage === i + 1 ? styles.active : ""}`}
             >
               {i + 1}
             </button>
@@ -315,8 +317,15 @@ export default function ContactAdmin() {
       )}
 
       {showConfirmEditPopup && selectedContact && (
-        <div className={styles.popupOverlay}>
-          <div className={styles.popupForm}>
+        <div className={styles.popupOverlay} onClick={() => setShowConfirmEditPopup(false)}>
+          <div className={styles.popupForm} onClick={(e) => e.stopPropagation()}>
+            <button
+              className={styles.cancelBtn}
+              onClick={() => setShowConfirmEditPopup(false)}
+              aria-label="Đóng xác nhận cập nhật"
+            >
+              <FontAwesomeIcon icon={faTimes} />
+            </button>
             <h2 className={styles.popupTitle}>Xác Nhận Cập Nhật</h2>
             <p>Bạn có chắc chắn muốn chuyển trạng thái của "{selectedContact.fullName}" thành "Đã xử lý"?</p>
             <div className={styles.formActions}>
@@ -332,8 +341,9 @@ export default function ContactAdmin() {
               <button
                 className={styles.cancelBtn}
                 onClick={() => setShowConfirmEditPopup(false)}
+                aria-label="Hủy xác nhận"
               >
-                Hủy
+                <FontAwesomeIcon icon={faTimes} />
               </button>
             </div>
           </div>
@@ -341,8 +351,15 @@ export default function ContactAdmin() {
       )}
 
       {showConfirmDeletePopup && selectedContact && (
-        <div className={styles.popupOverlay}>
-          <div className={styles.popupForm}>
+        <div className={styles.popupOverlay} onClick={() => setShowConfirmDeletePopup(false)}>
+          <div className={styles.popupForm} onClick={(e) => e.stopPropagation()}>
+            <button
+              className={styles.cancelBtn}
+              onClick={() => setShowConfirmDeletePopup(false)}
+              aria-label="Đóng xác nhận xóa"
+            >
+              <FontAwesomeIcon icon={faTimes} />
+            </button>
             <h2 className={styles.popupTitle}>Xác Nhận Xóa</h2>
             <p>Bạn có chắc chắn muốn xóa liên hệ của "{selectedContact.fullName}"?</p>
             <div className={styles.formActions}>
@@ -355,8 +372,9 @@ export default function ContactAdmin() {
               <button
                 className={styles.cancelBtn}
                 onClick={() => setShowConfirmDeletePopup(false)}
+                aria-label="Hủy xóa"
               >
-                Hủy
+                <FontAwesomeIcon icon={faTimes} />
               </button>
             </div>
           </div>
@@ -364,22 +382,44 @@ export default function ContactAdmin() {
       )}
 
       {showDetailsPopup && selectedContact && (
-        <div className={styles.popupOverlay}>
-          <div className={styles.popupForm}>
+        <div className={styles.popupOverlay} onClick={() => setShowDetailsPopup(false)}>
+          <div className={`${styles.popupForm} ${styles.contactDetail}`} onClick={(e) => e.stopPropagation()}>
+            <button
+              className={styles.cancelBtn}
+              onClick={() => setShowDetailsPopup(false)}
+              aria-label="Đóng chi tiết liên hệ"
+            >
+              <FontAwesomeIcon icon={faTimes} />
+            </button>
             <h2 className={styles.popupTitle}>Chi Tiết Liên Hệ</h2>
-            <p><strong>Họ và Tên:</strong> {selectedContact.fullName}</p>
-            <p><strong>Email:</strong> {selectedContact.email}</p>
-            <p><strong>Số Điện Thoại:</strong> {selectedContact.phone || 'N/A'}</p>
-            <p><strong>Thông Điệp:</strong> {selectedContact.message || 'N/A'}</p>
-            <p><strong>Trạng Thái:</strong> {selectedContact.status}</p>
-            <div className={styles.formActions}>
-              <button
-                className={styles.cancelBtn}
-                onClick={() => setShowDetailsPopup(false)}
-              >
-                Đóng
-              </button>
-            </div>
+            <dl className={styles.detailList}>
+              <div className={styles.detailItem}>
+                <dt>Họ và Tên</dt>
+                <dd>{selectedContact.fullName}</dd>
+              </div>
+              <div className={styles.detailItem}>
+                <dt>Email</dt>
+                <dd>{selectedContact.email}</dd>
+              </div>
+              <div className={styles.detailItem}>
+                <dt>Số Điện Thoại</dt>
+                <dd>{selectedContact.phone || "N/A"}</dd>
+              </div>
+              <div className={styles.detailItem}>
+                <dt>Thông Điệp</dt>
+                <dd>{selectedContact.message || "N/A"}</dd>
+              </div>
+              <div className={styles.detailItem}>
+                <dt>Trạng Thái</dt>
+                <dd>
+                  <span
+                    className={selectedContact.status === "Chưa xử lý" ? styles.statusHidden : styles.statusShow}
+                  >
+                    {selectedContact.status}
+                  </span>
+                </dd>
+              </div>
+            </dl>
           </div>
         </div>
       )}

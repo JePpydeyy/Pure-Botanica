@@ -2,6 +2,7 @@
 
 // Product interfaces
 export interface Product {
+  products: string;
   _id: string;
   name: string;
   slug: string;

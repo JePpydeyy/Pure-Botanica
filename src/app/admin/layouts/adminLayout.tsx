@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import "../layout.css";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -9,6 +9,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
   const [logo, setLogo] = useState<string>("https://via.placeholder.com/200?text=Logo+Not+Found");
   const [isMounted, setIsMounted] = useState(false);
+  const faviconLinkRef = useRef<HTMLLinkElement | null>(null);
 
   const validateToken = (token: string | null): boolean => {
     if (!token) return false;
@@ -40,26 +41,47 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   }, [router]);
 
   useEffect(() => {
-    const fetchLogo = async () => {
+    const fetchLogoAndFavicon = async () => {
       const token = localStorage.getItem("token");
       if (!validateToken(token)) return;
 
       try {
-        const res = await fetch("https://api-zeal.onrender.com/api/interfaces/logo-shop", {
+        // Fetch logo
+        const logoRes = await fetch("https://api-zeal.onrender.com/api/interfaces/logo-shop", {
           headers: { Authorization: `Bearer ${token}` },
           cache: "no-store",
         });
-        const data = await res.json();
+        const logoData = await logoRes.json();
+        if (logoRes.ok && logoData.paths && logoData.paths[0]) {
+          setLogo(logoData.paths[0]);
+        }
 
-        if (res.ok && data.paths && data.paths[0]) {
-          setLogo(data.paths[0]); // sử dụng full URL trả về
+        // Fetch favicon
+        const faviconRes = await fetch("https://api-zeal.onrender.com/api/interfaces/favicon", {
+          headers: { Authorization: `Bearer ${token}` },
+          cache: "no-store",
+        });
+        const faviconData = await faviconRes.json();
+        if (faviconRes.ok && faviconData.paths && faviconData.paths[0]) {
+          const faviconUrl = `${faviconData.paths[0]}?v=${Date.now()}`; // Add timestamp to bust cache
+          // Update or create favicon link
+          if (!faviconLinkRef.current) {
+            const link = document.createElement("link");
+            link.type = "image/x-icon";
+            link.rel = "icon";
+            document.head.appendChild(link);
+            faviconLinkRef.current = link;
+          }
+          if (faviconLinkRef.current) {
+            faviconLinkRef.current.href = faviconUrl;
+          }
         }
       } catch (error) {
-        console.error("Lỗi khi tải logo:", error);
+        console.error("Lỗi khi tải logo hoặc favicon:", error);
       }
     };
 
-    if (isMounted) fetchLogo();
+    if (isMounted) fetchLogoAndFavicon();
   }, [isMounted]);
 
   const handleLogout = () => {
@@ -74,17 +96,15 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
       <div className="sidebar">
         <div className="logo">
           <Link href="/admin">
-          <img
-            style={{ width: "200px" }}
-            src={`${logo}?v=${Date.now()}`}
-            alt="Logo"
-            onError={(e) => {
-              (e.target as HTMLImageElement).src =
-                "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
-            }}
-          />
-
-
+            <img
+              style={{ width: "200px" }}
+              src={`${logo}?v=${Date.now()}`}
+              alt="Logo"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src =
+                  "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+              }}
+            />
           </Link>
         </div>
 
@@ -99,11 +119,10 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
             { href: "/admin/news", label: "Tin tức" },
             { href: "/admin/coupons", label: "Khuyến mãi" },
             { href: "/admin/customer", label: "Khách hàng" },
-            { href: "/admin/interface_config", label: "Cấu hình giao diện" },
+            { href: "/admin/interface_config", label: "Hình ảnh website" },
             { href: "/admin/payment", label: "Thanh toán online" },
             { href: "/admin/contact", label: "Liên hệ" },
             { href: "/", label: "Truy cập trang khách" },
-
           ].map((item) => (
             <Link key={item.href} href={item.href} className="menu-item">
               <span>{item.label}</span>

@@ -1,17 +1,17 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect } from "react";
+import { CheckoutData } from "../../components/checkout_interface";
 
-// Tạo Context
-const CartContext = createContext<{
-  checkoutData: any;
-  setCheckoutData: (data: any) => void;
-} | undefined>(undefined);
+interface CartContextType {
+  checkoutData: CheckoutData | null;
+  setCheckoutData: (data: CheckoutData | null) => void;
+}
 
-// Tạo Provider để bao bọc ứng dụng
+const CartContext = createContext<CartContextType | undefined>(undefined);
+
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [checkoutData, setCheckoutData] = useState<any>(() => {
-    // Chỉ khởi tạo từ localStorage nếu chạy ở client-side
+  const [checkoutData, setCheckoutData] = useState<CheckoutData | null>(() => {
     if (typeof window !== "undefined") {
       const savedData = localStorage.getItem("checkoutData");
       return savedData ? JSON.parse(savedData) : null;
@@ -19,7 +19,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     return null;
   });
 
-  // Đồng bộ checkoutData với localStorage chỉ ở client-side
   useEffect(() => {
     if (typeof window !== "undefined") {
       if (checkoutData) {
@@ -37,7 +36,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-// Hook để sử dụng Context
 export function useCart() {
   const context = useContext(CartContext);
   if (!context) {

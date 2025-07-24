@@ -5,6 +5,7 @@ import styles from "./page.module.css";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import ScrollInView from "../components/ScrollInView";
 
 interface Product {
   _id: string;
@@ -194,7 +195,9 @@ export default function Home() {
   };
 
   return (
+    
     <div className={styles.mainContainer}>
+      <ScrollInView>
       <div className={styles.banner}>
         <img
           src={banners.banner1[0] ? `${getImageUrl(banners.banner1[0])}?${cacheBuster}` : "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg"}
@@ -205,7 +208,9 @@ export default function Home() {
           }}
         />
       </div>
+      </ScrollInView>
 
+      <ScrollInView>
       <section className={styles.newProductsSection}>
         <div className={styles.productsRow}>
           <div className={styles.textContent}>
@@ -274,7 +279,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+      </ScrollInView>
 
+      <ScrollInView>
       <div className={styles.bannerContainer}>
         <img
           src={banners.banner2 ? `${getImageUrl(banners.banner2)}?${cacheBuster}` : "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg"}
@@ -286,7 +293,9 @@ export default function Home() {
           }}
         />
       </div>
+      </ScrollInView>
 
+      <ScrollInView>
       <section className={styles.botanicalGallery}>
         <div className={styles.botanicalFrameLeft}>
           <img
@@ -318,6 +327,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+      </ScrollInView>
+
+      <ScrollInView>
 
       <div className={styles.bestSellingProducts}>
         <h2 className={styles.bestSellingSectionTitle}>Bạn có thể thích</h2>
@@ -355,7 +367,9 @@ export default function Home() {
           )}
         </div>
       </div>
+      </ScrollInView>
 
+      <ScrollInView>
       <div className={styles.brandValueSection}>
         <img
           src={banners.banner3 ? `${getImageUrl(banners.banner3)}?${cacheBuster}` : "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg"}
@@ -378,7 +392,9 @@ export default function Home() {
           </a>
         </div>
       </div>
+      </ScrollInView>
 
+      <ScrollInView>
       <div className={styles.brands}>
         <h2>Thương hiệu nổi bật</h2>
         <div className={styles.brandsGrid}>
@@ -401,6 +417,7 @@ export default function Home() {
           )}
         </div>
       </div>
+      </ScrollInView>
     </div>
   );
 }

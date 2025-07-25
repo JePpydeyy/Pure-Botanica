@@ -31,15 +31,14 @@ const AddArticle = () => {
   const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const thumbnailInputRef = useRef<HTMLInputElement>(null);
+  
   const [formData, setFormData] = useState({
     title: "",
     content: "",
     thumbnailFile: null as File | null,
-    thumbnailCaption: "",
     status: "show" as "show" | "hidden",
-    publishDate: "",
+    publishDate: "25-07-2025 11:09 AM", // Giá trị ban đầu phù hợp với thời gian hiện tại
     contentImages: [] as File[],
-    views: 0, // Thêm trường views
   });
   const [notification, setNotification] = useState({
     show: false,
@@ -76,6 +75,18 @@ const AddArticle = () => {
     if (!token || role !== "admin") {
       router.push("/user/login");
     }
+
+    // Tự động lấy thời gian hiện tại
+    const now = new Date();
+    const formattedDate = now.toLocaleString("en-US", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true
+    }).replace(/,/, '').replace(/(\d+)\/(\d+)\/(\d+)/, '$2-$1-$3');
+    setFormData((prev) => ({ ...prev, publishDate: formattedDate }));
   }, [router]);
 
   useEffect(() => {
@@ -130,10 +141,7 @@ const AddArticle = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: name === "views" ? parseInt(value) || 0 : value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -394,7 +402,7 @@ const AddArticle = () => {
       return;
     }
     if (!formData.publishDate) {
-      showNotification("Vui lòng chọn ngày giờ đăng bài.", "error");
+      showNotification("Lỗi thời gian đăng bài.", "error");
       return;
     }
 
@@ -412,10 +420,8 @@ const AddArticle = () => {
       formDataToSend.append("title", formData.title.trim());
       formDataToSend.append("content", formData.content);
       formDataToSend.append("thumbnail", formData.thumbnailFile!);
-      formDataToSend.append("thumbnailCaption", formData.thumbnailCaption.trim() || formData.title.trim());
       formDataToSend.append("status", formData.status);
       formDataToSend.append("publishDate", formData.publishDate);
-      formDataToSend.append("views", formData.views.toString()); // Thêm views vào formData
       formData.contentImages.forEach((file) => {
         formDataToSend.append("contentImages", file);
       });
@@ -499,38 +505,12 @@ const AddArticle = () => {
             />
           )}
           <div className={styles.formGroup}>
-            <label className={styles.formLabel}>Chú thích thumbnail (tùy chọn)</label>
-            <input
-              type="text"
-              name="thumbnailCaption"
-              value={formData.thumbnailCaption}
-              onChange={handleInputChange}
-              className={styles.formInput}
-              placeholder="Nhập chú thích cho thumbnail"
-              maxLength={200}
-            />
-          </div>
-          <div className={styles.formGroup}>
             <label className={styles.formLabel}>Thời gian đăng</label>
             <input
-              type="datetime-local"
-              name="publishDate"
+              type="text"
               value={formData.publishDate}
-              onChange={handleInputChange}
-              className={styles.formInput}
-              required
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label className={styles.formLabel}>Số lượt xem</label>
-            <input
-              type="number"
-              name="views"
-              value={formData.views}
-              onChange={handleInputChange}
-              className={styles.formInput}
-              min="0"
-              placeholder="Nhập số lượt xem"
+              className={styles.formInput} /* Đổi từ formInputWithIcon sang formInput */
+              readOnly
             />
           </div>
           <div className={styles.formGroup}>
@@ -599,5 +579,4 @@ const AddArticle = () => {
     </div>
   );
 };
-
 export default AddArticle;

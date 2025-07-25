@@ -12,10 +12,9 @@ export interface NewsDetail {
   title: string;
   slug: string;
   thumbnailUrl: string;
-  thumbnailCaption: string;
   publishedAt: string;
   content: string;
-  views?: number;
+  views: number;
 }
 
 export default function NewsDetailPage() {
@@ -35,6 +34,10 @@ export default function NewsDetailPage() {
   // Tạo cacheBuster để tránh cache hình ảnh
   useEffect(() => {
     setCacheBuster(`_t=${Date.now()}`);
+    // Làm sạch thuộc tính từ extension
+    const body = document.body;
+    body.removeAttribute("data-new-gr-c-s-check-loaded");
+    body.removeAttribute("data-gr-ext-installed");
   }, []);
 
   // Hàm xử lý URL ảnh
@@ -126,18 +129,18 @@ export default function NewsDetailPage() {
           <div className={styles.newsMeta}>
             <span className={styles.newsDate}>
               <FontAwesomeIcon icon={faCalendarDays} />
-              {new Date(news.publishedAt).toLocaleDateString("vi-VN")}
+              {new Date(news.publishedAt).toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" })}
             </span>
             <span className={styles.newsViews}>
               <FontAwesomeIcon icon={faEye} />
-              {news.views ?? 0} lượt xem
+              {news.views} lượt xem
             </span>
           </div>
         </div>
 
         <div className={styles.newsSection}>
           <div
-            className={styles.newsText}
+            className={styles.editorContent}
             dangerouslySetInnerHTML={{ __html: news.content }}
           />
         </div>
@@ -154,7 +157,7 @@ export default function NewsDetailPage() {
                 <div className={styles.newsRelatedItem}>
                   <img
                     src={getImageUrl(item.thumbnailUrl)}
-                    alt={item.thumbnailCaption}
+                    alt={item.title}
                     width={410}
                     height={250}
                     className={styles.newsRelatedimage}

@@ -1,3 +1,5 @@
+/* edit_new.module.css */
+
 .container {
   display: flex;
   flex-direction: column;
@@ -7,7 +9,7 @@
   max-width: 1400px;
   margin: 0 auto;
   box-sizing: border-box;
-  padding-top: 100px;
+  padding-top: 70px;
 }
 
 .addcontent {
@@ -355,6 +357,45 @@
   border: 1px solid #f56565;
 }
 
+.popupOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.popupContent {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  width: 300px;
+}
+
+.popupContent h2 {
+  margin: 0 0 10px;
+  font-size: 18px;
+  color: #333;
+}
+
+.popupContent p {
+  margin: 0 0 20px;
+  color: #666;
+}
+
+.popupButtons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
 @media (max-width: 768px) {
   .container {
     flex-direction: column;
@@ -421,5 +462,9 @@
   .btn {
     padding: 10px 16px;
     font-size: 13px;
+  }
+
+  .popupContent {
+    width: 250px;
   }
 }

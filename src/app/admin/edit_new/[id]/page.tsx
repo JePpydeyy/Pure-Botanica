@@ -28,7 +28,6 @@ interface Article {
   slug: string;
   title: string;
   thumbnailUrl?: string;
-  thumbnailCaption: string;
   status: "show" | "hidden";
   content: string;
   views: number;
@@ -43,14 +42,15 @@ const EditArticle = () => {
   const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const thumbnailInputRef = useRef<HTMLInputElement>(null);
+  
   const [formData, setFormData] = useState({
     title: "",
     content: "",
     thumbnailFile: null as File | null,
-    thumbnailCaption: "",
     status: "show" as "show" | "hidden",
     contentImages: [] as File[],
     views: 0,
+    updateTime: "25-07-2025 11:19 AM", // Giá trị ban đầu là thời gian hiện tại
   });
   const [notification, setNotification] = useState({
     show: false,
@@ -71,6 +71,7 @@ const EditArticle = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [previewThumbnail, setPreviewThumbnail] = useState<string | null>(null);
+  const [showConfirmPopup, setShowConfirmPopup] = useState(false);
 
   const fileToDataURL = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -123,10 +124,10 @@ const EditArticle = () => {
           title: article.title || "",
           content: fixedContent,
           thumbnailFile: null,
-          thumbnailCaption: article.thumbnailCaption || "",
           status: article.status || "show",
           contentImages: [],
           views: article.views || 0,
+          updateTime: "25-07-2025 11:19 AM", // Cập nhật thời gian hiện tại khi tải bài
         });
 
         setPreviewThumbnail(article.thumbnailUrl || null);
@@ -457,6 +458,26 @@ const EditArticle = () => {
       return;
     }
 
+    // Hiển thị popup xác nhận
+    setShowConfirmPopup(true);
+  };
+
+  const confirmUpdate = async () => {
+    // Ẩn popup sau khi xác nhận
+    setShowConfirmPopup(false);
+
+    // Cập nhật thời gian hiện tại trước khi submit
+    const now = new Date();
+    const formattedDate = now.toLocaleString("en-US", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true
+    }).replace(/,/, '').replace(/(\d+)\/(\d+)\/(\d+)/, '$2-$1-$3');
+    setFormData((prev) => ({ ...prev, updateTime: formattedDate }));
+
     setIsSubmitting(true);
 
     try {
@@ -475,9 +496,9 @@ const EditArticle = () => {
       );
       formDataToSend.append("content", cleanedContent);
       if (formData.thumbnailFile) formDataToSend.append("thumbnail", formData.thumbnailFile);
-      formDataToSend.append("thumbnailCaption", formData.thumbnailCaption.trim() || formData.title.trim());
       formDataToSend.append("status", formData.status);
       formDataToSend.append("views", formData.views.toString());
+      formDataToSend.append("thumbnailCaption", formData.updateTime); // Gửi updateTime làm thumbnailCaption
 
       const response = await fetch(`${API_DOMAIN}/api/news/${slug}`, {
         method: "PUT",
@@ -503,6 +524,10 @@ const EditArticle = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const cancelUpdate = () => {
+    setShowConfirmPopup(false);
   };
 
   if (isSubmitting && !notification.show) {
@@ -558,15 +583,14 @@ const EditArticle = () => {
             />
           )}
           <div className={styles.formGroup}>
-            <label className={styles.formLabel}>Chú thích thumbnail (tùy chọn)</label>
+            <label className={styles.formLabel}>Thời gian cập nhật</label>
             <input
               type="text"
-              name="thumbnailCaption"
-              value={formData.thumbnailCaption}
+              name="updateTime"
+              value={formData.updateTime}
               onChange={handleInputChange}
               className={styles.formInput}
-              placeholder="Nhập chú thích cho thumbnail"
-              maxLength={200}
+              readOnly
             />
           </div>
           <div className={styles.formGroup}>
@@ -644,6 +668,31 @@ const EditArticle = () => {
           </div>
         </div>
       </div>
+
+      {showConfirmPopup && (
+        <div className={styles.popupOverlay}>
+          <div className={styles.popupContent}>
+            <h2>Xác nhận cập nhật</h2>
+            <p>Bạn có chắc chắn muốn cập nhật bài viết này?</p>
+            <div className={styles.popupButtons}>
+              <button
+                className={`${styles.btn} ${styles.btnSecondary}`}
+                onClick={cancelUpdate}
+                disabled={isSubmitting}
+              >
+                Hủy
+              </button>
+              <button
+                className={`${styles.btn} ${styles.btnPrimary}`}
+                onClick={confirmUpdate}
+                disabled={isSubmitting}
+              >
+                Xác nhận
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

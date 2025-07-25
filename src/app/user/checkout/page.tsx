@@ -7,8 +7,8 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import styles from "./checkout.module.css";
 import { useCart } from "../context/CartContext";
-import { CheckoutData, FormData, UserInfo } from "../../components/checkout_interface";
 import { CartItem } from "../../components/cart_interface";
+import { CheckoutData, FormData, UserInfo } from "../../components/checkout_interface";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -29,14 +29,10 @@ export default function CheckoutPage() {
   const [loadingUser, setLoadingUser] = useState(true);
   const [hasCheckedOut, setHasCheckedOut] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isVNPayLoading, setIsVNPayLoading] = useState(false);
-  const [isMomoLoading, setIsMomoLoading] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const [shippingStatus, setShippingStatus] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
-  const [showVNPayConfirm, setShowVNPayConfirm] = useState(false);
-  const [showMomoConfirm, setShowMomoConfirm] = useState(false);
-  const [orderId, setOrderId] = useState<string | null>(null);
+
   const [showAddressPopup, setShowAddressPopup] = useState(false);
   const [addressTab, setAddressTab] = useState<"saved" | "new">("saved");
   const [newAddress, setNewAddress] = useState({
@@ -50,17 +46,19 @@ export default function CheckoutPage() {
   const [cities, setCities] = useState<any[]>([]);
   const [districts, setDistricts] = useState<any[]>([]);
   const [wards, setWards] = useState<any[]>([]);
-  const [cacheBuster, setCacheBuster] = useState("");
+  const [cacheBuster, setCacheBuster] = useState(""); // Thêm cacheBuster
 
-<<<<<<< HEAD
-=======
   
->>>>>>> 5ad70dc0bc8fa72f96c08359a686e6035c2e84c9
   useEffect(() => {
     setCacheBuster(`t=${Date.now()}`);
+  }, []);
+
+  // Set isClient to true
+  useEffect(() => {
     setIsClient(true);
   }, []);
 
+  // Decode token to get userId
   useEffect(() => {
     if (!isClient) return;
 
@@ -97,10 +95,18 @@ export default function CheckoutPage() {
     }
   }, [isClient, router]);
 
+  // Fetch user info
   useEffect(() => {
     if (!isClient || !userId) return;
 
     const token = localStorage.getItem("token");
+    if (!token) {
+      toast.error("Vui lòng đăng nhập để tiếp tục");
+      setLoadingUser(false);
+      setTimeout(() => router.push("/user/login"), 3000);
+      return;
+    }
+
     fetch(`https://api-zeal.onrender.com/api/users/userinfo?id=${userId}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -170,21 +176,15 @@ export default function CheckoutPage() {
       });
   }, [router, isClient, userId]);
 
+  // Fetch cities
   useEffect(() => {
-    const cachedCities = localStorage.getItem("cities");
-    if (cachedCities) {
-      setCities(JSON.parse(cachedCities));
-    } else {
-      fetch("https://provinces.open-api.vn/api/?depth=1")
-        .then((res) => res.json())
-        .then((data) => {
-          setCities(data);
-          localStorage.setItem("cities", JSON.stringify(data));
-        })
-        .catch((err) => toast.error("Lỗi khi tải danh sách tỉnh/thành: " + (err as Error).message));
-    }
+    fetch("https://provinces.open-api.vn/api/?depth=1")
+      .then((res) => res.json())
+      .then((data) => setCities(data))
+      .catch((err) => toast.error("Lỗi khi tải danh sách tỉnh/thành: " + (err as Error).message));
   }, []);
 
+  // Fetch districts
   useEffect(() => {
     if (newAddress.cityOrProvince) {
       const selectedCity = cities.find((c) => c.name === newAddress.cityOrProvince);
@@ -200,6 +200,7 @@ export default function CheckoutPage() {
     setWards([]);
   }, [newAddress.cityOrProvince, cities]);
 
+  // Fetch wards
   useEffect(() => {
     if (newAddress.district) {
       const selectedDistrict = districts.find((d) => d.name === newAddress.district);
@@ -214,33 +215,14 @@ export default function CheckoutPage() {
     }
   }, [newAddress.district, districts]);
 
+  // Validate checkout data
   useEffect(() => {
     if (!isClient || hasCheckedOut) return;
     if (!checkoutData || !checkoutData.cart || !checkoutData.cart.items) {
-      const token = localStorage.getItem("token");
-      if (!token || !userId) {
-        toast.error("Vui lòng đăng nhập để tiếp tục");
-        setTimeout(() => router.push("/user/login"), 3000);
-        return;
-      }
-      fetch(`https://api-zeal.onrender.com/api/carts/getCartItems?userId=${userId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.error) {
-            toast.error("Không thể tải giỏ hàng: " + data.error);
-            setTimeout(() => router.push("/user/cart"), 3000);
-          } else {
-            setCheckoutData({ ...checkoutData, cart: data });
-          }
-        })
-        .catch(() => {
-          toast.error("Lỗi khi tải giỏ hàng");
-          setTimeout(() => router.push("/user/cart"), 3000);
-        });
+      toast.error("Không tìm thấy thông tin giỏ hàng! Vui lòng kiểm tra lại.");
+      setTimeout(() => router.push("/user/cart"), 3000);
     }
-  }, [checkoutData, router, hasCheckedOut, isClient, userId, setCheckoutData]);
+  }, [checkoutData, router, hasCheckedOut, isClient]);
 
   if (!isClient || !checkoutData || !checkoutData.cart || !checkoutData.cart.items) {
     return null;
@@ -258,7 +240,7 @@ export default function CheckoutPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    if (name === "paymentMethod" && !["bank", "cod", "vnpay", "momo"].includes(value)) return;
+    if (name === "paymentMethod" && value !== "bank" && value !== "cod") return;
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -308,32 +290,42 @@ export default function CheckoutPage() {
     e.preventDefault();
     setIsLoading(true);
 
+    // Kiểm tra số điện thoại
     const phoneRegex = /^(03|05|07|08|09)[0-9]{8}$/;
     if (!phoneRegex.test(formData.sdt)) {
-      toast.error("Số điện thoại không hợp lệ. Vui lòng nhập số điện thoại Việt Nam hợp lệ (10 chữ số, bắt đầu bằng 03, 05, 07, 08, 09).");
+      toast.error("Số điện thoại không hợp lệ. Vui lòng nhập số điện thoại Việt Nam hợp lệ (bắt đầu bằng 03, 05, 07, 08, 09).");
       setIsLoading(false);
       return;
     }
 
+    // Kiểm tra thông tin địa chỉ
     const { addressLine, ward, district, cityOrProvince } = formData;
-    if (!addressLine?.trim() || !ward?.trim() || !district?.trim() || !cityOrProvince?.trim()) {
+    const isAddressLineValid = addressLine && addressLine.trim().length > 0;
+    const isWardValid = ward && ward.trim().length > 0;
+    const isDistrictValid = district && district.trim().length > 0;
+    const isCityValid = cityOrProvince && cityOrProvince.trim().length > 0;
+
+    if (!isAddressLineValid || !isWardValid || !isDistrictValid || !isCityValid) {
       toast.error("Vui lòng cung cấp đầy đủ thông tin địa chỉ.");
       setIsLoading(false);
       return;
     }
 
+    // Kiểm tra phương thức thanh toán
     if (!formData.paymentMethod) {
       toast.error("Vui lòng chọn phương thức thanh toán.");
       setIsLoading(false);
       return;
     }
 
+    // Kiểm tra giỏ hàng
     if (!cart || !cart.items || cart.items.length === 0) {
       toast.error("Giỏ hàng trống. Vui lòng thêm sản phẩm trước khi thanh toán.");
       setIsLoading(false);
       return;
     }
 
+    // Kiểm tra token
     const token = localStorage.getItem("token");
     if (!token) {
       toast.error("Vui lòng đăng nhập để thanh toán");
@@ -341,12 +333,14 @@ export default function CheckoutPage() {
       return;
     }
 
+    // Kiểm tra userId
     if (!userId || userId !== checkoutUserId) {
       toast.error("userId không hợp lệ hoặc không khớp.");
       setIsLoading(false);
       return;
     }
 
+    // Kiểm tra items
     for (const item of cart.items) {
       if (!item.product?._id) {
         toast.error("Một hoặc nhiều sản phẩm trong giỏ hàng không hợp lệ.");
@@ -365,10 +359,7 @@ export default function CheckoutPage() {
       }
     }
 
-<<<<<<< HEAD
-=======
     
->>>>>>> 5ad70dc0bc8fa72f96c08359a686e6035c2e84c9
     const cleanData = {
       userId,
       addressLine: formData.addressLine.trim(),
@@ -392,45 +383,33 @@ export default function CheckoutPage() {
       });
 
       if (!checkoutResponse.ok) {
-        const errorData = await checkoutResponse.json();
-        if (errorData.error.includes("Thiếu")) {
-          toast.error("Thiếu thông tin bắt buộc: " + errorData.error);
-        } else if (errorData.error.includes("không hợp lệ")) {
-          toast.error("Dữ liệu không hợp lệ: " + errorData.error);
-        } else if (errorData.error.includes("stock")) {
-          toast.error("Một số sản phẩm không đủ tồn kho: " + errorData.error);
-        } else if (errorData.error.includes("coupon")) {
-          toast.error("Mã giảm giá không hợp lệ hoặc đã hết hạn: " + errorData.error);
-        } else {
-          toast.error(errorData.error || "Không thể tạo đơn hàng");
+        let errorData;
+        try {
+          errorData = await checkoutResponse.json();
+          if (errorData.message.includes("required")) {
+            toast.error("Thiếu thông tin bắt buộc: " + errorData.message);
+          } else if (errorData.message.includes("invalid")) {
+            toast.error("Dữ liệu không hợp lệ: " + errorData.message);
+          } else {
+            toast.error(errorData.message || "Không thể tạo đơn hàng");
+          }
+        } catch {
+          toast.error("Không thể phân tích phản hồi từ server");
         }
-        throw new Error(errorData.error || `HTTP ${checkoutResponse.status}`);
+        throw new Error(errorData?.message || `Không thể tạo đơn hàng: ${checkoutResponse.statusText}`);
       }
 
       let checkoutData = await checkoutResponse.json();
       const orderId = checkoutData.order?._id;
       const initialShippingStatus = checkoutData.order?.shippingStatus || "pending";
-      const paymentUrl = checkoutData.paymentUrl;
 
       if (!orderId) {
-        throw new Error("Không nhận được orderId từ phản hồi.");
+        throw new Error("Không nhận được orderId từ phản hồi. Kiểm tra cấu trúc API: " + JSON.stringify(checkoutData));
       }
 
-      setOrderId(orderId);
       setShippingStatus(initialShippingStatus);
 
-      if (formData.paymentMethod === "vnpay") {
-        if (!paymentUrl) {
-          setShowVNPayConfirm(true);
-        } else {
-          toast.success("Đang chuyển hướng đến cổng thanh toán VNPay!");
-          setTimeout(() => {
-            window.location.href = paymentUrl;
-          }, 2000);
-        }
-      } else if (formData.paymentMethod === "momo") {
-        setShowMomoConfirm(true);
-      } else if (formData.paymentMethod === "bank") {
+      if (formData.paymentMethod === "bank") {
         let paymentResponse = await fetch(`https://api-zeal.onrender.com/api/payments/create`, {
           method: "POST",
           headers: {
@@ -444,15 +423,20 @@ export default function CheckoutPage() {
         });
 
         if (!paymentResponse.ok) {
-          const errorData = await paymentResponse.json();
-          toast.error(errorData.message || "Không thể tạo thanh toán");
-          throw new Error(errorData.message || `HTTP ${paymentResponse.status}`);
+          let errorData;
+          try {
+            errorData = await paymentResponse.json();
+            toast.error(errorData.message || "Không thể tạo thanh toán");
+          } catch {
+            toast.error("Không thể phân tích phản hồi từ server");
+          }
+          throw new Error(errorData?.message || `Không thể tạo thanh toán: ${paymentResponse.statusText}`);
         }
 
         let paymentData = await paymentResponse.json();
-        const { paymentCode, amount } = paymentData.data || {};
+        const { paymentCode, amount } = paymentData.data || paymentData || {};
         if (!paymentCode || !amount) {
-          throw new Error("Thiếu thông tin thanh toán từ server.");
+          throw new Error("Thiếu thông tin thanh toán từ server. Kiểm tra phản hồi: " + JSON.stringify(paymentData));
         }
 
         toast.success("Đang tạo thanh toán!");
@@ -464,136 +448,25 @@ export default function CheckoutPage() {
         localStorage.removeItem("checkoutData");
         setHasCheckedOut(true);
         toast.success("Đặt hàng thành công! Trạng thái vận chuyển: " + initialShippingStatus);
-        setTimeout(() => router.push("/user/orders"), 3000);
+        setTimeout(() => router.push("/user/"), 3000);
       }
     } catch (err) {
       toast.error("Lỗi khi đặt hàng: " + (err as Error).message);
-      setIsLoading(false);
-    }
-  };
-
-  const handleVNPayConfirm = async () => {
-    setIsVNPayLoading(true);
-    const token = localStorage.getItem("token");
-    const orderIdToUse = orderId || checkoutData.order?._id;
-
-    if (!orderIdToUse) {
-      toast.error("Không thể tìm thấy orderId để tạo thanh toán VNPay.");
-      setIsVNPayLoading(false);
-      setShowVNPayConfirm(false);
-      return;
-    }
-
-    try {
-      const vnpayAmount = Math.round(Number(total));
-      let paymentResponse = await fetch(`https://api-zeal.onrender.com/api/vnpay/create-payment`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          orderId: orderIdToUse,
-          amount: vnpayAmount,
-        }),
-      });
-
-      if (!paymentResponse.ok) {
-        const errorData = await paymentResponse.json();
-        if (paymentResponse.status === 400) {
-          toast.error(errorData.message || "Dữ liệu không hợp lệ: Số tiền hoặc mã đơn hàng không đúng.");
-        } else if (paymentResponse.status === 404) {
-          toast.error(errorData.message || "Không tìm thấy đơn hàng.");
-        } else {
-          toast.error(errorData.message || "Lỗi máy chủ khi tạo thanh toán VNPay.");
-        }
-        throw new Error(errorData.message || `HTTP ${paymentResponse.status}`);
-      }
-
-      let paymentData = await paymentResponse.json();
-      const { paymentUrl, paymentCode, amount } = paymentData.data || {};
-      if (!paymentUrl || !paymentCode || !amount) {
-        throw new Error("Thiếu thông tin thanh toán từ server.");
-      }
-
-      toast.success("Đang chuyển hướng đến cổng thanh toán VNPay!");
-      setTimeout(() => {
-        window.location.href = paymentUrl;
-      }, 2000);
-    } catch (err) {
-      toast.error("Lỗi khi tạo thanh toán VNPay: " + (err as Error).message);
     } finally {
-      setIsVNPayLoading(false);
-      setShowVNPayConfirm(false);
-      setIsLoading(false);
-    }
-  };
-
-  const handleMomoConfirm = async () => {
-    setIsMomoLoading(true);
-    const token = localStorage.getItem("token");
-    const orderIdToUse = orderId || checkoutData.order?._id;
-
-    if (!orderIdToUse) {
-      toast.error("Không thể tìm thấy orderId để tạo thanh toán Momo.");
-      setIsMomoLoading(false);
-      setShowMomoConfirm(false);
-      return;
-    }
-
-    try {
-      const momoAmount = Math.round(Number(total));
-      let paymentResponse = await fetch(`https://api-zeal.onrender.com/api/momo/create-payment`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          orderId: orderIdToUse,
-          amount: momoAmount,
-        }),
-      });
-
-      if (!paymentResponse.ok) {
-        const errorData = await paymentResponse.json();
-        if (paymentResponse.status === 400) {
-          toast.error(errorData.message || "Dữ liệu không hợp lệ: Số tiền hoặc mã đơn hàng không đúng.");
-        } else if (paymentResponse.status === 404) {
-          toast.error(errorData.message || "Không tìm thấy đơn hàng.");
-        } else {
-          toast.error(errorData.message || "Lỗi máy chủ khi tạo thanh toán Momo.");
-        }
-        throw new Error(errorData.message || `HTTP ${paymentResponse.status}`);
-      }
-
-      let paymentData = await paymentResponse.json();
-      const { paymentUrl, paymentCode, amount } = paymentData.data || {};
-      if (!paymentUrl || !paymentCode || !amount) {
-        throw new Error("Thiếu thông tin thanh toán từ server.");
-      }
-
-      toast.success("Đang chuyển hướng đến cổng thanh toán Momo!");
-      setTimeout(() => {
-        window.location.href = paymentUrl;
-      }, 2000);
-    } catch (err) {
-      toast.error("Lỗi khi tạo thanh toán Momo: " + (err as Error).message);
-    } finally {
-      setIsMomoLoading(false);
-      setShowMomoConfirm(false);
       setIsLoading(false);
     }
   };
 
   const getImageUrl = (image: string | undefined): string => {
     if (!image || typeof image !== "string" || image.trim() === "") {
+      console.warn("Invalid image URL detected, using fallback:", "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg");
       return "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
     }
     try {
-      new URL(image);
+      new URL(image); // Validate URL
       return image;
-    } catch {
+    } catch (e) {
+      console.warn("Invalid URL format for image:", image, "using fallback:", "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg");
       return "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
     }
   };
@@ -770,7 +643,7 @@ export default function CheckoutPage() {
                           </select>
                           <select
                             name="district"
-                            title="Quận/Huyện"
+                             title="Quận/Huyện"
                             value={newAddress.district}
                             onChange={e => setNewAddress(f => ({ ...f, district: e.target.value, ward: "" }))}
                             required
@@ -783,7 +656,7 @@ export default function CheckoutPage() {
                           </select>
                           <select
                             name="ward"
-                            title="Xã/Phường"
+                             title="Xã/Phường"
                             value={newAddress.ward}
                             onChange={e => setNewAddress(f => ({ ...f, ward: e.target.value }))}
                             required
@@ -894,36 +767,6 @@ export default function CheckoutPage() {
                         Thanh toán khi nhận hàng
                       </label>
                     </div>
-                    <hr />
-                    <div className={styles.paymentMethod}>
-                      <input
-                        type="radio"
-                        id="vnpay"
-                        name="paymentMethod"
-                        value="vnpay"
-                        checked={formData.paymentMethod === "vnpay"}
-                        onChange={handleChange}
-                      />
-                      <label htmlFor="vnpay" style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <img src="https://cdn.haitrieu.com/wp-content/uploads/2022/10/Icon-VNPAY-QR.png" alt="VNPay" width={40} height={40} />
-                        Thanh toán qua VNPay
-                      </label>
-                    </div>
-                    <hr />
-                    <div className={styles.paymentMethod}>
-                      <input
-                        type="radio"
-                        id="momo"
-                        name="paymentMethod"
-                        value="momo"
-                        checked={formData.paymentMethod === "momo"}
-                        onChange={handleChange}
-                      />
-                      <label htmlFor="momo" style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <img src="https://upload.wikimedia.org/wikipedia/vi/f/fe/MoMo_Logo.png" alt="Momo" width={40} height={40} />
-                        Thanh toán qua Momo
-                      </label>
-                    </div>
                   </div>
                 </div>
               </>
@@ -943,13 +786,18 @@ export default function CheckoutPage() {
                 <div key={index} className={styles.cartItem}>
                   <div className={styles.cartItemImage}>
                     <Image
-                      src={`${imageUrl}?${cacheBuster}`}
+                      src={
+                        item.product.images && item.product.images.length > 0
+                          ? `${getImageUrl(item.product.images[0])}?${cacheBuster}`
+                          : "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg"
+                      }
                       alt={item.product.name || "Sản phẩm"}
                       width={70}
                       height={70}
                       quality={100}
                       className={styles.cartItemImage}
                       onError={(e) => {
+                        console.log(`Image load failed for ${item.product.name}, switched to 404 fallback`);
                         (e.target as HTMLImageElement).src = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
                       }}
                     />
@@ -989,7 +837,7 @@ export default function CheckoutPage() {
             <button
               type="submit"
               className={styles.submitBtn}
-              disabled={isLoading || isVNPayLoading || isMomoLoading}
+              disabled={isLoading}
             >
               {isLoading ? "Đang xử lý..." : "Đặt hàng"}
             </button>
@@ -999,60 +847,6 @@ export default function CheckoutPage() {
             </div>
           </div>
         </form>
-
-        {showVNPayConfirm && (
-          <div className={styles.popupOverlay}>
-            <div className={styles.popupContent}>
-              <h3>Xác nhận thanh toán VNPay</h3>
-              <p>Bạn sắp được chuyển hướng đến cổng thanh toán VNPay để hoàn tất thanh toán cho đơn hàng trị giá {formatPrice(total)}. Bạn có muốn tiếp tục?</p>
-              <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-                <button
-                  type="button"
-                  className={styles.submitBtn}
-                  onClick={handleVNPayConfirm}
-                  disabled={isVNPayLoading}
-                >
-                  {isVNPayLoading ? "Đang xử lý..." : "Tiếp tục"}
-                </button>
-                <button
-                  type="button"
-                  className={styles.cancelBtn}
-                  onClick={() => setShowVNPayConfirm(false)}
-                  disabled={isVNPayLoading}
-                >
-                  Hủy
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {showMomoConfirm && (
-          <div className={styles.popupOverlay}>
-            <div className={styles.popupContent}>
-              <h3>Xác nhận thanh toán Momo</h3>
-              <p>Bạn sắp được chuyển hướng đến cổng thanh toán Momo để hoàn tất thanh toán cho đơn hàng trị giá {formatPrice(total)}. Bạn có muốn tiếp tục?</p>
-              <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-                <button
-                  type="button"
-                  className={styles.submitBtn}
-                  onClick={handleMomoConfirm}
-                  disabled={isMomoLoading}
-                >
-                  {isMomoLoading ? "Đang xử lý..." : "Tiếp tục"}
-                </button>
-                <button
-                  type="button"
-                  className={styles.cancelBtn}
-                  onClick={() => setShowMomoConfirm(false)}
-                  disabled={isMomoLoading}
-                >
-                  Hủy
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

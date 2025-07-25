@@ -1,4 +1,5 @@
 export interface Category {
+  productCount: number;
   _id: string;
   name: string;
   status: "show" | "hidden";

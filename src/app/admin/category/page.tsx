@@ -26,7 +26,7 @@ export default function Category() {
   const [statusFilter, setStatusFilter] = useState<"all" | "show" | "hidden">("all");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [itemsPerPage] = useState<number>(9); // Đồng bộ với productsPerPage trong ProductPage
+  const [itemsPerPage] = useState<number>(9);
   const router = useRouter();
 
   useEffect(() => {
@@ -278,91 +278,37 @@ export default function Category() {
           </Link>
         </div>
       </div>
-
       <div className={styles.tableContainer}>
-        <table className={styles.productTable}>
-          <thead className={styles.productTableThead}>
-            <tr>
-              <th>Tên Danh Mục</th>
-              <th>Trạng Thái</th>
-              <th>Hành Động</th>
-            </tr>
-          </thead>
-          <tbody>
-            {currentCategories.length === 0 ? (
-              <tr>
-                <td colSpan={3} className={styles.emptyState}>
-                  <h3>Không có danh mục</h3>
-                  <p>Vui lòng thêm danh mục mới hoặc điều chỉnh bộ lọc/tìm kiếm.</p>
-                </td>
-              </tr>
-            ) : (
-              currentCategories.map((category) => (
-                <tr key={category._id} className={styles.productRow}>
-                  <td>
-                    {editingCategory?._id === category._id ? (
-                      <input
-                        type="text"
-                        value={editingCategory.name}
-                        onChange={(e) =>
-                          setEditingCategory({ ...editingCategory, name: e.target.value })
-                        }
-                        className={styles.searchInput}
-                        aria-label="Chỉnh sửa tên danh mục"
-                      />
-                    ) : (
-                      category.name
-                    )}
-                  </td>
-                  <td>{category.status === "show" ? "Hiển thị" : "Ẩn"}</td>
-                  <td className={styles.actionButtons}>
-                    {editingCategory?._id === category._id ? (
-                      <>
-                        <button
-                          className={styles.editBtn}
-                          onClick={() => handleUpdate(category._id, editingCategory.name)}
-                          title="Lưu"
-                          aria-label="Lưu thay đổi danh mục"
-                        >
-                          <FontAwesomeIcon icon={faCheck} />
-                        </button>
-                        <button
-                          className={styles.toggleStatusBtn}
-                          onClick={() => setEditingCategory(null)}
-                          title="Hủy"
-                          aria-label="Hủy chỉnh sửa danh mục"
-                        >
-                          <FontAwesomeIcon icon={faTimes} />
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          className={styles.editBtn}
-                          onClick={() => handleEdit(category._id)}
-                          title="Chỉnh sửa"
-                          aria-label="Chỉnh sửa danh mục"
-                        >
-                          <FontAwesomeIcon icon={faEdit} />
-                        </button>
-                        <button
-                          className={styles.toggleStatusBtn}
-                          onClick={() => handleToggleVisibility(category._id)}
-                          title={category.status === "show" ? "Ẩn danh mục" : "Hiển thị danh mục"}
-                          aria-label={category.status === "show" ? "Ẩn danh mục" : "Hiển thị danh mục"}
-                        >
-                          <FontAwesomeIcon icon={category.status === "show" ? faEyeSlash : faEye} />
-                        </button>
-                      </>
-                    )}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+        <table className={styles.productTable}><thead className={styles.productTableThead}><tr><th>Tên Danh Mục</th><th>Số Sản Phẩm</th><th>Trạng Thái</th><th>Hành Động</th></tr></thead><tbody>{currentCategories.length === 0 ? (<tr><td colSpan={4} className={styles.emptyState}><h3>Không có danh mục</h3><p>Vui lòng thêm danh mục mới hoặc điều chỉnh bộ lọc/tìm kiếm.</p></td></tr>) : (currentCategories.map((category) => (<tr key={category._id} className={styles.productRow}><td>{editingCategory?._id === category._id ? (<input
+                  type="text"
+                  value={editingCategory.name}
+                  onChange={(e) =>
+                    setEditingCategory({ ...editingCategory, name: e.target.value })
+                  }
+                  className={styles.searchInput}
+                  aria-label="Chỉnh sửa tên danh mục"
+                />) : (category.name)}</td><td>{category.productCount ?? 0}</td><td>{category.status === "show" ? "Hiển thị" : "Ẩn"}</td><td className={styles.actionButtons}>{editingCategory?._id === category._id ? (<><button
+                    className={styles.editBtn}
+                    onClick={() => handleUpdate(category._id, editingCategory.name)}
+                    title="Lưu"
+                    aria-label="Lưu thay đổi danh mục"
+                  ><FontAwesomeIcon icon={faCheck} /></button><button
+                    className={styles.toggleStatusBtn}
+                    onClick={() => setEditingCategory(null)}
+                    title="Hủy"
+                    aria-label="Hủy chỉnh sửa danh mục"
+                  ><FontAwesomeIcon icon={faTimes} /></button></>) : (<><button
+                    className={styles.editBtn}
+                    onClick={() => handleEdit(category._id)}
+                    title="Chỉnh sửa"
+                    aria-label="Chỉnh sửa danh mục"
+                  ><FontAwesomeIcon icon={faEdit} /></button><button
+                    className={styles.toggleStatusBtn}
+                    onClick={() => handleToggleVisibility(category._id)}
+                    title={category.status === "show" ? "Ẩn danh mục" : "Hiển thị danh mục"}
+                    aria-label={category.status === "show" ? "Ẩn danh mục" : "Hiển thị danh mục"}
+                  ><FontAwesomeIcon icon={category.status === "show" ? faEyeSlash : faEye} /></button></>)}</td></tr>)))}</tbody></table>
       </div>
-
       {totalPages > 1 && (
         <div className={styles.pagination}>
           {(() => {
@@ -376,16 +322,12 @@ export default function Category() {
                       onClick={() => handlePageChange(1)}
                       disabled={loading}
                       title="Trang đầu tiên"
-                    >
-                      1
-                    </button>
+                    >1</button>
                     <div
                       className={styles.ellipsis}
                       onClick={() => handlePageChange(Math.max(1, currentPage - 3))}
                       title="Trang trước đó"
-                    >
-                      ...
-                    </div>
+                    >...</div>
                   </>
                 )}
                 {visiblePages.map((page) => (
@@ -395,9 +337,7 @@ export default function Category() {
                     onClick={() => handlePageChange(page)}
                     disabled={loading}
                     title={`Trang ${page}`}
-                  >
-                    {page}
-                  </button>
+                  >{page}</button>
                 ))}
                 {showNextEllipsis && (
                   <>
@@ -405,17 +345,13 @@ export default function Category() {
                       className={styles.ellipsis}
                       onClick={() => handlePageChange(Math.min(totalPages, currentPage + 3))}
                       title="Trang tiếp theo"
-                    >
-                      ...
-                    </div>
+                    >...</div>
                     <button
                       className={`${styles.pageLink} ${styles.firstLastPage}`}
                       onClick={() => handlePageChange(totalPages)}
                       disabled={loading}
                       title="Trang cuối cùng"
-                    >
-                      {totalPages}
-                    </button>
+                    >{totalPages}</button>
                   </>
                 )}
               </>
@@ -423,7 +359,6 @@ export default function Category() {
           })()}
         </div>
       )}
-
       {showConfirmPopup && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
@@ -450,7 +385,6 @@ export default function Category() {
           </div>
         </div>
       )}
-
       {showStockWarning && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>

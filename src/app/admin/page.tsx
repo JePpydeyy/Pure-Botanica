@@ -1,11 +1,25 @@
 "use client";
 
 import styles from "./page.module.css";
-import { Chart as ChartJS, CategoryScale, LinearScale, LineElement, PointElement, Title, Tooltip, Legend } from "chart.js";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  LineElement,
+  PointElement,
+  Title,
+  Tooltip,
+  Legend,
+  ChartData,
+  ChartOptions,
+} from "chart.js";
 import { Line } from "react-chartjs-2";
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { jwtDecode } from "jwt-decode";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faTimes, faCheck } from "@fortawesome/free-solid-svg-icons";
+
 
 ChartJS.register(CategoryScale, LinearScale, LineElement, PointElement, Title, Tooltip, Legend);
 
@@ -45,7 +59,8 @@ interface Order {
   sdt: string;
   paymentMethod: string;
   note: string;
-  paymentStatus: "pending" | "completed" | "delivering" | "failed";
+  paymentStatus: "pending" | "completed" | "delivering" | "failed" | "cancelled";
+  shippingStatus: "pending" | "in_transit" | "delivered" | "returned";
   createdAt: string;
 }
 
@@ -56,25 +71,83 @@ interface Stats {
   newComments: number;
 }
 
+interface DecodedToken {
+  role: string;
+}
+
+interface Notification {
+  show: boolean;
+  message: string;
+  type: "success" | "error";
+}
+
 const formatCurrency = (amount: number): string => {
-  return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+  }).format(amount);
 };
 
-export default function AD_Home() {
+const formatDate = (dateString: string | number | Date): string => {
+  const date = new Date(dateString);
+  return isNaN(date.getTime())
+    ? "Ngày không hợp lệ"
+    : `${date.getDate().toString().padStart(2, "0")}/${(date.getMonth() + 1)
+        .toString()
+        .padStart(2, "0")}`;
+};
+
+const paymentStatusMapping = {
+  pending: "Chờ xử lý",
+  completed: "Đã thanh toán",
+  failed: "Thất bại",
+  cancelled: "Đã hoàn",
+};
+
+const shippingStatusMapping = {
+  pending: "Chờ xử lý",
+  in_transit: "Đang vận chuyển",
+  delivered: "Đã giao hàng",
+  returned: "Đã hoàn",
+};
+
+const reverseShippingStatusMapping = {
+  "Chờ xử lý": "pending",
+  "Đang vận chuyển": "in_transit",
+  "Đã giao hàng": "delivered",
+  "Đã hoàn": "returned",
+};
+
+const statusProgression: { [key: string]: string[] } = {
+  pending: ["in_transit"],
+  in_transit: ["delivered"],
+  delivered: ["returned"],
+  returned: [],
+};
+
+const allStatuses = [
+  { value: "pending", label: "Chờ xử lý" },
+  { value: "in_transit", label: "Đang vận chuyển" },
+  { value: "delivered", label: "Đã giao hàng" },
+  { value: "returned", label: "Đã hoàn" },
+];
+
+const getVietnamesePaymentStatus = (paymentStatus: string): string => {
+  return paymentStatusMapping[paymentStatus as keyof typeof paymentStatusMapping] || paymentStatus;
+};
+
+const getVietnameseShippingStatus = (shippingStatus: string): string => {
+  return shippingStatusMapping[shippingStatus as keyof typeof shippingStatusMapping] || shippingStatus;
+};
+
+const AD_Home: React.FC = () => {
   const router = useRouter();
+  const currentDate = new Date();
   const [timePeriod, setTimePeriod] = useState<"week" | "month" | "year">("week");
-  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
-  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
-  const [chartData, setChartData] = useState<{
-    labels: string[];
-    datasets: {
-      label: string;
-      data: number[];
-      borderColor: string;
-      backgroundColor: string;
-      tension: number;
-    }[];
-  }>({
+  const [selectedMonth, setSelectedMonth] = useState<number>(currentDate.getMonth());
+  const [selectedYear, setSelectedYear] = useState<number>(currentDate.getFullYear());
+  const [selectedWeek, setSelectedWeek] = useState<number>(1); // Will be updated to current week
+  const [chartData, setChartData] = useState<ChartData<"line">>({
     labels: [],
     datasets: [
       {
@@ -87,9 +160,24 @@ export default function AD_Home() {
     ],
   });
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
-  const [stats, setStats] = useState<Stats>({ orders: 0, newUsers: 0, revenue: 0, newComments: 0 });
-  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<Stats>({
+    orders: 0,
+    newUsers: 0,
+    revenue: 0,
+    newComments: 0,
+  });
+  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [notification, setNotification] = useState<Notification>({
+    show: false,
+    message: "",
+    type: "success",
+  });
+  const [showConfirm, setShowConfirm] = useState<{
+    orderId: string;
+    newStatus: string;
+    currentStatus: string;
+  } | null>(null);
 
   const years = useMemo(() => {
     const currentYear = new Date().getFullYear();
@@ -101,7 +189,153 @@ export default function AD_Home() {
     "Tháng 7", "Tháng 8", "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12",
   ];
 
-  const chartOptions = useMemo(
+  // Calculate weeks with start and end date labels (e.g., "30/06 - 06/07")
+  const weeks = useMemo(() => {
+    const firstDayOfMonth = new Date(selectedYear, selectedMonth, 1);
+    const lastDayOfMonth = new Date(selectedYear, selectedMonth + 1, 0);
+    const firstMonday = new Date(firstDayOfMonth);
+
+    // Find the first Monday on or before the first day of the month
+    if (firstDayOfMonth.getDay() !== 1) {
+      const offset = firstDayOfMonth.getDay() === 0 ? -6 : 1 - firstDayOfMonth.getDay();
+      firstMonday.setDate(firstDayOfMonth.getDate() + offset);
+    }
+
+    const weekLabels: string[] = [];
+    let weekStart = new Date(firstMonday);
+
+    // Continue until the week no longer includes any days in the month
+    while (weekStart <= lastDayOfMonth) {
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+      weekLabels.push(`${formatDate(weekStart)} - ${formatDate(weekEnd)}`);
+      weekStart.setDate(weekStart.getDate() + 7);
+    }
+
+    return weekLabels;
+  }, [selectedMonth, selectedYear]);
+
+  // Set default selectedWeek to the current week
+  useEffect(() => {
+    const currentDate = new Date();
+    if (selectedYear === currentDate.getFullYear() && selectedMonth === currentDate.getMonth()) {
+      const firstDayOfMonth = new Date(selectedYear, selectedMonth, 1);
+      const firstMonday = new Date(firstDayOfMonth);
+      if (firstDayOfMonth.getDay() !== 1) {
+        const offset = firstDayOfMonth.getDay() === 0 ? -6 : 1 - firstDayOfMonth.getDay();
+        firstMonday.setDate(firstDayOfMonth.getDate() + offset);
+      }
+
+      let weekIndex = 1;
+      let weekStart = new Date(firstMonday);
+      while (weekStart <= currentDate) {
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6);
+        if (currentDate >= weekStart && currentDate <= weekEnd) {
+          setSelectedWeek(weekIndex);
+          break;
+        }
+        weekStart.setDate(weekStart.getDate() + 7);
+        weekIndex++;
+      }
+    } else {
+      setSelectedWeek(1); // Reset to first week for non-current month
+    }
+  }, [selectedMonth, selectedYear]);
+
+  const showNotification = (message: string, type: "success" | "error") => {
+    setNotification({ show: true, message, type });
+    setTimeout(() => {
+      setNotification({ show: false, message: "", type: "success" });
+    }, 3000);
+  };
+
+  const handleShippingStatusChange = async (orderId: string, newStatus: string, currentStatus: string) => {
+    if (currentStatus === "returned") {
+      showNotification("Không thể thay đổi trạng thái đơn hàng Đã hoàn", "error");
+      return;
+    }
+
+    const englishStatus =
+      reverseShippingStatusMapping[newStatus as keyof typeof reverseShippingStatusMapping] || newStatus;
+
+    if (!statusProgression[currentStatus].includes(englishStatus)) {
+      showNotification("Trạng thái không hợp lệ hoặc không thể chuyển về trạng thái trước đó", "error");
+      return;
+    }
+
+    setShowConfirm({ orderId, newStatus, currentStatus });
+  };
+
+  const confirmStatusChange = async () => {
+    if (!showConfirm) return;
+
+    const { orderId, newStatus, currentStatus } = showConfirm;
+    const englishStatus =
+      reverseShippingStatusMapping[newStatus as keyof typeof reverseShippingStatusMapping] || newStatus;
+
+    try {
+      const updatePayload: { shippingStatus: string; paymentStatus?: string } = {
+        shippingStatus: englishStatus,
+      };
+
+      if (englishStatus === "delivered") {
+        updatePayload.paymentStatus = "completed";
+      } else if (englishStatus === "returned") {
+        updatePayload.paymentStatus = "cancelled";
+      }
+
+      const token = localStorage.getItem("token");
+      const response = await fetch(`https://api-zeal.onrender.com/api/orders/update/${orderId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(updatePayload),
+      });
+
+      if (response.status === 401 || response.status === 403) {
+        showNotification("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!", "error");
+        localStorage.removeItem("token");
+        localStorage.removeItem("role");
+        localStorage.removeItem("email");
+        router.push("/user/login");
+        return;
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Lỗi API: ${response.status} ${errorText}`);
+      }
+
+      const { order }: { order: Order } = await response.json();
+      setRecentOrders((prevOrders) =>
+        prevOrders.map((o) =>
+          o._id === orderId
+            ? {
+                ...o,
+                shippingStatus: order.shippingStatus,
+                paymentStatus: order.paymentStatus,
+              }
+            : o
+        )
+      );
+      showNotification("Cập nhật trạng thái vận chuyển thành công", "success");
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
+      console.error("Lỗi cập nhật trạng thái vận chuyển:", errorMessage);
+      showNotification("Không thể cập nhật trạng thái vận chuyển", "error");
+    } finally {
+      setShowConfirm(null);
+    }
+  };
+
+  const cancelConfirm = () => {
+    setShowConfirm(null);
+  };
+
+  const chartOptions = useMemo<ChartOptions<"line">>(
     () => ({
       responsive: true,
       maintainAspectRatio: false,
@@ -110,9 +344,11 @@ export default function AD_Home() {
         title: {
           display: true,
           text: `Báo cáo doanh thu theo ${
-            timePeriod === "week" ? `tuần (${months[selectedMonth]} ${selectedYear})` :
-            timePeriod === "month" ? `tháng (${months[selectedMonth]} ${selectedYear})` :
-            `năm ${selectedYear}`
+            timePeriod === "week"
+              ? `${weeks[selectedWeek - 1]} (${months[selectedMonth]} ${selectedYear})`
+              : timePeriod === "month"
+              ? `tháng (${months[selectedMonth]} ${selectedYear})`
+              : `năm ${selectedYear}`
           }`,
           font: { size: 16 },
         },
@@ -134,7 +370,12 @@ export default function AD_Home() {
         x: {
           title: {
             display: true,
-            text: timePeriod === "week" ? "Ngày trong tuần" : timePeriod === "month" ? "Ngày" : "Tháng",
+            text:
+              timePeriod === "week"
+                ? "Ngày"
+                : timePeriod === "month"
+                ? "Ngày"
+                : "Tháng",
           },
           ticks: {
             maxTicksLimit: timePeriod === "month" ? 15 : 12,
@@ -142,83 +383,87 @@ export default function AD_Home() {
         },
       },
     }),
-    [timePeriod, selectedMonth, selectedYear]
+    [timePeriod, selectedMonth, selectedYear, selectedWeek, weeks]
   );
 
-  const calculateRevenue = useMemo(
-    () => {
-      return (orders: Order[], period: string, month: number, year: number) => {
-        const validOrders = orders.filter((o) => o.paymentStatus === "completed" && o.total >= 0);
-        const labels: string[] = [];
-        const revenueData: number[] = [];
+  const calculateRevenue = useMemo(() => {
+    return (orders: Order[], period: string, month: number, year: number, week?: number): ChartData<"line"> => {
+      const validOrders = orders.filter((o) => o.paymentStatus === "completed" && o.total >= 0);
+      const labels: string[] = [];
+      const revenueData: number[] = [];
 
-        if (period === "week") {
-          const daysOfWeek = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"];
-          const firstDayOfMonth = new Date(year, month, 1);
-          const firstMonday = new Date(year, month, 1 + ((8 - firstDayOfMonth.getDay()) % 7));
-          if (firstDayOfMonth.getDay() === 0) firstMonday.setDate(firstMonday.getDate() - 7);
-
-          for (let i = 0; i < 7; i++) {
-            const day = new Date(firstMonday.getFullYear(), firstMonday.getMonth(), firstMonday.getDate() + i);
-            const dayIndex = day.getDay();
-            labels.push(daysOfWeek[dayIndex === 0 ? 6 : dayIndex - 1]);
-            const dayRevenue = validOrders
-              .filter((order) => {
-                const orderDate = new Date(order.createdAt);
-                return (
-                  orderDate.getFullYear() === day.getFullYear() &&
-                  orderDate.getMonth() === day.getMonth() &&
-                  orderDate.getDate() === day.getDate()
-                );
-              })
-              .reduce((sum, order) => sum + order.total, 0);
-            revenueData.push(dayRevenue);
-          }
-        } else if (period === "month") {
-          const daysInMonth = new Date(year, month + 1, 0).getDate();
-          for (let i = 1; i <= daysInMonth; i++) {
-            labels.push(`${i}/${month + 1}`);
-            const dayRevenue = validOrders
-              .filter((order) => {
-                const orderDate = new Date(order.createdAt);
-                return (
-                  orderDate.getFullYear() === year &&
-                  orderDate.getMonth() === month &&
-                  orderDate.getDate() === i
-                );
-              })
-              .reduce((sum, order) => sum + order.total, 0);
-            revenueData.push(dayRevenue);
-          }
-        } else if (period === "year") {
-          for (let i = 0; i < 12; i++) {
-            labels.push(months[i]);
-            const monthRevenue = validOrders
-              .filter((order) => {
-                const orderDate = new Date(order.createdAt);
-                return orderDate.getFullYear() === year && orderDate.getMonth() === i;
-              })
-              .reduce((sum, order) => sum + order.total, 0);
-            revenueData.push(monthRevenue);
-          }
+      if (period === "week" && week !== undefined) {
+        const firstDayOfMonth = new Date(year, month, 1);
+        const firstMonday = new Date(firstDayOfMonth);
+        if (firstDayOfMonth.getDay() !== 1) {
+          const offset = firstDayOfMonth.getDay() === 0 ? -6 : 1 - firstDayOfMonth.getDay();
+          firstMonday.setDate(firstDayOfMonth.getDate() + offset);
         }
+        const weekStart = new Date(firstMonday);
+        weekStart.setDate(firstMonday.getDate() + (week - 1) * 7);
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6);
 
-        return {
-          labels: labels.length ? labels : ["Không có dữ liệu"],
-          datasets: [
-            {
-              label: "Doanh thu",
-              data: revenueData.length ? revenueData : [0],
-              borderColor: "#3b82f6",
-              backgroundColor: "rgba(59, 130, 246, 0.1)",
-              tension: 0.3,
-            },
-          ],
-        };
+        for (let i = 0; i < 7; i++) {
+          const day = new Date(weekStart);
+          day.setDate(weekStart.getDate() + i);
+          labels.push(formatDate(day));
+
+          const dayRevenue = validOrders
+            .filter((order) => {
+              const orderDate = new Date(order.createdAt);
+              return (
+                orderDate.getFullYear() === day.getFullYear() &&
+                orderDate.getMonth() === day.getMonth() &&
+                orderDate.getDate() === day.getDate()
+              );
+            })
+            .reduce((sum, order) => sum + order.total, 0);
+          revenueData.push(dayRevenue);
+        }
+      } else if (period === "month") {
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        for (let i = 1; i <= daysInMonth; i++) {
+          labels.push(`${i}/${month + 1}`);
+          const dayRevenue = validOrders
+            .filter((order) => {
+              const orderDate = new Date(order.createdAt);
+              return (
+                orderDate.getFullYear() === year &&
+                orderDate.getMonth() === month &&
+                orderDate.getDate() === i
+              );
+            })
+            .reduce((sum, order) => sum + order.total, 0);
+          revenueData.push(dayRevenue);
+        }
+      } else if (period === "year") {
+        for (let i = 0; i < 12; i++) {
+          labels.push(months[i]);
+          const monthRevenue = validOrders
+            .filter((order) => {
+              const orderDate = new Date(order.createdAt);
+              return orderDate.getFullYear() === year && orderDate.getMonth() === i;
+            })
+            .reduce((sum, order) => sum + order.total, 0);
+          revenueData.push(monthRevenue);
+        }
+      }
+
+      return {
+        labels: labels.length ? labels : ["Không có dữ liệu"],
+        datasets: [
+          {
+            label: "Doanh thu",
+            data: revenueData.length ? revenueData : [0],
+            borderColor: "#3b82f6",
+            backgroundColor: "rgba(59, 130, 246, 0.1)",
+            tension: 0.3,
+          },
+        ],
       };
-    },
-    []
-  );
+    };
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -227,8 +472,9 @@ export default function AD_Home() {
       return;
     }
 
+    let decoded: DecodedToken;
     try {
-      const decoded = jwtDecode<{ role: string }>(token);
+      decoded = jwtDecode<DecodedToken>(token);
       if (decoded.role !== "admin") {
         setError("Bạn không có quyền truy cập trang này.");
         return;
@@ -271,13 +517,20 @@ export default function AD_Home() {
           comments = await commentsRes.json();
         }
 
-        const isInPeriod = (date: Date) => {
+        const isInPeriod = (date: Date): boolean => {
           if (timePeriod === "week") {
             const firstDayOfMonth = new Date(selectedYear, selectedMonth, 1);
-            const firstMonday = new Date(selectedYear, selectedMonth, 1 + ((8 - firstDayOfMonth.getDay()) % 7));
-            if (firstDayOfMonth.getDay() === 0) firstMonday.setDate(firstMonday.getDate() - 7);
-            const weekEnd = new Date(firstMonday.getFullYear(), firstMonday.getMonth(), firstMonday.getDate() + 6);
-            return date >= firstMonday && date <= weekEnd;
+            const firstMonday = new Date(firstDayOfMonth);
+            if (firstDayOfMonth.getDay() !== 1) {
+              const offset = firstDayOfMonth.getDay() === 0 ? -6 : 1 - firstDayOfMonth.getDay();
+              firstMonday.setDate(firstDayOfMonth.getDate() + offset);
+            }
+            const weekStart = new Date(firstMonday);
+            weekStart.setDate(firstMonday.getDate() + (selectedWeek - 1) * 7);
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekStart.getDate() + 6);
+
+            return date >= weekStart && date <= weekEnd;
           }
           if (timePeriod === "month") {
             const firstDay = new Date(selectedYear, selectedMonth, 1);
@@ -297,10 +550,9 @@ export default function AD_Home() {
         const newComments = comments.filter((c) => isInPeriod(new Date(c.createdAt))).length;
 
         setStats({ orders: ordersInPeriod.length, newUsers, revenue, newComments });
-        setChartData(calculateRevenue(orders, timePeriod, selectedMonth, selectedYear));
+        setChartData(calculateRevenue(orders, timePeriod, selectedMonth, selectedYear, selectedWeek));
         setRecentOrders(
           orders
-            .filter((o) => o.paymentStatus === "completed")
             .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
             .slice(0, 5)
         );
@@ -313,13 +565,17 @@ export default function AD_Home() {
     };
 
     fetchData();
-  }, [timePeriod, selectedMonth, selectedYear, router, calculateRevenue]);
+  }, [timePeriod, selectedMonth, selectedYear, selectedWeek, router, calculateRevenue]);
 
   return (
     <div className={styles.mainContent}>
+      {notification.show && (
+        <div className={`${styles.notification} ${styles[notification.type]}`}>
+          {notification.message}
+        </div>
+      )}
       <header className={styles.dashboardHeader}>
         <h2>Dashboard</h2>
-        <p>Chào mừng bạn trở lại, Admin!</p>
       </header>
 
       <div className={styles.controls}>
@@ -336,18 +592,34 @@ export default function AD_Home() {
           ))}
         </div>
         <div className={styles.dateSelectors}>
-          <select
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(Number(e.target.value))}
-            className={styles.select}
-            disabled={loading}
-          >
-            {months.map((month, index) => (
-              <option key={index} value={index}>
-                {month}
-              </option>
-            ))}
-          </select>
+          {timePeriod === "week" && (
+            <select
+              value={selectedWeek}
+              onChange={(e) => setSelectedWeek(Number(e.target.value))}
+              className={styles.select}
+              disabled={loading}
+            >
+              {weeks.map((week, index) => (
+                <option key={index} value={index + 1}>
+                  {week}
+                </option>
+              ))}
+            </select>
+          )}
+          {(timePeriod === "week" || timePeriod === "month") && (
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(Number(e.target.value))}
+              className={styles.select}
+              disabled={loading}
+            >
+              {months.map((month, index) => (
+                <option key={index} value={index}>
+                  {month}
+                </option>
+              ))}
+            </select>
+          )}
           <select
             value={selectedYear}
             onChange={(e) => setSelectedYear(Number(e.target.value))}
@@ -397,40 +669,75 @@ export default function AD_Home() {
 
       <section className={styles.recentOrders}>
         <div className={styles.sectionHeader}>
-          <h3>Đơn hàng đã giao gần đây</h3>
+          <h3>Đơn hàng gần đây nhất</h3>
         </div>
         <div className={styles.tableContainer}>
-          <table className={styles.table} aria-label="Đơn hàng đã giao gần đây">
-            <thead>
-              <tr className={styles.tableHeader}>
-                <th>Mã đơn</th>
-                <th>Khách hàng</th>
-                <th>Tổng tiền</th>
-                <th>Trạng thái</th>
+          <table className={styles.productTable}>
+            <thead className={styles.productTableThead}>
+              <tr>
+                <th>ID</th>
+                <th>Tên</th>
+                <th>Tổng Tiền</th>
+                <th>Ngày</th>
+                <th>Trạng Thái Thanh Toán</th>
+                <th>Trạng Thái Vận Chuyển</th>
+                <th>Phương Thức Thanh Toán</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={4} style={{ textAlign: "center" }}>
+                  <td colSpan={7} style={{ textAlign: "center" }}>
                     Đang tải...
                   </td>
                 </tr>
               ) : recentOrders.length > 0 ? (
-                recentOrders.map((order) => (
-                  <tr key={order._id} className={styles.tableRow}>
-                    <td>{order._id.slice(-6)}</td>
-                    <td>{order.user?.username || "Ẩn"}</td>
-                    <td>{formatCurrency(order.total)}</td>
+                recentOrders.map((order, index) => (
+                  <tr key={order._id} className={styles.productRow}>
+                    <td>{index + 1}</td>
+                    <td>{order.user?.username || "Không xác định"}</td>
+                    <td>{order.total.toLocaleString()} VND</td>
+                    <td>{formatDate(order.createdAt)}</td>
+                    <td>{getVietnamesePaymentStatus(order.paymentStatus)}</td>
                     <td>
-                      <span className={`${styles.status} ${styles.completed}`}>Đã giao</span>
+                      <select
+                        value={getVietnameseShippingStatus(order.shippingStatus)}
+                        onChange={(e) =>
+                          handleShippingStatusChange(order._id, e.target.value, order.shippingStatus)
+                        }
+                        className={styles.categorySelect}
+                        onClick={(e) => e.stopPropagation()}
+                        disabled={order.shippingStatus === "returned"}
+                      >
+                        {allStatuses.map((status) => (
+                          <option
+                            key={status.value}
+                            value={status.label}
+                            disabled={
+                              order.shippingStatus === "returned" ||
+                              (!statusProgression[order.shippingStatus].includes(status.value) &&
+                                status.value !== order.shippingStatus)
+                            }
+                          >
+                            {status.label}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td>
+                      {order.paymentMethod === "cod"
+                        ? "Thanh toán khi nhận hàng"
+                        : order.paymentMethod === "bank"
+                        ? "Chuyển khoản"
+                        : order.paymentMethod || "Không xác định"}
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={4} style={{ textAlign: "center" }}>
-                    Không có đơn hàng nào
+                  <td colSpan={7} className={styles.emptyState}>
+                    <h3>Chưa có đơn hàng</h3>
+                    <p>Hiện tại không có đơn hàng nào để hiển thị.</p>
                   </td>
                 </tr>
               )}
@@ -438,6 +745,45 @@ export default function AD_Home() {
           </table>
         </div>
       </section>
+
+      {showConfirm && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <h2>Xác Nhận Thay Đổi Trạng Thái</h2>
+            <p>
+              Bạn có chắc chắn muốn chuyển trạng thái vận chuyển sang{" "}
+              <strong>{showConfirm.newStatus}</strong>?{" "}
+              {showConfirm.newStatus === "Đã giao hàng" ? (
+                <>
+                  Trạng thái thanh toán sẽ được cập nhật thành <strong>Đã thanh toán</strong>.
+                </>
+              ) : showConfirm.newStatus === "Đã hoàn" ? (
+                <>
+                  Trạng thái thanh toán sẽ được cập nhật thành <strong>Đã hoàn</strong>.
+                </>
+              ) : null}
+            </p>
+            <div className={styles.modalActions}>
+              <button
+                className={styles.confirmBtn}
+                onClick={confirmStatusChange}
+                aria-label="Xác nhận thay đổi trạng thái"
+              >
+               <FontAwesomeIcon icon={faCheck} />
+              </button>
+              <button
+                className={styles.cancelBtn}
+                onClick={cancelConfirm}
+                aria-label="Hủy thay đổi trạng thái"
+              >
+               <FontAwesomeIcon icon={faTimes} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
-}
+};
+
+export default AD_Home;

@@ -31,13 +31,25 @@ const AddArticle = () => {
   const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const thumbnailInputRef = useRef<HTMLInputElement>(null);
-  
+
+  const getCurrentTime = () => {
+    const now = new Date();
+    return now.toLocaleString("en-US", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    }).replace(/,/, "").replace(/(\d+)\/(\d+)\/(\d+)/, "$2-$1-$3");
+  };
+
   const [formData, setFormData] = useState({
     title: "",
     content: "",
     thumbnailFile: null as File | null,
     status: "show" as "show" | "hidden",
-    publishDate: "25-07-2025 11:09 AM", // Giá trị ban đầu phù hợp với thời gian hiện tại
+    publishDate: getCurrentTime(),
     contentImages: [] as File[],
   });
   const [notification, setNotification] = useState({
@@ -75,18 +87,6 @@ const AddArticle = () => {
     if (!token || role !== "admin") {
       router.push("/user/login");
     }
-
-    // Tự động lấy thời gian hiện tại
-    const now = new Date();
-    const formattedDate = now.toLocaleString("en-US", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true
-    }).replace(/,/, '').replace(/(\d+)\/(\d+)\/(\d+)/, '$2-$1-$3');
-    setFormData((prev) => ({ ...prev, publishDate: formattedDate }));
   }, [router]);
 
   useEffect(() => {
@@ -401,12 +401,11 @@ const AddArticle = () => {
       showNotification("Vui lòng tải lên hình đại diện.", "error");
       return;
     }
-    if (!formData.publishDate) {
-      showNotification("Lỗi thời gian đăng bài.", "error");
-      return;
-    }
 
     setIsSubmitting(true);
+
+    const currentTime = getCurrentTime();
+    setFormData((prev) => ({ ...prev, publishDate: currentTime }));
 
     try {
       const token = localStorage.getItem("token");
@@ -421,7 +420,7 @@ const AddArticle = () => {
       formDataToSend.append("content", formData.content);
       formDataToSend.append("thumbnail", formData.thumbnailFile!);
       formDataToSend.append("status", formData.status);
-      formDataToSend.append("publishDate", formData.publishDate);
+      formDataToSend.append("publishDate", currentTime);
       formData.contentImages.forEach((file) => {
         formDataToSend.append("contentImages", file);
       });
@@ -453,130 +452,134 @@ const AddArticle = () => {
   };
 
   if (isSubmitting && !notification.show) {
-    return <div className={styles.container}>Đang xử lý...</div>;
+    return <div className={styles.new_container}>Đang xử lý...</div>;
   }
 
   return (
     <div className={styles.container}>
-      <h1 className={styles.pageTitle}>Thêm bài viết mới</h1>
-      <div className={styles.addcontent}>
-        <div className={styles.editorSection}>
-          <div className={styles.editorHeader}>
-            <label className={styles.formLabel}>Tiêu đề bài viết</label>
-            <input
-              type="text"
-              name="title"
-              value={formData.title}
-              onChange={handleInputChange}
-              className={styles.titleInput}
-              required
-              placeholder="Nhập tiêu đề bài viết"
-              maxLength={100}
-            />
+      <div className={styles.new_container}>
+        <h1 className={styles.pageTitle}>Thêm bài viết mới</h1>
+        <div className={styles.addcontent}>
+          <div className={styles.editorSection}>
+            <div className={styles.editorHeader}>
+              <label className={styles.formLabel}>Tiêu đề bài viết</label>
+              <input
+                type="text"
+                name="title"
+                value={formData.title}
+                onChange={handleInputChange}
+                className={styles.titleInput}
+                required
+                placeholder="Nhập tiêu đề bài viết"
+                maxLength={100}
+              />
+            </div>
+            <div className={styles.editorMain}>
+              <label className={styles.formLabel}>Nội dung bài viết</label>
+              <div className={styles.contentEditorWrapper}>
+                {renderToolbar()}
+                <div
+                  ref={editorRef}
+                  className={styles.editorContent}
+                  contentEditable
+                  onInput={handleContentChange}
+                  data-placeholder="Bắt đầu viết nội dung bài viết của bạn..."
+                />
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  style={{ display: "none" }}
+                  multiple
+                />
+              </div>
+            </div>
           </div>
-          <div className={styles.editorMain}>
-            <label className={styles.formLabel}>Nội dung bài viết</label>
-            <div className={styles.contentEditorWrapper}>
-              {renderToolbar()}
+          <div className={styles.formSection}>
+            {notification.show && (
+              <ToastNotification
+                message={notification.message}
+                type={notification.type}
+                onClose={() => setNotification({ show: false, message: "", type: "success" })}
+              />
+            )}
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>Thời gian đăng</label>
+              <input
+                type="text"
+                name="publishDate"
+                value={formData.publishDate}
+                className={styles.formInput}
+                readOnly
+              />
+            </div>
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>Trạng thái</label>
+              <select
+                name="status"
+                value={formData.status}
+                onChange={handleInputChange}
+                className={styles.formInput}
+                required
+              >
+                <option value="show">Hiển thị</option>
+                <option value="hidden">Ẩn</option>
+              </select>
+            </div>
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>Hình ảnh đại diện</label>
               <div
-                ref={editorRef}
-                className={styles.editorContent}
-                contentEditable
-                onInput={handleContentChange}
-                data-placeholder="Bắt đầu viết nội dung bài viết của bạn..."
-              />
-              <input
-                type="file"
-                accept="image/*"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                style={{ display: "none" }}
-                multiple
-              />
+                className={styles.imageUpload}
+                onClick={() => thumbnailInputRef.current?.click()}
+              >
+                {previewThumbnail ? (
+                  <div className={styles.uploadedImage}>
+                    <img
+                      src={previewThumbnail}
+                      alt="Thumbnail Preview"
+                      onError={handleImageError}
+                    />
+                  </div>
+                ) : (
+                  <>
+                    <FontAwesomeIcon icon={faCloudUploadAlt} className={styles.uploadIcon} />
+                    <div className={styles.uploadText}>Tải ảnh lên</div>
+                    <div className={styles.uploadSubtext}>Click để chọn ảnh</div>
+                  </>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleThumbnailChange}
+                  ref={thumbnailInputRef}
+                  style={{ display: "none" }}
+                />
+              </div>
             </div>
-          </div>
-        </div>
-        <div className={styles.formSection}>
-          {notification.show && (
-            <ToastNotification
-              message={notification.message}
-              type={notification.type}
-              onClose={() => setNotification({ show: false, message: "", type: "success" })}
-            />
-          )}
-          <div className={styles.formGroup}>
-            <label className={styles.formLabel}>Thời gian đăng</label>
-            <input
-              type="text"
-              value={formData.publishDate}
-              className={styles.formInput} /* Đổi từ formInputWithIcon sang formInput */
-              readOnly
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label className={styles.formLabel}>Trạng thái</label>
-            <select
-              name="status"
-              value={formData.status}
-              onChange={handleInputChange}
-              className={styles.formInput}
-              required
-            >
-              <option value="show">Hiển thị</option>
-              <option value="hidden">Ẩn</option>
-            </select>
-          </div>
-          <div className={styles.formGroup}>
-            <label className={styles.formLabel}>Hình đại diện</label>
-            <div
-              className={styles.imageUpload}
-              onClick={() => thumbnailInputRef.current?.click()}
-            >
-              {previewThumbnail ? (
-                <div className={styles.uploadedImage}>
-                  <img
-                    src={previewThumbnail}
-                    alt="Thumbnail Preview"
-                    onError={handleImageError}
-                  />
-                </div>
-              ) : (
-                <>
-                  <FontAwesomeIcon icon={faCloudUploadAlt} className={styles.uploadIcon} />
-                  <div className={styles.uploadText}>Tải ảnh lên</div>
-                  <div className={styles.uploadSubtext}>Click để chọn ảnh</div>
-                </>
-              )}
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleThumbnailChange}
-                ref={thumbnailInputRef}
-                style={{ display: "none" }}
-              />
+            <div className={styles.buttonGroup}>
+              <button
+                type="button"
+                className={`${styles.btn} ${styles.btnSecondary}`}
+                onClick={() => router.push("/admin/news")}
+                disabled={isSubmitting}
+              >
+                Hủy
+              </button>
+              <button
+                type="submit"
+                className={`${styles.btn} ${styles.btnPrimary}`}
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Đang đăng..." : "Đăng bài"}
+              </button>
             </div>
-          </div>
-          <div className={styles.buttonGroup}>
-            <button
-              type="button"
-              className={`${styles.btn} ${styles.btnSecondary}`}
-              onClick={() => router.push("/admin/news")}
-              disabled={isSubmitting}
-            >
-              Hủy
-            </button>
-            <button
-              type="submit"
-              className={`${styles.btn} ${styles.btnPrimary}`}
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? "Đang đăng..." : "Đăng bài"}
-            </button>
           </div>
         </div>
       </div>
     </div>
   );
 };
+
 export default AddArticle;

@@ -1,18 +1,25 @@
 .container {
+  width: 100%;
+  height: auto;
+  background-color: #f9fafb; /* Đồng bộ nền với AdminNewsPage */
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+.new_container {
   display: flex;
   flex-direction: column;
-  height: 100vh;
   gap: 20px;
   padding: 20px;
-  max-width: 1400px;
-  margin: 0 auto;
+  width: 80%; /* Đồng bộ chiều rộng với titleContainer */
+  margin: 0 0 0 300px; /* Đồng bộ lề trái */
   box-sizing: border-box;
-  padding-top: 70px;
 }
 
 .addcontent {
   display: flex;
   gap: 20px;
+  flex-wrap: wrap;
 }
 
 .editorSection {
@@ -24,11 +31,19 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   box-sizing: border-box;
   max-height: fit-content;
+  min-width: 0;
 }
 
 .editorHeader {
   padding: 20px 24px 16px;
   box-sizing: border-box;
+}
+
+.pageTitle {
+  color: #495057; /* Giữ nguyên màu gốc */
+  font-size: 30px; /* Đồng bộ kích thước chữ với AdminNewsPage */
+  margin: 0;
+  font-weight: 600;
 }
 
 .formLabel {
@@ -42,8 +57,8 @@
 
 .titleInput {
   width: 100%;
-  padding: 12px 16px;
-  border: 2px solid #e9ecef;
+  padding: 12px 16px; /* Giữ nguyên padding gốc */
+  border: 2px solid #e9ecef; /* Giữ nguyên viền gốc */
   border-radius: 8px;
   font-size: 16px;
   outline: none;
@@ -53,7 +68,7 @@
 }
 
 .titleInput:focus {
-  border-color: #28a745;
+  border-color: #28a745; /* Giữ nguyên màu focus gốc */
   box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
 }
 
@@ -69,7 +84,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  border: 2px solid #e9ecef;
+  border: 2px solid #e9ecef; /* Giữ nguyên viền gốc */
   border-radius: 8px;
   overflow: hidden;
   background: #fff;
@@ -96,7 +111,7 @@
 }
 
 .toolbar select {
-  border: none;
+  border: none; /* Giữ nguyên kiểu dáng gốc */
   padding: 6px 8px;
   border-radius: 6px;
   font-size: 13px;
@@ -133,7 +148,7 @@
 }
 
 .toolbar button.active {
-  background-color: #0066cc;
+  background-color: #0066cc; /* Giữ nguyên màu active gốc */
   color: white;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
@@ -177,13 +192,14 @@
 }
 
 .formSection {
-  flex: 0 0 370px;
+  flex: 0 0 440px; /* Đồng bộ chiều rộng với searchInput */
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   padding: 24px;
   height: fit-content;
   box-sizing: border-box;
+  min-width: 0;
 }
 
 .formGroup {
@@ -193,7 +209,7 @@
 
 .formInput {
   width: 100%;
-  padding: 12px 16px;
+  padding: 12px 16px; /* Giữ nguyên padding gốc */
   border: 2px solid #e9ecef;
   border-radius: 8px;
   font-size: 14px;
@@ -210,7 +226,7 @@
 
 .formInputWithIcon {
   width: 100%;
-  padding: 12px 16px 12px 44px; /* Tăng padding trái để chứa icon */
+  padding: 12px 16px 12px 44px;
   border: 2px solid #e9ecef;
   border-radius: 8px;
   font-size: 14px;
@@ -372,16 +388,32 @@
   border: 1px solid #f56565;
 }
 
-@media (max-width: 768px) {
-  .container {
-    flex-direction: column;
-    height: auto;
-    padding: 16px;
-    gap: 16px;
+@media (max-width: 1240px) {
+  .new_container {
+    width: 100%;
+    margin-left: 0;
+    padding: 0 20px;
   }
 
+  .addcontent {
+    flex-direction: column;
+  }
+
+  .editorSection,
   .formSection {
-    flex: none;
+    flex: auto;
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .new_container {
+    padding: 16px;
+  }
+
+  .editorContent {
+    min-height: 300px;
+    max-height: 50vh;
   }
 
   .toolbar {
@@ -394,19 +426,10 @@
     height: 32px;
     padding: 6px 8px;
   }
-
-  .editorContent {
-    min-height: 300px;
-    max-height: 50vh;
-  }
-
-  .editorContent::-webkit-scrollbar {
-    width: 8px;
-  }
 }
 
 @media (max-width: 480px) {
-  .container {
+  .new_container {
     padding: 12px;
   }
 
@@ -419,24 +442,9 @@
     font-size: 16px;
   }
 
-  .titleInput,
-  .formInput {
-    padding: 10px 12px;
-    font-size: 13px;
-  }
-
-  .toolbar {
-    padding: 6px;
-  }
-
   .editorContent {
     min-height: 300px;
     max-height: 40vh;
     padding: 12px;
-  }
-
-  .btn {
-    padding: 10px 16px;
-    font-size: 13px;
   }
 }

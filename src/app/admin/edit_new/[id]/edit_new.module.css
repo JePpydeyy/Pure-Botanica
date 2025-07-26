@@ -1,18 +1,26 @@
 .container {
+  width: 100%;
+  background-color: #f9fafb;
+  height: 100vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.new_container {
   display: flex;
   flex-direction: column;
-  height: 100vh;
   gap: 20px;
   padding: 20px;
-  max-width: 1400px;
-  margin: 0 auto;
+  width: 80%;
+  margin: 0 0 0 300px;
   box-sizing: border-box;
-  padding-top: 100px;
 }
 
 .addcontent {
   display: flex;
   gap: 20px;
+  flex-wrap: wrap;
+  box-sizing: border-box;
 }
 
 .editorSection {
@@ -24,11 +32,19 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   box-sizing: border-box;
   max-height: fit-content;
+  min-width: 0;
 }
 
 .editorHeader {
   padding: 20px 24px 16px;
   box-sizing: border-box;
+}
+
+.pageTitle {
+  color: #495057;
+  font-size: 30px;
+  margin: 0;
+  font-weight: 600;
 }
 
 .formLabel {
@@ -177,18 +193,30 @@
 }
 
 .formSection {
-  flex: 0 0 370px;
+  flex: 0 0 440px;
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   padding: 24px;
   height: fit-content;
   box-sizing: border-box;
+  min-width: 0;
 }
 
 .formGroup {
   margin-bottom: 20px;
   box-sizing: border-box;
+}
+
+.formRow {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.formRow .formGroup {
+  flex: 1;
+  min-width: 150px;
 }
 
 .formInput {
@@ -355,16 +383,71 @@
   border: 1px solid #f56565;
 }
 
-@media (max-width: 768px) {
-  .container {
-    flex-direction: column;
-    height: auto;
-    padding: 16px;
-    gap: 16px;
+.popupOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.popupContent {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  width: 400px;
+}
+
+.popupContent h2 {
+  margin: 0 0 10px;
+  font-size: 18px;
+  color: #333;
+}
+
+.popupContent p {
+  margin: 0 0 20px;
+  color: #666;
+}
+
+.popupButtons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+@media (max-width: 1240px) {
+  .new_container {
+    width: 100%;
+    margin-left: 0;
+    padding: 0 20px;
   }
 
+  .addcontent {
+    flex-direction: column;
+  }
+
+  .editorSection,
   .formSection {
-    flex: none;
+    flex: auto;
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .new_container {
+    padding: 16px;
+  }
+
+  .editorContent {
+    min-height: 300px;
+    max-height: 50vh;
   }
 
   .toolbar {
@@ -378,18 +461,13 @@
     padding: 6px 8px;
   }
 
-  .editorContent {
-    min-height: 300px;
-    max-height: 50vh;
-  }
-
-  .editorContent::-webkit-scrollbar {
-    width: 8px;
+  .formRow {
+    flex-direction: column;
   }
 }
 
 @media (max-width: 480px) {
-  .container {
+  .new_container {
     padding: 12px;
   }
 
@@ -421,5 +499,9 @@
   .btn {
     padding: 10px 16px;
     font-size: 13px;
+  }
+
+  .popupContent {
+    width: 250px;
   }
 }

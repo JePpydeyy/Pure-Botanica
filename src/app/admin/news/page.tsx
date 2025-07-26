@@ -376,18 +376,6 @@ const AdminNewsPage: React.FC = () => {
               <p><strong>Trạng thái:</strong> {selectedNews.status}</p>
               <p><strong>Lượt xem:</strong> {selectedNews.views}</p>
               <p><strong>Ngày đăng:</strong> {new Date(selectedNews.publishedAt).toLocaleDateString("vi-VN")}</p>
-              {selectedNews.thumbnailUrl && (
-                <div className={styles.popupThumbnail}>
-                  <img
-                    src={selectedNews.thumbnailUrl}
-                    alt={selectedNews.thumbnailCaption || selectedNews.title}
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src =
-                        "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
-                    }}
-                  />
-                </div>
-              )}
               <div
                 className={styles.popupContentBody}
                 dangerouslySetInnerHTML={{

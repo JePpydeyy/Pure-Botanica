@@ -11,13 +11,13 @@
   object-fit: cover;
 }
 
-/* Main section styles */
+
 .newProductsSection {
   max-width: 1290px;
   margin: 0 auto;
 }
 
-/* Row layout for text and products */
+
 .productsRow {
   width: 1290px;
   display: flex;
@@ -26,7 +26,7 @@
   margin-bottom: 40px;
 }
 
-/* Text content styles */
+
 .textContent {
   padding-bottom: 250px;
   flex: 0 0 300px;
@@ -45,7 +45,7 @@
   line-height: 1.5;
 }
 
-/* Product slider styles */
+
 .newProducts {
   margin: 30px 0;
 }
@@ -121,7 +121,7 @@
   color: #8B5A2B;
 }
 
-/* Features section */
+
 .featuresSection {
   display: flex;
   flex-wrap: wrap;
@@ -158,7 +158,7 @@
   font-size: 14px;
 }
 
-/* Hero section */
+
 .heroSectionRela {
   position: relative;
 }
@@ -229,7 +229,7 @@
   transform: translateX(-50%);
 }
 
-/* Banner slideshow */
+
 .bannerSlideshow {
   position: relative;
   width: 100%;
@@ -292,7 +292,7 @@
   right: 10px;
 }
 
-/* Botanical gallery */
+
 .botanicalGallery {
   max-width: 1290px;
   margin: 60px auto;
@@ -435,7 +435,7 @@
   color: #2a7e19;
 }
 
-/* Brand value section */
+
 .brandValueSection {
   margin-top: 50px;
   position: relative;
@@ -495,7 +495,7 @@
   background-color: #357E38;
 }
 
-/* Brands section */
+
 .brands {
   text-align: center;
   padding: 40px 20px;
@@ -558,12 +558,12 @@
 .newProductName,
 .bestSellingName {
   display: -webkit-box;
-  -webkit-line-clamp: 2; /* Số dòng tối đa */
+  -webkit-line-clamp: 2; 
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
   word-break: break-word;
-  min-height: 2.6em; /* Đảm bảo chiều cao cho 2 dòng */
+  min-height: 2.6em; 
 }
 .brands {
   text-align: center;

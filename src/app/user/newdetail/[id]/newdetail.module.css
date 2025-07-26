@@ -1,4 +1,4 @@
-/* Existing styles from provided CSS */
+
 .news {
   max-width: 1280px;
   margin: 0 auto;
@@ -155,7 +155,7 @@
   line-height: 1.5;
 }
 
-/* Notification styles to match ProductPage */
+
 .notification {
   position: fixed;
   top: 20px;
@@ -182,7 +182,7 @@
   100% { opacity: 0; transform: translateY(-20px); }
 }
 
-/* Responsive styles */
+
 @media (max-width: 1024px) {
   .newsTitle {
     font-size: 30px;

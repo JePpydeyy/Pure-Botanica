@@ -1,4 +1,4 @@
-/* Sử dụng các biến CSS từ file gốc */
+
 :root {
   --primary-color: #4CAF50;
   --secondary-color: #004C59;
@@ -13,7 +13,7 @@
   --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* === LAYOUT & CONTAINER === */
+
 .productManagementContainer {
   padding: 24px;
   background: linear-gradient(135deg, var(--background-color) 0%, #e2e8f0 100%);
@@ -21,7 +21,7 @@
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-/* === TITLE & FILTER SECTION === */
+
 .titleContainer {
   max-width: 1400px;
   margin: 40px auto 0;
@@ -110,7 +110,7 @@
   box-shadow: var(--shadow-md);
 }
 
-/* === TABLE CONTAINER === */
+
 .tableContainer {
   max-width: 1400px;
   margin: 24px auto;
@@ -121,7 +121,7 @@
   overflow-x: auto;
 }
 
-/* === TABLE STYLING === */
+
 .productTable {
   width: 100%;
   border-collapse: collapse;
@@ -159,7 +159,7 @@
   background: #f8fafc;
 }
 
-/* === ACTION BUTTONS === */
+
 .actionButtons {
   display: flex;
   gap: 8px;
@@ -199,7 +199,7 @@
   cursor: not-allowed;
 }
 
-/* === PAGINATION === */
+
 .pagination {
   display: flex;
   justify-content: center;
@@ -258,7 +258,7 @@
   font-weight: 600;
 }
 
-/* === MODAL === */
+
 .modalOverlay {
   position: fixed;
   top: 0;
@@ -330,7 +330,7 @@
   background: #d32f2f;
 }
 
-/* === ERROR CONTAINER === */
+
 .errorContainer {
   max-width: 1400px;
   margin: 24px auto;
@@ -341,7 +341,7 @@
   text-align: center;
 }
 
-/* === LOADING STATES === */
+
 .processingIndicator {
   position: fixed;
   top: 16px;
@@ -356,7 +356,7 @@
   gap: 8px;
 }
 
-/* === EMPTY STATE === */
+
 .emptyState {
   text-align: center;
   padding: 48px 16px;
@@ -373,7 +373,7 @@
   font-size: 13px;
 }
 
-/* === FOCUS VISIBLE === */
+
 .searchInput:focus-visible,
 .categorySelect:focus-visible,
 .addProductBtn:focus-visible,
@@ -384,7 +384,7 @@
   outline-offset: 2px;
 }
 
-/* === SCROLLBAR === */
+
 .tableContainer::-webkit-scrollbar {
   height: 6px;
 }
@@ -399,7 +399,7 @@
   border-radius: 3px;
 }
 
-/* === RESPONSIVE DESIGN === */
+
 @media (max-width: 1280px) {
   .titleContainer,
   .tableContainer,

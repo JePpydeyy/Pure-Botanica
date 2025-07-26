@@ -68,7 +68,7 @@ export default function AboutPage() {
 
   return (
     <div className="main">
-      {/* Banner */}
+      {}
       <section className={styles.bannerTitle}>
         {bannerLoading ? (
           <p>Đang tải banner...</p>
@@ -89,9 +89,9 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Nội dung chính */}
+      {}
       <section className={styles.main}>
-        {/* Ý Nghĩa Thương Hiệu */}
+        {}
         <section className={styles.brandMeaning}>
           <h2>Ý NGHĨA THƯƠNG HIỆU</h2>
           <p><strong>Pure Botanica</strong> – Tinh túy thiên nhiên, thân thiện chăm sóc vẻ đẹp Việt</p>
@@ -129,7 +129,7 @@ export default function AboutPage() {
           />
         </section>
 
-        {/* Sứ Mệnh */}
+        {}
         <section className={styles.mission}>
           <h2 style={{ textAlign: "end", fontSize: "48px" }}>SỨ MỆNH</h2>
 
@@ -150,7 +150,7 @@ export default function AboutPage() {
           />
         </section>
 
-        {/* Cam Kết Luôn Đi Đôi Với Hành Động */}
+        {}
         <section className={styles.commitmentAction}>
           <h2>CAM KẾT LUÔN ĐI ĐÔI VỚI HÀNH ĐỘNG</h2>
 
@@ -187,7 +187,7 @@ export default function AboutPage() {
           </p>
         </section>
 
-        {/* Giá Trị Thương Hiệu */}
+        {}
         <section className={styles.brandValue}>
           <div className={styles.brandValueLeft}>
             <h2>GIÁ TRỊ THƯƠNG HIỆU</h2>

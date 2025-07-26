@@ -108,7 +108,7 @@ export default function NewsPage() {
 
   return (
     <>
-      {/* Hiển thị banner */}
+      {}
       {bannerLoading ? (
         <p>Đang tải banner...</p>
       ) : bannerError ? (

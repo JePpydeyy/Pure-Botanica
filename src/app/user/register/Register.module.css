@@ -1,4 +1,4 @@
-/* Global container with a subtle gradient background */
+
 .mainContent {
     display: flex;
     justify-content: center;
@@ -9,7 +9,7 @@
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* Centered container */
+
 .container {
     display: flex;
     justify-content: center;
@@ -19,7 +19,7 @@
     margin: 0 auto;
 }
 
-/* Form box with a modern card effect */
+
 .formBox {
     background: #ffffff;
     padding: 48px;
@@ -36,9 +36,9 @@
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
 }
 
-/* Title styling */
+
 .title {
-    color: #2b8a3e; /* Softer green */
+    color: #2b8a3e; 
     text-transform: uppercase;
     margin-bottom: 32px;
     text-align: center;
@@ -47,13 +47,13 @@
     line-height: 1.3;
 }
 
-/* Form styling */
+
 .formBox form {
     display: flex;
     flex-direction: column;
 }
 
-/* Input fields */
+
 .input {
     border-radius: 12px;
    
@@ -76,7 +76,7 @@
     color: #6b7280;
 }
 
-/* Small text for hints */
+
 .small {
     font-size: 13px;
     color: #6b7280;
@@ -85,7 +85,7 @@
     text-align: left;
 }
 
-/* Error message */
+
 .errorMessage {
     color: #e63946;
     font-size: 14px;
@@ -94,7 +94,7 @@
     font-weight: 500;
 }
 
-/* Policy checkbox */
+
 .policy {
     display: flex;
     align-items: center;
@@ -138,7 +138,7 @@
     text-decoration: underline;
 }
 
-/* Submit button */
+
 .submitBtn {
     width: 100%;
     padding: 14px;
@@ -160,7 +160,7 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-/* Google button */
+
 .googleBtn {
     width: 100%;
     padding: 14px;
@@ -190,7 +190,7 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-/* Divider */
+
 .divider {
     display: flex;
     align-items: center;
@@ -221,7 +221,7 @@
     }
 }
 
-/* Forgot password */
+
 .forgotPassword {
     display: flex;
     justify-content: flex-end;
@@ -241,7 +241,7 @@
     text-decoration: underline;
 }
 
-/* Switch form */
+
 .switchForm {
     text-align: center;
     margin-top: 24px;
@@ -261,7 +261,7 @@
     text-decoration: underline;
 }
 
-/* Responsive design */
+
 @media (max-width: 768px) {
     .formBox {
         padding: 32px;

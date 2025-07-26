@@ -15,15 +15,15 @@ header {
 
   position: fixed;
   top: 0;
-  left: 50%; /* căn giữa theo chiều ngang */
-  transform: translateX(-50%); /* dịch ngược lại 50% chiều rộng */
+  left: 50%; 
+  transform: translateX(-50%); 
   width: 100%;
 
   height: 80px;
   background-color: #fff;
   border-bottom: 1px solid #eee;
   font-size: 18px;
-  z-index: 999; /* đảm bảo nằm trên cùng */
+  z-index: 999; 
 }
 
 header i{
@@ -72,9 +72,9 @@ nav a {
 }
 
 .dropdown {
-  /* Đảm bảo vùng hover chỉ nằm trong chữ "Sản phẩm" */
+  
   display: inline-block;
-  padding: 10px; /* Tùy chỉnh nếu cần */
+  padding: 10px; 
 }
 
 .category-list {
@@ -87,24 +87,24 @@ nav a {
   flex-direction: column;
   border-radius: 20px;
   opacity: 0;
-  transform: translateY(10px); /* Ban đầu dịch xuống một chút */
-  pointer-events: none; /* Ngăn tương tác khi ẩn */
+  transform: translateY(10px); 
+  pointer-events: none; 
   transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
 }
 .header-container {
   display: flex;
-  align-items: center; /* Căn giữa theo chiều dọc */
-  justify-content: space-between; /* Phân bố đều các phần tử */
+  align-items: center; 
+  justify-content: space-between; 
 
-  max-width: 1290px; /* Giới hạn chiều rộng nếu cần */
-  margin: 0 auto; /* Căn giữa container */
+  max-width: 1290px; 
+  margin: 0 auto; 
 }
 
 
 nav {
   display: flex;
-  align-items: center; /* Căn giữa các liên kết theo chiều dọc */
-  gap: 20px; /* Khoảng cách giữa các liên kết */
+  align-items: center; 
+  gap: 20px; 
 }
 
 .menu-wrapper {
@@ -120,24 +120,24 @@ nav {
 
 .icons {
   display: flex;
-  align-items: center; /* Căn giữa các biểu tượng theo chiều dọc */
-  gap: 15px; /* Khoảng cách giữa các biểu tượng */
+  align-items: center; 
+  gap: 15px; 
 }
 
 .search-bar input {
   padding: 5px;
-  height: 30px; /* Đảm bảo input có chiều cao đồng nhất */
+  height: 30px; 
 }
 
 .search-button {
-  height: 30px; /* Đồng nhất chiều cao với input */
+  height: 30px; 
 }
 
-/* Chỉ hiện menu khi hover vào .menu-wrapper */
+
 .menu-wrapper:hover .category-list {
   opacity: 1;
   transform: translateY(0);
-  pointer-events: auto; /* Cho phép nhấp vào menu khi hiển thị */
+  pointer-events: auto; 
 }
 
 .category-itemm {
@@ -186,18 +186,18 @@ nav {
 
 .search-input {
   padding: 8px 12px;
-  padding-right: 40px; /* Chừa chỗ cho nút tìm kiếm */
-  border: none; /* Xóa toàn bộ viền */
-  border-bottom: 1px solid #ccc; /* Chỉ thêm viền dưới */
+  padding-right: 40px; 
+  border: none; 
+  border-bottom: 1px solid #ccc; 
   font-size: 14px;
-  width: 200px; /* Điều chỉnh kích thước theo thiết kế */
-  outline: none; /* Xóa viền mặc định khi focus */
-  background: transparent; /* Nền trong suốt để trông tối giản */
+  width: 200px; 
+  outline: none; 
+  background: transparent; 
   transition: border-bottom-color 0.3s ease; 
 }
 
 .search-input:focus {
-  border-bottom-color: #007bff; /* Màu viền dưới khi focus */
+  border-bottom-color: #007bff; 
 }
 
 .search-button {
@@ -214,16 +214,16 @@ nav {
 }
 
 .search-button:hover {
-  color: #007bff; /* Màu icon khi hover */
+  color: #007bff; 
 }
 
-/* Responsive cho mobile */
+
 @media (max-width: 768px) {
   .search-input {
     width: 150px;
   }
 }
-/* footer css */
+
 .footer {
   
   border-top: 1px solid #868686;
@@ -356,7 +356,7 @@ nav {
   align-items: center;
 }
 
-/* menu cate */
+
 .search-results {
   position: absolute;
   background: white;

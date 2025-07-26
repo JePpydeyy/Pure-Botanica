@@ -1,20 +1,20 @@
-/* === CSS VARIABLES === */
+
 :root {
-  --primary-color: #4CAF50; /* Xanh lá chính */
-  --secondary-color: #004C59; /* Xanh đậm */
-  --error-color: #f44336; /* Đỏ */
-  --toggle-color: #2196F3; /* Xanh dương */
-  --background-color: #f8fafc; /* Nền chính */
-  --card-background: #ffffff; /* Nền thẻ */
-  --text-color: #334155; /* Màu chữ chính */
-  --text-muted: #64748b; /* Màu chữ phụ */
-  --border-color: #e2e8f0; /* Màu viền */
+  --primary-color: #4CAF50; 
+  --secondary-color: #004C59; 
+  --error-color: #f44336; 
+  --toggle-color: #2196F3; 
+  --background-color: #f8fafc; 
+  --card-background: #ffffff; 
+  --text-color: #334155; 
+  --text-muted: #64748b; 
+  --border-color: #e2e8f0; 
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
   --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* === LAYOUT & CONTAINER === */
+
 .productManagementContainer {
   padding: 24px;
   background: linear-gradient(135deg, var(--background-color) 0%, #e2e8f0 100%);
@@ -22,7 +22,7 @@
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-/* === TITLE & FILTER SECTION === */
+
 .titleContainer {
   max-width: 1400px;
   margin: 40px auto 0;
@@ -111,7 +111,7 @@
   box-shadow: var(--shadow-md);
 }
 
-/* === TABLE CONTAINER === */
+
 .tableContainer {
   max-width: 1400px;
   margin: 24px auto;
@@ -122,7 +122,7 @@
   overflow-x: auto;
 }
 
-/* === TABLE STYLING === */
+
 .productTable {
   width: 100%;
   border-collapse: collapse;
@@ -161,7 +161,7 @@
   cursor: pointer;
 }
 
-/* === IMAGE STYLING === */
+
 .detailImage {
   width: 100px;
   height: 100px;
@@ -174,7 +174,7 @@
   transform: scale(1.05);
 }
 
-/* === DETAILS SECTION === */
+
 .detailsContainer {
   display: grid;
   gap: 20px;
@@ -215,7 +215,7 @@
   gap: 10px;
 }
 
-/* === MODAL === */
+
 .modalOverlay {
   position: fixed;
   top: 0;
@@ -297,7 +297,7 @@
   background: #d32f2f;
 }
 
-/* === NOTIFICATIONS === */
+
 .notification {
   position: fixed;
   top: 16px;
@@ -319,7 +319,7 @@
   background: var(--error-color);
 }
 
-/* === ERROR & LOADING STATES === */
+
 .errorContainer {
   max-width: 1400px;
   margin: 24px auto;
@@ -351,7 +351,7 @@
   background: #45a049;
 }
 
-/* === EMPTY STATE === */
+
 .emptyState {
   text-align: center;
   padding: 48px 16px;
@@ -368,7 +368,7 @@
   font-size: 13px;
 }
 
-/* === PAGINATION === */
+
 .pagination {
   display: flex;
   justify-content: center;
@@ -409,7 +409,7 @@
   cursor: not-allowed;
 }
 
-/* === FOCUS VISIBLE === */
+
 .searchInput:focus-visible,
 .categorySelect:focus-visible,
 .addProductBtn:focus-visible,
@@ -420,7 +420,7 @@
   outline-offset: 2px;
 }
 
-/* === SCROLLBAR === */
+
 .tableContainer::-webkit-scrollbar {
   height: 6px;
 }
@@ -435,7 +435,7 @@
   border-radius: 3px;
 }
 
-/* === RESPONSIVE DESIGN === */
+
 @media (max-width: 1280px) {
   .titleContainer,
   .tableContainer,

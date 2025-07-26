@@ -670,7 +670,7 @@ export default function CheckoutPage() {
                           <button type="button" onClick={handleSaveNewAddress}>Lưu địa chỉ</button>
                         </div>
                       )}
-                      <button type="button" onClick={() => setShowAddressPopup(false)}>
+                      <button className={styles.sloseButton} type="button" onClick={() => setShowAddressPopup(false)}>
                         Đóng
                       </button>
                     </div>

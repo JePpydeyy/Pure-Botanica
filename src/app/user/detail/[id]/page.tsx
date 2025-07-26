@@ -424,7 +424,7 @@ export default function DetailPage() {
     <>
       <div className={styles.container}>
         <section className={styles["product-section"]}>
-          {/* Hình ảnh sản phẩm */}
+          {}
           <div className={styles["product-thumbnails"]}>
             {product.images?.map((image, index) => (
               <div
@@ -478,11 +478,11 @@ export default function DetailPage() {
             </div>
           </div>
 
-          {/* Thông tin sản phẩm */}
+          {}
           <div className={styles["product-info"]}>
             <h1 className={styles["product-title"]}>{product.name}</h1>
 
-            {/* Hiển thị giá */}
+            {}
             {selectedOption && (
               <p className={styles["product-price"]}>
                 {selectedOption.discount_price ? (
@@ -505,7 +505,7 @@ export default function DetailPage() {
               </p>
             )}
 
-            {/* Tùy chọn sản phẩm */}
+            {}
             {product.option.length > 0 && (
               <div style={{ margin: "16px 0" }}>
                 <span style={{ fontWeight: 500 }}>Lựa chọn dung tích:</span>
@@ -530,7 +530,7 @@ export default function DetailPage() {
               dangerouslySetInnerHTML={{ __html: product.short_description }}
             />
 
-            {/* Kiểm soát số lượng và thêm vào giỏ hàng */}
+            {}
             <div className={styles["quantity-controls"]}>
               <div className={styles["quantity-wrapper"]}>
                 <button
@@ -570,7 +570,7 @@ export default function DetailPage() {
               </button>
             </div>
 
-            {/* Nút thêm/xóa khỏi danh sách yêu thích */}
+            {}
             <div style={{ marginTop: "10px" }}>
               <button
                 className={styles["wishlist-button"]}
@@ -588,7 +588,7 @@ export default function DetailPage() {
               </button>
             </div>
 
-            {/* Thông báo toast */}
+            {}
             {cartMessage && (
               <ToastNotification
                 message={cartMessage.text}
@@ -599,19 +599,19 @@ export default function DetailPage() {
           </div>
         </section>
 
-        {/* Mô tả sản phẩm */}
+        {}
         <div className={styles["product-info"]}>
           <h2 className={styles["product-info-title"]}>Thông tin sản phẩm:</h2>
           <div dangerouslySetInnerHTML={{ __html: product.description }} />
         </div>
       </div>
 
-      {/* Phần bình luận với layout mới */}
+      {}
       <div className={styles.cr}>
         <div className={styles["customer-review"]}>
           <h1 className={styles["review-main-title"]}>ĐÁNH GIÁ TỪ KHÁCH HÀNG ĐÃ MUA</h1>
 
-          {/* Rating Overview */}
+          {}
           <div className={styles["rating-overview"]}>
             <div className={styles["rating-summary"]}>
               <div className={styles["average-rating"]}>0.0</div>
@@ -698,7 +698,7 @@ export default function DetailPage() {
             </div>
           </div>
 
-          {/* Filter Section */}
+          {}
           <div className={styles["filter-section"]}>
             <span className={styles["filter-label"]}>Lọc đánh giá:</span>
             <button className={`${styles["filter-button"]} ${styles.active}`}>Tất cả</button>
@@ -709,7 +709,7 @@ export default function DetailPage() {
             <button className={styles["filter-button"]}>1 ★</button>
           </div>
 
-          {/* Write Review Button */}
+          {}
           <div className={styles["write-review-container"]}>
             <button
               className={styles["write-review"]}
@@ -725,7 +725,7 @@ export default function DetailPage() {
             </button>
           </div>
 
-          {/* Write Review Form */}
+          {}
           <div className={styles["write-review-section"]} id="reviewForm">
             <h2 className={styles["review-form-title"]}>Viết đánh giá của bạn</h2>
             <div className={styles["star-rating"]}>
@@ -779,7 +779,7 @@ export default function DetailPage() {
             </div>
           </div>
 
-          {/* Reviews Container */}
+          {}
           <div className={styles["reviews-container"]}>
             {comments.length > 0 ? (
               comments.map((comment, index) => (
@@ -814,7 +814,7 @@ export default function DetailPage() {
         </div>
       </div>
 
-      {/* Phần liên hệ */}
+      {}
       <section className={styles["product-contact-section"]}>
         <h2 className={styles["contact-section-title"]}>
           Không tìm thấy được dòng sản phẩm mà bạn cần<br />

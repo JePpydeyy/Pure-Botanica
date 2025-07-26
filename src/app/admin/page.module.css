@@ -1,21 +1,21 @@
 
-/* === CSS VARIABLES === */
+
 :root {
-  --primary-color: #4CAF50; /* Xanh lá chính */
-  --secondary-color: #004C59; /* Xanh đậm */
-  --error-color: #f44336; /* Đỏ */
-  --toggle-color: #2196F3; /* Xanh dương */
-  --background-color: #f8fafc; /* Nền chính */
-  --card-background: #ffffff; /* Nền thẻ */
-  --text-color: #334155; /* Màu chữ chính */
-  --text-muted: #64748b; /* Màu chữ phụ */
-  --border-color: #e2e8f0; /* Màu viền */
+  --primary-color: #4CAF50; 
+  --secondary-color: #004C59; 
+  --error-color: #f44336; 
+  --toggle-color: #2196F3; 
+  --background-color: #f8fafc; 
+  --card-background: #ffffff; 
+  --text-color: #334155; 
+  --text-muted: #64748b; 
+  --border-color: #e2e8f0; 
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
   --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* === LAYOUT & CONTAINER === */
+
 .mainContent {
   margin-left: 250px;
   padding: 2rem 1.5rem;
@@ -26,7 +26,7 @@
   transition: margin-left 0.3s ease;
 }
 
-/* === HEADER === */
+
 .dashboardHeader {
   margin-bottom: 2rem;
   padding: 2rem;
@@ -45,7 +45,7 @@
   color: #6b7280;
 }
 
-/* === TIME FILTER CONTROLS === */
+
 .controls {
   display: flex;
   justify-content: space-between;
@@ -123,7 +123,7 @@
   cursor: not-allowed;
 }
 
-/* === STATS CARDS === */
+
 .statsContainer {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -173,7 +173,7 @@
   text-transform: uppercase;
 }
 
-/* === CHART === */
+
 .chartContainer {
   background: white;
   border-radius: 12px;
@@ -193,7 +193,7 @@
   flex-grow: 1;
 }
 
-/* === LOADING AND ERROR === */
+
 .loadingContainer {
   display: flex;
   align-items: center;
@@ -228,7 +228,7 @@
   text-align: center;
 }
 
-/* === ORDERS === */
+
 .recentOrders {
   background: white;
   border-radius: 12px;
@@ -347,7 +347,7 @@
   box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
 }
 
-/* === NOTIFICATIONS === */
+
 .notification {
   position: fixed;
   top: 16px;
@@ -369,7 +369,7 @@
   background: var(--error-color);
 }
 
-/* === MODAL === */
+
 .modalOverlay {
   position: fixed;
   top: 0;
@@ -446,7 +446,7 @@
   background: #d32f2f;
 }
 
-/* === RESPONSIVE DESIGN === */
+
 @media (max-width: 1024px) {
   .statsContainer {
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));

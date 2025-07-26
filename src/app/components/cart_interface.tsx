@@ -1,7 +1,10 @@
 import { Product } from "./product_interface";
  export interface CartItem {
+  optionId: any;
   product: Product;
-  option: { _id: string; value: string; price: number; discount_price?: number };
+  option: {
+    stock: number; _id: string; value: string; price: number; discount_price?: number 
+};
   quantity: number;
 }
 

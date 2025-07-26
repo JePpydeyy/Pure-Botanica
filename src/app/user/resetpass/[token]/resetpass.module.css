@@ -1,4 +1,4 @@
-/* Container */
+
 .container {
   display: flex;
   justify-content: center;
@@ -9,7 +9,7 @@
   padding: 20px;
 }
 
-/* Error Message */
+
 .error-message {
   color: red;
   font-size: 14px;
@@ -17,7 +17,7 @@
   text-align: center;
 }
 
-/* Form Box */
+
 .form-box {
   background: #fff;
   padding: 40px;
@@ -60,7 +60,7 @@
   color: #999;
 }
 
-/* Submit Button */
+
 .submit-btn {
   width: 100%;
   padding: 12px;
@@ -81,7 +81,7 @@
   transform: scale(1.05);
 }
 
-/* Switch Form */
+
 .switch-form {
   text-align: center;
   margin-top: 20px;
@@ -101,7 +101,7 @@
   text-decoration: underline;
 }
 
-/* Google Button */
+
 .google-btn {
   width: 100%;
   padding: 12px;
@@ -130,7 +130,7 @@
   transform: scale(1.05);
 }
 
-/* Divider */
+
 .divider {
   display: flex;
   align-items: center;
@@ -152,7 +152,7 @@
   padding: 0 10px;
 }
 
-/* Forgot Password */
+
 .forgot-password {
   display: flex;
   justify-content: flex-end;
@@ -171,7 +171,7 @@
   text-decoration: underline;
 }
 
-/* Responsive */
+
 @media (max-width: 768px) {
   .form-box {
     padding: 30px;

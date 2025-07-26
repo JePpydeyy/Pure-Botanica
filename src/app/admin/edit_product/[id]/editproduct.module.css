@@ -1,4 +1,4 @@
-/* Container */
+
 .editProductContainer {
   max-width: 1100px;
   margin: 50px 250px auto;
@@ -8,7 +8,7 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-/* Header */
+
 .header {
   display: flex;
   justify-content: space-between;
@@ -43,7 +43,7 @@
   transform: translateY(0);
 }
 
-/* Loading */
+
 .loadingContainer {
   display: flex;
   flex-direction: column;
@@ -66,14 +66,14 @@
   100% { transform: rotate(360deg); }
 }
 
-/* Form */
+
 .form {
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
 
-/* Basic Info Section */
+
 .basicInfo {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -142,7 +142,7 @@
   line-height: 1.5;
 }
 
-/* Options Table */
+
 .optionsTable {
   width: 100%;
   border-collapse: collapse;
@@ -249,7 +249,7 @@
   transform: translateY(-2px);
 }
 
-/* Rich Text Editor Styles */
+
 .toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -341,7 +341,7 @@
   box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
 }
 
-/* Image Sections */
+
 .imageSection {
   margin-bottom: 15px;
 }
@@ -406,7 +406,7 @@
   color: #4CAF50;
 }
 
-/* Image Preview */
+
 .imagePreview {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -449,7 +449,7 @@
   margin-right: 8px;
 }
 
-/* Button Group */
+
 .buttonGroup {
   display: flex;
   gap: 15px;
@@ -497,7 +497,7 @@
   transform: none;
 }
 
-/* Notification */
+
 .notification {
   position: fixed;
   top: 20px;
@@ -533,7 +533,7 @@
   }
 }
 
-/* Responsive */
+
 @media (max-width: 1200px) {
   .editProductContainer {
     margin: 50px 100px auto;

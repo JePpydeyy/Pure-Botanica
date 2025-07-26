@@ -1,11 +1,11 @@
-  /* Reset cơ bản cho component, tránh selector toàn cục */
+  
   .container {
     max-width: 1290px;
     margin: 0 auto;
     padding: 0 20px;
   }
 
-  /* Product Section */
+  
   .product-section {
     display: flex;
     padding: 40px 0;
@@ -101,7 +101,7 @@
     font-weight: 500;
   }
 
-  /* Quantity Controls */
+  
   .quantity-controls {
     display: flex;
     align-items: center;
@@ -192,7 +192,7 @@
     background-color: #333;
   }
 
-  /* Additional Info */
+  
   .product-info-title {
     font-size: 18px;
     margin-bottom: 10px;
@@ -221,7 +221,7 @@
     line-height: 1.6;
   }
 
-  /* Customer Reviews */
+  
   .cr {
     background-color: #fafbf7;
   }
@@ -315,7 +315,7 @@
     background-color: #7a4a23;
   }
 
-  /* Style cho phần viết bình luận */
+  
   .write-review-section {
     background-color: #fff;
     padding: 50px;
@@ -376,7 +376,7 @@
     cursor: not-allowed;
   }
 
-  /* Contact Section */
+  
   .product-contact-section {
     margin: 100px 0;
     background-color: #f9e5e2;
@@ -481,7 +481,7 @@
     color: #000000;
   }
 
-  /* Star Rating */
+  
   .star-rating {
     display: flex;
     gap: 5px;
@@ -496,9 +496,9 @@
   .star:last-child {
     color: #ccc;
   }
-  /* Thêm các CSS class này vào file Detail.module.css của bạn */
+  
 
-/* Rating Overview Section */
+
 .rating-overview {
   display: flex;
   align-items: flex-start;
@@ -540,7 +540,7 @@
   color: #ddd;
 }
 
-/* Rating Breakdown */
+
 .rating-breakdown {
   flex: 1;
   max-width: 500px;
@@ -587,7 +587,7 @@
   text-align: right;
 }
 
-/* Filter Section */
+
 .filter-section {
   display: flex;
   align-items: center;
@@ -623,14 +623,14 @@
   border-color: #6B8E23;
 }
 
-/* Write Review Button */
+
 .write-review-container {
   display: flex;
   justify-content: flex-end;
   margin-bottom: 20px;
 }
 
-/* Update existing write-review class */
+
 .write-review {
   background-color: #6B8E23;
   color: #fff;
@@ -650,7 +650,7 @@
   background-color: #5a7a1f;
 }
 
-/* Update write-review-section */
+
 .write-review-section {
   background-color: #fff;
   padding: 30px;
@@ -671,7 +671,7 @@
   margin-bottom: 20px;
 }
 
-/* Form Buttons */
+
 .form-buttons {
   display: flex;
   gap: 10px;
@@ -693,7 +693,7 @@
   color: #333;
 }
 
-/* Reviews Container */
+
 .reviews-container {
   margin-top: 20px;
 }
@@ -705,7 +705,7 @@
   padding: 40px 0;
 }
 
-/* Update review-main-title */
+
 .review-main-title {
   font-size: 28px;
   font-weight: bold;
@@ -714,7 +714,7 @@
   text-align: left;
 }
 
-/* Update submit-comment */
+
 .submit-comment {
   background-color: #6B8E23;
   color: #fff;

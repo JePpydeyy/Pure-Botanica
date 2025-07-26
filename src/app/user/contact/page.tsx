@@ -238,7 +238,7 @@ const ContactPage: React.FC = () => {
             </button>
           </form>
 
-          {/* Toast Notification */}
+          {}
           {toastMessage && (
             <ToastNotification
               message={toastMessage.text}

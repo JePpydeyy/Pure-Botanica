@@ -1,4 +1,4 @@
-/* Reset cơ bản cho component */
+
 .productBanner,
 .product-main-title,
 .containerBox,
@@ -11,7 +11,7 @@
   font-family: "Poppins", sans-serif;
 }
 
-/* ----- BANNER SẢN PHẨM ----- */
+
 .productBanner {
   width: 100%;
   height: 700px;
@@ -23,7 +23,7 @@
   object-fit: cover;
 }
 
-/* ----- TIÊU ĐỀ TRANG ----- */
+
 .product-main-title {
   text-align: center;
   font-size: 32px;
@@ -31,7 +31,7 @@
   margin: 30px 0;
 }
 
-/* ----- CONTAINER CHÍNH ----- */
+
 .containerBox {
   display: flex;
   align-items: flex-start;
@@ -40,7 +40,7 @@
   margin: auto;
 }
 
-/* ----- SIDEBAR DANH MỤC SẢN PHẨM ----- */
+
 .productSidebar {
   padding: 20px;
 }
@@ -82,7 +82,7 @@
   color: #8d5524;
 }
 
-/* ----- DANH SÁCH SẢN PHẨM ----- */
+
 .productContainer {
   flex: 1;
   padding-left: 20px;
@@ -154,15 +154,15 @@
   margin-top: 50px;
 }
 
-/* Thêm style cho div chứa action icons */
+
 .actionIcons {
   display: flex;
   align-items: center;
-  gap: 10px; /* Khoảng cách 10px giữa các icon */
+  gap: 10px; 
   margin-top: 10px;
 }
 
-/* Style cho wishlist icon */
+
 .wishlistIcon {
   font-size: 23px;
   color: #555;
@@ -171,14 +171,14 @@
 }
 
 .wishlistIcon:hover {
-  color: #ff0000; /* Màu đỏ khi hover */
+  color: #ff0000; 
 }
 
 .wishlistIcon.favorited {
-  color: #ff0000; /* Màu đỏ khi đã yêu thích */
+  color: #ff0000; 
 }
 
-/* Style cho cart icon */
+
 .cartIcon {
   font-size: 23px;
   color: #555;
@@ -186,10 +186,10 @@
 }
 
 .cartIcon:hover {
-  color: #357e38; /* Màu xanh khi hover để chỉ giỏ hàng */
+  color: #357e38; 
 }
 
-/* CHUYỂN TRANG */
+
 .productPagination {
   display: flex;
   justify-content: center;
@@ -226,7 +226,7 @@
   cursor: not-allowed;
 }
 
-/* ----- CÓ THỂ BẠN SẼ THÍCH ----- */
+
 .best-selling-products {
   max-width: 1290px;
   margin: 0 auto;

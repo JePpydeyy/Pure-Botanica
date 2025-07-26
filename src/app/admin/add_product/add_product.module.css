@@ -81,7 +81,7 @@
   line-height: 1.5;
 }
 
-/* Product Options Styles */
+
 .optionsTable {
   width: 100%;
   border-collapse: collapse;
@@ -187,7 +187,7 @@
   background-color: #45a049;
 }
 
-/* Rich Text Editor Styles */
+
 .toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -358,7 +358,7 @@
   margin: 4px 0;
 }
 
-/* Image Upload Styles */
+
 .imageUploadArea {
   margin-bottom: 15px;
 }
@@ -474,7 +474,7 @@
   transform: scale(1.1);
 }
 
-/* Notification Styles */
+
 .notification {
   position: fixed;
   top: 20px;
@@ -543,7 +543,7 @@
   font-size: 18px;
 }
 
-/* Responsive Design */
+
 @media (max-width: 1200px) {
   .addProductContainer {
     margin: 50px 100px auto;

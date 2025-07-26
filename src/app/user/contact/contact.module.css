@@ -76,7 +76,7 @@
   .infoDetails {
     flex: 2;
     min-width: 250px;
-    border-top: none; /* bỏ border nếu thấy dư */
+    border-top: none; 
     border-bottom: none;
     padding: 0;
   }
@@ -89,7 +89,7 @@
     line-height: 1.5;
   }
   
-  /* Style cho Font Awesome icons */
+  
   .infoItem i {
     margin-right: 10px;
     min-width: 20px;

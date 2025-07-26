@@ -9,12 +9,12 @@ import { useCart } from "../context/CartContext";
 import ToastNotification from "../ToastNotification/ToastNotification";
 import { Cart, CartItem } from "@/app/components/cart_interface";
 
-// Biến môi trường
+// Environment variables
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api-zeal.onrender.com";
 const ERROR_IMAGE_URL = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
 const TIMEOUT_DURATION = 10000;
 
-// Hàm tiện ích: Lấy URL hình ảnh
+// Utility function: Get image URL
 const getImageUrl = (image: string): string => {
   if (!image || typeof image !== "string" || image.trim() === "") {
     console.warn("Invalid image URL detected, using fallback:", ERROR_IMAGE_URL);
@@ -31,7 +31,7 @@ const getImageUrl = (image: string): string => {
   }
 };
 
-// Hàm API: Gửi yêu cầu đến API với xử lý timeout
+// API request function with timeout handling
 const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
   const url = `${API_BASE_URL}${endpoint}`;
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
@@ -62,10 +62,12 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `Lỗi HTTP: ${response.status}`);
+      throw new Error(errorData.error || `Lỗi HTTP: ${response.status} - ${errorData.message || "Không có chi tiết"}`);
     }
 
-    return await response.json();
+    const data = await response.json();
+    console.log("API Response:", data); // Debug API response
+    return data;
   } catch (error) {
     clearTimeout(timeoutId);
     if (error instanceof Error && error.name === "AbortError") {
@@ -87,7 +89,7 @@ export default function CartPage() {
   const { setCheckoutData } = useCart();
   const [cacheBuster, setCacheBuster] = useState("");
 
-  // Tạo cacheBuster sau khi hydration
+  // Generate cacheBuster after hydration
   useEffect(() => {
     setCacheBuster(`t=${Date.now()}`);
   }, []);
@@ -95,6 +97,7 @@ export default function CartPage() {
   // Decode token to get userId
   useEffect(() => {
     const token = localStorage.getItem("token");
+    console.log("Token from localStorage:", token); // Debug token
     if (!token) {
       setCartMessage({ type: "error", text: "Vui lòng đăng nhập để xem giỏ hàng" });
       setLoading(false);
@@ -113,6 +116,7 @@ export default function CartPage() {
       );
       const decoded = JSON.parse(jsonPayload);
       const userIdFromToken = decoded.id || decoded._id;
+      console.log("Decoded userId from token:", userIdFromToken); // Debug userId
       if (!userIdFromToken) {
         setCartMessage({ type: "error", text: "Không tìm thấy userId trong token" });
         setLoading(false);
@@ -121,6 +125,7 @@ export default function CartPage() {
       }
       setUserId(userIdFromToken);
     } catch (err) {
+      console.error("Error decoding token:", err); // Debug token error
       setCartMessage({ type: "error", text: "Lỗi khi giải mã token" });
       setLoading(false);
       setTimeout(() => router.push("/user/login"), 3000);
@@ -129,34 +134,52 @@ export default function CartPage() {
 
   // Fetch cart data
   const fetchCart = async () => {
-    if (!userId) return;
+    if (!userId) {
+      console.log("No userId, skipping fetchCart"); // Debug
+      return;
+    }
 
+    setLoading(true);
     try {
       const cartData = await apiRequest(`/api/carts?userId=${userId}`);
-      // Validate cart items
-      if (cartData && Array.isArray(cartData.items)) {
-        const validItems = cartData.items.filter(
-          (item: CartItem) =>
-            item.product &&
-            item.product._id &&
-            item.product.name &&
-            Array.isArray(item.product.images) &&
-            item.option &&
-            typeof item.option._id === "string" &&
-            typeof item.option.price === "number" &&
-            typeof item.option.stock === "number"
-        );
-        setCart({ ...cartData, items: validItems });
-        console.log("Fetched cart data:", { ...cartData, items: validItems });
+      console.log("Raw cart data from API:", cartData); // Debug raw data
+
+      // Ensure cartData has the correct structure
+      if (cartData && cartData.items && Array.isArray(cartData.items)) {
+        const rawItemsCount = cartData.items.length;
+        const validItems = cartData.items
+          .filter(
+            (item: CartItem) =>
+              item.product &&
+              item.product._id &&
+              item.product.name &&
+              item.option && // Ensure option exists
+              item.option._id // Ensure option has an _id
+          )
+          .map((item) => ({
+            ...item,
+            optionId: item.option._id, // Explicitly set optionId from option._id
+          }));
+        console.log(`Raw items count: ${rawItemsCount}, Valid items count: ${validItems.length}`); // Debug
+
+        // Set cart with the full response and validated items
+        setCart({
+          ...cartData,
+          items: validItems,
+        });
       } else {
-        setCart({ ...cartData, items: [] });
+        setCart({ ...cartData, items: [] }); // Ensure items is always an array
         console.warn("Invalid cart data, setting empty items:", cartData);
       }
-      setLoading(false);
     } catch (err) {
-      setCartMessage({ type: "error", text: (err as Error).message || "Lỗi không xác định khi tải giỏ hàng" });
-      setLoading(false);
+      console.error("Error fetching cart:", err); // Debug error
+      setCartMessage({
+        type: "error",
+        text: (err as Error).message || "Lỗi không xác định khi tải giỏ hàng",
+      });
       setTimeout(() => setCartMessage(null), 3000);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -176,7 +199,7 @@ export default function CartPage() {
   const calculateSubtotal = (): number => {
     if (!cart || !cart.items || cart.items.length === 0) return 0;
     return cart.items.reduce((total, item) => {
-      if (!item.option || (item.option.stock ?? 0) <= 0) return total; // Skip invalid or out-of-stock items
+      if (!item.option || (item.option.stock ?? 0) <= 0) return total;
       const price = getProductPrice(item.option);
       return total + price * item.quantity;
     }, 0);
@@ -193,15 +216,24 @@ export default function CartPage() {
   const increaseQuantity = async (productId: string, optionId: string, currentQuantity: number) => {
     if (!userId) {
       setCartMessage({ type: "error", text: "Vui lòng đăng nhập để cập nhật số lượng" });
+      setTimeout(() => setCartMessage(null), 3000);
       return;
     }
 
-    const item = cart?.items.find((i) => i.product._id === productId && i.option?._id === optionId);
+    if (!productId || !optionId) {
+      setCartMessage({ type: "error", text: "Thiếu productId hoặc optionId" });
+      setTimeout(() => setCartMessage(null), 3000);
+      return;
+    }
+
+    const item = cart?.items.find((i) => i.product._id === productId && i.optionId === optionId);
     if (!item || !item.option) {
       setCartMessage({ type: "error", text: "Sản phẩm không hợp lệ" });
       setTimeout(() => setCartMessage(null), 3000);
       return;
     }
+
+    const originalOption = { ...item.option }; // Save original option data
     if ((item.option.stock ?? 0) <= currentQuantity) {
       setCartMessage({ type: "error", text: "Sản phẩm đã hết hàng hoặc số lượng vượt quá tồn kho" });
       setTimeout(() => setCartMessage(null), 3000);
@@ -210,7 +242,7 @@ export default function CartPage() {
 
     const newQuantity = currentQuantity + 1;
     try {
-      await apiRequest(`/api/carts/update`, {
+      const response = await apiRequest(`/api/carts/update`, {
         method: "PUT",
         body: JSON.stringify({
           userId,
@@ -219,7 +251,15 @@ export default function CartPage() {
           quantity: newQuantity,
         }),
       });
-      await fetchCart();
+      console.log("Update response:", response); // Debug response
+      // Merge response with original option to preserve stock
+      const updatedItem = response.items.find((i: CartItem) => i.product._id === productId && i.optionId === optionId);
+      if (updatedItem && !updatedItem.option) {
+        updatedItem.option = originalOption; // Restore option if missing
+      }
+      setCart(response);
+      setCartMessage({ type: "success", text: "Đã tăng số lượng sản phẩm!" });
+      setTimeout(() => setCartMessage(null), 3000);
     } catch (err) {
       setCartMessage({ type: "error", text: (err as Error).message || "Lỗi không xác định khi tăng số lượng" });
       setTimeout(() => setCartMessage(null), 3000);
@@ -230,11 +270,20 @@ export default function CartPage() {
   const decreaseQuantity = async (productId: string, optionId: string, currentQuantity: number) => {
     if (!userId) {
       setCartMessage({ type: "error", text: "Vui lòng đăng nhập để cập nhật số lượng" });
+      setTimeout(() => setCartMessage(null), 3000);
       return;
     }
 
     if (!productId || !optionId) {
       setCartMessage({ type: "error", text: "Thiếu productId hoặc optionId" });
+      setTimeout(() => setCartMessage(null), 3000);
+      return;
+    }
+
+    const item = cart?.items.find((i) => i.product._id === productId && i.optionId === optionId);
+    if (!item || !item.option) {
+      setCartMessage({ type: "error", text: "Sản phẩm không hợp lệ" });
+      setTimeout(() => setCartMessage(null), 3000);
       return;
     }
 
@@ -243,16 +292,10 @@ export default function CartPage() {
       return;
     }
 
-    const item = cart?.items.find((i) => i.product._id === productId && i.option?._id === optionId);
-    if (!item || !item.option) {
-      setCartMessage({ type: "error", text: "Sản phẩm không hợp lệ" });
-      setTimeout(() => setCartMessage(null), 3000);
-      return;
-    }
-
+    const originalOption = { ...item.option }; // Save original option data
     const newQuantity = currentQuantity - 1;
     try {
-      await apiRequest(`/api/carts/update`, {
+      const response = await apiRequest(`/api/carts/update`, {
         method: "PUT",
         body: JSON.stringify({
           userId,
@@ -261,7 +304,15 @@ export default function CartPage() {
           quantity: newQuantity,
         }),
       });
-      await fetchCart();
+      console.log("Update response:", response); // Debug response
+      // Merge response with original option to preserve stock
+      const updatedItem = response.items.find((i: CartItem) => i.product._id === productId && i.optionId === optionId);
+      if (updatedItem && !updatedItem.option) {
+        updatedItem.option = originalOption; // Restore option if missing
+      }
+      setCart(response);
+      setCartMessage({ type: "success", text: "Đã giảm số lượng sản phẩm!" });
+      setTimeout(() => setCartMessage(null), 3000);
     } catch (err) {
       setCartMessage({ type: "error", text: (err as Error).message || "Lỗi không xác định khi giảm số lượng" });
       setTimeout(() => setCartMessage(null), 3000);
@@ -272,11 +323,13 @@ export default function CartPage() {
   const removeItem = async (cartId: string, productId: string, optionId: string) => {
     if (!userId) {
       setCartMessage({ type: "error", text: "Vui lòng đăng nhập để xóa sản phẩm" });
+      setTimeout(() => setCartMessage(null), 3000);
       return;
     }
 
     if (!cartId || !productId || !optionId) {
       setCartMessage({ type: "error", text: "Thiếu cartId, productId hoặc optionId" });
+      setTimeout(() => setCartMessage(null), 3000);
       return;
     }
 
@@ -313,6 +366,7 @@ export default function CartPage() {
       return;
     }
 
+    const originalCart = { ...cart }; // Save original cart
     try {
       const data = await apiRequest(`/api/carts/update-price`, {
         method: "POST",
@@ -321,12 +375,33 @@ export default function CartPage() {
           couponCode,
         }),
       });
-      setDiscount(data.discount || 0);
-      setCartMessage({ type: "success", text: "Mã giảm giá đã được áp dụng!" });
+      console.log("UpdatePrice response:", data); // Debug response
+      if (data.success) {
+        setDiscount(data.discount || 0);
+        // Merge new cart data with original to preserve option
+        if (data.cart && data.cart.items) {
+          const updatedItems = data.cart.items.map((newItem: CartItem) => {
+            const originalItem = originalCart?.items.find(
+              (i) => i.product._id === newItem.product._id && i.optionId === newItem.optionId
+            );
+            return {
+              ...newItem,
+              option: newItem.option || originalItem?.option, // Preserve original option if missing
+            };
+          });
+          setCart({ ...data.cart, items: updatedItems });
+        }
+        setCartMessage({ type: "success", text: data.message });
+      } else {
+        setDiscount(0); // Reset discount on failure
+        setCart(originalCart); // Revert to original cart on failure
+        setCartMessage({ type: "error", text: data.error || "Lỗi khi áp dụng mã giảm giá" });
+      }
       setTimeout(() => setCartMessage(null), 3000);
     } catch (err) {
-      setCartMessage({ type: "error", text: "Lỗi khi áp dụng mã giảm giá" });
+      setCartMessage({ type: "error", text: (err as Error).message || "Lỗi không xác định khi áp dụng mã giảm giá" });
       setDiscount(0);
+      setCart(originalCart); // Revert to original cart on error
       setTimeout(() => setCartMessage(null), 3000);
     }
   };
@@ -343,7 +418,6 @@ export default function CartPage() {
       return;
     }
 
-    // Exclude out-of-stock or invalid items from checkout
     const validItems = cart.items.filter((item) => item.option && (item.option.stock ?? 0) > 0);
     if (validItems.length === 0) {
       setCartMessage({ type: "error", text: "Không có sản phẩm nào trong giỏ hàng có sẵn để thanh toán" });
@@ -406,7 +480,7 @@ export default function CartPage() {
                   const isOutOfStock = !item.option || (item.option.stock ?? 0) <= 0;
                   return (
                     <tr
-                      key={`${item.product._id}-${item.option?._id ?? index}-${index}`}
+                      key={`${item.product._id}-${item.optionId}-${index}`}
                       className={`${styles["cart-row"]} ${isOutOfStock ? styles["out-of-stock"] : ""}`}
                     >
                       <td className={`${styles["cart-cell"]} ${styles.product}`}>
@@ -438,7 +512,7 @@ export default function CartPage() {
                       <td className={`${styles["cart-cell"]} ${styles["quantity-controls"]}`}>
                         <button
                           className={`${styles["quantity-btn"]} ${styles.minus}`}
-                          onClick={() => decreaseQuantity(item.product._id, item.option?._id ?? "", item.quantity)}
+                          onClick={() => decreaseQuantity(item.product._id, item.optionId, item.quantity)}
                           disabled={isOutOfStock}
                         >
                           -
@@ -446,7 +520,7 @@ export default function CartPage() {
                         <span className={styles.quantity}>{item.quantity}</span>
                         <button
                           className={`${styles["quantity-btn"]} ${styles.plus}`}
-                          onClick={() => increaseQuantity(item.product._id, item.option?._id ?? "", item.quantity)}
+                          onClick={() => increaseQuantity(item.product._id, item.optionId, item.quantity)}
                           disabled={isOutOfStock}
                         >
                           +
@@ -458,7 +532,7 @@ export default function CartPage() {
                       <td className={styles["cart-cell"]}>
                         <i
                           className="fa-solid fa-trash"
-                          onClick={() => removeItem(cart._id, item.product._id, item.option?._id ?? "")}
+                          onClick={() => removeItem(cart._id, item.product._id, item.optionId)}
                           style={{ cursor: isOutOfStock ? "not-allowed" : "pointer", opacity: isOutOfStock ? 0.5 : 1 }}
                         ></i>
                       </td>
@@ -481,10 +555,7 @@ export default function CartPage() {
               value={couponCode}
               onChange={(e) => setCouponCode(e.target.value)}
             />
-            <button
-              className={`${styles["discount-btn"]} ${styles.apply}`}
-              onClick={handleApplyCoupon}
-            >
+            <button className={`${styles["discount-btn"]} ${styles.apply}`} onClick={handleApplyCoupon}>
               Sử dụng
             </button>
           </div>
@@ -511,11 +582,7 @@ export default function CartPage() {
         </div>
       </div>
       {cartMessage && (
-        <ToastNotification
-          message={cartMessage.text}
-          type={cartMessage.type}
-          onClose={() => setCartMessage(null)}
-        />
+        <ToastNotification message={cartMessage.text} type={cartMessage.type} onClose={() => setCartMessage(null)} />
       )}
     </div>
   );

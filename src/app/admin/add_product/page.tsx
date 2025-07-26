@@ -490,7 +490,7 @@ const AddProduct = () => {
         </div>
       )}
       <form onSubmit={handleSubmit} className={styles.form}>
-        {/* Thông tin cơ bản */}
+        {}
         <div className={styles.basicInfo}>
           <div className={styles.formRow}>
             <div className={styles.formGroup}>
@@ -558,7 +558,7 @@ const AddProduct = () => {
           </div>
         </div>
 
-        {/* Tùy chọn sản phẩm */}
+        {}
         <div className={styles.formGroup}>
           <label className={styles.label}>Tùy chọn sản phẩm *</label>
           <table className={styles.optionsTable}>
@@ -644,7 +644,7 @@ const AddProduct = () => {
           </button>
         </div>
 
-        {/* Rich Text Editor cho mô tả */}
+        {}
         <div className={styles.formGroup}>
           <label className={styles.label}>Mô tả chi tiết *</label>
           {renderToolbar()}
@@ -657,7 +657,7 @@ const AddProduct = () => {
           />
         </div>
 
-        {/* Hình ảnh */}
+        {}
         <div className={styles.formGroup}>
           <label className={styles.label}>Hình ảnh sản phẩm (tối đa 4 ảnh) *</label>
           <div className={styles.imageUploadArea}>

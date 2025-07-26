@@ -1,4 +1,4 @@
-/* === LAYOUT === */
+
 .configPage {
   padding: 24px;
   margin-top: 100px;
@@ -7,7 +7,7 @@
   font-family: 'Inter', sans-serif;
 }
 
-/* === TITLE BAR === */
+
 .titleContainer {
   display: flex;
   align-items: center;
@@ -25,7 +25,7 @@
   margin: 0;
 }
 
-/* === TABLE CONTAINER === */
+
 .tableContainer {
   margin: 24px auto;
   width: 100%;
@@ -36,7 +36,7 @@
   background-color: #fff;
 }
 
-/* === FORM STYLING === */
+
 .form {
   margin-bottom: 24px;
   padding: 20px;
@@ -64,7 +64,7 @@
   color: #004C59;
 }
 
-/* === INPUTS === */
+
 .searchInput {
   padding: 8px 12px;
   border: 1px solid #ccc;
@@ -83,7 +83,7 @@
   box-shadow: 0 0 4px rgba(76, 175, 80, 0.3);
 }
 
-/* === BUTTONS === */
+
 .addProductBtn {
   background-color: #004C59;
   color: #fff;
@@ -109,14 +109,14 @@
   cursor: not-allowed;
 }
 
-/* === FORM ACTIONS === */
+
 .formActions {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
 }
 
-/* === IMAGE PREVIEW === */
+
 .previewContainer {
   margin-top: 8px;
   display: flex;
@@ -133,14 +133,14 @@
   margin-top: 10px;
 }
 
-/* === TOAST NOTIFICATIONS === */
+
 .toast {
   position: fixed;
   top: 70px;
   right: 20px;
   padding: 15px 25px;
-  background-color: rgba(255, 255, 255, 0.95); /* White with slight transparency for purity */
-  color: #2e4a66; /* Deep blue-gray for text, aligning with stability */
+  background-color: rgba(255, 255, 255, 0.95); 
+  color: #2e4a66; 
   font-weight: 500;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   border-radius: 10px;
@@ -154,19 +154,19 @@
   max-width: 400px;
   transform: translateX(110%) scale(0.8) skewX(0deg);
   opacity: 0;
-  border-left: 4px solid transparent; /* Default border */
+  border-left: 4px solid transparent; 
 }
 
 .toast.success {
-  border-left-color: #3cb371; /* Green for success, symbolizing growth */
+  border-left-color: #3cb371; 
 }
 
 .toast.error {
-  border-left-color: #ff4444; /* Red for error, indicating urgency */
+  border-left-color: #ff4444; 
 }
 
 .toast.warning {
-  border-left-color: #f4c430; /* Gold/yellow for warning, evoking attention and prosperity */
+  border-left-color: #f4c430; 
 }
 
 @keyframes waterDropIn {
@@ -228,7 +228,7 @@
   flex-grow: 1;
 }
 
-/* === RESPONSIVE === */
+
 @media (max-width: 768px) {
   .titleContainer {
     flex-direction: column;

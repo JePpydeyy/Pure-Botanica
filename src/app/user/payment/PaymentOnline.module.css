@@ -72,20 +72,20 @@
 
 .qrCode {
   margin: 20px 0;
-  padding: 0; /* Loại bỏ padding để chỉ hiển thị mã QR */
-  background: none; /* Loại bỏ nền trắng */
-  border: none; /* Loại bỏ viền */
-  border-radius: 0; /* Loại bỏ bo góc */
+  padding: 0; 
+  background: none; 
+  border: none; 
+  border-radius: 0; 
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
 .qrCode img {
-  width: 230px; /* Kích thước khớp với hình ảnh */
-  height: 230px; /* Kích thước khớp với hình ảnh */
-  border: 2px solid #fff; /* Thêm viền trắng để nổi bật trên nền gradient */
-  border-radius: 5px; /* Bo góc nhẹ */
+  width: 230px; 
+  height: 230px; 
+  border: 2px solid #fff; 
+  border-radius: 5px; 
 }
 
 .note {
@@ -112,7 +112,7 @@
   background-color: #834818;
 }
 
-/* Media query cho mobile (dọc) */
+
 @media (max-width: 768px) {
   .qrContainer {
     flex-direction: column;
@@ -129,7 +129,7 @@
   }
 
   .qrCode img {
-    width: 200px; /* Giảm kích thước trên mobile */
+    width: 200px; 
     height: 200px;
   }
 

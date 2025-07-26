@@ -192,42 +192,42 @@
 .productItem {
   display: flex;
   align-items: center;
-  gap: 20px; /* Tăng khoảng cách giữa các phần tử */
-  margin-bottom: 20px; /* Tăng khoảng cách giữa các sản phẩm */
+  gap: 20px; 
+  margin-bottom: 20px; 
   border-bottom: 1px solid #eee;
-  padding-bottom: 15px; /* Tăng padding để cân bằng */
+  padding-bottom: 15px; 
 }
 
 .cartItemImage {
-  width: 100px; /* Tăng kích thước ảnh lên 100px */
+  width: 100px; 
   height: 100px;
-  object-fit: cover; /* Đảm bảo ảnh không bị méo */
+  object-fit: cover; 
   border-radius: 5px;
 }
 
 .cartItemName {
   font-weight: bold;
-  font-size: 1.1rem; /* Tăng kích thước chữ tên sản phẩm */
+  font-size: 1.1rem; 
 }
 
 .cartItemDesc {
   color: #666;
-  font-size: 1rem; /* Tăng kích thước chữ mô tả (số lượng) */
+  font-size: 1rem; 
 }
 
 .productInfo {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 5px; /* Thêm khoảng cách giữa tên và số lượng */
+  gap: 5px; 
 }
 
 .productPrice {
   font-weight: bold;
   color: #e74c3c;
-  font-size: 1.1rem; /* Tăng kích thước chữ giá */
-  min-width: 120px; /* Đảm bảo giá không bị dồn */
-  text-align: right; /* Căn phải để cân bằng bố cục */
+  font-size: 1.1rem; 
+  min-width: 120px; 
+  text-align: right; 
 }
 
 .addressSection {
@@ -276,7 +276,7 @@
 .backButton:hover {
   text-decoration: underline;
 }
-/* Tiêu đề của danh sách yêu thích */
+
 .title {
   font-size: 1.8rem;
   font-weight: 600;
@@ -285,7 +285,7 @@
   text-align: left;
 }
 
-/* Trạng thái đang tải */
+
 .loading {
   font-size: 1rem;
   color: #555;
@@ -293,7 +293,7 @@
   padding: 20px;
 }
 
-/* Trạng thái lỗi */
+
 .error {
   display: flex;
   flex-direction: column;
@@ -307,7 +307,7 @@
   font-size: 1rem;
 }
 
-/* Nút thử lại */
+
 .editButton {
   padding: 8px 20px;
   background: #2d8cf0;
@@ -323,7 +323,7 @@
   background: #1a73e8;
 }
 
-/* Thông báo khi không có sản phẩm yêu thích */
+
 .infoRow {
   font-size: 1rem;
   color: #555;
@@ -331,14 +331,14 @@
   padding: 20px;
 }
 
-/* Container cho danh sách sản phẩm yêu thích */
+
 .wishlistCards {
 
   gap: 20px;
   padding: 20px 0;
 }
 
-/* Thẻ sản phẩm yêu thích */
+
 .wishlistCard {
   display: flex;
   align-items: center;
@@ -350,7 +350,7 @@
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* Thông tin sản phẩm yêu thích */
+
 .wishlistInfo {
   flex: 1;
   margin-left: 10px;
@@ -373,7 +373,7 @@
   margin: 0;
 }
 
-/* Biểu tượng xóa */
+
 .removeIcon {
   position: absolute;
   top: 0;
@@ -388,7 +388,7 @@
   color: #c0392b;
 }
 
-/* Toast notification */
+
 .toastNotification {
   position: fixed;
   bottom: 20px;

@@ -1,4 +1,4 @@
-/* Category List Styles */
+
 .category-list {
   position: relative;
   display: inline-block;
@@ -22,7 +22,7 @@
   color: #007bff;
 }
 
-/* Dropdown Menu */
+
 .category-dropdown {
   position: absolute;
   top: 100%;
@@ -36,21 +36,21 @@
   padding: 8px 0;
   border: 1px solid #e0e0e0;
   
-  /* Hidden by default */
+  
   opacity: 0;
   visibility: hidden;
   transform: translateY(-10px);
   transition: all 0.3s ease;
 }
 
-/* Show dropdown on hover */
+
 .category-item:hover .category-dropdown {
   opacity: 1;
   visibility: visible;
   transform: translateY(0);
 }
 
-/* Dropdown items */
+
 .category-dropdown ul {
   list-style: none;
   padding: 0;
@@ -83,14 +83,14 @@
   padding-left: 20px;
 }
 
-/* Icon styles if needed */
+
 .category-dropdown li a i {
   font-size: 14px;
   width: 16px;
   text-align: center;
 }
 
-/* Smooth animation for better UX */
+
 .category-item::before {
   content: '';
   position: absolute;
@@ -102,7 +102,7 @@
   z-index: 999;
 }
 
-/* Alternative: Grid layout for multiple categories */
+
 .category-list-grid {
   display: flex;
   flex-wrap: wrap;
@@ -113,7 +113,7 @@
   flex: 0 0 auto;
 }
 
-/* Responsive design */
+
 @media (max-width: 768px) {
   .category-dropdown {
     min-width: 180px;
@@ -126,7 +126,7 @@
   }
 }
 
-/* User Menu Container (giữ nguyên code cũ) */
+
 .userMenuContainer {
   position: relative;
   display: inline-block;

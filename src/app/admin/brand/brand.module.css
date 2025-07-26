@@ -1,16 +1,16 @@
-/* === LAYOUT === */
+
 .NewManagementContainer {
   padding: 24px;
-  /* margin-top: 100px; */
+  
   background: #f9fafb;
   min-height: 100vh;
   font-family: 'Inter', sans-serif;
 }
 
-/* === TITLE BAR === */
+
 .titleContainer {
   justify-content: space-between;
-    /* align-items: center; */
+    
     width: 100%;
     max-width: 1240px;
     margin: 0 auto;
@@ -29,7 +29,7 @@ color: #357e38;
     margin-top: 100px;
 }
 
-/* === FILTER + ADD === */
+
 .filterContainer {
   display: flex;
   gap: 12px;
@@ -72,7 +72,7 @@ color: #357e38;
   background-color: #00333f;
 }
 
-/* === TABLE CONTAINER === */
+
 .tableContainer {
   margin: 24px auto;
   width: 100%;
@@ -83,7 +83,7 @@ color: #357e38;
   background-color: #fff;
 }
 
-/* === TABLE STYLING === */
+
 .productTable {
   width: 100%;
   border-collapse: collapse;
@@ -112,7 +112,7 @@ color: #357e38;
   background-color: #f8f9fa;
 }
 
-/* === LOGO === */
+
 .brandLogo {
   width: 200px;
   height: 100px;
@@ -120,7 +120,7 @@ color: #357e38;
   border-radius: 4px;
 }
 
-/* === STATUS === */
+
 .statusShow {
   background-color: #e6f4ea;
   color: #2e7d32;
@@ -139,7 +139,7 @@ color: #357e38;
   display: inline-block;
 }
 
-/* === ACTIONS === */
+
 .actionButtons {
   display: flex;
   align-items: center;
@@ -171,7 +171,7 @@ color: #357e38;
   background-color: #ffebee;
 }
 
-/* === IMAGE PREVIEW === */
+
 .previewContainer {
   margin-top: 8px;
 }
@@ -183,7 +183,7 @@ color: #357e38;
   object-fit: contain;
 }
 
-/* === POPUPS === */
+
 .popupOverlay {
   position: fixed;
   inset: 0;
@@ -244,7 +244,7 @@ color: #357e38;
   background-color: #777;
 }
 
-/* === NOTIFY TYPE === */
+
 .success {
   border-left: 5px solid #4CAF50;
 }
@@ -253,7 +253,7 @@ color: #357e38;
   border-left: 5px solid #f44336;
 }
 
-/* === RESPONSIVE === */
+
 @media (max-width: 768px) {
   .titleContainer {
     flex-direction: column;

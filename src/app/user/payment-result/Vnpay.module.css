@@ -21,7 +21,7 @@
 
 .title {
   font-size: 2rem;
-  color: #003087; /* VNPay blue */
+  color: #003087; 
   margin-bottom: 20px;
   font-weight: 700;
 }
@@ -48,7 +48,7 @@
 
 .qrInfo .label {
   font-weight: 600;
-  color: #003087; /* VNPay blue */
+  color: #003087; 
 }
 
 .qrCode {
@@ -66,7 +66,7 @@
 
 .note {
   font-size: 1rem;
-  color: #e74c3c; /* Red for emphasis */
+  color: #e74c3c; 
   margin: 20px 0;
   font-style: italic;
 }
@@ -77,7 +77,7 @@
 }
 
 .backBtn {
-  background-color: #003087; /* VNPay blue */
+  background-color: #003087; 
   color: #ffffff;
   padding: 12px 24px;
   border: none;
@@ -88,7 +88,7 @@
 }
 
 .backBtn:hover {
-  background-color: #0051cc; /* Lighter blue on hover */
+  background-color: #0051cc; 
 }
 
 .backBtn:disabled {

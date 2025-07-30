@@ -6,7 +6,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEdit, faEye, faEyeSlash, faCheck, faTimes, faPlus, faRedo } from "@fortawesome/free-solid-svg-icons";
-import { toast } from "react-toastify";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 interface Product {
   _id: string;
@@ -44,7 +45,10 @@ export default function Category() {
         });
         if (!res.ok) {
           if (res.status === 401) {
-            toast.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+            toast.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", {
+              className: styles.customToast,
+              bodyClassName: styles.customToastBody,
+            });
             localStorage.removeItem("token");
             router.push("/login");
             return;
@@ -54,7 +58,10 @@ export default function Category() {
         const data: Category[] = await res.json();
         setCategories(data);
       } catch (error: any) {
-        toast.error(error.message || "Đã xảy ra lỗi khi tải danh sách danh mục.");
+        toast.error(error.message || "Đã xảy ra lỗi khi tải danh sách danh mục.", {
+          className: styles.customToast,
+          bodyClassName: styles.customToastBody,
+        });
       } finally {
         setLoading(false);
       }
@@ -65,7 +72,10 @@ export default function Category() {
 
   const checkCategoryCanHide = useCallback(async (categoryId: string): Promise<boolean> => {
     if (!token) {
-      toast.error("Vui lòng đăng nhập lại!");
+      toast.error("Vui lòng đăng nhập lại!", {
+        className: styles.customToast,
+        bodyClassName: styles.customToastBody,
+      });
       router.push("/login");
       return false;
     }
@@ -87,23 +97,35 @@ export default function Category() {
       );
       if (allStockZero) return true;
 
-      toast.error("Không thể ẩn danh mục vì vẫn còn sản phẩm có tồn kho!");
+      toast.error("Không thể ẩn danh mục vì vẫn còn sản phẩm có tồn kho!", {
+        className: styles.customToast,
+        bodyClassName: styles.customToastBody,
+      });
       return false;
     } catch (error: any) {
-      toast.error(error.message || "Lỗi khi kiểm tra danh mục.");
+      toast.error(error.message || "Lỗi khi kiểm tra danh mục.", {
+        className: styles.customToast,
+        bodyClassName: styles.customToastBody,
+      });
       return false;
     }
   }, [token, router]);
 
   const handleToggleVisibility = useCallback(async (id: string) => {
     if (!token) {
-      toast.error("Vui lòng đăng nhập để thực hiện thao tác này!");
+      toast.error("Vui lòng đăng nhập để thực hiện thao tác này!", {
+        className: styles.customToast,
+        bodyClassName: styles.customToastBody,
+      });
       router.push("/login");
       return;
     }
     const category = categories.find((cat) => cat._id === id);
     if (!category) {
-      toast.error("Không tìm thấy danh mục!");
+      toast.error("Không tìm thấy danh mục!", {
+        className: styles.customToast,
+        bodyClassName: styles.customToastBody,
+      });
       return;
     }
 
@@ -133,14 +155,23 @@ export default function Category() {
         if (res.status === 400) {
           setShowStockWarning(name);
         } else {
-          toast.error(result.message || `Không thể ${action} danh mục "${name}"`);
+          toast.error(result.message || `Không thể ${action} danh mục "${name}"`, {
+            className: styles.customToast,
+            bodyClassName: styles.customToastBody,
+          });
         }
         return;
       }
       setCategories((prev) => prev.map((cat) => (cat._id === id ? result.category : cat)));
-      toast.success(`Danh mục "${name}" đã được ${result.category.status === "show" ? "hiển thị" : "ẩn"} thành công!`);
+      toast.success(`Danh mục "${name}" đã được ${result.category.status === "show" ? "hiển thị" : "ẩn"} thành công!`, {
+        className: styles.customToast,
+        bodyClassName: styles.customToastBody,
+      });
     } catch (error: any) {
-      toast.error(error.message || `Không thể ${action} danh mục "${name}"`);
+      toast.error(error.message || `Không thể ${action} danh mục "${name}"`, {
+        className: styles.customToast,
+        bodyClassName: styles.customToastBody,
+      });
     } finally {
       setShowConfirmPopup(null);
     }
@@ -155,12 +186,18 @@ export default function Category() {
 
   const handleUpdate = useCallback(async (id: string, updatedName: string) => {
     if (!token) {
-      toast.error("Vui lòng đăng nhập để thực hiện thao tác này!");
+      toast.error("Vui lòng đăng nhập để thực hiện thao tác này!", {
+        className: styles.customToast,
+        bodyClassName: styles.customToastBody,
+      });
       router.push("/login");
       return;
     }
     if (!updatedName.trim()) {
-      toast.error("Tên danh mục không được để trống!");
+      toast.error("Tên danh mục không được để trống!", {
+        className: styles.customToast,
+        bodyClassName: styles.customToastBody,
+      });
       return;
     }
     try {
@@ -173,7 +210,10 @@ export default function Category() {
         body: JSON.stringify({ name: updatedName }),
       });
       if (res.status === 401) {
-        toast.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+        toast.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", {
+          className: styles.customToast,
+          bodyClassName: styles.customToastBody,
+        });
         localStorage.removeItem("token");
         setToken(null);
         router.push("/login");
@@ -186,9 +226,15 @@ export default function Category() {
       const { category } = await res.json();
       setCategories((prev) => prev.map((cat) => (cat._id === id ? category : cat)));
       setEditingCategory(null);
-      toast.success("Cập nhật danh mục thành công!");
+      toast.success("Cập nhật danh mục thành công!", {
+        className: styles.customToast,
+        bodyClassName: styles.customToastBody,
+      });
     } catch (error: any) {
-      toast.error(`Cập nhật thất bại: ${error.message}`);
+      toast.error(`Cập nhật thất bại: ${error.message}`, {
+        className: styles.customToast,
+        bodyClassName: styles.customToastBody,
+      });
     }
   }, [token, router]);
 
@@ -246,6 +292,20 @@ export default function Category() {
 
   return (
     <div className={styles.productManagementContainer}>
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+        toastClassName={styles.customToast}
+        bodyClassName={styles.customToastBody}
+      />
       <div className={styles.titleContainer}>
         <h1>Quản Lý Danh Mục</h1>
         <div className={styles.filterContainer}>
@@ -279,35 +339,89 @@ export default function Category() {
         </div>
       </div>
       <div className={styles.tableContainer}>
-        <table className={styles.productTable}><thead className={styles.productTableThead}><tr><th>Tên Danh Mục</th><th>Số Sản Phẩm</th><th>Trạng Thái</th><th>Hành Động</th></tr></thead><tbody>{currentCategories.length === 0 ? (<tr><td colSpan={4} className={styles.emptyState}><h3>Không có danh mục</h3><p>Vui lòng thêm danh mục mới hoặc điều chỉnh bộ lọc/tìm kiếm.</p></td></tr>) : (currentCategories.map((category) => (<tr key={category._id} className={styles.productRow}><td>{editingCategory?._id === category._id ? (<input
-                  type="text"
-                  value={editingCategory.name}
-                  onChange={(e) =>
-                    setEditingCategory({ ...editingCategory, name: e.target.value })
-                  }
-                  className={styles.searchInput}
-                  aria-label="Chỉnh sửa tên danh mục"
-                />) : (category.name)}</td><td>{category.productCount ?? 0}</td><td>{category.status === "show" ? "Hiển thị" : "Ẩn"}</td><td className={styles.actionButtons}>{editingCategory?._id === category._id ? (<><button
-                    className={styles.editBtn}
-                    onClick={() => handleUpdate(category._id, editingCategory.name)}
-                    title="Lưu"
-                    aria-label="Lưu thay đổi danh mục"
-                  ><FontAwesomeIcon icon={faCheck} /></button><button
-                    className={styles.toggleStatusBtn}
-                    onClick={() => setEditingCategory(null)}
-                    title="Hủy"
-                    aria-label="Hủy chỉnh sửa danh mục"
-                  ><FontAwesomeIcon icon={faTimes} /></button></>) : (<><button
-                    className={styles.editBtn}
-                    onClick={() => handleEdit(category._id)}
-                    title="Chỉnh sửa"
-                    aria-label="Chỉnh sửa danh mục"
-                  ><FontAwesomeIcon icon={faEdit} /></button><button
-                    className={styles.toggleStatusBtn}
-                    onClick={() => handleToggleVisibility(category._id)}
-                    title={category.status === "show" ? "Ẩn danh mục" : "Hiển thị danh mục"}
-                    aria-label={category.status === "show" ? "Ẩn danh mục" : "Hiển thị danh mục"}
-                  ><FontAwesomeIcon icon={category.status === "show" ? faEyeSlash : faEye} /></button></>)}</td></tr>)))}</tbody></table>
+        <table className={styles.productTable}>
+          <thead className={styles.productTableThead}>
+            <tr>
+              <th>Tên Danh Mục</th>
+              <th>Số Sản Phẩm</th>
+              <th>Trạng Thái</th>
+              <th>Hành Động</th>
+            </tr>
+          </thead>
+          <tbody>
+            {currentCategories.length === 0 ? (
+              <tr>
+                <td colSpan={4} className={styles.emptyState}>
+                  <h3>Không có danh mục</h3>
+                  <p>Vui lòng thêm danh mục mới hoặc điều chỉnh bộ lọc/tìm kiếm.</p>
+                </td>
+              </tr>
+            ) : (
+              currentCategories.map((category) => (
+                <tr key={category._id} className={styles.productRow}>
+                  <td>
+                    {editingCategory?._id === category._id ? (
+                      <input
+                        type="text"
+                        value={editingCategory.name}
+                        onChange={(e) =>
+                          setEditingCategory({ ...editingCategory, name: e.target.value })
+                        }
+                        className={styles.searchInput}
+                        aria-label="Chỉnh sửa tên danh mục"
+                      />
+                    ) : (
+                      category.name
+                    )}
+                  </td>
+                  <td>{category.productCount ?? 0}</td>
+                  <td>{category.status === "show" ? "Hiển thị" : "Ẩn"}</td>
+                  <td className={styles.actionButtons}>
+                    {editingCategory?._id === category._id ? (
+                      <>
+                        <button
+                          className={styles.editBtn}
+                          onClick={() => handleUpdate(category._id, editingCategory.name)}
+                          title="Lưu"
+                          aria-label="Lưu thay đổi danh mục"
+                        >
+                          <FontAwesomeIcon icon={faCheck} />
+                        </button>
+                        <button
+                          className={styles.toggleStatusBtn}
+                          onClick={() => setEditingCategory(null)}
+                          title="Hủy"
+                          aria-label="Hủy chỉnh sửa danh mục"
+                        >
+                          <FontAwesomeIcon icon={faTimes} />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          className={styles.editBtn}
+                          onClick={() => handleEdit(category._id)}
+                          title="Chỉnh sửa"
+                          aria-label="Chỉnh sửa danh mục"
+                        >
+                          <FontAwesomeIcon icon={faEdit} />
+                        </button>
+                        <button
+                          className={styles.toggleStatusBtn}
+                          onClick={() => handleToggleVisibility(category._id)}
+                          title={category.status === "show" ? "Ẩn danh mục" : "Hiển thị danh mục"}
+                          aria-label={category.status === "show" ? "Ẩn danh mục" : "Hiển thị danh mục"}
+                        >
+                          <FontAwesomeIcon icon={category.status === "show" ? faEyeSlash : faEye} />
+                        </button>
+                      </>
+                    )}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
       {totalPages > 1 && (
         <div className={styles.pagination}>
@@ -322,12 +436,16 @@ export default function Category() {
                       onClick={() => handlePageChange(1)}
                       disabled={loading}
                       title="Trang đầu tiên"
-                    >1</button>
+                    >
+                      1
+                    </button>
                     <div
                       className={styles.ellipsis}
                       onClick={() => handlePageChange(Math.max(1, currentPage - 3))}
                       title="Trang trước đó"
-                    >...</div>
+                    >
+                      ...
+                    </div>
                   </>
                 )}
                 {visiblePages.map((page) => (
@@ -337,7 +455,9 @@ export default function Category() {
                     onClick={() => handlePageChange(page)}
                     disabled={loading}
                     title={`Trang ${page}`}
-                  >{page}</button>
+                  >
+                    {page}
+                  </button>
                 ))}
                 {showNextEllipsis && (
                   <>
@@ -345,13 +465,17 @@ export default function Category() {
                       className={styles.ellipsis}
                       onClick={() => handlePageChange(Math.min(totalPages, currentPage + 3))}
                       title="Trang tiếp theo"
-                    >...</div>
+                    >
+                      ...
+                    </div>
                     <button
                       className={`${styles.pageLink} ${styles.firstLastPage}`}
                       onClick={() => handlePageChange(totalPages)}
                       disabled={loading}
                       title="Trang cuối cùng"
-                    >{totalPages}</button>
+                    >
+                      {totalPages}
+                    </button>
                   </>
                 )}
               </>

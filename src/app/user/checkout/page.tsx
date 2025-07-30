@@ -36,8 +36,6 @@ export default function CheckoutPage() {
   const [showAddressPopup, setShowAddressPopup] = useState(false);
   const [addressTab, setAddressTab] = useState<"saved" | "new">("saved");
   const [newAddress, setNewAddress] = useState({
-    fullName: "",
-    sdt: "",
     addressLine: "",
     ward: "",
     district: "",
@@ -48,7 +46,6 @@ export default function CheckoutPage() {
   const [wards, setWards] = useState<any[]>([]);
   const [cacheBuster, setCacheBuster] = useState(""); // Thêm cacheBuster
 
-  
   useEffect(() => {
     setCacheBuster(`t=${Date.now()}`);
   }, []);
@@ -250,25 +247,21 @@ export default function CheckoutPage() {
   const handleSelectAddress = (address: any) => {
     setFormData((prev) => ({
       ...prev,
-      fullName: address.fullName || userInfo?.username || "",
       addressLine: address.addressLine || "",
       ward: address.ward || "",
       district: address.district || "",
       cityOrProvince: address.cityOrProvince || "",
-      sdt: address.sdt || userInfo?.phone || "",
     }));
     setShowAddressPopup(false);
   };
 
   const handleSaveNewAddress = () => {
-    if (!newAddress.fullName || !newAddress.sdt || !newAddress.addressLine || !newAddress.ward || !newAddress.district || !newAddress.cityOrProvince) {
+    if (!newAddress.addressLine || !newAddress.ward || !newAddress.district || !newAddress.cityOrProvince) {
       toast.error("Vui lòng điền đầy đủ thông tin địa chỉ mới.");
       return;
     }
     setFormData((prev) => ({
       ...prev,
-      fullName: newAddress.fullName,
-      sdt: newAddress.sdt,
       addressLine: newAddress.addressLine,
       ward: newAddress.ward,
       district: newAddress.district,
@@ -277,8 +270,6 @@ export default function CheckoutPage() {
     setShowAddressPopup(false);
     setAddressTab("saved");
     setNewAddress({
-      fullName: "",
-      sdt: "",
       addressLine: "",
       ward: "",
       district: "",
@@ -359,7 +350,6 @@ export default function CheckoutPage() {
       }
     }
 
-    
     const cleanData = {
       userId,
       addressLine: formData.addressLine.trim(),
@@ -537,12 +527,9 @@ export default function CheckoutPage() {
                                 <div className={styles.addressItem}>
                                   <div>
                                     <strong>Địa chỉ mặc định:</strong><br />
-                                    {userInfo.username} - {userInfo.phone}<br />
                                     {userInfo.addressLine}, {userInfo.ward}, {userInfo.district}, {userInfo.cityOrProvince}
                                   </div>
                                   <button type="button" onClick={() => handleSelectAddress({
-                                    fullName: userInfo.username,
-                                    sdt: userInfo.phone,
                                     addressLine: userInfo.addressLine,
                                     ward: userInfo.ward,
                                     district: userInfo.district,
@@ -556,12 +543,9 @@ export default function CheckoutPage() {
                                 <div className={styles.addressItem}>
                                   <div>
                                     <strong>Địa chỉ gần đây 1:</strong><br />
-                                    {userInfo.username} - {userInfo.phone}<br />
                                     {userInfo.temporaryAddress1.addressLine}, {userInfo.temporaryAddress1.ward}, {userInfo.temporaryAddress1.district}, {userInfo.temporaryAddress1.cityOrProvince}
                                   </div>
                                   <button type="button" onClick={() => handleSelectAddress({
-                                    fullName: userInfo.username,
-                                    sdt: userInfo.phone,
                                     addressLine: userInfo.temporaryAddress1!.addressLine,
                                     ward: userInfo.temporaryAddress1!.ward,
                                     district: userInfo.temporaryAddress1!.district,
@@ -575,12 +559,9 @@ export default function CheckoutPage() {
                                 <div className={styles.addressItem}>
                                   <div>
                                     <strong>Địa chỉ gần đây 2:</strong><br />
-                                    {userInfo.username} - {userInfo.phone}<br />
                                     {userInfo.temporaryAddress2.addressLine}, {userInfo.temporaryAddress2.ward}, {userInfo.temporaryAddress2.district}, {userInfo.temporaryAddress2.cityOrProvince}
                                   </div>
                                   <button type="button" onClick={() => handleSelectAddress({
-                                    fullName: userInfo.username,
-                                    sdt: userInfo.phone,
                                     addressLine: userInfo.temporaryAddress2!.addressLine,
                                     ward: userInfo.temporaryAddress2!.ward,
                                     district: userInfo.temporaryAddress2!.district,
@@ -593,7 +574,6 @@ export default function CheckoutPage() {
                               {(userInfo.addresses || []).map((address, idx) => (
                                 <div key={idx} className={styles.addressItem}>
                                   <div>
-                                    {address.fullName} - {address.sdt}<br />
                                     {address.addressLine}, {address.ward}, {address.district}, {address.cityOrProvince}
                                   </div>
                                   <button type="button" onClick={() => handleSelectAddress(address)}>
@@ -608,20 +588,6 @@ export default function CheckoutPage() {
                         </>
                       ) : (
                         <div>
-                          <input
-                            type="text"
-                            placeholder="Họ và tên"
-                            value={newAddress.fullName}
-                            onChange={e => setNewAddress(f => ({ ...f, fullName: e.target.value }))}
-                            required
-                          />
-                          <input
-                            type="text"
-                            placeholder="Số điện thoại"
-                            value={newAddress.sdt}
-                            onChange={e => setNewAddress(f => ({ ...f, sdt: e.target.value }))}
-                            required
-                          />
                           <input
                             type="text"
                             placeholder="Địa chỉ cụ thể"
@@ -643,7 +609,7 @@ export default function CheckoutPage() {
                           </select>
                           <select
                             name="district"
-                             title="Quận/Huyện"
+                            title="Quận/Huyện"
                             value={newAddress.district}
                             onChange={e => setNewAddress(f => ({ ...f, district: e.target.value, ward: "" }))}
                             required
@@ -656,7 +622,7 @@ export default function CheckoutPage() {
                           </select>
                           <select
                             name="ward"
-                             title="Xã/Phường"
+                            title="Xã/Phường"
                             value={newAddress.ward}
                             onChange={e => setNewAddress(f => ({ ...f, ward: e.target.value }))}
                             required
@@ -682,8 +648,8 @@ export default function CheckoutPage() {
                   name="fullName"
                   placeholder="Họ và Tên *"
                   value={formData.fullName}
-                  onChange={handleChange}
-                  required
+                  readOnly
+                  className={styles.readOnlyInput}
                 />
                 <input
                   type="text"
@@ -722,8 +688,8 @@ export default function CheckoutPage() {
                   name="sdt"
                   placeholder="Số điện thoại (ví dụ: 0342031354) *"
                   value={formData.sdt}
-                  onChange={handleChange}
-                  required
+                  readOnly
+                  className={styles.readOnlyInput}
                   pattern="[0-9]{10}"
                   title="Số điện thoại phải có 10 chữ số"
                 />
@@ -850,4 +816,4 @@ export default function CheckoutPage() {
       </div>
     </div>
   );
-}
+} 

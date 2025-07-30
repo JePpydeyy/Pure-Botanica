@@ -3,6 +3,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import styles from "./add_product.module.css";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 // Định nghĩa giao diện TypeScript
 interface Category {
@@ -18,17 +20,11 @@ interface Brand {
 }
 
 interface Option {
-  value: string; // Giá trị số (e.g., "50")
-  unit: "ml" | "g"; // Đơn vị
+  value: string;
+  unit: "ml" | "g";
   price: string;
   discount_price: string;
   stock: string;
-}
-
-interface Notification {
-  show: boolean;
-  message: string;
-  type: "success" | "error";
 }
 
 interface ActiveFormats {
@@ -56,11 +52,6 @@ const AddProduct = () => {
     options: [{ value: "", unit: "ml", price: "", discount_price: "", stock: "" }] as Option[],
     images: [] as File[],
   });
-  const [notification, setNotification] = useState<Notification>({
-    show: false,
-    message: "",
-    type: "success",
-  });
   const [activeFormats, setActiveFormats] = useState<ActiveFormats>({
     bold: false,
     italic: false,
@@ -82,6 +73,10 @@ const AddProduct = () => {
     const token = localStorage.getItem("token");
     const role = localStorage.getItem("role");
     if (!token || role !== "admin") {
+      toast.error("Bạn cần quyền admin để truy cập trang này.", {
+        className: styles.customToast,
+        bodyClassName: styles.customToastBody,
+      });
       router.push("/user/login");
     }
   }, [router]);
@@ -96,8 +91,13 @@ const AddProduct = () => {
           cache: "no-store",
         });
         if (response.status === 401 || response.status === 403) {
-          alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
+          toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!", {
+            className: styles.customToast,
+            bodyClassName: styles.customToastBody,
+          });
           localStorage.removeItem("token");
+          localStorage.removeItem("role");
+          localStorage.removeItem("email");
           router.push("/user/login");
           return;
         }
@@ -106,7 +106,10 @@ const AddProduct = () => {
         setCategories(data);
       } catch (error) {
         console.error("Lỗi khi tải danh mục:", error);
-        showNotification("Không thể tải danh mục", "error");
+        toast.error("Không thể tải danh mục", {
+          className: styles.customToast,
+          bodyClassName: styles.customToastBody,
+        });
       }
     };
 
@@ -118,8 +121,13 @@ const AddProduct = () => {
           cache: "no-store",
         });
         if (response.status === 401 || response.status === 403) {
-          alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
+          toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!", {
+            className: styles.customToast,
+            bodyClassName: styles.customToastBody,
+          });
           localStorage.removeItem("token");
+          localStorage.removeItem("role");
+          localStorage.removeItem("email");
           router.push("/user/login");
           return;
         }
@@ -128,7 +136,10 @@ const AddProduct = () => {
         setBrands(data);
       } catch (error) {
         console.error("Lỗi khi tải thương hiệu:", error);
-        showNotification("Không thể tải thương hiệu", "error");
+        toast.error("Không thể tải thương hiệu", {
+          className: styles.customToast,
+          bodyClassName: styles.customToastBody,
+        });
       }
     };
 
@@ -187,10 +198,17 @@ const AddProduct = () => {
   };
 
   const showNotification = (message: string, type: "success" | "error") => {
-    setNotification({ show: true, message, type });
-    setTimeout(() => {
-      setNotification({ show: false, message: "", type: "success" });
-    }, 3000);
+    if (type === "success") {
+      toast.success(message, {
+        className: styles.customToast,
+        bodyClassName: styles.customToastBody,
+      });
+    } else {
+      toast.error(message, {
+        className: styles.customToast,
+        bodyClassName: styles.customToastBody,
+      });
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -418,7 +436,7 @@ const AddProduct = () => {
         "option",
         JSON.stringify(
           formData.options.map((opt) => ({
-            value: `${opt.value}${opt.unit}`, // Kết hợp value và unit, e.g., "50ml"
+            value: `${opt.value}${opt.unit}`,
             price: Number(opt.price),
             discount_price: opt.discount_price ? Number(opt.discount_price) : undefined,
             stock: Number(opt.stock),
@@ -437,9 +455,13 @@ const AddProduct = () => {
       });
 
       if (response.status === 401 || response.status === 403) {
-        alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
+        toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!", {
+          className: styles.customToast,
+          bodyClassName: styles.customToastBody,
+        });
         localStorage.removeItem("token");
         localStorage.removeItem("role");
+        localStorage.removeItem("email");
         router.push("/user/login");
         return;
       }
@@ -482,226 +504,235 @@ const AddProduct = () => {
   };
 
   return (
-    <div className={styles.addProductContainer}>
-      <h1 className={styles.title}>Thêm sản phẩm</h1>
-      {notification.show && (
-        <div className={`${styles.notification} ${styles[notification.type]}`}>
-          {notification.message}
-        </div>
-      )}
-      <form onSubmit={handleSubmit} className={styles.form}>
-        {}
-        <div className={styles.basicInfo}>
-          <div className={styles.formRow}>
+    <main className={styles.mainContainer}>
+      <div className={styles.maintitle}>
+        <h1 className={styles.title}>Thêm sản phẩm</h1>
+      </div>
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+        toastClassName={styles.customToast}
+        bodyClassName={styles.customToastBody}
+      />
+      <div className={styles.contentWrapper}>
+        <form onSubmit={handleSubmit} className={styles.form}>
+          <div className={styles.basicInfo}>
+            <div className={styles.formRow}>
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Tên sản phẩm *</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  className={styles.input}
+                  required
+                  placeholder="Nhập tên sản phẩm"
+                />
+              </div>
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Danh mục *</label>
+                <select
+                  name="id_category"
+                  value={formData.id_category}
+                  onChange={handleSelectChange}
+                  className={styles.select}
+                  required
+                >
+                  <option value="">-- Chọn danh mục --</option>
+                  {categories
+                    .filter((cat) => cat.status !== "hidden")
+                    .map((cat) => (
+                      <option key={cat._id} value={cat._id}>
+                        {cat.name}
+                      </option>
+                    ))}
+                </select>
+              </div>
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Thương hiệu *</label>
+                <select
+                  name="id_brand"
+                  value={formData.id_brand}
+                  onChange={handleSelectChange}
+                  className={styles.select}
+                  required
+                >
+                  <option value="">-- Chọn thương hiệu --</option>
+                  {brands
+                    .filter((brand) => brand.status !== "hidden")
+                    .map((brand) => (
+                      <option key={brand._id} value={brand._id}>
+                        {brand.name}
+                      </option>
+                    ))}
+                </select>
+              </div>
+            </div>
             <div className={styles.formGroup}>
-              <label className={styles.label}>Tên sản phẩm *</label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
+              <label className={styles.label}>Mô tả ngắn *</label>
+              <textarea
+                name="short_description"
+                value={formData.short_description}
                 onChange={handleInputChange}
-                className={styles.input}
+                className={styles.textarea}
                 required
-                placeholder="Nhập tên sản phẩm"
+                placeholder="Nhập mô tả ngắn (tối đa 200 ký tự)"
+                maxLength={200}
               />
             </div>
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Danh mục *</label>
-              <select
-                name="id_category"
-                value={formData.id_category}
-                onChange={handleSelectChange}
-                className={styles.select}
-                required
-              >
-                <option value="">-- Chọn danh mục --</option>
-                {categories
-                  .filter((cat) => cat.status !== "hidden")
-                  .map((cat) => (
-                    <option key={cat._id} value={cat._id}>
-                      {cat.name}
-                    </option>
-                  ))}
-              </select>
-            </div>
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Thương hiệu *</label>
-              <select
-                name="id_brand"
-                value={formData.id_brand}
-                onChange={handleSelectChange}
-                className={styles.select}
-                required
-              >
-                <option value="">-- Chọn thương hiệu --</option>
-                {brands
-                  .filter((brand) => brand.status !== "hidden")
-                  .map((brand) => (
-                    <option key={brand._id} value={brand._id}>
-                      {brand.name}
-                    </option>
-                  ))}
-              </select>
-            </div>
           </div>
-          <div className={styles.formGroup}>
-            <label className={styles.label}>Mô tả ngắn *</label>
-            <textarea
-              name="short_description"
-              value={formData.short_description}
-              onChange={handleInputChange}
-              className={styles.textarea}
-              required
-              placeholder="Nhập mô tả ngắn (tối đa 200 ký tự)"
-              maxLength={200}
-            />
-          </div>
-        </div>
 
-        {}
-        <div className={styles.formGroup}>
-          <label className={styles.label}>Tùy chọn sản phẩm *</label>
-          <table className={styles.optionsTable}>
-            <thead>
-              <tr>
-                <th>Kích thước</th>
-                <th>Giá gốc</th>
-                <th>Giá khuyến mãi</th>
-                <th>Số lượng</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {formData.options.map((option, index) => (
-                <tr key={index} className={styles.optionRow}>
-                  <td className={styles.sizeColumn}>
-                    <div className={styles.sizeInputGroup}>
+          <div className={styles.formGroup}>
+            <label className={styles.label}>Tùy chọn sản phẩm *</label>
+            <table className={styles.optionsTable}>
+              <thead>
+                <tr>
+                  <th>Kích thước</th>
+                  <th>Giá gốc</th>
+                  <th>Giá khuyến mãi</th>
+                  <th>Số lượng</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {formData.options.map((option, index) => (
+                  <tr key={index} className={styles.optionRow}>
+                    <td className={styles.sizeColumn}>
+                      <div className={styles.sizeInputGroup}>
+                        <input
+                          type="number"
+                          placeholder="e.g., 50"
+                          value={option.value}
+                          onChange={(e) => handleOptionChange(index, "value", e.target.value)}
+                          className={styles.input}
+                          required
+                          min="0"
+                        />
+                        <select
+                          value={option.unit}
+                          onChange={(e) => handleOptionChange(index, "unit", e.target.value)}
+                          className={styles.unitSelect}
+                          required
+                        >
+                          <option value="ml">ml</option>
+                          <option value="g">g</option>
+                        </select>
+                      </div>
+                    </td>
+                    <td>
                       <input
                         type="number"
-                        placeholder="e.g., 50"
-                        value={option.value}
-                        onChange={(e) => handleOptionChange(index, "value", e.target.value)}
+                        placeholder="Giá gốc"
+                        value={option.price}
+                        onChange={(e) => handleOptionChange(index, "price", e.target.value)}
                         className={styles.input}
                         required
                         min="0"
                       />
-                      <select
-                        value={option.unit}
-                        onChange={(e) => handleOptionChange(index, "unit", e.target.value)}
-                        className={styles.unitSelect}
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        placeholder="Giá khuyến mãi"
+                        value={option.discount_price}
+                        onChange={(e) => handleOptionChange(index, "discount_price", e.target.value)}
+                        className={styles.input}
+                        min="0"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        placeholder="Số lượng"
+                        value={option.stock}
+                        onChange={(e) => handleOptionChange(index, "stock", e.target.value)}
+                        className={styles.input}
                         required
-                      >
-                        <option value="ml">ml</option>
-                        <option value="g">g</option>
-                      </select>
-                    </div>
-                  </td>
-                  <td>
-                    <input
-                      type="number"
-                      placeholder="Giá gốc"
-                      value={option.price}
-                      onChange={(e) => handleOptionChange(index, "price", e.target.value)}
-                      className={styles.input}
-                      required
-                      min="0"
+                        min="0"
+                      />
+                    </td>
+                    <td>
+                      {formData.options.length > 1 && (
+                        <button type="button" className={styles.removeBtn} onClick={() => removeOption(index)}>
+                          ✕
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <button type="button" className={styles.addOptionBtn} onClick={addOption}>
+              Thêm tùy chọn +
+            </button>
+          </div>
+
+          <div className={styles.formGroup}>
+            <label className={styles.label}>Mô tả chi tiết *</label>
+            {renderToolbar()}
+            <div
+              ref={editorRef}
+              className={styles.editor}
+              contentEditable
+              onInput={handleDescriptionChange}
+              data-placeholder="Nhập mô tả sản phẩm chi tiết, thành phần, hướng dẫn sử dụng, đặc điểm nổi bật..."
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label className={styles.label}>Hình ảnh sản phẩm (tối đa 4 ảnh) *</label>
+            <div className={styles.imageUploadArea}>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleFileChange}
+                className={styles.fileInput}
+                id="imageInput"
+              />
+              <label htmlFor="imageInput" className={styles.uploadLabel}>
+                <div className={styles.uploadIcon}>📷</div>
+                <span>Chọn hình ảnh</span>
+              </label>
+            </div>
+            {formData.images.length > 0 && (
+              <div className={styles.imagePreview}>
+                {formData.images.map((img, idx) => (
+                  <div key={idx} className={styles.imageItem}>
+                    <Image
+                      src={URL.createObjectURL(img)}
+                      alt={`Preview ${idx + 1}`}
+                      width={100}
+                      height={100}
+                      className={styles.previewImage}
                     />
-                  </td>
-                  <td>
-                    <input
-                      type="number"
-                      placeholder="Giá khuyến mãi"
-                      value={option.discount_price}
-                      onChange={(e) => handleOptionChange(index, "discount_price", e.target.value)}
-                      className={styles.input}
-                      min="0"
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="number"
-                      placeholder="Số lượng"
-                      value={option.stock}
-                      onChange={(e) => handleOptionChange(index, "stock", e.target.value)}
-                      className={styles.input}
-                      required
-                      min="0"
-                    />
-                  </td>
-                  <td>
-                    {formData.options.length > 1 && (
-                      <button type="button" className={styles.removeBtn} onClick={() => removeOption(index)}>
+                    <div className={styles.imageInfo}>
+                      <span className={styles.imageName}>{img.name}</span>
+                      <button type="button" onClick={() => removeImage(idx)} className={styles.removeBtn}>
                         ✕
                       </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <button type="button" className={styles.addOptionBtn} onClick={addOption}>
-            Thêm tùy chọn +
-          </button>
-        </div>
-
-        {}
-        <div className={styles.formGroup}>
-          <label className={styles.label}>Mô tả chi tiết *</label>
-          {renderToolbar()}
-          <div
-            ref={editorRef}
-            className={styles.editor}
-            contentEditable
-            onInput={handleDescriptionChange}
-            data-placeholder="Nhập mô tả sản phẩm chi tiết, thành phần, hướng dẫn sử dụng, đặc điểm nổi bật..."
-          />
-        </div>
-
-        {}
-        <div className={styles.formGroup}>
-          <label className={styles.label}>Hình ảnh sản phẩm (tối đa 4 ảnh) *</label>
-          <div className={styles.imageUploadArea}>
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handleFileChange}
-              className={styles.fileInput}
-              id="imageInput"
-            />
-            <label htmlFor="imageInput" className={styles.uploadLabel}>
-              <div className={styles.uploadIcon}>📷</div>
-              <span>Chọn hình ảnh</span>
-            </label>
-          </div>
-          {formData.images.length > 0 && (
-            <div className={styles.imagePreview}>
-              {formData.images.map((img, idx) => (
-                <div key={idx} className={styles.imageItem}>
-                  <Image
-                    src={URL.createObjectURL(img)}
-                    alt={`Preview ${idx + 1}`}
-                    width={100}
-                    height={100}
-                    className={styles.previewImage}
-                  />
-                  <div className={styles.imageInfo}>
-                    <span className={styles.imageName}>{img.name}</span>
-                    <button type="button" onClick={() => removeImage(idx)} className={styles.removeBtn}>
-                      ✕
-                    </button>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+                ))}
+              </div>
+            )}
+          </div>
 
-        <button type="submit" className={styles.submitButton}>
-          <span>✓</span> Thêm sản phẩm
-        </button>
-      </form>
-    </div>
+          <button type="submit" className={styles.submitButton}>
+            <span>✓</span> Thêm sản phẩm
+          </button>
+        </form>
+      </div>
+    </main>
   );
 };
 

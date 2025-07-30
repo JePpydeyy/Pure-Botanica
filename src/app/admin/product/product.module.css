@@ -1,31 +1,29 @@
-
 :root {
   --primary-color: #4CAF50; 
-  --secondary-color: #004C59; 
-  --error-color: #f44336; 
-  --background-color: #f8fafc; 
-  --card-background: #ffffff; 
-  --text-color: #334155; 
-  --text-muted: #64748b; 
-  --border-color: #e2e8f0; 
+  --secondary-color: #000000;
+  --error-color: #f44336;
+  --background-color: #f8fafc;
+  --card-background: #ffffff;
+  --text-color: #334155;
+  --text-muted: #64748b;
+  --border-color: #e2e8f0;
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
   --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-
 .productManagementContainer {
   padding: 24px;
-  background: linear-gradient(135deg, var(--background-color) 0%, #e2e8f0 100%);
+  background: #f3f4f6;
   min-height: 100vh;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  margin-left: 250px;
+  transition: margin-left 0.3s;
 }
-
 
 .titleContainer {
   max-width: 1400px;
-  margin: 40px auto 0;
-  padding: 16px;
+  padding: 2rem;
 }
 
 .titleContainer h1 {
@@ -44,11 +42,12 @@
   background: var(--card-background);
   border-radius: 12px;
   box-shadow: var(--shadow-sm);
+  width: fit-content;
 }
 
 .searchInput {
   flex: 1;
-  min-width: 280px;
+  width: 550px;
   padding: 12px 16px 12px 40px;
   border: 1px solid var(--border-color);
   border-radius: 8px;
@@ -110,17 +109,15 @@
   box-shadow: var(--shadow-md);
 }
 
-
 .tableContainer {
   max-width: 1400px;
-  margin: 24px auto;
+  margin: 24px ;
   background: var(--card-background);
   border-radius: 12px;
   box-shadow: var(--shadow-md);
   border: 1px solid var(--border-color);
   overflow-x: auto;
 }
-
 
 .productTable {
   width: 100%;
@@ -175,7 +172,6 @@
   background: rgba(76, 175, 80, 0.1);
   border-left: 3px solid var(--primary-color);
 }
-
 
 .detailsRow {
   background: #f9fafb;
@@ -296,7 +292,6 @@
   transform: scale(1.05);
 }
 
-
 .actionButtons {
   display: flex;
   gap: 8px;
@@ -336,7 +331,6 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
-
 
 .pagination {
   display: flex;
@@ -395,7 +389,6 @@
 .firstLastPage {
   font-weight: 600;
 }
-
 
 .modalOverlay {
   position: fixed;
@@ -468,28 +461,6 @@
   background: #d32f2f;
 }
 
-
-.notification {
-  position: fixed;
-  top: 16px;
-  right: 16px;
-  padding: 12px 20px;
-  border-radius: 8px;
-  color: white;
-  font-size: 13px;
-  z-index: 1001;
-  box-shadow: var(--shadow-md);
-  max-width: 350px;
-}
-
-.notification.success {
-  background: var(--primary-color);
-}
-
-.notification.error {
-  background: var(--error-color);
-}
-
 .processingIndicator {
   position: fixed;
   top: 16px;
@@ -503,7 +474,6 @@
   align-items: center;
   gap: 8px;
 }
-
 
 .errorContainer {
   max-width: 1400px;
@@ -536,31 +506,6 @@
   background: #45a049;
 }
 
-
-.filterContainer.loading {
-  opacity: 0.6;
-  pointer-events: none;
-}
-
-.filterContainer.loading::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 16px;
-  height: 16px;
-  border: 2px solid var(--border-color);
-  border-top: 2px solid var(--primary-color);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-
 .emptyState {
   text-align: center;
   padding: 48px 16px;
@@ -577,7 +522,6 @@
   font-size: 13px;
 }
 
-
 .searchInput:focus-visible,
 .categorySelect:focus-visible,
 .addProductBtn:focus-visible,
@@ -588,7 +532,6 @@
   outline: 2px solid var(--primary-color);
   outline-offset: 2px;
 }
-
 
 .tableContainer::-webkit-scrollbar {
   height: 6px;
@@ -604,6 +547,19 @@
   border-radius: 3px;
 }
 
+/* Custom styles for toast notifications */
+.customToast {
+  background: var(--card-background);
+  color: var(--text-color);
+  border-radius: 8px;
+  box-shadow: var(--shadow-md);
+  font-family: Inter, Segoe UI, Roboto, sans-serif;
+}
+
+.customToastBody {
+  font-size: 14px;
+  color: var(--text-color);
+}
 
 @media (max-width: 1280px) {
   .titleContainer,
@@ -629,7 +585,12 @@
 }
 
 @media (max-width: 768px) {
-  .productTableTheAng th,
+  .productManagementContainer {
+    margin-left: 0;
+    padding: 1rem;
+  }
+
+  .productTableThead th,
   .productTable td {
     padding: 10px;
     font-size: 13px;

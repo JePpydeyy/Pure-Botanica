@@ -730,61 +730,69 @@ export default function UserProfile() {
           </>
         )}
 
-        {selectedSection === "wishlist" && (
-          <>
-            <h2 className={styles.title}>Sản phẩm yêu thích</h2>
-            {wishlistLoading && <p className={styles.loading}>Đang tải danh sách yêu thích...</p>}
-            {wishlistError && (
-              <div className={styles.error}>
-                <p>{wishlistError}</p>
-                <button onClick={fetchWishlist} className={styles.editButton}>
-                  Thử lại
-                </button>
-              </div>
-            )}
-            {!wishlistLoading && !wishlistError && (
-              <>
-                {products.length === 0 ? (
-                  <p className={styles.infoRow}>Chưa có sản phẩm yêu thích</p>
-                ) : (
-                  <div className={styles.wishlistCards}>
-                    {products.map((product) => (
-                      <div key={product._id} className={styles.wishlistCard}>
-                        <Image
-                          src={product.images && product.images.length > 0 ? product.images[0] : ERROR_IMAGE_URL}
-                          alt={product.name}
-                          width={100}
-                          height={100}
-                          quality={100}
-                          onError={(e) => {
-                            console.error(`Image load failed for product "${product.name}"`);
-                            (e.target as HTMLImageElement).src = ERROR_IMAGE_URL;
-                          }}
-                        />
-                        <div className={styles.wishlistInfo}>
-                          <h3>{product.name}</h3>
-                          <p>{formatPrice(product.price)}</p>
-                          <span
-                            className={styles.removeIcon}
-                            onClick={() => removeFromWishlist(product._id)}
-                            style={{ cursor: "pointer", color: "#e74c3c", fontSize: "20px" }}
-                          >
-                            ×
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-            {message && (
-              <div className={styles.toastNotification}>
-                <p className={`${styles[message.type]}`}>{message.text}</p>
-              </div>
-            )}
-          </>
+      {selectedSection === "wishlist" && (
+  <>
+    <h2 className={styles.title}>Sản phẩm yêu thích</h2>
+    {wishlistLoading && <p className={styles.loading}>Đang tải danh sách yêu thích...</p>}
+    {wishlistError && (
+      <div className={styles.error}>
+        <p>{wishlistError}</p>
+        <button onClick={fetchWishlist} className={styles.editButton}>
+          Thử lại
+        </button>
+      </div>
+    )}
+    {!wishlistLoading && !wishlistError && (
+      <>
+        {products.length === 0 ? (
+          <p className={styles.infoRow}>Chưa có sản phẩm yêu thích</p>
+        ) : (
+          <div className={styles.wishlistCards}>
+            {products.map((product) => (
+              <Link
+                href={`/user/detail/${product.slug || product._id}`} // Sử dụng slug, hoặc _id nếu slug không có
+                key={product._id}
+                className={styles.wishlistCard}
+                style={{ textDecoration: "none" }} // Loại bỏ gạch chân mặc định của Link
+              >
+                <Image
+                  src={product.images && product.images.length > 0 ? product.images[0] : ERROR_IMAGE_URL}
+                  alt={product.name}
+                  width={100}
+                  height={100}
+                  quality={100}
+                  onError={(e) => {
+                    console.error(`Image load failed for product "${product.name}"`);
+                    (e.target as HTMLImageElement).src = ERROR_IMAGE_URL;
+                  }}
+                />
+                <div className={styles.wishlistInfo}>
+                  <h3>{product.name}</h3>
+                  <p>{formatPrice(product.price)}</p>
+                  <span
+                    className={styles.removeIcon}
+                    onClick={(e) => {
+                      e.preventDefault(); // Ngăn chuyển hướng khi nhấp vào nút xóa
+                      removeFromWishlist(product._id);
+                    }}
+                    style={{ cursor: "pointer", color: "#e74c3c", fontSize: "20px" }}
+                  >
+                    ×
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
         )}
+      </>
+    )}
+    {message && (
+      <div className={styles.toastNotification}>
+        <p className={`${styles[message.type]}`}>{message.text}</p>
+      </div>
+    )}
+  </>
+)}
       </div>
     </div>
   );

@@ -25,7 +25,12 @@ export default function LoginPage() {
         console.log("Decoded token:", decoded);
         login(token).catch((err: unknown) => {
           console.error("Lỗi xử lý token từ Google:", err);
-          setError(`Có lỗi khi đăng nhập bằng Google, vui lòng thử lại! Chi tiết: ${err instanceof Error ? err.message : "Lỗi không xác định"}`);
+          const errorMessage = err instanceof Error 
+            ? err.message.includes("Tài khoản không hoạt động") 
+              ? "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên."
+              : err.message
+            : "Có lỗi khi đăng nhập bằng Google, vui lòng thử lại!";
+          setError(errorMessage);
         });
       } catch (decodeError) {
         console.error("Lỗi giải mã token:", decodeError);
@@ -56,7 +61,12 @@ export default function LoginPage() {
       await login(data.token);
     } catch (err: unknown) {
       console.error("Lỗi đăng nhập:", err);
-      setError(err instanceof Error ? err.message : "Có lỗi xảy ra, vui lòng thử lại!");
+      const errorMessage = err instanceof Error 
+        ? err.message.includes("Tài khoản không hoạt động") 
+          ? "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên."
+          : err.message
+        : "Có lỗi xảy ra, vui lòng thử lại!";
+      setError(errorMessage);
     }
   };
 

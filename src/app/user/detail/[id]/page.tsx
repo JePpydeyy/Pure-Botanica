@@ -28,7 +28,7 @@ const getImageUrl = (image: string): string => {
     return ERROR_IMAGE_URL;
   }
   try {
-    new URL(image); // Validate URL
+    new URL(image);
     return image;
   } catch (e) {
     console.warn("Invalid URL format for image:", image, "using fallback:", ERROR_IMAGE_URL);
@@ -58,6 +58,7 @@ const decodeToken = (token: string) => {
 const useUserInfo = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [username, setUsername] = useState<string>("Người dùng");
+  const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -67,16 +68,18 @@ const useUserInfo = () => {
       if (decoded) {
         const userIdFromToken = decoded.id || decoded._id;
         const usernameFromToken = decoded.username || "Người dùng";
+        const roleFromToken = decoded.role || null;
         if (userIdFromToken) {
           setUserId(userIdFromToken);
           setUsername(usernameFromToken);
+          setRole(roleFromToken);
         }
       }
     }
     setLoading(false);
   }, []);
 
-  return { userId, username, loading };
+  return { userId, username, role, loading };
 };
 
 // Hook tùy chỉnh: Quản lý thông báo toast
@@ -124,7 +127,7 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `Lỗi HTTP: ${response.status}`);
+      throw new Error(errorData.error || `Lỗi HTTP: ${response.status}`);
     }
 
     return await response.json();
@@ -141,7 +144,8 @@ export default function DetailPage() {
   const { id } = useParams();
   const router = useRouter();
   const identifier = useMemo(() => (Array.isArray(id) ? id[0] : id), [id]);
-  const [cacheBuster, setCacheBuster] = useState(""); // Thêm cacheBuster
+  const [cacheBuster, setCacheBuster] = useState("");
+  const [filterRating, setFilterRating] = useState<number | "all">("all");
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -154,11 +158,15 @@ export default function DetailPage() {
   const [selectedOptionIndex, setSelectedOptionIndex] = useState(0);
   const [favoriteProducts, setFavoriteProducts] = useState<string[]>([]);
   const [isFavorite, setIsFavorite] = useState<boolean>(false);
-  const [rating, setRating] = useState<number>(0); // Thêm state cho rating
+  const [rating, setRating] = useState<number>(0);
+  const [replyContent, setReplyContent] = useState<string>("");
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [userReplyContent, setUserReplyContent] = useState<string>("");
+  const [replyingToReplyIndex, setReplyingToReplyIndex] = useState<number | null>(null);
 
-  const { userId, username, loading: userLoading } = useUserInfo();
+  const { userId, username, role, loading: userLoading } = useUserInfo();
   const { message: cartMessage, showToast: showCartToast, hideToast: hideCartToast } = useToast();
-  const { message: commentError, showToast: showCommentError, hideToast: hideCommentError } = useToast();
+  const { message: commentMessage, showToast: showCommentToast, hideToast: hideCommentToast } = useToast();
 
   // Tạo cacheBuster sau khi hydration
   useEffect(() => {
@@ -234,24 +242,26 @@ export default function DetailPage() {
     }
   }, [identifier, product?._id, showCartToast]);
 
+  // Lấy danh sách bình luận
   useEffect(() => {
     const fetchComments = async () => {
       if (!product?._id) {
+        console.log("Product ID is undefined or null");
         setComments([]);
         return;
       }
-
+      console.log("Fetching comments for productId:", product._id);
       try {
         const data = await apiRequest(`/api/comments/product/${product._id}`);
         setComments(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error("Lỗi khi lấy bình luận:", error);
         setComments([]);
+        showCommentToast("error", "Không thể tải bình luận, vui lòng thử lại sau!");
       }
     };
-
     fetchComments();
-  }, [product?._id]);
+  }, [product?._id, showCommentToast]);
 
   // Tăng số lượng sản phẩm
   const increaseQty = useCallback(() => setQuantity((prev) => prev + 1), []);
@@ -353,9 +363,7 @@ export default function DetailPage() {
       if (error instanceof Error && error.message.includes("401")) {
         showCartToast("error", "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!");
         localStorage.removeItem("token");
-        setTimeout(() => {
-          router.push("/user/login");
-        }, TOAST_DURATION);
+        setTimeout(() => router.push("/user/login"), TOAST_DURATION);
       } else if (error instanceof Error && error.message.includes("400")) {
         showCartToast("error", "ProductId không hợp lệ!");
       } else if (error instanceof Error && error.message.includes("404")) {
@@ -370,19 +378,17 @@ export default function DetailPage() {
 
   // Gửi bình luận cho sản phẩm
   const submitComment = useCallback(async () => {
-    if (!product?._id || !newComment.trim() || newComment.length < MIN_COMMENT_LENGTH) {
-      showCommentError("error", "Bình luận phải có ít nhất 3 ký tự!");
+    if (!product?._id || !newComment.trim() || newComment.length < MIN_COMMENT_LENGTH || rating === 0) {
+      showCommentToast("error", "Vui lòng nhập đánh giá và chọn số sao (ít nhất 1 sao)!");
       return;
     }
     if (userLoading) {
-      showCommentError("error", "Đang tải thông tin người dùng, vui lòng đợi!");
+      showCommentToast("error", "Đang tải thông tin người dùng, vui lòng đợi!");
       return;
     }
     if (!userId) {
-      showCommentError("error", "Vui lòng đăng nhập để gửi bình luận!");
-      setTimeout(() => {
-        router.push("/user/login");
-      }, TOAST_DURATION);
+      showCommentToast("error", "Vui lòng đăng nhập để gửi bình luận!");
+      setTimeout(() => router.push("/user/login"), TOAST_DURATION);
       return;
     }
 
@@ -394,24 +400,135 @@ export default function DetailPage() {
           userId,
           productId: product._id,
           content: newComment.trim(),
-          rating, // Gửi rating cùng với bình luận
+          rating,
         }),
       });
 
-      // Re-fetch comments to ensure the latest data with username
       const updatedComments = await apiRequest(`/api/comments/product/${product._id}`);
       setComments(Array.isArray(updatedComments) ? updatedComments : []);
 
       setNewComment("");
-      setRating(0); // Reset rating
-      showCommentError("success", "Đánh giá đã được gửi!");
+      setRating(0);
+      showCommentToast("success", "Đánh giá đã được gửi!");
     } catch (error) {
       console.error("Lỗi khi gửi bình luận:", error);
-      showCommentError("error", "Lỗi khi gửi đánh giá!");
+      if (error instanceof Error && error.message.includes("403")) {
+        showCommentToast("error", "Bạn chỉ có thể đánh giá sản phẩm sau khi mua và thanh toán thành công!");
+      } else {
+        showCommentToast("error", "Lỗi khi gửi đánh giá!");
+      }
     } finally {
       setSubmittingComment(false);
     }
-  }, [product?._id, newComment, userId, userLoading, rating, showCommentError, router]);
+  }, [product?._id, newComment, rating, userId, userLoading, showCommentToast, router]);
+
+  // Gửi phản hồi từ admin
+  const submitReply = useCallback(async (commentId: string) => {
+    if (!commentId || !replyContent.trim() || !userId || role !== "admin") {
+      showCommentToast("error", "Bạn không có quyền hoặc nội dung phản hồi trống!");
+      return;
+    }
+
+    setSubmittingComment(true);
+    try {
+      const response = await apiRequest(`/api/comments/${commentId}/reply`, {
+        method: "POST",
+        body: JSON.stringify({ content: replyContent.trim() }),
+      });
+
+      const updatedComments = await apiRequest(`/api/comments/product/${product?._id}`);
+      setComments(Array.isArray(updatedComments) ? updatedComments : []);
+
+      setReplyContent("");
+      setReplyingTo(null);
+      showCommentToast("success", "Phản hồi đã được gửi!");
+    } catch (error) {
+      console.error("Lỗi khi gửi phản hồi:", error);
+      showCommentToast("error", `Lỗi khi gửi phản hồi: ${error instanceof Error ? error.message : "Không xác định"}`);
+    } finally {
+      setSubmittingComment(false);
+    }
+  }, [replyContent, userId, role, product?._id, showCommentToast]);
+
+  // Gửi phản hồi từ user (phản hồi lại admin)
+  const submitUserReply = useCallback(async (commentId: string, replyIndex: number) => {
+    if (!commentId || !userReplyContent.trim() || !userId || replyIndex === null || replyIndex < 0) {
+      showCommentToast("error", "Thông tin không hợp lệ hoặc nội dung phản hồi trống!");
+      return;
+    }
+
+    const comment = comments.find((c) => c._id === commentId);
+    if (!comment || !comment.replies || replyIndex >= comment.replies.length) {
+      showCommentToast("error", "Phản hồi không tồn tại hoặc chỉ số không hợp lệ!");
+      return;
+    }
+
+    if (comment.user?._id !== userId) {
+      showCommentToast("error", "Chỉ người tạo bình luận gốc được phép trả lời!");
+      return;
+    }
+
+    setSubmittingComment(true);
+    try {
+      console.log("Submitting reply-to-reply with payload:", {
+        content: userReplyContent.trim(),
+        replyIndex,
+        userId,
+        commentId,
+      });
+
+      const response = await apiRequest(`/api/comments/${commentId}/reply-to-reply`, {
+        method: "POST",
+        body: JSON.stringify({
+          content: userReplyContent.trim(),
+          replyIndex,
+        }),
+      });
+
+      const updatedComments = await apiRequest(`/api/comments/product/${product?._id}`);
+      setComments(Array.isArray(updatedComments) ? updatedComments : []);
+
+      setUserReplyContent("");
+      showCommentToast("success", "Phản hồi của bạn đã được gửi!");
+    } catch (error) {
+      console.error("Lỗi khi gửi phản hồi từ user:", error);
+      let errorMessage = "Không xác định";
+      if (error instanceof Error) {
+        try {
+          const errorData = JSON.parse(error.message);
+          errorMessage = errorData.error || error.message;
+        } catch {
+          errorMessage = error.message;
+        }
+      }
+      showCommentToast("error", `Lỗi khi gửi phản hồi: ${errorMessage}`);
+    } finally {
+      setSubmittingComment(false);
+    }
+  }, [userReplyContent, userId, replyingToReplyIndex, product?._id, comments, showCommentToast]);
+
+  const averageRating = useMemo(() => {
+    if (comments.length === 0) return 0;
+    const total = comments.reduce((sum, comment) => sum + (comment.rating || 0), 0);
+    return Number((total / comments.length).toFixed(1));
+  }, [comments]);
+
+  // Tính số lượng đánh giá cho mỗi mức sao
+  const ratingCounts = useMemo(() => {
+    return [5, 4, 3, 2, 1].reduce((acc, star) => {
+      acc[star] = comments.filter((c) => c.rating === star).length;
+      return acc;
+    }, {} as Record<number, number>);
+  }, [comments]);
+
+  // Lọc bình luận theo trạng thái và quyền người dùng
+  const filteredComments = useMemo(() => {
+    return comments.filter((comment) => 
+      role === "admin" || comment.status === "show"
+    ).filter((comment) => 
+      filterRating === "all" || comment.rating === filterRating
+    );
+  }, [comments, filterRating, role]);
 
   // Trạng thái loading và lỗi
   if (loading) return <p className="text-center py-10">Đang tải chi tiết sản phẩm...</p>;
@@ -424,7 +541,6 @@ export default function DetailPage() {
     <>
       <div className={styles.container}>
         <section className={styles["product-section"]}>
-          {}
           <div className={styles["product-thumbnails"]}>
             {product.images?.map((image, index) => (
               <div
@@ -478,11 +594,9 @@ export default function DetailPage() {
             </div>
           </div>
 
-          {}
           <div className={styles["product-info"]}>
             <h1 className={styles["product-title"]}>{product.name}</h1>
 
-            {}
             {selectedOption && (
               <p className={styles["product-price"]}>
                 {selectedOption.discount_price ? (
@@ -505,7 +619,6 @@ export default function DetailPage() {
               </p>
             )}
 
-            {}
             {product.option.length > 0 && (
               <div style={{ margin: "16px 0" }}>
                 <span style={{ fontWeight: 500 }}>Lựa chọn dung tích:</span>
@@ -530,7 +643,6 @@ export default function DetailPage() {
               dangerouslySetInnerHTML={{ __html: product.short_description }}
             />
 
-            {}
             <div className={styles["quantity-controls"]}>
               <div className={styles["quantity-wrapper"]}>
                 <button
@@ -570,12 +682,11 @@ export default function DetailPage() {
               </button>
             </div>
 
-            {}
             <div style={{ marginTop: "10px" }}>
               <button
                 className={styles["wishlist-button"]}
                 onClick={addToWishlist}
-                disabled={addingToCart} // Vô hiệu hóa khi đang thêm vào giỏ hàng
+                disabled={addingToCart}
                 aria-label={isFavorite ? "Đã nằm trong danh sách yêu thích" : "Thêm vào danh sách yêu thích của bạn"}
               >
                 <i
@@ -588,7 +699,6 @@ export default function DetailPage() {
               </button>
             </div>
 
-            {}
             {cartMessage && (
               <ToastNotification
                 message={cartMessage.text}
@@ -599,117 +709,74 @@ export default function DetailPage() {
           </div>
         </section>
 
-        {}
         <div className={styles["product-info"]}>
           <h2 className={styles["product-info-title"]}>Thông tin sản phẩm:</h2>
           <div dangerouslySetInnerHTML={{ __html: product.description }} />
         </div>
       </div>
 
-      {}
       <div className={styles.cr}>
         <div className={styles["customer-review"]}>
           <h1 className={styles["review-main-title"]}>ĐÁNH GIÁ TỪ KHÁCH HÀNG ĐÃ MUA</h1>
 
-          {}
           <div className={styles["rating-overview"]}>
             <div className={styles["rating-summary"]}>
-              <div className={styles["average-rating"]}>0.0</div>
+              <div className={styles["average-rating"]}>{averageRating}</div>
               <div className={styles["stars-display"]}>
-                <span className={`${styles["star-display"]} ${styles["star-empty"]}`}>★</span>
-                <span className={`${styles["star-display"]} ${styles["star-empty"]}`}>★</span>
-                <span className={`${styles["star-display"]} ${styles["star-empty"]}`}>★</span>
-                <span className={`${styles["star-display"]} ${styles["star-empty"]}`}>★</span>
-                <span className={`${styles["star-display"]} ${styles["star-empty"]}`}>★</span>
+                {Array(5)
+                  .fill(0)
+                  .map((_, i) => (
+                    <span
+                      key={i}
+                      className={`${styles["star-display"]} ${i < Math.floor(averageRating) ? styles["star-filled"] : i < averageRating ? styles["star-half"] : styles["star-empty"]}`}
+                    >
+                      ★
+                    </span>
+                  ))}
               </div>
-              <div className={styles["rating-text"]}>Theo 0 đánh giá</div>
+              <div className={styles["rating-text"]}>Theo {filteredComments.length} đánh giá</div>
             </div>
 
             <div className={styles["rating-breakdown"]}>
-              <div className={styles["rating-row"]}>
-                <div className={styles["star-count"]}>
-                  <span className={styles["star-icon"]}>★</span>
-                  <span className={styles["star-icon"]}>★</span>
-                  <span className={styles["star-icon"]}>★</span>
-                  <span className={styles["star-icon"]}>★</span>
-                  <span className={styles["star-icon"]}>★</span>
+              {[5, 4, 3, 2, 1].map((star) => (
+                <div key={star} className={styles["rating-row"]}>
+                  <div className={styles["star-count"]}>
+                    {Array(5)
+                      .fill(0)
+                      .map((_, i) => (
+                        <span key={i} className={styles["star-icon"]}>{i < star ? "★" : "☆"}</span>
+                      ))}
+                  </div>
+                  <div className={styles["rating-bar-container"]}>
+                    <div
+                      className={styles["rating-bar"]}
+                      style={{ width: `${(ratingCounts[star] / comments.length) * 100 || 0}%` }}
+                    ></div>
+                  </div>
+                  <div className={styles["rating-count"]}>{`(${ratingCounts[star]})`}</div>
                 </div>
-                <div className={styles["rating-bar-container"]}>
-                  <div className={styles["rating-bar"]} style={{ width: "0%" }}></div>
-                </div>
-                <div className={styles["rating-count"]}>(0)</div>
-              </div>
-
-              <div className={styles["rating-row"]}>
-                <div className={styles["star-count"]}>
-                  <span className={styles["star-icon"]}>★</span>
-                  <span className={styles["star-icon"]}>★</span>
-                  <span className={styles["star-icon"]}>★</span>
-                  <span className={styles["star-icon"]}>★</span>
-                  <span className={`${styles["star-icon"]} ${styles["star-empty"]}`}>☆</span>
-                </div>
-                <div className={styles["rating-bar-container"]}>
-                  <div className={styles["rating-bar"]} style={{ width: "0%" }}></div>
-                </div>
-                <div className={styles["rating-count"]}>(0)</div>
-              </div>
-
-              <div className={styles["rating-row"]}>
-                <div className={styles["star-count"]}>
-                  <span className={styles["star-icon"]}>★</span>
-                  <span className={styles["star-icon"]}>★</span>
-                  <span className={styles["star-icon"]}>★</span>
-                  <span className={`${styles["star-icon"]} ${styles["star-empty"]}`}>☆</span>
-                  <span className={`${styles["star-icon"]} ${styles["star-empty"]}`}>☆</span>
-                </div>
-                <div className={styles["rating-bar-container"]}>
-                  <div className={styles["rating-bar"]} style={{ width: "0%" }}></div>
-                </div>
-                <div className={styles["rating-count"]}>(0)</div>
-              </div>
-
-              <div className={styles["rating-row"]}>
-                <div className={styles["star-count"]}>
-                  <span className={styles["star-icon"]}>★</span>
-                  <span className={styles["star-icon"]}>★</span>
-                  <span className={`${styles["star-icon"]} ${styles["star-empty"]}`}>☆</span>
-                  <span className={`${styles["star-icon"]} ${styles["star-empty"]}`}>☆</span>
-                  <span className={`${styles["star-icon"]} ${styles["star-empty"]}`}>☆</span>
-                </div>
-                <div className={styles["rating-bar-container"]}>
-                  <div className={styles["rating-bar"]} style={{ width: "0%" }}></div>
-                </div>
-                <div className={styles["rating-count"]}>(0)</div>
-              </div>
-
-              <div className={styles["rating-row"]}>
-                <div className={styles["star-count"]}>
-                  <span className={styles["star-icon"]}>★</span>
-                  <span className={`${styles["star-icon"]} ${styles["star-empty"]}`}>☆</span>
-                  <span className={`${styles["star-icon"]} ${styles["star-empty"]}`}>☆</span>
-                  <span className={`${styles["star-icon"]} ${styles["star-empty"]}`}>☆</span>
-                  <span className={`${styles["star-icon"]} ${styles["star-empty"]}`}>☆</span>
-                </div>
-                <div className={styles["rating-bar-container"]}>
-                  <div className={styles["rating-bar"]} style={{ width: "0%" }}></div>
-                </div>
-                <div className={styles["rating-count"]}>(0)</div>
-              </div>
+              ))}
             </div>
           </div>
 
-          {}
           <div className={styles["filter-section"]}>
             <span className={styles["filter-label"]}>Lọc đánh giá:</span>
-            <button className={`${styles["filter-button"]} ${styles.active}`}>Tất cả</button>
-            <button className={styles["filter-button"]}>5 ★</button>
-            <button className={styles["filter-button"]}>4 ★</button>
-            <button className={styles["filter-button"]}>3 ★</button>
-            <button className={styles["filter-button"]}>2 ★</button>
-            <button className={styles["filter-button"]}>1 ★</button>
+            {["all", 5, 4, 3, 2, 1].map((rating) => (
+              <button
+                key={rating === "all" ? "all" : rating}
+                className={`${styles["filter-button"]} ${
+                  filterRating === rating ? styles.active : ""
+                }`}
+                onClick={() => {
+                  console.log(`Filtering by rating: ${rating}`);
+                  setFilterRating(rating);
+                }}
+              >
+                {rating === "all" ? "Tất cả" : `${rating} ★`}
+              </button>
+            ))}
           </div>
 
-          {}
           <div className={styles["write-review-container"]}>
             <button
               className={styles["write-review"]}
@@ -725,20 +792,28 @@ export default function DetailPage() {
             </button>
           </div>
 
-          {}
           <div className={styles["write-review-section"]} id="reviewForm">
             <h2 className={styles["review-form-title"]}>Viết đánh giá của bạn</h2>
             <div className={styles["star-rating"]}>
-              {[1, 2, 3, 4, 5].map((star) => (
-                <span
-                  key={star}
-                  className={`${styles.star} ${star <= rating ? styles["star-filled"] : ""}`}
-                  onClick={() => setRating(star)}
-                  style={{ cursor: "pointer" }}
-                >
-                  ★
-                </span>
-              ))}
+              {Array(5)
+                .fill(0)
+                .map((_, index) => {
+                  const starValue = index + 1;
+                  return (
+                    <span
+                      key={starValue}
+                      className={`${styles.star} ${starValue <= rating ? styles["star-filled"] : ""}`}
+                      style={{ color: starValue <= rating ? "#ffa500" : "#ccc", cursor: "pointer", userSelect: "none" }}
+                      onClick={() => {
+                        console.log(`Clicked star ${starValue}, current rating: ${rating}`);
+                        setRating(starValue);
+                      }}
+                      onMouseEnter={() => console.log(`Hovering star ${starValue}`)}
+                    >
+                      ★
+                    </span>
+                  );
+                })}
             </div>
             <textarea
               className={styles["comment-input"]}
@@ -747,19 +822,20 @@ export default function DetailPage() {
               placeholder="Nhập đánh giá của bạn..."
               rows={4}
               maxLength={500}
+              disabled={submittingComment}
             />
-            {commentError && (
+            {commentMessage && (
               <ToastNotification
-                message={commentError.text}
-                type={commentError.type}
-                onClose={hideCommentError}
+                message={commentMessage.text}
+                type={commentMessage.type}
+                onClose={hideCommentToast}
               />
             )}
             <div className={styles["form-buttons"]}>
               <button
                 className={styles["submit-comment"]}
                 onClick={submitComment}
-                disabled={submittingComment || !newComment.trim() || userLoading}
+                disabled={submittingComment || !newComment.trim() || userLoading || rating === 0}
               >
                 {submittingComment ? "Đang gửi..." : "Gửi đánh giá"}
               </button>
@@ -779,10 +855,9 @@ export default function DetailPage() {
             </div>
           </div>
 
-          {}
           <div className={styles["reviews-container"]}>
-            {comments.length > 0 ? (
-              comments.map((comment, index) => (
+            {filteredComments.length > 0 ? (
+              filteredComments.map((comment, index) => (
                 <div key={comment._id || `comment-${index}`} className={styles.review}>
                   <h3 className={styles["review-title"]}>
                     {comment.user?.username || "Ẩn danh"}
@@ -803,6 +878,101 @@ export default function DetailPage() {
                     Ngày: {new Date(comment.createdAt).toLocaleDateString("vi-VN")}
                   </time>
                   <p className={styles.comment}>{comment.content}</p>
+
+                  {comment.replies && comment.replies.length > 0 && (
+                    <div className={styles.replies}>
+                      {comment.replies.map((reply, idx) => (
+                        <div key={idx} className={styles.reply}>
+                          <h4>
+                            <strong>
+                              {reply.user?.username || 
+                               (userId && reply.user?._id === userId ? "Bạn" : 
+                                reply.user?.role === "admin" ? "Admin" : "Khách hàng")}:
+                            </strong>{" "}
+                            {reply.content}
+                          </h4>
+                          <time>
+                            {new Date(reply.createdAt).toLocaleDateString("vi-VN")}{" "}
+                            {new Date(reply.createdAt).toLocaleTimeString("vi-VN")}
+                          </time>
+                          {reply.user?.role === "admin" && 
+                           comment.user?._id === userId && 
+                           idx === comment.replies.length - 1 && (
+                            <div className={styles.replyForm}>
+                              <textarea
+                                value={replyingToReplyIndex === idx ? userReplyContent : ""}
+                                onChange={(e) => {
+                                  console.log("Textarea change:", { idx, value: e.target.value, submittingComment });
+                                  setReplyingToReplyIndex(idx);
+                                  setUserReplyContent(e.target.value);
+                                }}
+                                placeholder="Nhập phản hồi của bạn..."
+                                rows={2}
+                                maxLength={500}
+                                disabled={submittingComment}
+                              />
+                              <div className={styles["form-buttons"]}>
+                                <button
+                                  onClick={() => {
+                                    console.log("Submitting user reply:", { commentId: comment._id, replyIndex: idx, userReplyContent });
+                                    submitUserReply(comment._id, idx);
+                                  }}
+                                  disabled={submittingComment || !userReplyContent.trim()}
+                                >
+                                  {submittingComment && replyingToReplyIndex === idx ? "Đang gửi..." : "Gửi phản hồi"}
+                                </button>
+                                <button
+                                  className={styles["cancel-comment"]}
+                                  onClick={() => {
+                                    console.log("Cancel reply form:", { idx });
+                                    setUserReplyContent("");
+                                    setReplyingToReplyIndex(null);
+                                  }}
+                                  disabled={submittingComment}
+                                >
+                                  Hủy
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {role === "admin" && (
+                    <div className={styles.replyForm}>
+                      <textarea
+                        value={replyingTo === comment._id ? replyContent : ""}
+                        onChange={(e) => {
+                          setReplyingTo(comment._id);
+                          setReplyContent(e.target.value);
+                        }}
+                        placeholder="Nhập phản hồi..."
+                        rows={2}
+                        maxLength={500}
+                        disabled={submittingComment}
+                      />
+                      <div className={styles["form-buttons"]}>
+                        <button
+                          onClick={() => submitReply(comment._id)}
+                          disabled={submittingComment || !replyContent.trim()}
+                        >
+                          {submittingComment && replyingTo === comment._id ? "Đang gửi..." : "Gửi phản hồi"}
+                        </button>
+                        <button
+                          className={styles["cancel-comment"]}
+                          onClick={() => {
+                            setReplyContent("");
+                            setReplyingTo(null);
+                          }}
+                          disabled={submittingComment}
+                        >
+                          Hủy
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))
             ) : (
@@ -814,16 +984,29 @@ export default function DetailPage() {
         </div>
       </div>
 
-      {}
       <section className={styles["product-contact-section"]}>
         <h2 className={styles["contact-section-title"]}>
-          Không tìm thấy được dòng sản phẩm mà bạn cần<br />
-          hoặc thích hợp với da của bạn?
+          Không tìm thấy được dòng sản phẩm mà bạn cần<br />hoặc thích hợp với da của bạn?
         </h2>
         <button className={styles["contact-button"]}>
           Liên hệ với chúng tôi
         </button>
       </section>
+
+      {cartMessage && (
+        <ToastNotification
+          message={cartMessage.text}
+          type={cartMessage.type}
+          onClose={hideCartToast}
+        />
+      )}
+      {commentMessage && (
+        <ToastNotification
+          message={commentMessage.text}
+          type={commentMessage.type}
+          onClose={hideCommentToast}
+        />
+      )}
     </>
   );
 }

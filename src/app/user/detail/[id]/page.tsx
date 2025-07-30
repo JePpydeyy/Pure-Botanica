@@ -15,6 +15,7 @@ const ERROR_IMAGE_URL = "https://png.pngtree.com/png-vector/20210227/ourlarge/pn
 const TIMEOUT_DURATION = 10000;
 const MIN_COMMENT_LENGTH = 3;
 const TOAST_DURATION = 3000;
+const REVIEW_WINDOW_DAYS = 7; // Thời gian cho phép đánh giá (ngày)
 
 // Hàm tiện ích: Định dạng giá tiền
 const formatPrice = (price: number): string => {
@@ -163,6 +164,7 @@ export default function DetailPage() {
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [userReplyContent, setUserReplyContent] = useState<string>("");
   const [replyingToReplyIndex, setReplyingToReplyIndex] = useState<number | null>(null);
+  const [canReview, setCanReview] = useState<boolean>(false);
 
   const { userId, username, role, loading: userLoading } = useUserInfo();
   const { message: cartMessage, showToast: showCartToast, hideToast: hideCartToast } = useToast();
@@ -177,6 +179,58 @@ export default function DetailPage() {
   useEffect(() => {
     setQuantity(1);
   }, [selectedOptionIndex]);
+
+  // Kiểm tra điều kiện đánh giá
+  useEffect(() => {
+    const checkReviewEligibility = async () => {
+      if (!product?._id || !userId || userLoading) {
+        setCanReview(false);
+        return;
+      }
+
+      try {
+        // Lấy danh sách đơn hàng của người dùng
+        const orders = await apiRequest(`/api/orders/user/${userId}`);
+        if (!Array.isArray(orders) || orders.length === 0) {
+          setCanReview(false);
+          return;
+        }
+
+        // Lấy danh sách bình luận của sản phẩm
+        const existingComments = await apiRequest(`/api/comments/product/${product._id}`);
+        const commentedOrderIds = existingComments
+          .filter((comment: Comment) => comment.userId === userId && comment.orderId)
+          .map((comment: Comment) => comment.orderId);
+
+        // Kiểm tra đơn hàng hợp lệ chưa được bình luận
+        const currentDate = new Date();
+        const eligibleOrder = orders.find((order: any) => {
+          if (
+            order.paymentStatus !== "completed" ||
+            order.shippingStatus !== "delivered" ||
+            commentedOrderIds.includes(order._id)
+          ) {
+            return false;
+          }
+
+          const orderDate = new Date(order.createdAt);
+          const daysDiff = (currentDate.getTime() - orderDate.getTime()) / (1000 * 60 * 60 * 24);
+          if (daysDiff > REVIEW_WINDOW_DAYS) {
+            return false;
+          }
+
+          return order.items.some((item: any) => item.product._id === product._id);
+        });
+
+        setCanReview(!!eligibleOrder);
+      } catch (error) {
+        console.error("Lỗi khi kiểm tra điều kiện đánh giá:", error);
+        setCanReview(false);
+      }
+    };
+
+    checkReviewEligibility();
+  }, [product?._id, userId, userLoading]);
 
   // Lấy thông tin sản phẩm và danh sách yêu thích
   useEffect(() => {
@@ -394,11 +448,49 @@ export default function DetailPage() {
 
     setSubmittingComment(true);
     try {
+      // Lấy danh sách đơn hàng của người dùng
+      const orders = await apiRequest(`/api/orders/user/${userId}`);
+      if (!Array.isArray(orders) || orders.length === 0) {
+        throw new Error("Bạn chưa có đơn hàng nào!");
+      }
+
+      // Lấy danh sách bình luận của sản phẩm
+      const existingComments = await apiRequest(`/api/comments/product/${product._id}`);
+      const commentedOrderIds = existingComments
+        .filter((comment: Comment) => comment.userId === userId && comment.orderId)
+        .map((comment: Comment) => comment.orderId);
+
+      // Kiểm tra đơn hàng hợp lệ chưa được bình luận
+      const currentDate = new Date();
+      const eligibleOrder = orders.find((order: any) => {
+        if (
+          order.paymentStatus !== "completed" ||
+          order.shippingStatus !== "delivered" ||
+          commentedOrderIds.includes(order._id)
+        ) {
+          return false;
+        }
+
+        const orderDate = new Date(order.createdAt);
+        const daysDiff = (currentDate.getTime() - orderDate.getTime()) / (1000 * 60 * 60 * 24);
+        if (daysDiff > REVIEW_WINDOW_DAYS) {
+          return false;
+        }
+
+        return order.items.some((item: any) => item.product._id === product._id);
+      });
+
+      if (!eligibleOrder) {
+        throw new Error("Bạn chỉ có thể đánh giá sản phẩm sau khi mua, thanh toán và nhận hàng trong vòng 7 ngày!");
+      }
+
+      // Gửi bình luận với orderId
       const response = await apiRequest("/api/comments", {
         method: "POST",
         body: JSON.stringify({
           userId,
           productId: product._id,
+          orderId: eligibleOrder._id,
           content: newComment.trim(),
           rating,
         }),
@@ -410,13 +502,10 @@ export default function DetailPage() {
       setNewComment("");
       setRating(0);
       showCommentToast("success", "Đánh giá đã được gửi!");
+      setCanReview(false); // Ẩn nút sau khi gửi bình luận
     } catch (error) {
       console.error("Lỗi khi gửi bình luận:", error);
-      if (error instanceof Error && error.message.includes("403")) {
-        showCommentToast("error", "Bạn chỉ có thể đánh giá sản phẩm sau khi mua và thanh toán thành công!");
-      } else {
-        showCommentToast("error", "Lỗi khi gửi đánh giá!");
-      }
+      showCommentToast("error", error instanceof Error ? error.message : "Lỗi khi gửi đánh giá!");
     } finally {
       setSubmittingComment(false);
     }
@@ -523,12 +612,21 @@ export default function DetailPage() {
 
   // Lọc bình luận theo trạng thái và quyền người dùng
   const filteredComments = useMemo(() => {
-    return comments.filter((comment) => 
-      role === "admin" || comment.status === "show"
-    ).filter((comment) => 
-      filterRating === "all" || comment.rating === filterRating
-    );
+    return comments
+      .filter((comment) => role === "admin" || comment.status === "show")
+      .filter((comment) => filterRating === "all" || comment.rating === filterRating);
   }, [comments, filterRating, role]);
+
+  // Logic cuộn khi load trang với hash
+  useEffect(() => {
+    if (window.location.hash === "#writeReviewForm") {
+      const form = document.getElementById("writeReviewForm");
+      if (form) {
+        form.classList.add(styles.active); // Mở form
+        form.scrollIntoView({ behavior: "smooth", block: "start" }); // Cuộn mượt đến đầu form
+      }
+    }
+  }, []);
 
   // Trạng thái loading và lỗi
   if (loading) return <p className="text-center py-10">Đang tải chi tiết sản phẩm...</p>;
@@ -715,7 +813,7 @@ export default function DetailPage() {
         </div>
       </div>
 
-      <div className={styles.cr}>
+      <div id="reviewForm" className={styles.cr}>
         <div className={styles["customer-review"]}>
           <h1 className={styles["review-main-title"]}>ĐÁNH GIÁ TỪ KHÁCH HÀNG ĐÃ MUA</h1>
 
@@ -778,21 +876,23 @@ export default function DetailPage() {
           </div>
 
           <div className={styles["write-review-container"]}>
-            <button
-              className={styles["write-review"]}
-              onClick={() => {
-                const form = document.getElementById("reviewForm");
-                if (form) {
-                  form.classList.toggle(styles.active);
-                }
-              }}
-            >
-              <span>✏️</span>
-              VIẾT ĐÁNH GIÁ
-            </button>
+            {canReview && (
+              <button
+                className={styles["write-review"]}
+                onClick={() => {
+                  const form = document.getElementById("writeReviewForm");
+                  if (form) {
+                    form.classList.add(styles.active); // Mở form khi nhấp
+                  }
+                }}
+              >
+                <span>✏️</span>
+                VIẾT ĐÁNH GIÁ
+              </button>
+            )}
           </div>
 
-          <div className={styles["write-review-section"]} id="reviewForm">
+          <div className={styles["write-review-section"]} id="writeReviewForm">
             <h2 className={styles["review-form-title"]}>Viết đánh giá của bạn</h2>
             <div className={styles["star-rating"]}>
               {Array(5)
@@ -842,7 +942,7 @@ export default function DetailPage() {
               <button
                 className={styles["cancel-comment"]}
                 onClick={() => {
-                  const form = document.getElementById("reviewForm");
+                  const form = document.getElementById("writeReviewForm");
                   if (form) {
                     form.classList.remove(styles.active);
                   }

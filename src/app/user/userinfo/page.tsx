@@ -31,7 +31,7 @@ interface Order {
   sdt?: string;
   note?: string;
   items: {
-    product: { _id: string; name?: string; price?: number; images?: string[]; option?: any[] } | null;
+    product: { _id: string; name?: string; price?: number; images?: string[]; option?: any[]; slug?: string } | null;
     optionId?: string;
     quantity: number;
   }[];
@@ -43,6 +43,17 @@ interface Product {
   images: string[];
   option: { _id: string; price: number; discount_price?: number; value: string }[];
   price: number;
+  slug?: string;
+}
+
+interface Comment {
+  _id: string;
+  userId: string;
+  productId: string;
+  orderId?: string;
+  content: string;
+  rating: number;
+  createdAt: string;
 }
 
 const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
@@ -132,10 +143,11 @@ export default function UserProfile() {
   const [wishlistLoading, setWishlistLoading] = useState<boolean>(false);
   const [wishlistError, setWishlistError] = useState<string | null>(null);
   const [paymentMap, setPaymentMap] = useState<Record<string, string>>({});
-  const [cacheBuster, setCacheBuster] = useState(""); // Thêm cacheBuster
+  const [cacheBuster, setCacheBuster] = useState("");
+  const [canReviewMap, setCanReviewMap] = useState<Record<string, boolean>>({});
   const { message, showToast, hideToast } = useToast();
+  const REVIEW_WINDOW_DAYS = 7;
 
-  // Tạo cacheBuster sau khi hydration
   useEffect(() => {
     setCacheBuster(`t=${Date.now()}`);
   }, []);
@@ -209,8 +221,7 @@ export default function UserProfile() {
       } else {
         ordersData = [];
       }
-      console.log("Orders data:", ordersData); // Debug
-      // Lấy danh sách sản phẩm từ /api/products/active
+      console.log("Orders data:", ordersData);
       const productsRes = await fetch(`${API_BASE_URL}/api/products/active`, {
         cache: "no-store",
       });
@@ -218,7 +229,7 @@ export default function UserProfile() {
         throw new Error(`Lỗi tải sản phẩm: ${productsRes.status}`);
       }
       const productsData: Product[] = await productsRes.json();
-      console.log("Products data:", productsData); // Debug
+      console.log("Products data:", productsData);
       ordersData = ordersData.map(order => ({
         ...order,
         items: order.items.map(item => ({
@@ -234,6 +245,38 @@ export default function UserProfile() {
         })),
       }));
       setOrders(ordersData);
+      // Kiểm tra điều kiện đánh giá (chỉ cần thiết khi xem chi tiết đơn hàng, nhưng tải trước để tránh delay)
+      const reviewMap: Record<string, boolean> = {};
+      const currentDate = new Date();
+      for (const order of ordersData) {
+        if (order.paymentStatus !== "completed" || order.shippingStatus !== "delivered") {
+          continue;
+        }
+        const orderDate = new Date(order.createdAt);
+        const daysDiff = (currentDate.getTime() - orderDate.getTime()) / (1000 * 60 * 60 * 24);
+        if (daysDiff > REVIEW_WINDOW_DAYS) {
+          continue;
+        }
+        for (const item of order.items) {
+          if (!item.product?._id) continue;
+          try {
+            const commentsRes = await fetchWithAuth(`${API_BASE_URL}/api/comments/product/${item.product._id}`);
+            if (!commentsRes.ok) {
+              console.warn(`Failed to fetch comments for product ${item.product._id}: ${commentsRes.status}`);
+              continue;
+            }
+            const existingComments: Comment[] = await commentsRes.json();
+            const hasCommented = existingComments.some(
+              (comment) => comment.userId === userId && comment.orderId === order._id
+            );
+            reviewMap[`${item.product._id}-${order._id}`] = !hasCommented;
+          } catch (err) {
+            console.error(`Error checking comments for product ${item.product._id}:`, err);
+            reviewMap[`${item.product._id}-${order._id}`] = false;
+          }
+        }
+      }
+      setCanReviewMap(reviewMap);
       const paymentRes = await fetchWithAuth(`${API_BASE_URL}/api/payments/get-by-user`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -291,13 +334,12 @@ export default function UserProfile() {
         throw new Error(errorMessage);
       }
       const data = await res.json();
-      console.log("Wishlist data:", data); // Debug
+      console.log("Wishlist data:", data);
       if (!Array.isArray(data.favoriteProducts)) {
         console.warn("Invalid favoriteProducts format:", data);
         setProducts([]);
         return;
       }
-      // Lấy danh sách sản phẩm từ /api/products/active
       const productsRes = await fetch(`${API_BASE_URL}/api/products/active`, {
         cache: "no-store",
       });
@@ -305,7 +347,7 @@ export default function UserProfile() {
         throw new Error(`Lỗi tải sản phẩm: ${productsRes.status}`);
       }
       const productsData: Product[] = await productsRes.json();
-      console.log("Products data:", productsData); // Debug
+      console.log("Products data:", productsData);
       const processedProducts = data.favoriteProducts.map((favProduct: any) => {
         const fullProduct = productsData.find(p => p._id === favProduct._id) || favProduct;
         return {
@@ -376,8 +418,7 @@ export default function UserProfile() {
       if (!data || !data._id || !data.items || !Array.isArray(data.items)) {
         throw new Error("Dữ liệu đơn hàng không hợp lệ.");
       }
-      console.log("Order details:", data); // Debug
-      // Lấy danh sách sản phẩm từ /api/products/active
+      console.log("Order details:", data);
       const productsRes = await fetch(`${API_BASE_URL}/api/products/active`, {
         cache: "no-store",
       });
@@ -385,7 +426,7 @@ export default function UserProfile() {
         throw new Error(`Lỗi tải sản phẩm: ${productsRes.status}`);
       }
       const productsData: Product[] = await productsRes.json();
-      console.log("Products data:", productsData); // Debug
+      console.log("Products data:", productsData);
       const processedOrder = {
         ...data,
         items: data.items.map((item: any) => ({
@@ -401,6 +442,33 @@ export default function UserProfile() {
         })),
         paymentCode: paymentMap[data._id],
       };
+      const reviewMap: Record<string, boolean> = { ...canReviewMap };
+      if (processedOrder.paymentStatus === "completed" && processedOrder.shippingStatus === "delivered") {
+        const orderDate = new Date(processedOrder.createdAt);
+        const currentDate = new Date();
+        const daysDiff = (currentDate.getTime() - orderDate.getTime()) / (1000 * 60 * 60 * 24);
+        if (daysDiff <= REVIEW_WINDOW_DAYS) {
+          for (const item of processedOrder.items) {
+            if (!item.product?._id) continue;
+            try {
+              const commentsRes = await fetchWithAuth(`${API_BASE_URL}/api/comments/product/${item.product._id}`);
+              if (!commentsRes.ok) {
+                console.warn(`Failed to fetch comments for product ${item.product._id}: ${commentsRes.status}`);
+                continue;
+              }
+              const existingComments: Comment[] = await commentsRes.json();
+              const hasCommented = existingComments.some(
+                (comment) => comment.userId === user?.id && comment.orderId === processedOrder._id
+              );
+              reviewMap[`${item.product._id}-${processedOrder._id}`] = !hasCommented;
+            } catch (err) {
+              console.error(`Error checking comments for product ${item.product._id}:`, err);
+              reviewMap[`${item.product._id}-${processedOrder._id}`] = false;
+            }
+          }
+        }
+      }
+      setCanReviewMap(reviewMap);
       setSelectedOrder(processedOrder);
     } catch (err: any) {
       setError(err.message || "Lỗi khi tải chi tiết đơn hàng.");
@@ -648,6 +716,24 @@ export default function UserProfile() {
                           {optionValue && <span style={{ color: "#888", fontWeight: 400 }}> ({optionValue})</span>}
                         </div>
                         <div className={styles.cartItemDesc}>Số lượng: {item.quantity}</div>
+                       {item.product?._id && canReviewMap[`${item.product._id}-${selectedOrder._id}`] && (
+                        <Link
+                          href={`/user/detail/${item.product.slug || item.product._id}#writeReviewForm`}
+                          className={styles.reviewLink}
+                          style={{
+                            display: "inline-block",
+                            background: "#2d8cf0",
+                            color: "#fff",
+                            padding: "6px 12px",
+                            borderRadius: 4,
+                            textDecoration: "none",
+                            fontSize: "14px",
+                            marginTop: "8px",
+                          }}
+                        >
+                          Viết đánh giá
+                        </Link>
+                      )}
                       </div>
                       <div className={styles.productPrice}>
                         {formatPrice(price * item.quantity)}
@@ -730,69 +816,69 @@ export default function UserProfile() {
           </>
         )}
 
-      {selectedSection === "wishlist" && (
-  <>
-    <h2 className={styles.title}>Sản phẩm yêu thích</h2>
-    {wishlistLoading && <p className={styles.loading}>Đang tải danh sách yêu thích...</p>}
-    {wishlistError && (
-      <div className={styles.error}>
-        <p>{wishlistError}</p>
-        <button onClick={fetchWishlist} className={styles.editButton}>
-          Thử lại
-        </button>
-      </div>
-    )}
-    {!wishlistLoading && !wishlistError && (
-      <>
-        {products.length === 0 ? (
-          <p className={styles.infoRow}>Chưa có sản phẩm yêu thích</p>
-        ) : (
-          <div className={styles.wishlistCards}>
-            {products.map((product) => (
-              <Link
-                href={`/user/detail/${product.slug || product._id}`} // Sử dụng slug, hoặc _id nếu slug không có
-                key={product._id}
-                className={styles.wishlistCard}
-                style={{ textDecoration: "none" }} // Loại bỏ gạch chân mặc định của Link
-              >
-                <Image
-                  src={product.images && product.images.length > 0 ? product.images[0] : ERROR_IMAGE_URL}
-                  alt={product.name}
-                  width={100}
-                  height={100}
-                  quality={100}
-                  onError={(e) => {
-                    console.error(`Image load failed for product "${product.name}"`);
-                    (e.target as HTMLImageElement).src = ERROR_IMAGE_URL;
-                  }}
-                />
-                <div className={styles.wishlistInfo}>
-                  <h3>{product.name}</h3>
-                  <p>{formatPrice(product.price)}</p>
-                  <span
-                    className={styles.removeIcon}
-                    onClick={(e) => {
-                      e.preventDefault(); // Ngăn chuyển hướng khi nhấp vào nút xóa
-                      removeFromWishlist(product._id);
-                    }}
-                    style={{ cursor: "pointer", color: "#e74c3c", fontSize: "20px" }}
-                  >
-                    ×
-                  </span>
-                </div>
-              </Link>
-            ))}
-          </div>
+        {selectedSection === "wishlist" && (
+          <>
+            <h2 className={styles.title}>Sản phẩm yêu thích</h2>
+            {wishlistLoading && <p className={styles.loading}>Đang tải danh sách yêu thích...</p>}
+            {wishlistError && (
+              <div className={styles.error}>
+                <p>{wishlistError}</p>
+                <button onClick={fetchWishlist} className={styles.editButton}>
+                  Thử lại
+                </button>
+              </div>
+            )}
+            {!wishlistLoading && !wishlistError && (
+              <>
+                {products.length === 0 ? (
+                  <p className={styles.infoRow}>Chưa có sản phẩm yêu thích</p>
+                ) : (
+                  <div className={styles.wishlistCards}>
+                    {products.map((product) => (
+                      <Link
+                        href={`/user/detail/${product.slug || product._id}`}
+                        key={product._id}
+                        className={styles.wishlistCard}
+                        style={{ textDecoration: "none" }}
+                      >
+                        <Image
+                          src={product.images && product.images.length > 0 ? product.images[0] : ERROR_IMAGE_URL}
+                          alt={product.name}
+                          width={100}
+                          height={100}
+                          quality={100}
+                          onError={(e) => {
+                            console.error(`Image load failed for product "${product.name}"`);
+                            (e.target as HTMLImageElement).src = ERROR_IMAGE_URL;
+                          }}
+                        />
+                        <div className={styles.wishlistInfo}>
+                          <h3>{product.name}</h3>
+                          <p>{formatPrice(product.price)}</p>
+                          <span
+                            className={styles.removeIcon}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              removeFromWishlist(product._id);
+                            }}
+                            style={{ cursor: "pointer", color: "#e74c3c", fontSize: "20px" }}
+                          >
+                            ×
+                          </span>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+            {message && (
+              <div className={styles.toastNotification}>
+                <p className={`${styles[message.type]}`}>{message.text}</p>
+              </div>
+            )}
+          </>
         )}
-      </>
-    )}
-    {message && (
-      <div className={styles.toastNotification}>
-        <p className={`${styles[message.type]}`}>{message.text}</p>
-      </div>
-    )}
-  </>
-)}
       </div>
     </div>
   );

@@ -202,7 +202,7 @@ export default function PaymentOnline() {
             <p><span>Số tài khoản:</span> 0342031354</p>
             <p><span>Chủ tài khoản:</span> Đinh Thế Nhân</p>
             <p>
-              <span>Số tiền cần thanh toán:</span>{" "}
+              <span>Số tiền cần thanh toán:</span>{""}
               {isNaN(amount) ? "Không hợp lệ" : new Intl.NumberFormat("vi-VN").format(amount)} VND
             </p>
             <p><span>Nội dung chuyển khoản:</span> {paymentCode || "N/A"}</p>

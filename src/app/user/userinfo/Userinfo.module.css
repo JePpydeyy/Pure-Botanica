@@ -418,3 +418,16 @@
   color: #fff;
 }
 
+.reviewLink {
+  display: inline-block;
+  background: #2d8cf0;
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 4px;
+  text-decoration: none;
+  font-size: 14px;
+  margin-top: 8px;
+}
+.reviewLink:hover {
+  background: #1a73e8;
+}

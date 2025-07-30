@@ -941,7 +941,7 @@ export default function Brands() {
       {showConfirmDeletePopup && selectedBrand && (
         <div className={styles.popupOverlay}>
           <div className={styles.popupForm}>
-            <h2 className={styles.popup}>Xác Nhận Xóa Thương Hiệu</h2>
+            <h2 className={styles.popupTitle}>Xác Nhận Xóa Thương Hiệu</h2>
             <p>
               Bạn có chắc chắn muốn xóa thương hiệu "{selectedBrand.name}"?{" "}
               {productCounts[selectedBrand._id] > 0 && (

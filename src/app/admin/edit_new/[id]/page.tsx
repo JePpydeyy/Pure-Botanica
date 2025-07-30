@@ -40,6 +40,7 @@ const generateSlug = (title: string): string => {
   console.log("Tiêu đề đầu vào:", title);
   const slug = title
     .toLowerCase()
+    .replace(/đ/g, "d") // Thay "đ" thành "d"
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/['",]/g, "")
@@ -553,6 +554,7 @@ const EditBlog = () => {
       if (!response.ok) {
         if (result.error.includes("duplicate key")) {
           const newSlug = `${formData.slug}-${Date.now()}`;
+          showNotification(`Slug '${formData.slug}' đã tồn tại. Đã tạo slug mới: ${newSlug}`, "warning");
           formDataToSend.set("slug", newSlug);
           const retryResponse = await fetch(`${API_DOMAIN}/api/news/${slug}`, {
             method: "PUT",

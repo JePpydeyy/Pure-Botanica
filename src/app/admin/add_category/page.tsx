@@ -3,8 +3,7 @@ import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlus, faTimes } from "@fortawesome/free-solid-svg-icons";
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import ToastNotification from "../../user/ToastNotification/ToastNotification";
 import styles from "./AddCategory.module.css";
 
 interface ApiResponse {
@@ -20,7 +19,16 @@ interface ApiResponse {
 export default function AddCategory() {
   const [name, setName] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
+  const [notification, setNotification] = useState({
+    show: false,
+    message: "",
+    type: "success" as "success" | "error",
+  });
   const router = useRouter();
+
+  const showNotification = (message: string, type: "success" | "error") => {
+    setNotification({ show: true, message, type });
+  };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -41,30 +49,18 @@ export default function AddCategory() {
       const data: ApiResponse = await res.json();
 
       if (res.ok) {
-        toast.success("Thêm danh mục thành công!", {
-          position: "top-right",
-          autoClose: 3000,
-        });
-        router.push("/admin/category");
+        showNotification("Thêm danh mục thành công!", "success");
+        setTimeout(() => router.push("/admin/category"), 1500);
       } else {
         if (res.status === 401) {
-          toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.", {
-            position: "top-right",
-            autoClose: 5000,
-          });
+          showNotification("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.", "error");
         } else {
-          toast.error(data.message || "Thêm danh mục thất bại!", {
-            position: "top-right",
-            autoClose: 5000,
-          });
+          showNotification(data.message || "Thêm danh mục thất bại!", "error");
         }
       }
     } catch (error) {
       console.error("Lỗi khi thêm danh mục:", error);
-      toast.error("Đã xảy ra lỗi khi thêm danh mục.", {
-        position: "top-right",
-        autoClose: 5000,
-      });
+      showNotification("Đã xảy ra lỗi khi thêm danh mục.", "error");
     } finally {
       setLoading(false);
     }
@@ -72,18 +68,6 @@ export default function AddCategory() {
 
   return (
     <div className={styles.containerCategory}>
-      <ToastContainer
-        position="top-right"
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="light"
-      />
       <div className={styles.titleContainer}>
         <h1>Thêm Danh Mục</h1>
         <form onSubmit={handleSubmit} className={styles.addCategoryForm}>
@@ -121,6 +105,13 @@ export default function AddCategory() {
               </div>
             </div>
           </div>
+          {notification.show && (
+            <ToastNotification
+              message={notification.message}
+              type={notification.type}
+              onClose={() => setNotification({ show: false, message: "", type: "success" })}
+            />
+          )}
         </form>
       </div>
     </div>

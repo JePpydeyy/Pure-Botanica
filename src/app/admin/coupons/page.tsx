@@ -4,8 +4,15 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./coupon.module.css";
 import type { Coupon } from "@/app/components/coupon_interface";
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEdit, faTrash, faPlus, faTimes, faCheck } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faEdit,
+  faTrash,
+  faPlus,
+  faTimes,
+  faCheck,
+} from "@fortawesome/free-solid-svg-icons";
+import ToastNotification from "../../user/ToastNotification/ToastNotification";
 
 interface Pagination {
   page: number;
@@ -30,7 +37,7 @@ export default function CouponPage() {
   const [notification, setNotification] = useState<Notification>({ show: false, message: "", type: "success" });
   const [pagination, setPagination] = useState<Pagination>({
     page: 1,
-    limit: 10,
+    limit: 9, // Đồng bộ với itemsPerPage trong AdminNewsPage
     total: 0,
     totalPages: 1,
   });
@@ -57,7 +64,11 @@ export default function CouponPage() {
     const role = localStorage.getItem("role");
 
     if (!token || role !== "admin") {
-      setNotification({ show: true, message: "Bạn không có quyền truy cập. Vui lòng đăng nhập với tài khoản admin.", type: "error" });
+      setNotification({
+        show: true,
+        message: "Bạn không có quyền truy cập. Vui lòng đăng nhập với tài khoản admin.",
+        type: "error",
+      });
       setTimeout(() => router.push("/user/login"), 3000);
     } else {
       setIsAuthorized(true);
@@ -125,7 +136,7 @@ export default function CouponPage() {
     fetchCoupons();
   }, [isAuthorized, pagination.page, pagination.limit, searchQuery, statusFilter]);
 
-  // Handle client-side filtering as fallback
+  // Handle client-side filtering
   useEffect(() => {
     let filtered = coupons;
 
@@ -333,7 +344,7 @@ export default function CouponPage() {
       <div className={styles.productManagementContainer}>
         <div className={styles.errorContainer}>
           <div className={styles.processingIndicator}>
-            <div className={styles.spinner}></div>
+            <FontAwesomeIcon icon={faCheck} spin />
             <p>Đang tải mã giảm giá...</p>
           </div>
         </div>
@@ -344,21 +355,14 @@ export default function CouponPage() {
   return (
     <div className={styles.productManagementContainer}>
       {notification.show && (
-        <div className={styles.modalOverlay}>
-          <div className={`${styles.modalContent} ${styles[notification.type]}`}>
-            <p>{notification.message}</p>
-            <button
-              className={styles.cancelBtn}
-              onClick={() => setNotification({ show: false, message: "", type: "success" })}
-              aria-label="Đóng thông báo"
-            >
-              <FontAwesomeIcon icon={faTimes} />
-            </button>
-          </div>
-        </div>
+        <ToastNotification
+          message={notification.message}
+          type={notification.type}
+          onClose={() => setNotification({ show: false, message: "", type: "success" })}
+        />
       )}
       <div className={styles.titleContainer}>
-        <h1>Quản Lý Mã Giảm Giá</h1>
+        <h1>QUẢN LÝ MÃ GIẢM GIÁ</h1>
         <div className={styles.filterContainer}>
           <input
             type="text"
@@ -383,7 +387,7 @@ export default function CouponPage() {
             onClick={() => setShowModal(true)}
             aria-label="Thêm mã giảm giá mới"
           >
-            <FontAwesomeIcon icon={faPlus} />
+            Thêm mã giảm giá
           </button>
         </div>
       </div>
@@ -443,7 +447,7 @@ export default function CouponPage() {
                           className={styles.editBtn}
                           onClick={() => handleEdit(coupon)}
                           title="Sửa mã giảm giá"
-                          aria-label="Sửa mã giảm giá"
+                          aria-label={`Sửa mã giảm giá ${coupon.code}`}
                         >
                           <FontAwesomeIcon icon={faEdit} />
                         </button>
@@ -451,7 +455,7 @@ export default function CouponPage() {
                           className={styles.cancelBtn}
                           onClick={() => confirmDelete(coupon._id)}
                           title="Xóa mã giảm giá"
-                          aria-label="Xóa mã giảm giá"
+                          aria-label={`Xóa mã giảm giá ${coupon.code}`}
                         >
                           <FontAwesomeIcon icon={faTrash} />
                         </button>
@@ -542,7 +546,29 @@ export default function CouponPage() {
       {showModal && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
-            <h2>{formData._id ? "Sửa mã giảm giá" : "Thêm mã giảm giá"}</h2>
+            <button
+              className={styles.closePopupBtn}
+              onClick={() => {
+                setShowModal(false);
+                setFormData({
+                  code: "",
+                  discountType: "percentage",
+                  discountValue: 0,
+                  minOrderValue: 0,
+                  expiryDate: "",
+                  usageLimit: null,
+                  isActive: true,
+                  usedCount: 0,
+                });
+              }}
+              title="Đóng"
+              aria-label="Đóng form mã giảm giá"
+            >
+              <FontAwesomeIcon icon={faTimes} />
+            </button>
+            <h2 className={styles.modalContentTitle}>
+              {formData._id ? "Sửa mã giảm giá" : "Thêm mã giảm giá"}
+            </h2>
             <form onSubmit={handleSubmit}>
               <div className={styles.formGroup}>
                 <label>Mã giảm giá:</label>
@@ -686,26 +712,39 @@ export default function CouponPage() {
       {showDeleteModal && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
-            <h2>Xác Nhận Xóa</h2>
-            <p>Bạn có chắc muốn xóa mã giảm giá này?</p>
-            <div className={styles.modalActions}>
-              <button
-                className={styles.confirmBtn}
-                onClick={handleDelete}
-                aria-label="Xác nhận xóa mã giảm giá"
-              >
-                <FontAwesomeIcon icon={faCheck} />
-              </button>
-              <button
-                className={styles.cancelBtn}
-                onClick={() => {
-                  setShowDeleteModal(false);
-                  setDeleteCouponId(null);
-                }}
-                aria-label="Hủy xóa mã giảm giá"
-              >
-                <FontAwesomeIcon icon={faTimes} />
-              </button>
+            <button
+              className={styles.closePopupBtn}
+              onClick={() => {
+                setShowDeleteModal(false);
+                setDeleteCouponId(null);
+              }}
+              title="Đóng"
+              aria-label="Đóng xác nhận xóa mã giảm giá"
+            >
+              <FontAwesomeIcon icon={faTimes} />
+            </button>
+            <h2 className={styles.modalContentTitle}>Xác Nhận Xóa</h2>
+            <div className={styles.popupDetails}>
+              <p>Bạn có chắc muốn xóa mã giảm giá này?</p>
+              <div className={styles.modalActions}>
+                <button
+                  className={styles.confirmBtn}
+                  onClick={handleDelete}
+                  aria-label="Xác nhận xóa mã giảm giá"
+                >
+                  <FontAwesomeIcon icon={faCheck} />
+                </button>
+                <button
+                  className={styles.cancelBtn}
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setDeleteCouponId(null);
+                  }}
+                  aria-label="Hủy xóa mã giảm giá"
+                >
+                  <FontAwesomeIcon icon={faTimes} />
+                </button>
+              </div>
             </div>
           </div>
         </div>

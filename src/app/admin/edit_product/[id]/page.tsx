@@ -1,10 +1,10 @@
 "use client";
+
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
 import styles from "./editproduct.module.css";
-import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import ToastNotification from "../../user/ToastNotification/ToastNotification";
 
 interface Option {
   value: string;
@@ -146,18 +146,22 @@ const EditProduct = () => {
       try {
         setLoading(true);
         const token = localStorage.getItem("token");
+        if (!token) {
+          throw new Error("No token found");
+        }
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15-second timeout
 
         const productResponse = await fetch(`https://api-zeal.onrender.com/api/products/${slug}`, {
           headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal,
           cache: "no-store",
         });
+        clearTimeout(timeoutId);
+
         if (productResponse.status === 401 || productResponse.status === 403) {
-          alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
-          localStorage.removeItem("token");
-          localStorage.removeItem("role");
-          localStorage.removeItem("email");
-          router.push("/user/login");
-          return;
+          throw new Error("Phiên đăng nhập hết hạn");
         }
         if (!productResponse.ok) {
           throw new Error("Không thể tải thông tin sản phẩm");
@@ -166,6 +170,7 @@ const EditProduct = () => {
 
         const categoriesResponse = await fetch("https://api-zeal.onrender.com/api/categories", {
           headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal,
           cache: "no-store",
         });
         if (!categoriesResponse.ok) throw new Error("Không thể tải danh mục");
@@ -173,6 +178,7 @@ const EditProduct = () => {
 
         const brandsResponse = await fetch("https://api-zeal.onrender.com/api/brands", {
           headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal,
           cache: "no-store",
         });
         if (!brandsResponse.ok) throw new Error("Không thể tải thương hiệu");
@@ -210,9 +216,21 @@ const EditProduct = () => {
           editorRef.current.innerHTML = productData.description;
         }
       } catch (error) {
-        console.error("Lỗi khi tải dữ liệu:", error);
-        showNotification("Không thể tải thông tin sản phẩm hoặc danh mục/thương hiệu", "error");
-        router.push("/admin/product");
+        const errorMessage =
+          error instanceof Error && error.name === "AbortError"
+            ? "Yêu cầu tải dữ liệu đã quá thời gian chờ (15 giây). Vui lòng thử lại."
+            : error instanceof Error
+            ? error.message === "Phiên đăng nhập hết hạn"
+              ? "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!"
+              : "Không thể tải thông tin sản phẩm hoặc danh mục/thương hiệu"
+            : "Đã xảy ra lỗi không xác định";
+        showNotification(errorMessage, "error");
+        if (error instanceof Error && error.message === "Phiên đăng nhập hết hạn") {
+          localStorage.removeItem("token");
+          localStorage.removeItem("role");
+          localStorage.removeItem("email");
+          router.push("/user/login");
+        }
       } finally {
         setLoading(false);
       }
@@ -509,12 +527,7 @@ const EditProduct = () => {
       });
 
       if (response.status === 401 || response.status === 403) {
-        alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
-        localStorage.removeItem("token");
-        localStorage.removeItem("role");
-        localStorage.removeItem("email");
-        router.push("/user/login");
-        return;
+        throw new Error("Phiên đăng nhập hết hạn");
       }
 
       if (!response.ok) {
@@ -525,8 +538,19 @@ const EditProduct = () => {
       showNotification("Cập nhật sản phẩm thành công", "success");
       router.push("/admin/product");
     } catch (error) {
-      console.error("Lỗi cập nhật sản phẩm:", error);
-      showNotification("Đã xảy ra lỗi khi cập nhật sản phẩm", "error");
+      const errorMessage =
+        error instanceof Error
+          ? error.message === "Phiên đăng nhập hết hạn"
+            ? "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!"
+            : error.message || "Đã xảy ra lỗi khi cập nhật sản phẩm"
+          : "Đã xảy ra lỗi không xác định";
+      showNotification(errorMessage, "error");
+      if (error instanceof Error && error.message === "Phiên đăng nhập hết hạn") {
+        localStorage.removeItem("token");
+        localStorage.removeItem("role");
+        localStorage.removeItem("email");
+        router.push("/user/login");
+      }
     } finally {
       setLoading(false);
     }
@@ -547,20 +571,13 @@ const EditProduct = () => {
 
   return (
     <main className={styles.mainContainer}>
-      <ToastContainer
-        position="top-right"
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="light"
-        toastClassName={styles.customToast}
-        bodyClassName={styles.customToastBody}
-      />
+      {notification.show && (
+        <ToastNotification
+          message={notification.message}
+          type={notification.type}
+          onClose={() => setNotification({ show: false, message: "", type: "success" })}
+        />
+      )}
       <div className={styles.maintitle}>
         <h1 className={styles.title}>Chỉnh sửa sản phẩm</h1>
         <button
@@ -572,11 +589,6 @@ const EditProduct = () => {
         </button>
       </div>
       <div className={styles.contentWrapper}>
-        {notification.show && (
-          <div className={`${styles.notification} ${styles[notification.type]}`}>
-            {notification.message}
-          </div>
-        )}
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.basicInfo}>
             <div className={styles.formRow}>

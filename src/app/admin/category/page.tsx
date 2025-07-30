@@ -6,8 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEdit, faEye, faEyeSlash, faCheck, faTimes, faPlus, faRedo } from "@fortawesome/free-solid-svg-icons";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import ToastNotification from "../../user/ToastNotification/ToastNotification";
 
 interface Product {
   _id: string;
@@ -29,6 +28,15 @@ export default function Category() {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [itemsPerPage] = useState<number>(9);
   const router = useRouter();
+  const [notification, setNotification] = useState({
+    show: false,
+    message: "",
+    type: "success" as "success" | "error",
+  });
+
+  const showNotification = (message: string, type: "success" | "error") => {
+    setNotification({ show: true, message, type });
+  };
 
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
@@ -45,10 +53,7 @@ export default function Category() {
         });
         if (!res.ok) {
           if (res.status === 401) {
-            toast.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", {
-              className: styles.customToast,
-              bodyClassName: styles.customToastBody,
-            });
+            showNotification("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", "error");
             localStorage.removeItem("token");
             router.push("/login");
             return;
@@ -58,10 +63,7 @@ export default function Category() {
         const data: Category[] = await res.json();
         setCategories(data);
       } catch (error: any) {
-        toast.error(error.message || "Đã xảy ra lỗi khi tải danh sách danh mục.", {
-          className: styles.customToast,
-          bodyClassName: styles.customToastBody,
-        });
+        showNotification(error.message || "Đã xảy ra lỗi khi tải danh sách danh mục.", "error");
       } finally {
         setLoading(false);
       }
@@ -72,10 +74,7 @@ export default function Category() {
 
   const checkCategoryCanHide = useCallback(async (categoryId: string): Promise<boolean> => {
     if (!token) {
-      toast.error("Vui lòng đăng nhập lại!", {
-        className: styles.customToast,
-        bodyClassName: styles.customToastBody,
-      });
+      showNotification("Vui lòng đăng nhập lại!", "error");
       router.push("/login");
       return false;
     }
@@ -97,35 +96,23 @@ export default function Category() {
       );
       if (allStockZero) return true;
 
-      toast.error("Không thể ẩn danh mục vì vẫn còn sản phẩm có tồn kho!", {
-        className: styles.customToast,
-        bodyClassName: styles.customToastBody,
-      });
+      showNotification("Không thể ẩn danh mục vì vẫn còn sản phẩm có tồn kho!", "error");
       return false;
     } catch (error: any) {
-      toast.error(error.message || "Lỗi khi kiểm tra danh mục.", {
-        className: styles.customToast,
-        bodyClassName: styles.customToastBody,
-      });
+      showNotification(error.message || "Lỗi khi kiểm tra danh mục.", "error");
       return false;
     }
   }, [token, router]);
 
   const handleToggleVisibility = useCallback(async (id: string) => {
     if (!token) {
-      toast.error("Vui lòng đăng nhập để thực hiện thao tác này!", {
-        className: styles.customToast,
-        bodyClassName: styles.customToastBody,
-      });
+      showNotification("Vui lòng đăng nhập để thực hiện thao tác này!", "error");
       router.push("/login");
       return;
     }
     const category = categories.find((cat) => cat._id === id);
     if (!category) {
-      toast.error("Không tìm thấy danh mục!", {
-        className: styles.customToast,
-        bodyClassName: styles.customToastBody,
-      });
+      showNotification("Không tìm thấy danh mục!", "error");
       return;
     }
 
@@ -155,23 +142,14 @@ export default function Category() {
         if (res.status === 400) {
           setShowStockWarning(name);
         } else {
-          toast.error(result.message || `Không thể ${action} danh mục "${name}"`, {
-            className: styles.customToast,
-            bodyClassName: styles.customToastBody,
-          });
+          showNotification(result.message || `Không thể ${action} danh mục "${name}"`, "error");
         }
         return;
       }
       setCategories((prev) => prev.map((cat) => (cat._id === id ? result.category : cat)));
-      toast.success(`Danh mục "${name}" đã được ${result.category.status === "show" ? "hiển thị" : "ẩn"} thành công!`, {
-        className: styles.customToast,
-        bodyClassName: styles.customToastBody,
-      });
+      showNotification(`Danh mục "${name}" đã được ${result.category.status === "show" ? "hiển thị" : "ẩn"} thành công!`, "success");
     } catch (error: any) {
-      toast.error(error.message || `Không thể ${action} danh mục "${name}"`, {
-        className: styles.customToast,
-        bodyClassName: styles.customToastBody,
-      });
+      showNotification(error.message || `Không thể ${action} danh mục "${name}"`, "error");
     } finally {
       setShowConfirmPopup(null);
     }
@@ -186,18 +164,12 @@ export default function Category() {
 
   const handleUpdate = useCallback(async (id: string, updatedName: string) => {
     if (!token) {
-      toast.error("Vui lòng đăng nhập để thực hiện thao tác này!", {
-        className: styles.customToast,
-        bodyClassName: styles.customToastBody,
-      });
+      showNotification("Vui lòng đăng nhập để thực hiện thao tác này!", "error");
       router.push("/login");
       return;
     }
     if (!updatedName.trim()) {
-      toast.error("Tên danh mục không được để trống!", {
-        className: styles.customToast,
-        bodyClassName: styles.customToastBody,
-      });
+      showNotification("Tên danh mục không được để trống!", "error");
       return;
     }
     try {
@@ -210,10 +182,7 @@ export default function Category() {
         body: JSON.stringify({ name: updatedName }),
       });
       if (res.status === 401) {
-        toast.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", {
-          className: styles.customToast,
-          bodyClassName: styles.customToastBody,
-        });
+        showNotification("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", "error");
         localStorage.removeItem("token");
         setToken(null);
         router.push("/login");
@@ -226,15 +195,9 @@ export default function Category() {
       const { category } = await res.json();
       setCategories((prev) => prev.map((cat) => (cat._id === id ? category : cat)));
       setEditingCategory(null);
-      toast.success("Cập nhật danh mục thành công!", {
-        className: styles.customToast,
-        bodyClassName: styles.customToastBody,
-      });
+      showNotification("Cập nhật danh mục thành công!", "success");
     } catch (error: any) {
-      toast.error(`Cập nhật thất bại: ${error.message}`, {
-        className: styles.customToast,
-        bodyClassName: styles.customToastBody,
-      });
+      showNotification(`Cập nhật thất bại: ${error.message}`, "error");
     }
   }, [token, router]);
 
@@ -292,20 +255,13 @@ export default function Category() {
 
   return (
     <div className={styles.productManagementContainer}>
-      <ToastContainer
-        position="top-right"
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="light"
-        toastClassName={styles.customToast}
-        bodyClassName={styles.customToastBody}
-      />
+      {notification.show && (
+        <ToastNotification
+          message={notification.message}
+          type={notification.type}
+          onClose={() => setNotification({ show: false, message: "", type: "success" })}
+        />
+      )}
       <div className={styles.titleContainer}>
         <h1>Quản Lý Danh Mục</h1>
         <div className={styles.filterContainer}>

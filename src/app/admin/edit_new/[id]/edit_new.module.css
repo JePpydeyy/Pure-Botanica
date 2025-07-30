@@ -1,8 +1,8 @@
 .container {
   width: 100%;
-  background-color: #f9fafb;
-  height: 100vh;
-  overflow-y: auto;
+  height: auto;
+  background-color: #f9fafb; /* Đồng bộ nền với AdminNewsPage */
+  min-height: 100vh;
   box-sizing: border-box;
 }
 
@@ -10,9 +10,9 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
-  padding: 24px 0;
-  width: 80%;
-  margin: 0 0 0 300px;
+  padding: 20px;
+  width: 80%; /* Đồng bộ chiều rộng với titleContainer */
+  margin: 0 0 0 300px; /* Đồng bộ lề trái */
   box-sizing: border-box;
 }
 
@@ -20,7 +20,6 @@
   display: flex;
   gap: 20px;
   flex-wrap: wrap;
-  box-sizing: border-box;
 }
 
 .editorSection {
@@ -41,10 +40,9 @@
 }
 
 .pageTitle {
-  /* color: #495057; */
-  font-size: 30px;
+  color: #495057; /* Giữ nguyên màu gốc */
+  font-size: 30px; /* Đồng bộ kích thước chữ với AdminNewsPage */
   margin: 0;
-  padding:2rem 0;
   font-weight: 600;
 }
 
@@ -59,8 +57,8 @@
 
 .titleInput {
   width: 100%;
-  padding: 12px 16px;
-  border: 2px solid #e9ecef;
+  padding: 12px 16px; /* Giữ nguyên padding gốc */
+  border: 2px solid #e9ecef; /* Giữ nguyên viền gốc */
   border-radius: 8px;
   font-size: 16px;
   outline: none;
@@ -70,7 +68,7 @@
 }
 
 .titleInput:focus {
-  border-color: #28a745;
+  border-color: #28a745; /* Giữ nguyên màu focus gốc */
   box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
 }
 
@@ -86,7 +84,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  border: 2px solid #e9ecef;
+  border: 2px solid #e9ecef; /* Giữ nguyên viền gốc */
   border-radius: 8px;
   overflow: hidden;
   background: #fff;
@@ -113,7 +111,7 @@
 }
 
 .toolbar select {
-  border: none;
+  border: none; /* Giữ nguyên kiểu dáng gốc */
   padding: 6px 8px;
   border-radius: 6px;
   font-size: 13px;
@@ -150,7 +148,7 @@
 }
 
 .toolbar button.active {
-  background-color: #0066cc;
+  background-color: #0066cc; /* Giữ nguyên màu active gốc */
   color: white;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
@@ -194,7 +192,7 @@
 }
 
 .formSection {
-  flex: 0 0 440px;
+  flex: 0 0 440px; /* Đồng bộ chiều rộng với searchInput */
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -209,20 +207,9 @@
   box-sizing: border-box;
 }
 
-.formRow {
-  display: flex;
-  gap: 20px;
-  flex-wrap: wrap;
-}
-
-.formRow .formGroup {
-  flex: 1;
-  min-width: 150px;
-}
-
 .formInput {
   width: 100%;
-  padding: 12px 16px;
+  padding: 12px 16px; /* Giữ nguyên padding gốc */
   border: 2px solid #e9ecef;
   border-radius: 8px;
   font-size: 14px;
@@ -233,6 +220,23 @@
 }
 
 .formInput:focus {
+  border-color: #28a745;
+  box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+}
+
+.formInputWithIcon {
+  width: 100%;
+  padding: 12px 16px 12px 44px;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  transition: all 0.2s ease;
+  background: #fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 448 512' fill='%236c757d'><path d='M152 64H296V24C296 10.75 306.7 0 320 0C333.3 0 344 10.75 344 24V64H384C419.3 64 448 92.65 448 128V448C448 483.3 419.3 512 384 512H64C28.65 512 0 483.3 0 448V128C0 92.65 28.65 64 64 64H104V24C104 10.75 114.7 0 128 0C141.3 0 152 10.75 152 24V64zM48 448C48 456.8 55.16 464 64 464H384C392.8 464 400 456.8 400 448V192H48V448zM304 320H336C344.8 320 352 312.8 352 304C352 295.2 344.8 288 336 288H304C295.2 288 288 295.2 288 304C288 312.8 295.2 320 304 320zM208 320H240C248.8 320 256 312.8 256 304C256 295.2 248.8 288 240 288H208C199.2 288 192 295.2 192 304C192 312.8 199.2 320 208 320zM112 320H144C152.8 320 160 312.8 160 304C160 295.2 152.8 288 144 288H112C103.2 288 96 295.2 96 304C96 312.8 103.2 320 112 320z'/></svg>") no-repeat 12px center;
+  box-sizing: border-box;
+}
+
+.formInputWithIcon:focus {
   border-color: #28a745;
   box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
 }
@@ -384,43 +388,50 @@
   border: 1px solid #f56565;
 }
 
+/* Thêm kiểu cho popup xác nhận */
 .popupOverlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.5); /* Nền mờ */
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
   z-index: 1000;
+  box-sizing: border-box;
 }
 
 .popupContent {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   text-align: center;
-  width: 400px;
+  box-sizing: border-box;
 }
 
 .popupContent h2 {
-  margin: 0 0 10px;
-  font-size: 18px;
-  color: #333;
+  font-size: 24px;
+  font-weight: 600;
+  color: #2d3748;
+  margin: 0 0 16px;
 }
 
 .popupContent p {
-  margin: 0 0 20px;
-  color: #666;
+  font-size: 16px;
+  color: #4a5568;
+  margin: 0 0 24px;
 }
 
 .popupButtons {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   justify-content: center;
+  box-sizing: border-box;
 }
 
 @media (max-width: 1240px) {
@@ -462,8 +473,17 @@
     padding: 6px 8px;
   }
 
-  .formRow {
-    flex-direction: column;
+  .popupContent {
+    width: 95%;
+    padding: 16px;
+  }
+
+  .popupContent h2 {
+    font-size: 20px;
+  }
+
+  .popupContent p {
+    font-size: 14px;
   }
 }
 
@@ -481,28 +501,26 @@
     font-size: 16px;
   }
 
-  .titleInput,
-  .formInput {
-    padding: 10px 12px;
-    font-size: 13px;
-  }
-
-  .toolbar {
-    padding: 6px;
-  }
-
   .editorContent {
     min-height: 300px;
     max-height: 40vh;
     padding: 12px;
   }
 
-  .btn {
-    padding: 10px 16px;
+  .popupContent {
+    padding: 12px;
+  }
+
+  .popupContent h2 {
+    font-size: 18px;
+  }
+
+  .popupContent p {
     font-size: 13px;
   }
 
-  .popupContent {
-    width: 250px;
+  .popupButtons {
+    flex-direction: column;
+    gap: 8px;
   }
 }

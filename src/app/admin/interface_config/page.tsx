@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import styles from "./interface_config.module.css";
+import ToastNotification from "../../user/ToastNotification/ToastNotification";
 
 // Định nghĩa kiểu dữ liệu cho previews
 type PreviewType = {
@@ -13,13 +14,12 @@ type PreviewType = {
   banner3: string | null;
   bannerAbout: string | null;
   bannerNews: string | null;
-  [key: string]: string | string[] | null; // Add index signature
+  [key: string]: string | string[] | null;
 };
 
 export default function ConfigPage() {
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error" | "warning" | "">("");
-  const [isToastVisible, setIsToastVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [previews, setPreviews] = useState<PreviewType>({
     logo: null,
@@ -36,7 +36,6 @@ export default function ConfigPage() {
     if (!token) {
       setMessage("Không tìm thấy token. Vui lòng đăng nhập lại.");
       setMessageType("error");
-      setIsToastVisible(true);
       return false;
     }
 
@@ -56,20 +55,17 @@ export default function ConfigPage() {
       if (exp && exp < new Date()) {
         setMessage("Token đã hết hạn. Vui lòng đăng nhập lại.");
         setMessageType("error");
-        setIsToastVisible(true);
         return false;
       }
       if (role !== "admin") {
         setMessage("Bạn không có quyền truy cập trang cấu hình. Vui lòng sử dụng tài khoản admin.");
         setMessageType("error");
-        setIsToastVisible(true);
         return false;
       }
       return true;
     } catch (err) {
       setMessage("Token không hợp lệ. Vui lòng đăng nhập lại.");
       setMessageType("error");
-      setIsToastVisible(true);
       return false;
     }
   };
@@ -115,7 +111,6 @@ export default function ConfigPage() {
           } else if (res.status === 401 || res.status === 403) {
             setMessage("Token không hợp lệ hoặc hết hạn. Vui lòng đăng nhập lại.");
             setMessageType("error");
-            setIsToastVisible(true);
             break;
           } else {
             console.warn(`No images found for ${key}: ${res.status} ${res.statusText}`);
@@ -141,14 +136,9 @@ export default function ConfigPage() {
   // Tự động ẩn thông báo sau 3 giây
   useEffect(() => {
     if (message && messageType) {
-      setIsToastVisible(true);
       const timer = setTimeout(() => {
-        setIsToastVisible(false);
-        // Đợi hiệu ứng waterDropOut hoàn thành (0.6s) trước khi xóa message
-        setTimeout(() => {
-          setMessage("");
-          setMessageType("");
-        }, 600);
+        setMessage("");
+        setMessageType("");
       }, 3000);
       return () => clearTimeout(timer);
     }
@@ -178,7 +168,6 @@ export default function ConfigPage() {
     setLoading(true);
     setMessage("");
     setMessageType("");
-    setIsToastVisible(false);
 
     const token = localStorage.getItem("token");
     if (!validateToken(token)) {
@@ -205,7 +194,6 @@ export default function ConfigPage() {
     if (files.length > maxFiles || (files.length === 0 && maxFiles > 0)) {
       setMessage(`Không có hình nào được tải lên hoặc vượt quá số lượng cho phép`);
       setMessageType("warning");
-      setIsToastVisible(true);
       setLoading(false);
       return;
     }
@@ -224,27 +212,22 @@ export default function ConfigPage() {
 
       const data = await response.json();
       if (response.ok) {
-        setMessage(data.message || `Cập nhật ${type} thành công`);
+        setMessage(data.message || `CẬP NHẬT ${type.toUpperCase()} THÀNH CÔNG`);
         setMessageType("success");
-        setIsToastVisible(true);
         if (data.paths && data.paths.length > 0) {
           setPreviews((prev) => ({
             ...prev,
             [type]: type === "banner1" || type === "decor" ? data.paths : data.paths[0],
           }));
         }
-
-        // Tải lại trang sau 3 giây để đồng bộ với thời gian ẩn thông báo
         setTimeout(() => window.location.reload(), 3000);
       } else {
         setMessage(`Lỗi: ${data.error || "Không thể upload"} - Mã lỗi: ${response.status}`);
         setMessageType("error");
-        setIsToastVisible(true);
       }
     } catch (error) {
       setMessage(`Lỗi server: ${(error as Error).message}`);
       setMessageType("error");
-      setIsToastVisible(true);
     } finally {
       setLoading(false);
     }
@@ -253,7 +236,6 @@ export default function ConfigPage() {
   // Hàm xử lý URL ảnh
   const getImageUrl = (image: string | null): string => {
     if (!image) return "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
-    // Thêm cache buster cho URL từ MongoDB (bắt đầu bằng http)
     return image.startsWith("http") ? `${image}?_t=${Date.now()}` : image;
   };
 
@@ -277,7 +259,7 @@ export default function ConfigPage() {
               {(previews[type as keyof PreviewType] as string[]).map((src: string, index: number) => (
                 <img
                   key={index}
-                  src={getImageUrl(src)} // Sử dụng getImageUrl để thêm cache buster cho URL MongoDB
+                  src={getImageUrl(src)}
                   alt={`${label} Preview ${index + 1}`}
                   className={styles.previewImage}
                   onError={(e) => {
@@ -292,7 +274,7 @@ export default function ConfigPage() {
           previews[type as keyof PreviewType] && (
             <div className={styles.previewContainer}>
               <img
-                src={getImageUrl(previews[type as keyof PreviewType] as string)} // Sử dụng getImageUrl
+                src={getImageUrl(previews[type as keyof PreviewType] as string)}
                 alt={`${label} Preview`}
                 className={styles.previewImage}
                 onError={(e) => {
@@ -303,9 +285,11 @@ export default function ConfigPage() {
             </div>
           )
         )}
-        <button type="submit" disabled={loading} className={styles.addProductBtn}>
-          {loading ? "Đang tải..." : `Upload`}
-        </button>
+        <div className={styles.formActions}>
+          <button type="submit" disabled={loading} className={styles.addProductBtn}>
+            {loading ? "ĐANG TẢI..." : "TẢI LÊN"}
+          </button>
+        </div>
       </div>
     </form>
   );
@@ -326,11 +310,14 @@ export default function ConfigPage() {
         {renderForm("bannerNews", "Banner trang tin tức")}
       </div>
       {message && (
-        <div
-          className={`${styles.toast} ${styles[messageType]} ${isToastVisible ? styles.show : styles.hide}`}
-        >
-          <p className={styles.message}>{message}</p>
-        </div>
+        <ToastNotification
+          message={message}
+          type={messageType}
+          onClose={() => {
+            setMessage("");
+            setMessageType("");
+          }}
+        />
       )}
     </div>
   );

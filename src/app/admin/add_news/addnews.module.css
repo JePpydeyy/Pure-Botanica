@@ -388,6 +388,52 @@
   border: 1px solid #f56565;
 }
 
+/* Thêm kiểu cho popup xác nhận */
+.popupOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5); /* Nền mờ */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  box-sizing: border-box;
+}
+
+.popupContent {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.popupContent h2 {
+  font-size: 24px;
+  font-weight: 600;
+  color: #2d3748;
+  margin: 0 0 16px;
+}
+
+.popupContent p {
+  font-size: 16px;
+  color: #4a5568;
+  margin: 0 0 24px;
+}
+
+.popupButtons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
 @media (max-width: 1240px) {
   .new_container {
     width: 100%;
@@ -426,6 +472,19 @@
     height: 32px;
     padding: 6px 8px;
   }
+
+  .popupContent {
+    width: 95%;
+    padding: 16px;
+  }
+
+  .popupContent h2 {
+    font-size: 20px;
+  }
+
+  .popupContent p {
+    font-size: 14px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -446,5 +505,22 @@
     min-height: 300px;
     max-height: 40vh;
     padding: 12px;
+  }
+
+  .popupContent {
+    padding: 12px;
+  }
+
+  .popupContent h2 {
+    font-size: 18px;
+  }
+
+  .popupContent p {
+    font-size: 13px;
+  }
+
+  .popupButtons {
+    flex-direction: column;
+    gap: 8px;
   }
 }

@@ -30,6 +30,7 @@ const generateSlug = (title: string): string => {
   console.log("Tiêu đề đầu vào:", title);
   const slug = title
     .toLowerCase()
+    .replace(/đ/g, "d") // Thay "đ" thành "d"
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/['",]/g, "")
@@ -158,7 +159,7 @@ const AddBlog = () => {
   const showNotification = (message: string, type: "success" | "error") => {
     let displayMessage = message;
     if (message.includes("Trùng lặp slug") || message.includes("duplicate key")) {
-      displayMessage = "Slug đã tồn tại. Vui lòng thử lại với tiêu đề khác.";
+      displayMessage = "Slug đã tồn tại. Đã tạo slug mới.";
     } else if (message.includes("Invalid file type")) {
       displayMessage = "Loại file không hợp lệ. Chỉ chấp nhận JPG, PNG, GIF, WebP, SVG.";
     } else if (message.includes("File too large")) {
@@ -468,6 +469,8 @@ const AddBlog = () => {
         formDataToSend.append("contentImages", file);
       });
 
+      console.log("Payload gửi đi:", Object.fromEntries(formDataToSend));
+
       const response = await fetch(`${API_DOMAIN}/api/news`, {
         method: "POST",
         headers: {
@@ -480,6 +483,7 @@ const AddBlog = () => {
       if (!response.ok) {
         if (result.error.includes("duplicate key")) {
           const newSlug = `${formData.slug}-${Date.now()}`;
+          showNotification(`Slug '${formData.slug}' đã tồn tại. Đã tạo slug mới: ${newSlug}`, "warning");
           formDataToSend.set("slug", newSlug);
           const retryResponse = await fetch(`${API_DOMAIN}/api/news`, {
             method: "POST",
@@ -668,4 +672,4 @@ const AddBlog = () => {
   );
 };
 
-export default AddBlog; 
+export default AddBlog;

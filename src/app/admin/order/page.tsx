@@ -6,8 +6,7 @@ import { useRouter } from "next/navigation";
 import Head from "next/head";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck, faTimes, faRedo } from "@fortawesome/free-solid-svg-icons";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import ToastNotification from "../../user/ToastNotification/ToastNotification"; // Thay thế import
 
 interface Option {
   stock: number;
@@ -65,7 +64,8 @@ const OrderPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [shippingStatusFilter, setShippingStatusFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const ordersPerPage = 9; // Match product.tsx
+  const [notification, setNotification] = useState<{ message: string; type: "success" | "error" } | null>(null); // Thêm state cho notification
+  const ordersPerPage = 9;
   const router = useRouter();
 
   const paymentStatusMapping = {
@@ -110,17 +110,7 @@ const OrderPage: React.FC = () => {
   };
 
   const showNotification = (message: string, type: "success" | "error") => {
-    if (type === "success") {
-      toast.success(message, {
-        className: styles.customToast,
-        bodyClassName: styles.customToastBody,
-      });
-    } else {
-      toast.error(message, {
-        className: styles.customToast,
-        bodyClassName: styles.customToastBody,
-      });
-    }
+    setNotification({ message, type });
   };
 
   // Check admin access
@@ -421,20 +411,13 @@ const OrderPage: React.FC = () => {
       <Head>
         <title>Quản Lý Đơn Hàng</title>
       </Head>
-      <ToastContainer
-        position="top-right"
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="light"
-        toastClassName={styles.customToast}
-        bodyClassName={styles.customToastBody}
-      />
+      {notification && (
+        <ToastNotification
+          message={notification.message}
+          type={notification.type}
+          onClose={() => setNotification(null)}
+        />
+      )}
       {loading && orders.length > 0 && (
         <div className={styles.processingIndicator}>
           <FontAwesomeIcon icon={faRedo} spin /> Đang xử lý...

@@ -5,8 +5,7 @@ import styles from "./comment.module.css";
 import Head from "next/head";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEyeSlash, faCheck, faTimes, faRedo } from "@fortawesome/free-solid-svg-icons";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import ToastNotification from "../../user/ToastNotification/ToastNotification";
 
 interface User {
   _id: string;
@@ -45,6 +44,15 @@ const CommentPage: React.FC = () => {
   const [toggleMessage, setToggleMessage] = useState<string>("");
   const commentsPerPage = 9; // Match product.tsx
   const router = useRouter();
+  const [notification, setNotification] = useState({
+    show: false,
+    message: "",
+    type: "success" as "success" | "error",
+  });
+
+  const showNotification = (message: string, type: "success" | "error") => {
+    setNotification({ show: true, message, type });
+  };
 
   const normalizeImageUrl = (path: string): string => {
     if (path.startsWith("http")) return path;
@@ -68,10 +76,7 @@ const CommentPage: React.FC = () => {
     const token = localStorage.getItem("token");
     const role = localStorage.getItem("role");
     if (!token || role !== "admin") {
-      toast.error("Bạn cần quyền admin để truy cập trang này.", {
-        className: styles.customToast,
-        bodyClassName: styles.customToastBody,
-      });
+      showNotification("Bạn cần quyền admin để truy cập trang này.", "error");
       router.push("/user/login");
     }
   }, [router]);
@@ -96,10 +101,7 @@ const CommentPage: React.FC = () => {
         });
 
         if (res.status === 401 || res.status === 403) {
-          toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!", {
-            className: styles.customToast,
-            bodyClassName: styles.customToastBody,
-          });
+          showNotification("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!", "error");
           localStorage.removeItem("token");
           localStorage.removeItem("role");
           router.push("/user/login");
@@ -118,10 +120,7 @@ const CommentPage: React.FC = () => {
         setFilteredComments(data);
       } catch (error: any) {
         const errorMessage = error.message || "Không thể tải danh sách bình luận.";
-        toast.error(errorMessage, {
-          className: styles.customToast,
-          bodyClassName: styles.customToastBody,
-        });
+        showNotification(errorMessage, "error");
         setError(errorMessage);
       } finally {
         setLoading(false);
@@ -185,10 +184,7 @@ const CommentPage: React.FC = () => {
       );
 
       if (res.status === 401 || res.status === 403) {
-        toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!", {
-          className: styles.customToast,
-          bodyClassName: styles.customToastBody,
-        });
+        showNotification("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!", "error");
         localStorage.removeItem("token");
         localStorage.removeItem("role");
         router.push("/user/login");
@@ -211,15 +207,9 @@ const CommentPage: React.FC = () => {
           c._id === toggleCommentId ? { ...c, status: updatedComment.comment.status } : c
         )
       );
-      toast.success(`Bình luận đã được ${newStatus === "show" ? "hiển thị" : "ẩn"}`, {
-        className: styles.customToast,
-        bodyClassName: styles.customToastBody,
-      });
+      showNotification(`Bình luận đã được ${newStatus === "show" ? "hiển thị" : "ẩn"}`, "success");
     } catch (error: any) {
-      toast.error(`Không thể cập nhật trạng thái bình luận: ${error.message}`, {
-        className: styles.customToast,
-        bodyClassName: styles.customToastBody,
-      });
+      showNotification(`Không thể cập nhật trạng thái bình luận: ${error.message}`, "error");
     } finally {
       setIsTogglingStatus(false);
       setToggleCommentId(null);
@@ -305,20 +295,13 @@ const CommentPage: React.FC = () => {
       <Head>
         <title>Quản Lý Bình Luận</title>
       </Head>
-      <ToastContainer
-        position="top-right"
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="light"
-        toastClassName={styles.customToast}
-        bodyClassName={styles.customToastBody}
-      />
+      {notification.show && (
+        <ToastNotification
+          message={notification.message}
+          type={notification.type}
+          onClose={() => setNotification({ show: false, message: "", type: "success" })}
+        />
+      )}
       {loading && comments.length > 0 && (
         <div className={styles.processingIndicator}>
           <FontAwesomeIcon icon={faRedo} spin /> Đang xử lý...

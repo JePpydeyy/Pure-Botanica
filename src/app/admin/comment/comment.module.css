@@ -208,7 +208,7 @@
 }
 
 .actionButtons {
-  display: flex;
+  /* display: flex; */
   gap: 8px;
 }
 

@@ -4,8 +4,8 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./PaymentHistoryPage.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTimes } from "@fortawesome/free-solid-svg-icons";
-import moment from "moment-timezone";
+import { faTimes, faChevronRight } from "@fortawesome/free-solid-svg-icons";
+import ToastNotification from "../../user/ToastNotification/ToastNotification";
 
 interface Payment {
   paymentCode: string;
@@ -13,15 +13,11 @@ interface Payment {
   transactionDate: string | null;
   bankUserName: string;
   description: string;
-  status: string;
+  status: "pending" | "success" | "expired" | "failed";
   orderId: string;
 }
 
-interface Notification {
-  show: boolean;
-  message: string;
-  type: "success" | "error";
-}
+const API_BASE_URL = "https://api-zeal.onrender.com";
 
 export default function PaymentHistoryPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -30,14 +26,16 @@ export default function PaymentHistoryPage() {
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [showPopup, setShowPopup] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "success" | "expired" | "failed">("all");
-  const [notification, setNotification] = useState<Notification>({
-    show: false,
-    message: "",
-    type: "success",
-  });
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "pending" | "success" | "expired" | "failed"
+  >("all");
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
+  const [notification, setNotification] = useState<{
+    show: boolean;
+    message: string;
+    type: "success" | "error";
+  }>({ show: false, message: "", type: "success" });
   const paymentsPerPage = 9;
   const router = useRouter();
 
@@ -50,23 +48,10 @@ export default function PaymentHistoryPage() {
 
   const formatDate = (dateString: string | null) => {
     if (!dateString || dateString.trim() === "") return "Chưa có";
-
-    const dateTimeMatch = dateString.match(/(\d{2})\/(\d{2})\/(\d{4})/);
-    if (dateTimeMatch) {
-      const [, day, month, year] = dateTimeMatch;
-      const testDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-      if (!isNaN(testDate.getTime())) {
-        return `${day.padStart(2, "0")}-${month.padStart(2, "0")}-${year}`;
-      }
-    }
-
     const parsedDate = new Date(dateString);
     if (!isNaN(parsedDate.getTime())) {
-      return `${parsedDate.getDate().toString().padStart(2, "0")}-${(parsedDate.getMonth() + 1)
-        .toString()
-        .padStart(2, "0")}-${parsedDate.getFullYear()}`;
+      return parsedDate.toLocaleDateString("vi-VN");
     }
-
     console.warn("Invalid date from API:", dateString);
     return "Ngày không hợp lệ";
   };
@@ -101,7 +86,7 @@ export default function PaymentHistoryPage() {
     if (!token || role !== "admin") {
       showNotification("Vui lòng đăng nhập với quyền admin!", "error");
       localStorage.clear();
-      router.push("/user/login");
+      setTimeout(() => router.push("/user/login"), 1000);
     }
   }, [router]);
 
@@ -120,11 +105,11 @@ export default function PaymentHistoryPage() {
 
         const userId = getUserIdFromToken(token);
         if (!userId) {
-          showNotification("Không thể lấy userId từ token, vui lòng kiểm tra token!", "error");
+          showNotification("Không thể lấy userId từ token!", "error");
           return;
         }
 
-        const res = await fetch("https://api-zeal.onrender.com/api/payments/get-by-user", {
+        const res = await fetch(`${API_BASE_URL}/api/payments/get-by-user`, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -134,24 +119,17 @@ export default function PaymentHistoryPage() {
           cache: "no-store",
         });
 
-        console.log("API Response Status:", res.status);
-        const contentType = res.headers.get("content-type");
         if (!res.ok) {
           const errorText = await res.text();
           throw new Error(`API Error: ${res.status} - ${errorText || res.statusText}`);
         }
-        if (!contentType || !contentType.includes("application/json")) {
-          throw new Error("Response is not JSON");
-        }
+
         const data = await res.json();
-        console.log("API Response Data:", data);
         if (!Array.isArray(data.data)) throw new Error("Data is not an array from API");
 
-        // Validate payment data
-        const validPayments = data.data.filter((payment: Payment) =>
-          payment.paymentCode && payment.status && payment.orderId
+        const validPayments = data.data.filter(
+          (payment: Payment) => payment.paymentCode && payment.status && payment.orderId
         );
-        console.log("Valid payments:", validPayments);
         setPayments(validPayments);
         setFilteredPayments(validPayments);
       } catch (error) {
@@ -168,13 +146,12 @@ export default function PaymentHistoryPage() {
 
   const filterPayments = useCallback(
     (query: string, status: "all" | "pending" | "success" | "expired" | "failed") => {
-      console.log("Filtering with query:", query, "status:", status);
       const filtered = payments.filter((payment) => {
         const searchLower = query.toLowerCase().trim();
-        const paymentCode = payment.paymentCode ? payment.paymentCode.toLowerCase() : "";
-        const bankUserName = payment.bankUserName ? payment.bankUserName.toLowerCase() : "";
-        const orderId = payment.orderId ? payment.orderId.toLowerCase() : "";
-        const description = payment.description ? payment.description.toLowerCase() : "";
+        const paymentCode = payment.paymentCode?.toLowerCase() || "";
+        const bankUserName = payment.bankUserName?.toLowerCase() || "";
+        const orderId = payment.orderId?.toLowerCase() || "";
+        const description = payment.description?.toLowerCase() || "";
         return (
           (status === "all" || payment.status === status) &&
           (paymentCode.includes(searchLower) ||
@@ -183,7 +160,6 @@ export default function PaymentHistoryPage() {
             description.includes(searchLower))
         );
       });
-      console.log("Filtered payments:", filtered);
       setFilteredPayments(filtered);
       setCurrentPage(1);
     },
@@ -192,7 +168,10 @@ export default function PaymentHistoryPage() {
 
   const debouncedFilter = useMemo(
     () =>
-      (function debounce<T extends (...args: any[]) => void>(func: T, wait: number): (...args: Parameters<T>) => void {
+      (function debounce<T extends (...args: any[]) => void>(
+        func: T,
+        wait: number
+      ): (...args: Parameters<T>) => void {
         let timeout: NodeJS.Timeout;
         return (...args: Parameters<T>) => {
           clearTimeout(timeout);
@@ -207,7 +186,6 @@ export default function PaymentHistoryPage() {
   }, [searchQuery, statusFilter, debouncedFilter]);
 
   const handlePaymentClick = (payment: Payment, e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).tagName === "INPUT" || (e.target as HTMLElement).tagName === "SELECT") return;
     setSelectedPayment(payment);
     setShowPopup(true);
   };
@@ -218,40 +196,12 @@ export default function PaymentHistoryPage() {
   };
 
   const totalPages = Math.ceil(filteredPayments.length / paymentsPerPage);
-  const indexOfLastPayment = currentPage * paymentsPerPage;
-  const indexOfFirstPayment = indexOfLastPayment - paymentsPerPage;
-  const currentPayments = filteredPayments.slice(indexOfFirstPayment, indexOfLastPayment);
+  const indexOfFirstPayment = (currentPage - 1) * paymentsPerPage;
 
-  const handlePageChange = (page: number) => {
+  const goToPage = (page: number) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
     }
-  };
-
-  const getPaginationInfo = () => {
-    const visiblePages: number[] = [];
-    let showPrevEllipsis = false;
-    let showNextEllipsis = false;
-
-    if (totalPages <= 3) {
-      for (let i = 1; i <= totalPages; i++) {
-        visiblePages.push(i);
-      }
-    } else {
-      if (currentPage === 1) {
-        visiblePages.push(1, 2, 3);
-        showNextEllipsis = totalPages > 3;
-      } else if (currentPage === totalPages) {
-        visiblePages.push(totalPages - 2, totalPages - 1, totalPages);
-        showPrevEllipsis = totalPages > 3;
-      } else {
-        visiblePages.push(currentPage - 1, currentPage, currentPage + 1);
-        showPrevEllipsis = currentPage > 2;
-        showNextEllipsis = currentPage < totalPages - 1;
-      }
-    }
-
-    return { visiblePages, showPrevEllipsis, showNextEllipsis };
   };
 
   if (error) {
@@ -264,7 +214,7 @@ export default function PaymentHistoryPage() {
             className={styles.confirmBtn}
             aria-label="Thử lại"
           >
-            Thử lại
+            <FontAwesomeIcon icon={faChevronRight} />
           </button>
         </div>
       </div>
@@ -276,7 +226,7 @@ export default function PaymentHistoryPage() {
       <div className={styles.productManagementContainer}>
         <div className={styles.errorContainer}>
           <div className={styles.processingIndicator}>
-            <div className={styles.spinner}></div>
+            <FontAwesomeIcon icon={faChevronRight} spin />
             <p>Đang tải dữ liệu thanh toán...</p>
           </div>
         </div>
@@ -287,21 +237,14 @@ export default function PaymentHistoryPage() {
   return (
     <div className={styles.productManagementContainer}>
       {notification.show && (
-        <div className={styles.modalOverlay}>
-          <div className={`${styles.modalContent} ${styles[notification.type]}`}>
-            <p>{notification.message}</p>
-            <button
-              className={styles.cancelBtn}
-              onClick={() => setNotification({ show: false, message: "", type: "success" })}
-              aria-label="Đóng thông báo"
-            >
-              <FontAwesomeIcon icon={faTimes} />
-            </button>
-          </div>
-        </div>
+        <ToastNotification
+          message={notification.message}
+          type={notification.type}
+          onClose={() => setNotification({ show: false, message: "", type: "success" })}
+        />
       )}
       <div className={styles.titleContainer}>
-        <h1>Quản Lý Lịch Sử Thanh Toán</h1>
+        <h1>LỊCH SỬ THANH TOÁN</h1>
         <div className={styles.filterContainer}>
           <input
             type="text"
@@ -313,7 +256,9 @@ export default function PaymentHistoryPage() {
           />
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as "all" | "pending" | "success" | "expired" | "failed")}
+            onChange={(e) =>
+              setStatusFilter(e.target.value as "all" | "pending" | "success" | "expired" | "failed")
+            }
             className={styles.categorySelect}
             aria-label="Lọc theo trạng thái"
           >
@@ -340,10 +285,14 @@ export default function PaymentHistoryPage() {
             </tr>
           </thead>
           <tbody>
-            {currentPayments.length === 0 ? (
+            {filteredPayments.length === 0 ? (
               <tr>
                 <td colSpan={8} className={styles.emptyState}>
-                  <h3>{searchQuery || statusFilter !== "all" ? "Không tìm thấy thanh toán" : "Chưa có thanh toán"}</h3>
+                  <h3>
+                    {searchQuery || statusFilter !== "all"
+                      ? "Không tìm thấy thanh toán"
+                      : "Chưa có thanh toán"}
+                  </h3>
                   <p>
                     {searchQuery || statusFilter !== "all"
                       ? "Không có thanh toán nào khớp với bộ lọc."
@@ -352,113 +301,130 @@ export default function PaymentHistoryPage() {
                 </td>
               </tr>
             ) : (
-              currentPayments.map((payment, index) => (
-                <tr
-                  key={payment.paymentCode}
-                  className={styles.productRow}
-                  onClick={(e) => handlePaymentClick(payment, e)}
-                >
-                  <td>{indexOfFirstPayment + index + 1}</td>
-                  <td>{payment.paymentCode}</td>
-                  <td>{payment.amount.toLocaleString()} VND</td>
-                  <td>{formatDate(payment.transactionDate)}</td>
-                  <td>{payment.bankUserName}</td>
-                  <td className={styles.descriptionCell}>{payment.description}</td>
-                  <td>
-                    <span
-                      className={
-                        payment.status === "success"
-                          ? styles.statusActive
-                          : payment.status === "pending"
-                          ? styles.statusPending
-                          : styles.statusInactive
-                      }
-                    >
-                      {statusMapping[payment.status] || payment.status}
-                    </span>
-                  </td>
-                  <td>{payment.orderId ? payment.orderId.slice(0, 5) : "N/A"}</td>
-                </tr>
-              ))
+              filteredPayments
+                .slice(indexOfFirstPayment, indexOfFirstPayment + paymentsPerPage)
+                .map((payment, index) => (
+                  <tr
+                    key={payment.paymentCode}
+                    className={styles.productRow}
+                    onClick={(e) => handlePaymentClick(payment, e)}
+                  >
+                    <td>{indexOfFirstPayment + index + 1}</td>
+                    <td>{payment.paymentCode}</td>
+                    <td>{payment.amount.toLocaleString()} VND</td>
+                    <td>{formatDate(payment.transactionDate)}</td>
+                    <td>{payment.bankUserName}</td>
+                    <td className={styles.descriptionCell}>{payment.description}</td>
+                    <td>
+                      <span
+                        className={
+                          payment.status === "success"
+                            ? styles.statusActive
+                            : payment.status === "pending"
+                            ? styles.statusPending
+                            : styles.statusInactive
+                        }
+                      >
+                        {statusMapping[payment.status] || payment.status}
+                      </span>
+                    </td>
+                    <td>{payment.orderId ? payment.orderId.slice(0, 5) : "N/A"}</td>
+                  </tr>
+                ))
             )}
           </tbody>
         </table>
+        {totalPages > 1 && (
+          <div className={styles.pagination}>
+            {(() => {
+              const visiblePages: number[] = [];
+              let showPrevEllipsis = false;
+              let showNextEllipsis = false;
+
+              if (totalPages <= 3) {
+                for (let i = 1; i <= totalPages; i++) {
+                  visiblePages.push(i);
+                }
+              } else {
+                if (currentPage === 1) {
+                  visiblePages.push(1, 2, 3);
+                  showNextEllipsis = totalPages > 3;
+                } else if (currentPage === totalPages) {
+                  visiblePages.push(totalPages - 2, totalPages - 1, totalPages);
+                  showPrevEllipsis = totalPages > 3;
+                } else {
+                  visiblePages.push(currentPage - 1, currentPage, currentPage + 1);
+                  showPrevEllipsis = currentPage > 2;
+                  showNextEllipsis = currentPage < totalPages - 1;
+                }
+              }
+
+              return (
+                <>
+                  {showPrevEllipsis && (
+                    <>
+                      <button
+                        className={`${styles.pageLink} ${styles.firstLastPage}`}
+                        onClick={() => goToPage(1)}
+                        disabled={loading}
+                        title="Trang đầu tiên"
+                      >
+                        1
+                      </button>
+                      <div
+                        className={styles.ellipsis}
+                        onClick={() => goToPage(Math.max(1, currentPage - 3))}
+                        title="Trang trước đó"
+                      >
+                        ...
+                      </div>
+                    </>
+                  )}
+                  {visiblePages.map((page) => (
+                    <button
+                      key={page}
+                      className={`${styles.pageLink} ${
+                        currentPage === page ? styles.pageLinkActive : ""
+                      }`}
+                      onClick={() => goToPage(page)}
+                      disabled={loading}
+                      title={`Trang ${page}`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                  {showNextEllipsis && (
+                    <>
+                      <div
+                        className={styles.ellipsis}
+                        onClick={() => goToPage(Math.min(totalPages, currentPage + 3))}
+                        title="Trang tiếp theo"
+                      >
+                        ...
+                      </div>
+                      <button
+                        className={`${styles.pageLink} ${styles.firstLastPage}`}
+                        onClick={() => goToPage(totalPages)}
+                        disabled={loading}
+                        title="Trang cuối cùng"
+                      >
+                        {totalPages}
+                      </button>
+                    </>
+                  )}
+                </>
+              );
+            })()}
+          </div>
+        )}
       </div>
-      {totalPages > 1 && (
-        <div className={styles.pagination}>
-          {(() => {
-            const { visiblePages, showPrevEllipsis, showNextEllipsis } = getPaginationInfo();
-            return (
-              <>
-                {showPrevEllipsis && (
-                  <>
-                    <button
-                      type="button"
-                      className={`${styles.pageLink} ${styles.firstLastPage}`}
-                      onClick={() => handlePageChange(1)}
-                      title="Trang đầu tiên"
-                      aria-label="Trang đầu tiên"
-                    >
-                      1
-                    </button>
-                    <div
-                      className={styles.ellipsis}
-                      onClick={() => handlePageChange(Math.max(1, currentPage - 3))}
-                      title="Trang trước đó"
-                      role="button"
-                      aria-label="Trang trước đó"
-                    >
-                      ...
-                    </div>
-                  </>
-                )}
-                {visiblePages.map((page) => (
-                  <button
-                    type="button"
-                    key={page}
-                    className={`${styles.pageLink} ${
-                      currentPage === page ? styles.pageLinkActive : ""
-                    }`}
-                    onClick={() => handlePageChange(page)}
-                    title={`Trang ${page}`}
-                    aria-label={`Trang ${page}`}
-                  >
-                    {page}
-                  </button>
-                ))}
-                {showNextEllipsis && (
-                  <>
-                    <div
-                      className={styles.ellipsis}
-                      onClick={() => handlePageChange(Math.min(totalPages, currentPage + 3))}
-                      title="Trang tiếp theo"
-                      role="button"
-                      aria-label="Trang tiếp theo"
-                    >
-                      ...
-                    </div>
-                    <button
-                      type="button"
-                      className={`${styles.pageLink} ${styles.firstLastPage}`}
-                      onClick={() => handlePageChange(totalPages)}
-                      title="Trang cuối cùng"
-                      aria-label="Trang cuối cùng"
-                    >
-                      {totalPages}
-                    </button>
-                  </>
-                )}
-              </>
-            );
-          })()}
-        </div>
-      )}
       {showPopup && selectedPayment && (
         <div className={styles.modalOverlay} onClick={closePopup}>
-          <div className={`${styles.modalContent} ${styles.paymentDetail}`} onClick={(e) => e.stopPropagation()}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <button
-              className={styles.cancelBtn}
+              className={styles.closePopupBtn}
               onClick={closePopup}
+              title="Đóng"
               aria-label="Đóng chi tiết thanh toán"
             >
               <FontAwesomeIcon icon={faTimes} />

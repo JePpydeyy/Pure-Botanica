@@ -8,8 +8,7 @@ import Head from "next/head";
 import React from "react";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEdit, faEye, faEyeSlash, faPlus, faCheck, faTimes, faRedo } from '@fortawesome/free-solid-svg-icons';
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import ToastNotification from "../../user/ToastNotification/ToastNotification"; // Thay thế import
 
 // Định nghĩa các giao diện TypeScript
 interface Option {
@@ -65,6 +64,7 @@ export default function ProductPage() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
+  const [notification, setNotification] = useState<{ message: string; type: "success" | "error" } | null>(null); // Thêm state cho notification
   const productsPerPage = 9;
 
   const router = useRouter();
@@ -79,27 +79,14 @@ export default function ProductPage() {
     const token = localStorage.getItem("token");
     const role = localStorage.getItem("role");
     if (!token || role !== "admin") {
-      toast.error("Bạn cần quyền admin để truy cập trang này.", {
-        className: styles.customToast,
-        bodyClassName: styles.customToastBody,
-      });
+      showNotification("Bạn cần quyền admin để truy cập trang này.", "error");
       router.push("/user/login");
     }
   }, [router]);
 
   // Hàm hiển thị thông báo
   const showNotification = (message: string, type: "success" | "error") => {
-    if (type === "success") {
-      toast.success(message, {
-        className: styles.customToast,
-        bodyClassName: styles.customToastBody,
-      });
-    } else {
-      toast.error(message, {
-        className: styles.customToast,
-        bodyClassName: styles.customToastBody,
-      });
-    }
+    setNotification({ message, type });
   };
 
   // Lấy dữ liệu danh mục từ API
@@ -117,10 +104,7 @@ export default function ProductPage() {
       });
 
       if (res.status === 401 || res.status === 403) {
-        toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!", {
-          className: styles.customToast,
-          bodyClassName: styles.customToastBody,
-        });
+        showNotification("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!", "error");
         localStorage.removeItem("token");
         localStorage.removeItem("role");
         localStorage.removeItem("email");
@@ -174,10 +158,7 @@ export default function ProductPage() {
       });
 
       if (res.status === 401 || res.status === 403) {
-        toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!", {
-          className: styles.customToast,
-          bodyClassName: styles.customToastBody,
-        });
+        showNotification("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!", "error");
         localStorage.removeItem("token");
         localStorage.removeItem("role");
         localStorage.removeItem("email");
@@ -225,10 +206,7 @@ export default function ProductPage() {
       });
 
       if (res.status === 401 || res.status === 403) {
-        toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!", {
-          className: styles.customToast,
-          bodyClassName: styles.customToastBody,
-        });
+        showNotification("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!", "error");
         localStorage.removeItem("token");
         localStorage.removeItem("role");
         localStorage.removeItem("email");
@@ -375,10 +353,7 @@ export default function ProductPage() {
       );
 
       if (response.status === 401 || response.status === 403) {
-        toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!", {
-          className: styles.customToast,
-          bodyClassName: styles.customToastBody,
-        });
+        showNotification("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!", "error");
         localStorage.removeItem("token");
         localStorage.removeItem("role");
         localStorage.removeItem("email");
@@ -486,20 +461,13 @@ export default function ProductPage() {
       <Head>
         <title>Quản Lý Sản Phẩm</title>
       </Head>
-      <ToastContainer
-        position="top-right"
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="light"
-        toastClassName={styles.customToast}
-        bodyClassName={styles.customToastBody}
-      />
+      {notification && (
+        <ToastNotification
+          message={notification.message}
+          type={notification.type}
+          onClose={() => setNotification(null)}
+        />
+      )}
       {loading && products.length > 0 && (
         <div className={styles.processingIndicator}>
           <FontAwesomeIcon icon={faRedo} spin /> Đang xử lý...

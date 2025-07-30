@@ -3,8 +3,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import styles from "./add_product.module.css";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+// Thay thế react-toastify bằng ToastNotification
+import ToastNotification from "../../user/ToastNotification/ToastNotification";
 
 // Định nghĩa giao diện TypeScript
 interface Category {
@@ -64,19 +64,25 @@ const AddProduct = () => {
     insertUnorderedList: false,
     insertOrderedList: false,
   });
+  const [notification, setNotification] = useState({
+    show: false,
+    message: "",
+    type: "success" as "success" | "error",
+  });
 
   const editorRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+
+  const showNotification = (message: string, type: "success" | "error") => {
+    setNotification({ show: true, message, type });
+  };
 
   // Kiểm tra quyền admin
   useEffect(() => {
     const token = localStorage.getItem("token");
     const role = localStorage.getItem("role");
     if (!token || role !== "admin") {
-      toast.error("Bạn cần quyền admin để truy cập trang này.", {
-        className: styles.customToast,
-        bodyClassName: styles.customToastBody,
-      });
+      showNotification("Bạn cần quyền admin để truy cập trang này.", "error");
       router.push("/user/login");
     }
   }, [router]);
@@ -91,10 +97,7 @@ const AddProduct = () => {
           cache: "no-store",
         });
         if (response.status === 401 || response.status === 403) {
-          toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!", {
-            className: styles.customToast,
-            bodyClassName: styles.customToastBody,
-          });
+          showNotification("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!", "error");
           localStorage.removeItem("token");
           localStorage.removeItem("role");
           localStorage.removeItem("email");
@@ -106,10 +109,7 @@ const AddProduct = () => {
         setCategories(data);
       } catch (error) {
         console.error("Lỗi khi tải danh mục:", error);
-        toast.error("Không thể tải danh mục", {
-          className: styles.customToast,
-          bodyClassName: styles.customToastBody,
-        });
+        showNotification("Không thể tải danh mục", "error");
       }
     };
 
@@ -121,10 +121,7 @@ const AddProduct = () => {
           cache: "no-store",
         });
         if (response.status === 401 || response.status === 403) {
-          toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!", {
-            className: styles.customToast,
-            bodyClassName: styles.customToastBody,
-          });
+          showNotification("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!", "error");
           localStorage.removeItem("token");
           localStorage.removeItem("role");
           localStorage.removeItem("email");
@@ -136,10 +133,7 @@ const AddProduct = () => {
         setBrands(data);
       } catch (error) {
         console.error("Lỗi khi tải thương hiệu:", error);
-        toast.error("Không thể tải thương hiệu", {
-          className: styles.customToast,
-          bodyClassName: styles.customToastBody,
-        });
+        showNotification("Không thể tải thương hiệu", "error");
       }
     };
 
@@ -195,20 +189,6 @@ const AddProduct = () => {
     };
 
     setActiveFormats(newStates);
-  };
-
-  const showNotification = (message: string, type: "success" | "error") => {
-    if (type === "success") {
-      toast.success(message, {
-        className: styles.customToast,
-        bodyClassName: styles.customToastBody,
-      });
-    } else {
-      toast.error(message, {
-        className: styles.customToast,
-        bodyClassName: styles.customToastBody,
-      });
-    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -455,10 +435,7 @@ const AddProduct = () => {
       });
 
       if (response.status === 401 || response.status === 403) {
-        toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!", {
-          className: styles.customToast,
-          bodyClassName: styles.customToastBody,
-        });
+        showNotification("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!", "error");
         localStorage.removeItem("token");
         localStorage.removeItem("role");
         localStorage.removeItem("email");
@@ -505,23 +482,16 @@ const AddProduct = () => {
 
   return (
     <main className={styles.mainContainer}>
+      {notification.show && (
+        <ToastNotification
+          message={notification.message}
+          type={notification.type}
+          onClose={() => setNotification({ show: false, message: "", type: "success" })}
+        />
+      )}
       <div className={styles.maintitle}>
         <h1 className={styles.title}>Thêm sản phẩm</h1>
       </div>
-      <ToastContainer
-        position="top-right"
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="light"
-        toastClassName={styles.customToast}
-        bodyClassName={styles.customToastBody}
-      />
       <div className={styles.contentWrapper}>
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.basicInfo}>

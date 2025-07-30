@@ -4,7 +4,8 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./customer.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEdit, faTrash, faPlus, faCheck, faTimes } from "@fortawesome/free-solid-svg-icons";
+import { faEdit, faTrash, faCheck, faTimes } from "@fortawesome/free-solid-svg-icons";
+import ToastNotification from "../../user/ToastNotification/ToastNotification";
 
 interface Customer {
   _id: string;
@@ -57,7 +58,11 @@ export default function Customer() {
     const token = localStorage.getItem("token");
     const role = localStorage.getItem("role");
     if (!token || role !== "admin") {
-      setNotification({ show: true, message: "Bạn không có quyền truy cập. Vui lòng đăng nhập với tài khoản admin.", type: "error" });
+      setNotification({
+        show: true,
+        message: "Bạn không có quyền truy cập. Vui lòng đăng nhập với tài khoản admin.",
+        type: "error",
+      });
       setTimeout(() => router.push("/user/login"), 3000);
     } else {
       setIsAuthorized(true);
@@ -344,7 +349,7 @@ export default function Customer() {
       <div className={styles.productManagementContainer}>
         <div className={styles.errorContainer}>
           <div className={styles.processingIndicator}>
-            <div className={styles.spinner}></div>
+            <FontAwesomeIcon icon={faCheck} spin />
             <p>Đang tải dữ liệu khách hàng...</p>
           </div>
         </div>
@@ -355,21 +360,14 @@ export default function Customer() {
   return (
     <div className={styles.productManagementContainer}>
       {notification.show && (
-        <div className={styles.modalOverlay}>
-          <div className={`${styles.modalContent} ${styles[notification.type]}`}>
-            <p>{notification.message}</p>
-            <button
-              className={styles.cancelBtn}
-              onClick={() => setNotification({ show: false, message: "", type: "success" })}
-              aria-label="Đóng thông báo"
-            >
-              <FontAwesomeIcon icon={faTimes} />
-            </button>
-          </div>
-        </div>
+        <ToastNotification
+          message={notification.message}
+          type={notification.type}
+          onClose={() => setNotification({ show: false, message: "", type: "success" })}
+        />
       )}
       <div className={styles.titleContainer}>
-        <h1>{roleFilter === "user" ? "Quản Lý Khách Hàng" : "Quản Lý Quản Trị Viên"}</h1>
+        <h1>{roleFilter === "user" ? "QUẢN LÝ KHÁCH HÀNG" : "QUẢN LÝ QUẢN TRỊ VIÊN"}</h1>
         <div className={styles.filterContainer}>
           <input
             type="text"
@@ -440,7 +438,7 @@ export default function Customer() {
                         className={styles.editBtn}
                         onClick={() => openModal(customer)}
                         title="Sửa thông tin"
-                        aria-label="Sửa thông tin khách hàng"
+                        aria-label={`Sửa thông tin ${customer.username}`}
                       >
                         <FontAwesomeIcon icon={faEdit} />
                       </button>
@@ -449,7 +447,7 @@ export default function Customer() {
                         className={styles.cancelBtn}
                         onClick={() => confirmDelete(customer._id)}
                         title="Xóa khách hàng"
-                        aria-label="Xóa khách hàng"
+                        aria-label={`Xóa ${customer.username}`}
                       >
                         <FontAwesomeIcon icon={faTrash} />
                       </button>
@@ -542,8 +540,17 @@ export default function Customer() {
       {isModalOpen && selectedCustomer && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
-
-            <h2>Chỉnh sửa thông tin {roleFilter === "user" ? "khách hàng" : "quản trị viên"}</h2>
+            <button
+              className={styles.closePopupBtn}
+              onClick={() => setIsModalOpen(false)}
+              title="Đóng"
+              aria-label="Đóng form chỉnh sửa"
+            >
+              <FontAwesomeIcon icon={faTimes} />
+            </button>
+            <h2 className={styles.modalContentTitle}>
+              Chỉnh sửa thông tin {roleFilter === "user" ? "khách hàng" : "quản trị viên"}
+            </h2>
             <form>
               <div className={styles.formGroup}>
                 <label>Trạng thái:</label>
@@ -601,30 +608,43 @@ export default function Customer() {
       {isConfirmUpdateModalOpen && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
-            <h2>Xác Nhận Cập Nhật</h2>
-            <p>Bạn có chắc muốn cập nhật thông tin {roleFilter === "user" ? "khách hàng" : "quản trị viên"} này?</p>
-            <div className={styles.modalActions}>
-              <button
-                type="button"
-                className={styles.confirmBtn}
-                onClick={updateCustomerInfo}
-                title="Xác nhận cập nhật"
-                aria-label="Xác nhận cập nhật thông tin"
-              >
-                <FontAwesomeIcon icon={faCheck} />
-              </button>
-              <button
-                type="button"
-                className={styles.cancelBtn}
-                onClick={() => {
-                  setIsConfirmUpdateModalOpen(false);
-                  setIsModalOpen(true);
-                }}
-                title="Hủy"
-                aria-label="Hủy cập nhật"
-              >
-                <FontAwesomeIcon icon={faTimes} />
-              </button>
+            <button
+              className={styles.closePopupBtn}
+              onClick={() => {
+                setIsConfirmUpdateModalOpen(false);
+                setIsModalOpen(true);
+              }}
+              title="Đóng"
+              aria-label="Đóng xác nhận cập nhật"
+            >
+              <FontAwesomeIcon icon={faTimes} />
+            </button>
+            <h2 className={styles.modalContentTitle}>Xác Nhận Cập Nhật</h2>
+            <div className={styles.popupDetails}>
+              <p>Bạn có chắc muốn cập nhật thông tin {roleFilter === "user" ? "khách hàng" : "quản trị viên"} này?</p>
+              <div className={styles.modalActions}>
+                <button
+                  type="button"
+                  className={styles.confirmBtn}
+                  onClick={updateCustomerInfo}
+                  title="Xác nhận cập nhật"
+                  aria-label="Xác nhận cập nhật thông tin"
+                >
+                  <FontAwesomeIcon icon={faCheck} />
+                </button>
+                <button
+                  type="button"
+                  className={styles.cancelBtn}
+                  onClick={() => {
+                    setIsConfirmUpdateModalOpen(false);
+                    setIsModalOpen(true);
+                  }}
+                  title="Hủy"
+                  aria-label="Hủy cập nhật"
+                >
+                  <FontAwesomeIcon icon={faTimes} />
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -633,30 +653,43 @@ export default function Customer() {
       {isConfirmDeleteModalOpen && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
-            <h2>Xác Nhận Xóa</h2>
-            <p>Bạn có chắc muốn xóa {roleFilter === "user" ? "khách hàng" : "quản trị viên"} này?</p>
-            <div className={styles.modalActions}>
-              <button
-                type="button"
-                className={styles.confirmBtn}
-                onClick={deleteCustomer}
-                title="Xác nhận xóa"
-                aria-label="Xác nhận xóa khách hàng"
-              >
-                <FontAwesomeIcon icon={faCheck} />
-              </button>
-              <button
-                type="button"
-                className={styles.cancelBtn}
-                onClick={() => {
-                  setIsConfirmDeleteModalOpen(false);
-                  setDeleteCustomerId(null);
-                }}
-                title="Hủy"
-                aria-label="Hủy xóa khách hàng"
-              >
-                <FontAwesomeIcon icon={faTimes} />
-              </button>
+            <button
+              className={styles.closePopupBtn}
+              onClick={() => {
+                setIsConfirmDeleteModalOpen(false);
+                setDeleteCustomerId(null);
+              }}
+              title="Đóng"
+              aria-label="Đóng xác nhận xóa"
+            >
+              <FontAwesomeIcon icon={faTimes} />
+            </button>
+            <h2 className={styles.modalContentTitle}>Xác Nhận Xóa</h2>
+            <div className={styles.popupDetails}>
+              <p>Bạn có chắc muốn xóa {roleFilter === "user" ? "khách hàng" : "quản trị viên"} này?</p>
+              <div className={styles.modalActions}>
+                <button
+                  type="button"
+                  className={styles.confirmBtn}
+                  onClick={deleteCustomer}
+                  title="Xác nhận xóa"
+                  aria-label="Xác nhận xóa khách hàng"
+                >
+                  <FontAwesomeIcon icon={faCheck} />
+                </button>
+                <button
+                  type="button"
+                  className={styles.cancelBtn}
+                  onClick={() => {
+                    setIsConfirmDeleteModalOpen(false);
+                    setDeleteCustomerId(null);
+                  }}
+                  title="Hủy"
+                  aria-label="Hủy xóa khách hàng"
+                >
+                  <FontAwesomeIcon icon={faTimes} />
+                </button>
+              </div>
             </div>
           </div>
         </div>

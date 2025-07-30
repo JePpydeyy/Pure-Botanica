@@ -1,121 +1,115 @@
+:root {
+  --primary-color: #4CAF50;
+  --secondary-color: #000000;
+  --error-color: #f44336;
+  --background-color: #f8fafc;
+  --card-background: #ffffff;
+  --text-color: #334155;
+  --text-muted: #64748b;
+  --border-color: #e2e8f0;
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
 
 .configPage {
   padding: 24px;
-  margin-top: 100px;
-  background: #f9fafb;
+  background: #f3f4f6;
   min-height: 100vh;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  margin-left: 250px;
+  transition: margin-left 0.3s;
 }
 
-
 .titleContainer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin: 0 auto;
-  padding: 16px 0;
-  width: 100%;
-  max-width: 1240px;
+  max-width: 1400px;
+  padding: 2rem 2rem 0 2rem;
 }
 
 .titleContainer h1 {
-  font-size: 32px;
+  color: var(--secondary-color);
+  font-size: 28px;
   font-weight: 700;
-  color: #004C59;
-  margin: 0;
+  margin-bottom: 24px;
+  letter-spacing: -0.5px;
 }
-
 
 .tableContainer {
-  margin: 24px auto;
-  width: 100%;
-  max-width: 1240px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  overflow-x: auto;
-  background-color: #fff;
+  max-width: 1400px;
+  margin: 24px;
 }
-
 
 .form {
   margin-bottom: 24px;
   padding: 20px;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  background-color: #fff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--card-background);
+  box-shadow: var(--shadow-sm);
 }
 
 .formGroup {
   margin-bottom: 16px;
 }
 
-.formGroup label {
-  font-weight: 500;
+.formGroup label.subtitle {
   display: block;
-  margin-bottom: 6px;
-  color: #333;
-}
-
-.subtitle {
-  margin-top: 0;
-  margin-bottom: 10px;
+  color: var(--text-color);
+  font-size: 14px;
   font-weight: 600;
-  color: #004C59;
+  margin-bottom: 8px;
 }
-
 
 .searchInput {
-  padding: 8px 12px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  font-size: 14px;
-  outline: none;
-  transition: border-color 0.3s, box-shadow 0.3s;
-  background-color: #fff;
   width: 100%;
   max-width: 300px;
-  margin-top: 10px;
+  padding: 12px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--text-color);
+  background: var(--card-background);
+  transition: var(--transition);
 }
 
 .searchInput:focus {
-  border-color: #4CAF50;
-  box-shadow: 0 0 4px rgba(76, 175, 80, 0.3);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
 }
 
+.searchInput::placeholder {
+  color: var(--text-muted);
+  font-weight: 400;
+}
 
 .addProductBtn {
-  background-color: #004C59;
-  color: #fff;
-  padding: 8px 14px;
+  width: 150px;
+  height: 40px;
+  background: var(--primary-color);
+  color: white;
   border: none;
   border-radius: 6px;
   font-size: 14px;
   font-weight: 500;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: background-color 0.3s ease;
-  margin-top: 20px;
+  text-align: center;
+  line-height: 40px;
+  transition: var(--transition);
 }
 
 .addProductBtn:hover:not(:disabled) {
-  background-color: #00333f;
+  background: #45a049;
 }
 
 .addProductBtn:disabled {
-  background-color: #ccc;
+  background: #ccc;
   cursor: not-allowed;
 }
-
 
 .formActions {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
 }
-
 
 .previewContainer {
   margin-top: 8px;
@@ -128,140 +122,40 @@
   width: 100px;
   height: 100px;
   border-radius: 4px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--border-color);
   object-fit: contain;
-  margin-top: 10px;
 }
 
-
-.toast {
-  position: fixed;
-  top: 70px;
-  right: 20px;
-  padding: 15px 25px;
-  background-color: rgba(255, 255, 255, 0.95); 
-  color: #2e4a66; 
-  font-weight: 500;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), inset 0 0 8px rgba(135, 206, 235, 0.2);
-  z-index: 1000;
-  transition: all 0.5s ease-out;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-width: 300px;
-  max-width: 400px;
-  transform: translateX(110%) scale(0.8) skewX(0deg);
-  opacity: 0;
-  border-left: 4px solid transparent; 
+.searchInput:focus-visible,
+.addProductBtn:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
 }
 
-.toast.success {
-  border-left-color: #3cb371; 
-}
-
-.toast.error {
-  border-left-color: #ff4444; 
-}
-
-.toast.warning {
-  border-left-color: #f4c430; 
-}
-
-@keyframes waterDropIn {
-  0% {
-    transform: translateX(110%) scale(0.8) skewX(0deg);
-    opacity: 0;
-  }
-  50% {
-    transform: translateX(-10%) scale(1.2) skewX(-10deg);
-    opacity: 0.8;
-  }
-  70% {
-    transform: translateX(5%) scale(1.05) skewX(-5deg);
-  }
-  90% {
-    transform: translateX(0) scale(1.02) skewX(-2deg);
-  }
-  100% {
-    transform: translateX(0) scale(1) skewX(0deg);
-    opacity: 1;
-  }
-}
-
-@keyframes waterDropOut {
-  0% {
-    transform: translateX(0) scale(1) skewX(0deg);
-    opacity: 1;
-  }
-  30% {
-    transform: translateX(5%) scale(1.05) skewX(2deg);
-  }
-  70% {
-    transform: translateX(-10%) scale(0.9) skewX(5deg);
-  }
-  100% {
-    transform: translateX(110%) scale(0.8) skewX(0deg);
-    opacity: 0;
-  }
-}
-
-.toast.show {
-  animation: waterDropIn 0.6s ease-out forwards;
-}
-
-.toast.hide {
-  animation: waterDropOut 0.6s ease-out forwards;
-}
-
-.toast.show:hover {
-  transform: translateX(0) scale(1.05) skewX(-3deg);
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.toast .message {
-  margin: 0;
-  font-size: 14px;
-  line-height: 1.4;
-  flex-grow: 1;
-}
-
-
-@media (max-width: 768px) {
-  .titleContainer {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-
+@media (max-width: 1280px) {
+  .titleContainer,
   .tableContainer {
-    margin-left: 0;
-    padding: 0 12px;
+    max-width: 100%;
+    margin: 16px;
   }
 
   .form {
     padding: 16px;
   }
-
-  .toast {
-    top: 10px;
-    right: 10px;
-    left: 10px;
-    min-width: unset;
-    max-width: unset;
-    width: auto;
-    font-size: 14px;
-    padding: 12px 20px;
-    border-radius: 8px;
-  }
 }
 
-@media (max-width: 400px) {
-  .toast {
-    font-size: 13px;
-    padding: 10px 15px;
-    border-radius: 6px;
+@media (max-width: 768px) {
+  .configPage {
+    margin-left: 0;
+    padding: 1rem;
+  }
+
+  .titleContainer,
+  .tableContainer {
+    margin: 16px 0;
+  }
+
+  .searchInput {
+    max-width: 100%;
   }
 }

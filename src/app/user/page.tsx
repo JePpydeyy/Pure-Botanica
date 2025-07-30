@@ -282,7 +282,7 @@ export default function Home() {
       </ScrollInView>
 
       <ScrollInView>
-      <div className={styles.bannerContainer}>
+            <div className={styles.bannerContainer}>
         <img
           src={banners.banner2 ? `${getImageUrl(banners.banner2)}?${cacheBuster}` : "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg"}
           alt="Banner Sale"
@@ -292,6 +292,9 @@ export default function Home() {
             console.log("Banner Sale image load failed, switched to 404 fallback");
           }}
         />
+        <a href="/user/product">
+          <button className={styles.buyNowButton}>Mua Ngay</button>
+        </a>
       </div>
       </ScrollInView>
 
@@ -387,7 +390,7 @@ export default function Home() {
             đến sản phẩm an lành cho làn da, hòa quyện với sự bền vững và trách nhiệm với môi
             trường.
           </p>
-          <a href="#" className={styles.brandCta}>
+          <a href="/about" className={styles.brandCta}>
             Tìm hiểu thêm
           </a>
         </div>

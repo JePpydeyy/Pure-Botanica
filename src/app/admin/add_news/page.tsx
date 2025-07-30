@@ -18,7 +18,7 @@ import {
   faAlignJustify,
   faCloudUploadAlt,
 } from "@fortawesome/free-solid-svg-icons";
-import styles from "./add_news.module.css";
+import styles from "./addnews.module.css";
 import ToastNotification from "../../user/ToastNotification/ToastNotification";
 
 config.autoAddCss = false;
@@ -26,7 +26,22 @@ config.autoAddCss = false;
 const API_DOMAIN = "https://api-zeal.onrender.com";
 const FALLBACK_IMAGE = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
 
-const AddArticle = () => {
+const generateSlug = (title: string): string => {
+  console.log("Tiêu đề đầu vào:", title);
+  const slug = title
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/['",]/g, "")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .trim();
+  console.log("Slug đầu ra:", slug);
+  return slug || "untitled";
+};
+
+const AddBlog = () => {
   const router = useRouter();
   const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -46,6 +61,7 @@ const AddArticle = () => {
 
   const [formData, setFormData] = useState({
     title: "",
+    slug: "",
     content: "",
     thumbnailFile: null as File | null,
     status: "show" as "show" | "hidden",
@@ -71,6 +87,7 @@ const AddArticle = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [previewThumbnail, setPreviewThumbnail] = useState<string | null>(null);
+  const [showConfirmPopup, setShowConfirmPopup] = useState(false);
 
   const fileToDataURL = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -79,6 +96,20 @@ const AddArticle = () => {
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
+  };
+
+  const cleanHtmlContent = (html: string): string => {
+    const unescapedHtml = html
+      .replace(/\u003C/g, "<")
+      .replace(/\u003E/g, ">")
+      .replace(/\u0022/g, '"');
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(unescapedHtml, "text/html");
+    if (doc.querySelector("parsererror")) {
+      console.error("Nội dung HTML không hợp lệ:", unescapedHtml);
+      return "<p>Nội dung không hợp lệ. Vui lòng chỉnh sửa lại.</p>";
+    }
+    return doc.body.innerHTML;
   };
 
   useEffect(() => {
@@ -141,7 +172,13 @@ const AddArticle = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => {
+      const newFormData = { ...prev, [name]: value };
+      if (name === "title") {
+        newFormData.slug = generateSlug(value);
+      }
+      return newFormData;
+    });
   };
 
   const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -373,9 +410,9 @@ const AddArticle = () => {
 
   const handleContentChange = () => {
     if (editorRef.current) {
-      const cleanedContent = editorRef.current.innerHTML
-        .replace(/ data-placeholder="true"/g, "")
-        .trim();
+      const cleanedContent = cleanHtmlContent(
+        editorRef.current.innerHTML.replace(/ data-placeholder="true"/g, "").trim()
+      );
       setFormData((prev) => ({ ...prev, content: cleanedContent }));
     }
   };
@@ -402,6 +439,11 @@ const AddArticle = () => {
       return;
     }
 
+    setShowConfirmPopup(true);
+  };
+
+  const confirmSubmit = async () => {
+    setShowConfirmPopup(false);
     setIsSubmitting(true);
 
     const currentTime = getCurrentTime();
@@ -417,6 +459,7 @@ const AddArticle = () => {
 
       const formDataToSend = new FormData();
       formDataToSend.append("title", formData.title.trim());
+      formDataToSend.append("slug", formData.slug);
       formDataToSend.append("content", formData.content);
       formDataToSend.append("thumbnail", formData.thumbnailFile!);
       formDataToSend.append("status", formData.status);
@@ -435,8 +478,22 @@ const AddArticle = () => {
 
       const result = await response.json();
       if (!response.ok) {
-        showNotification(result.error || "Lỗi khi đăng bài viết", "error");
-        return;
+        if (result.error.includes("duplicate key")) {
+          const newSlug = `${formData.slug}-${Date.now()}`;
+          formDataToSend.set("slug", newSlug);
+          const retryResponse = await fetch(`${API_DOMAIN}/api/news`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+            body: formDataToSend,
+          });
+          if (!retryResponse.ok) {
+            showNotification("Lỗi khi đăng bài viết", "error");
+            return;
+          }
+        } else {
+          showNotification(result.error || "Lỗi khi đăng bài viết", "error");
+          return;
+        }
       }
 
       showNotification("Đăng bài viết thành công!", "success");
@@ -451,14 +508,18 @@ const AddArticle = () => {
     }
   };
 
+  const cancelSubmit = () => {
+    setShowConfirmPopup(false);
+  };
+
   if (isSubmitting && !notification.show) {
-    return <div className={styles.new_container}>Đang xử lý...</div>;
+    return <div className={styles.container}>Đang xử lý...</div>;
   }
 
   return (
     <div className={styles.container}>
       <div className={styles.new_container}>
-        <h1 className={styles.pageTitle}>Thêm bài viết mới</h1>
+        <h1 className={styles.pageTitle}>Thêm Blog Mới</h1>
         <div className={styles.addcontent}>
           <div className={styles.editorSection}>
             <div className={styles.editorHeader}>
@@ -528,7 +589,7 @@ const AddArticle = () => {
               </select>
             </div>
             <div className={styles.formGroup}>
-              <label className={styles.formLabel}>Hình ảnh đại diện</label>
+              <label className={styles.formLabel}>Hình đại diện</label>
               <div
                 className={styles.imageUpload}
                 onClick={() => thumbnailInputRef.current?.click()}
@@ -577,9 +638,34 @@ const AddArticle = () => {
             </div>
           </div>
         </div>
+
+        {showConfirmPopup && (
+          <div className={styles.popupOverlay}>
+            <div className={styles.popupContent}>
+              <h2>Xác nhận đăng bài</h2>
+              <p>Bạn có chắc chắn muốn đăng bài viết này?</p>
+              <div className={styles.popupButtons}>
+                <button
+                  className={`${styles.btn} ${styles.btnSecondary}`}
+                  onClick={cancelSubmit}
+                  disabled={isSubmitting}
+                >
+                  Hủy
+                </button>
+                <button
+                  className={`${styles.btn} ${styles.btnPrimary}`}
+                  onClick={confirmSubmit}
+                  disabled={isSubmitting}
+                >
+                  Xác nhận
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
-export default AddArticle;
+export default AddBlog; 

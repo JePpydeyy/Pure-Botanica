@@ -10,7 +10,7 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
-  padding: 20px;
+  padding: 24px 0px;
   width: 80%; /* Đồng bộ chiều rộng với titleContainer */
   margin: 0 0 0 300px; /* Đồng bộ lề trái */
   box-sizing: border-box;
@@ -40,10 +40,10 @@
 }
 
 .pageTitle {
-  color: #495057; /* Giữ nguyên màu gốc */
   font-size: 30px; /* Đồng bộ kích thước chữ với AdminNewsPage */
   margin: 0;
   font-weight: 600;
+  padding: 2rem 0;
 }
 
 .formLabel {

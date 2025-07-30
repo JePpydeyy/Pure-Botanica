@@ -13,7 +13,8 @@ import {
   faChevronRight,
 } from "@fortawesome/free-solid-svg-icons";
 import Link from "next/link";
-import ToastNotification from "../../user/ToastNotification/ToastNotification";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 interface NewsItem {
   _id: string;
@@ -49,11 +50,6 @@ const AdminNewsPage: React.FC = () => {
   const [isPopupOpen, setIsPopupOpen] = useState<boolean>(false);
   const [imageError, setImageError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [notification, setNotification] = useState({
-    show: false,
-    message: "",
-    type: "success" as "success" | "error",
-  });
   const [confirmPopup, setConfirmPopup] = useState<{
     show: boolean;
     newsId: string | null;
@@ -64,7 +60,7 @@ const AdminNewsPage: React.FC = () => {
     newsId: string | null;
   }>({ show: false, newsId: null });
 
-  const itemsPerPage = 10;
+  const itemsPerPage = 9; // Đồng bộ với ordersPerPage trong order.module.css
   const totalPages = Math.ceil(newsList.length / itemsPerPage);
 
   const fetchNews = async (): Promise<void> => {
@@ -94,14 +90,17 @@ const AdminNewsPage: React.FC = () => {
   }, []);
 
   const showNotification = (message: string, type: "success" | "error") => {
-    setNotification({ show: true, message, type });
-    setTimeout(() => {
-      setNotification({ show: false, message: "", type: "success" });
-    }, 3000);
-  };
-
-  const handleCloseToast = () => {
-    setNotification({ show: false, message: "", type: "success" });
+    if (type === "success") {
+      toast.success(message, {
+        className: styles.customToast,
+        bodyClassName: styles.customToastBody,
+      });
+    } else {
+      toast.error(message, {
+        className: styles.customToast,
+        bodyClassName: styles.customToastBody,
+      });
+    }
   };
 
   const filteredNews = newsList
@@ -236,17 +235,33 @@ const AdminNewsPage: React.FC = () => {
     if (e.target === e.currentTarget) closePopup();
   };
 
-  if (loading) return <p>Đang tải...</p>;
+  if (loading) {
+    return (
+      <div className={styles.errorContainer}>
+        <div className={styles.processingIndicator}>
+          <FontAwesomeIcon icon={faChevronRight} spin />
+          <p>Đang tải danh sách tin tức...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className={styles.NewManagementContainer}>
-      {notification.message && (
-        <ToastNotification
-          type={notification.type as "success" | "error"}
-          message={notification.message}
-          onClose={handleCloseToast}
-        />
-      )}
+    <div className={styles.orderManagementContainer}>
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+        toastClassName={styles.customToast}
+        bodyClassName={styles.customToastBody}
+      />
 
       <div className={styles.titleContainer}>
         <h1>QUẢN LÝ TIN TỨC</h1>
@@ -257,11 +272,13 @@ const AdminNewsPage: React.FC = () => {
             className={styles.searchInput}
             value={searchTitle}
             onChange={(e) => setSearchTitle(e.target.value)}
+            aria-label="Tìm kiếm tin tức"
           />
           <select
             className={styles.categorySelect}
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as "all" | "show" | "hidden")}
+            aria-label="Lọc theo trạng thái"
           >
             <option value="all">Tất cả trạng thái</option>
             <option value="show">Hiển thị</option>
@@ -271,6 +288,7 @@ const AdminNewsPage: React.FC = () => {
             className={styles.categorySelect}
             value={sortOption}
             onChange={(e) => setSortOption(e.target.value as "mostViewed" | "leastViewed")}
+            aria-label="Sắp xếp theo lượt xem"
           >
             <option value="mostViewed">Xem nhiều nhất</option>
             <option value="leastViewed">Xem ít nhất</option>
@@ -282,8 +300,8 @@ const AdminNewsPage: React.FC = () => {
       </div>
 
       <div className={styles.tableContainer}>
-        <table className={styles.productTable}>
-          <thead className={styles.productTableThead}>
+        <table className={styles.orderTable}>
+          <thead className={styles.orderTableThead}>
             <tr>
               <th>Tiêu đề</th>
               <th>Trạng thái</th>
@@ -293,89 +311,170 @@ const AdminNewsPage: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {paginatedNews.map((news) => (
-              <tr
-                key={news._id}
-                className={styles.productRow}
-                onClick={() => fetchNewsDetails(news._id)}
-              >
-                <td>{news.title}</td>
-                <td>
-                  <span className={news.status === "show" ? styles.statusShow : styles.statusHidden}>
-                    {news.status === "show" ? "Hiển thị" : "Ẩn"}
-                  </span>
-                </td>
-                <td>
-                  <FontAwesomeIcon icon={faEye} /> {news.views}
-                </td>
-                <td>{new Date(news.publishedAt).toLocaleDateString("vi-VN")}</td>
-                <td onClick={(e) => e.stopPropagation()}>
-                  <div className={styles.actionButtons}>
-                    <Link href={`/admin/edit_new/${news.slug}`}>
-                      <button className={styles.editBtn} title="Chỉnh sửa">
-                        <FontAwesomeIcon icon={faEdit} />
-                      </button>
-                    </Link>
-                    <button
-                      className={styles.toggleStatusBtn}
-                      onClick={() => toggleVisibility(news._id, news.status)}
-                    >
-                      <FontAwesomeIcon icon={news.status === "show" ? faEyeSlash : faEye} />
-                    </button>
-                    <button
-                      className={styles.cancelBtn}
-                      onClick={() => handleDelete(news._id)}
-                    >
-                      <FontAwesomeIcon icon={faTrash} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {paginatedNews.length === 0 && (
+            {paginatedNews.length === 0 ? (
               <tr>
-                <td colSpan={5} className={styles.errorContainer}>
-                  Không có bài viết nào phù hợp.
+                <td colSpan={5} className={styles.emptyState}>
+                  <h3>{searchTitle || statusFilter !== "all" ? "Không tìm thấy bài viết" : "Chưa có bài viết"}</h3>
+                  <p>
+                    {searchTitle || statusFilter !== "all"
+                      ? "Không có bài viết nào khớp với bộ lọc."
+                      : "Hiện tại không có bài viết nào để hiển thị."}
+                  </p>
                 </td>
               </tr>
+            ) : (
+              paginatedNews.map((news, index) => (
+                <tr
+                  key={news._id}
+                  className={styles.orderRow}
+                  onClick={() => fetchNewsDetails(news._id)}
+                >
+                  <td>{(currentPage - 1) * itemsPerPage + index + 1}. {news.title}</td>
+                  <td>
+                    <span className={news.status === "show" ? styles.statusShow : styles.statusHidden}>
+                      {news.status === "show" ? "Hiển thị" : "Ẩn"}
+                    </span>
+                  </td>
+                  <td>
+                    <FontAwesomeIcon icon={faEye} /> {news.views}
+                  </td>
+                  <td>{new Date(news.publishedAt).toLocaleDateString("vi-VN")}</td>
+                  <td onClick={(e) => e.stopPropagation()}>
+                    <div className={styles.actionButtons}>
+                      <Link href={`/admin/edit_new/${news.slug}`}>
+                        <button className={styles.editBtn} title="Chỉnh sửa" aria-label={`Chỉnh sửa bài viết ${news.title}`}>
+                          <FontAwesomeIcon icon={faEdit} />
+                        </button>
+                      </Link>
+                      <button
+                        className={styles.toggleStatusBtn}
+                        onClick={() => toggleVisibility(news._id, news.status)}
+                        title={news.status === "show" ? "Ẩn bài viết" : "Hiển thị bài viết"}
+                        aria-label={news.status === "show" ? `Ẩn bài viết ${news.title}` : `Hiển thị bài viết ${news.title}`}
+                      >
+                        <FontAwesomeIcon icon={news.status === "show" ? faEyeSlash : faEye} />
+                      </button>
+                      <button
+                        className={styles.cancelBtn}
+                        onClick={() => handleDelete(news._id)}
+                        title="Xóa bài viết"
+                        aria-label={`Xóa bài viết ${news.title}`}
+                      >
+                        <FontAwesomeIcon icon={faTrash} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
             )}
           </tbody>
         </table>
 
         {totalPages > 1 && (
-          <div className={styles.paginationContainer}>
-            <button
-              className={styles.pageBtn}
-              onClick={() => goToPage(currentPage - 1)}
-              disabled={currentPage === 1}
-            >
-              <FontAwesomeIcon icon={faChevronLeft} />
-            </button>
-            <span className={styles.pageIndicator}>
-              {currentPage} / {Math.ceil(filteredNews.length / itemsPerPage)}
-            </span>
-            <button
-              className={styles.pageBtn}
-              onClick={() => goToPage(currentPage + 1)}
-              disabled={currentPage === totalPages}
-            >
-              <FontAwesomeIcon icon={faChevronRight} />
-            </button>
+          <div className={styles.pagination}>
+            {(() => {
+              const visiblePages: number[] = [];
+              let showPrevEllipsis = false;
+              let showNextEllipsis = false;
+
+              if (totalPages <= 3) {
+                for (let i = 1; i <= totalPages; i++) {
+                  visiblePages.push(i);
+                }
+              } else {
+                if (currentPage === 1) {
+                  visiblePages.push(1, 2, 3);
+                  showNextEllipsis = totalPages > 3;
+                } else if (currentPage === totalPages) {
+                  visiblePages.push(totalPages - 2, totalPages - 1, totalPages);
+                  showPrevEllipsis = totalPages > 3;
+                } else {
+                  visiblePages.push(currentPage - 1, currentPage, currentPage + 1);
+                  showPrevEllipsis = currentPage > 2;
+                  showNextEllipsis = currentPage < totalPages - 1;
+                }
+              }
+
+              return (
+                <>
+                  {showPrevEllipsis && (
+                    <>
+                      <button
+                        className={`${styles.pageLink} ${styles.firstLastPage}`}
+                        onClick={() => goToPage(1)}
+                        disabled={loading}
+                        title="Trang đầu tiên"
+                      >
+                        1
+                      </button>
+                      <div
+                        className={styles.ellipsis}
+                        onClick={() => goToPage(Math.max(1, currentPage - 3))}
+                        title="Trang trước đó"
+                      >
+                        ...
+                      </div>
+                    </>
+                  )}
+                  {visiblePages.map((page) => (
+                    <button
+                      key={page}
+                      className={`${styles.pageLink} ${currentPage === page ? styles.pageLinkActive : ""}`}
+                      onClick={() => goToPage(page)}
+                      disabled={loading}
+                      title={`Trang ${page}`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                  {showNextEllipsis && (
+                    <>
+                      <div
+                        className={styles.ellipsis}
+                        onClick={() => goToPage(Math.min(totalPages, currentPage + 3))}
+                        title="Trang tiếp theo"
+                      >
+                        ...
+                      </div>
+                      <button
+                        className={`${styles.pageLink} ${styles.firstLastPage}`}
+                        onClick={() => goToPage(totalPages)}
+                        disabled={loading}
+                        title="Trang cuối cùng"
+                      >
+                        {totalPages}
+                      </button>
+                    </>
+                  )}
+                </>
+              );
+            })()}
           </div>
         )}
       </div>
 
       {isPopupOpen && selectedNews && (
-        <div className={styles.popupOverlay} onClick={handleOverlayClick}>
-          <div className={styles.popupContent} onClick={(e) => e.stopPropagation()}>
-            <button className={styles.closePopupBtn} onClick={closePopup}>
+        <div className={styles.modalOverlay} onClick={handleOverlayClick}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <button className={styles.closePopupBtn} onClick={closePopup} title="Đóng" aria-label="Đóng chi tiết bài viết">
               <FontAwesomeIcon icon={faTimes} />
             </button>
             <h2 className={styles.popupTitle}>{selectedNews.title}</h2>
             <div className={styles.popupDetails}>
-              <p><strong>Trạng thái:</strong> {selectedNews.status}</p>
+              <p><strong>Trạng thái:</strong> {selectedNews.status === "show" ? "Hiển thị" : "Ẩn"}</p>
               <p><strong>Lượt xem:</strong> {selectedNews.views}</p>
               <p><strong>Ngày đăng:</strong> {new Date(selectedNews.publishedAt).toLocaleDateString("vi-VN")}</p>
+              {selectedNews.thumbnailUrl && (
+                <div className={styles.popupThumbnail}>
+                  <img
+                    src={selectedNews.thumbnailUrl}
+                    alt={selectedNews.thumbnailCaption || selectedNews.title}
+                    onError={() => setImageError("Không thể tải hình ảnh thumbnail.")}
+                    className={styles.orderTableImage}
+                  />
+                  {selectedNews.thumbnailCaption && <p>{selectedNews.thumbnailCaption}</p>}
+                </div>
+              )}
               <div
                 className={styles.popupContentBody}
                 dangerouslySetInnerHTML={{
@@ -393,29 +492,35 @@ const AdminNewsPage: React.FC = () => {
       )}
 
       {confirmPopup.show && (
-        <div className={styles.popupOverlay} onClick={() => setConfirmPopup({ show: false, newsId: null, currentStatus: null })}>
-          <div className={styles.popupContent} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.modalOverlay} onClick={() => setConfirmPopup({ show: false, newsId: null, currentStatus: null })}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <button
               className={styles.closePopupBtn}
               onClick={() => setConfirmPopup({ show: false, newsId: null, currentStatus: null })}
+              title="Đóng"
+              aria-label="Đóng xác nhận ẩn bài viết"
             >
               <FontAwesomeIcon icon={faTimes} />
             </button>
-            <h2 className={styles.popupTitle}>Xác nhận ẩn bài viết</h2>
+            <h2 className={styles.modalContentTitle}>Xác nhận ẩn bài viết</h2>
             <div className={styles.popupDetails}>
               <p>Bài viết này có hơn {VIEW_THRESHOLD} lượt xem. Bạn có chắc chắn muốn ẩn bài viết?</p>
-              <div className={styles.popupActions}>
+              <div className={styles.modalActions}>
                 <button
                   className={styles.cancelBtn}
                   onClick={() => setConfirmPopup({ show: false, newsId: null, currentStatus: null })}
+                  title="Hủy"
+                  aria-label="Hủy ẩn bài viết"
                 >
-                  Hủy
+                  <FontAwesomeIcon icon={faTimes} />
                 </button>
                 <button
-                  className={styles.submitBtn}
+                  className={styles.confirmBtn}
                   onClick={confirmToggleVisibility}
+                  title="Xác nhận"
+                  aria-label="Xác nhận ẩn bài viết"
                 >
-                  Xác nhận
+                  <FontAwesomeIcon icon={faEyeSlash} />
                 </button>
               </div>
             </div>
@@ -424,29 +529,35 @@ const AdminNewsPage: React.FC = () => {
       )}
 
       {deleteConfirmPopup.show && (
-        <div className={styles.popupOverlay} onClick={() => setDeleteConfirmPopup({ show: false, newsId: null })}>
-          <div className={styles.popupContent} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.modalOverlay} onClick={() => setDeleteConfirmPopup({ show: false, newsId: null })}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <button
               className={styles.closePopupBtn}
               onClick={() => setDeleteConfirmPopup({ show: false, newsId: null })}
+              title="Đóng"
+              aria-label="Đóng xác nhận xóa bài viết"
             >
               <FontAwesomeIcon icon={faTimes} />
             </button>
-            <h2 className={styles.popupTitle}>Xác nhận xóa bài viết</h2>
+            <h2 className={styles.modalContentTitle}>Xác nhận xóa bài viết</h2>
             <div className={styles.popupDetails}>
               <p>Bài viết này có hơn {VIEW_THRESHOLD} lượt xem. Bạn có chắc chắn muốn xóa bài viết?</p>
-              <div className={styles.popupActions}>
+              <div className={styles.modalActions}>
                 <button
                   className={styles.cancelBtn}
                   onClick={() => setDeleteConfirmPopup({ show: false, newsId: null })}
+                  title="Hủy"
+                  aria-label="Hủy xóa bài viết"
                 >
-                  Hủy
+                  <FontAwesomeIcon icon={faTimes} />
                 </button>
                 <button
-                  className={styles.submitBtn}
+                  className={styles.confirmBtn}
                   onClick={() => deleteConfirmPopup.newsId && confirmDelete(deleteConfirmPopup.newsId)}
+                  title="Xác nhận"
+                  aria-label="Xác nhận xóa bài viết"
                 >
-                  Xác nhận
+                  <FontAwesomeIcon icon={faTrash} />
                 </button>
               </div>
             </div>

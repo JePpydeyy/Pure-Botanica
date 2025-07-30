@@ -36,7 +36,22 @@ interface Article {
 const API_DOMAIN = "https://api-zeal.onrender.com";
 const FALLBACK_IMAGE = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
 
-const EditArticle = () => {
+const generateSlug = (title: string): string => {
+  console.log("Tiêu đề đầu vào:", title);
+  const slug = title
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/['",]/g, "")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .trim();
+  console.log("Slug đầu ra:", slug);
+  return slug || "untitled";
+};
+
+const EditBlog = () => {
   const router = useRouter();
   const { id: slug } = useParams();
   const editorRef = useRef<HTMLDivElement>(null);
@@ -57,6 +72,7 @@ const EditArticle = () => {
 
   const [formData, setFormData] = useState({
     title: "",
+    slug: "",
     content: "",
     thumbnailFile: null as File | null,
     status: "show" as "show" | "hidden",
@@ -94,6 +110,20 @@ const EditArticle = () => {
     });
   };
 
+  const cleanHtmlContent = (html: string): string => {
+    const unescapedHtml = html
+      .replace(/\u003C/g, "<")
+      .replace(/\u003E/g, ">")
+      .replace(/\u0022/g, '"');
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(unescapedHtml, "text/html");
+    if (doc.querySelector("parsererror")) {
+      console.error("Nội dung HTML không hợp lệ:", unescapedHtml);
+      return "<p>Nội dung không hợp lệ. Vui lòng chỉnh sửa lại.</p>";
+    }
+    return doc.body.innerHTML;
+  };
+
   useEffect(() => {
     const token = localStorage.getItem("token");
     const role = localStorage.getItem("role");
@@ -115,6 +145,7 @@ const EditArticle = () => {
         });
 
         if (response.status === 401 || response.status === 403) {
+          console.error("Lỗi xác thực:", await response.text());
           showNotification("Phiên đăng nhập hết hạn.", "error");
           router.push("/user/login");
           return;
@@ -122,18 +153,17 @@ const EditArticle = () => {
 
         if (!response.ok) {
           const errorData = await response.json();
+          console.error("Lỗi API:", errorData);
           throw new Error(errorData.error || "Không thể tải bài viết.");
         }
 
         const article: Article = await response.json();
+        console.log("Dữ liệu bài viết:", article);
 
-        const fixedContent = (article.content || "").replace(
-          /src="(?:\/)?images\/([^"]+)"/g,
-          `src="${API_DOMAIN}/images/$1"`
-        );
-
+        const fixedContent = cleanHtmlContent(article.content || "");
         setFormData({
           title: article.title || "",
+          slug: generateSlug(article.title || ""),
           content: fixedContent,
           thumbnailFile: null,
           status: article.status || "show",
@@ -143,11 +173,8 @@ const EditArticle = () => {
         });
 
         setPreviewThumbnail(article.thumbnailUrl || null);
-
-        if (editorRef.current) {
-          editorRef.current.innerHTML = fixedContent;
-        }
       } catch (error: any) {
+        console.error("Lỗi khi tải bài viết:", error);
         showNotification(error.message || "Lỗi khi tải bài viết.", "error");
         router.push("/admin/news");
       } finally {
@@ -157,6 +184,13 @@ const EditArticle = () => {
 
     if (slug) fetchArticle();
   }, [slug, router]);
+
+  useEffect(() => {
+    if (!isSubmitting && editorRef.current && formData.content) {
+      console.log("Gán nội dung vào editor:", formData.content);
+      editorRef.current.innerHTML = formData.content;
+    }
+  }, [formData.content, isSubmitting]);
 
   useEffect(() => {
     const editor = editorRef.current;
@@ -210,10 +244,16 @@ const EditArticle = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: name === "views" ? parseInt(value) || 0 : value,
-    }));
+    setFormData((prev) => {
+      const newFormData = {
+        ...prev,
+        [name]: name === "views" ? parseInt(value) || 0 : value,
+      };
+      if (name === "title") {
+        newFormData.slug = generateSlug(value);
+      }
+      return newFormData;
+    });
   };
 
   const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -445,9 +485,9 @@ const EditArticle = () => {
 
   const handleContentChange = () => {
     if (editorRef.current) {
-      const cleanedContent = editorRef.current.innerHTML
-        .replace(/ data-placeholder="true"/g, "")
-        .trim();
+      const cleanedContent = cleanHtmlContent(
+        editorRef.current.innerHTML.replace(/ data-placeholder="true"/g, "").trim()
+      );
       setFormData((prev) => ({ ...prev, content: cleanedContent }));
     }
   };
@@ -490,6 +530,7 @@ const EditArticle = () => {
 
       const formDataToSend = new FormData();
       formDataToSend.append("title", formData.title.trim());
+      formDataToSend.append("slug", formData.slug);
       const cleanedContent = formData.content.replace(
         new RegExp(`${API_DOMAIN}/(images/[^"]+)`, "g"),
         "/$1"
@@ -510,8 +551,22 @@ const EditArticle = () => {
 
       const result = await response.json();
       if (!response.ok) {
-        showNotification(result.error || "Lỗi khi cập nhật bài viết", "error");
-        return;
+        if (result.error.includes("duplicate key")) {
+          const newSlug = `${formData.slug}-${Date.now()}`;
+          formDataToSend.set("slug", newSlug);
+          const retryResponse = await fetch(`${API_DOMAIN}/api/news/${slug}`, {
+            method: "PUT",
+            headers: { Authorization: `Bearer ${token}` },
+            body: formDataToSend,
+          });
+          if (!retryResponse.ok) {
+            showNotification("Lỗi khi cập nhật bài viết", "error");
+            return;
+          }
+        } else {
+          showNotification(result.error || "Lỗi khi cập nhật bài viết", "error");
+          return;
+        }
       }
 
       showNotification("Cập nhật bài viết thành công!", "success");
@@ -537,7 +592,7 @@ const EditArticle = () => {
   return (
     <div className={styles.container}>
       <div className={styles.new_container}>
-        <h1 className={styles.pageTitle}>Chỉnh sửa bài viết</h1>
+        <h1 className={styles.pageTitle}>Chỉnh sửa Blog</h1>
         <div className={styles.addcontent}>
           <div className={styles.editorSection}>
             <div className={styles.editorHeader}>
@@ -701,4 +756,4 @@ const EditArticle = () => {
   );
 };
 
-export default EditArticle;
+export default EditBlog;

@@ -547,14 +547,34 @@
 }
 
 .bannerContainer {
+   position: relative;
   width: 100%;
+  height: auto;
 }
 
 .bannerImage {
   width: 100%;
+  height: auto;
   display: block;
   object-fit: cover;
 }
+.buyNowButton {
+  height: 80px;
+    width: 300px;
+    color: #fff;
+    cursor: pointer;
+    background-color: #8D5524;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 20px;
+    font-size: 32px;
+    font-weight: bold;
+    transition: background-color .3s;
+    position: absolute;
+    bottom: 200px;
+    left: 350px;
+}
+
 
 .newProductName,
 .bestSellingName {

@@ -385,3 +385,81 @@ nav {
 .search-results li:hover {
   background: #f5f5f5;
 }
+/* Scroll to Top Button Styles */
+.scroll-to-top-btn {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 50px;
+  height: 50px;
+  background: linear-gradient(135deg, #4CAF50, #45a049);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 18px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.scroll-to-top-btn:hover {
+  background: linear-gradient(135deg, #45a049, #4CAF50);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+.scroll-to-top-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Animation for button appearance */
+.scroll-to-top-btn {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .scroll-to-top-btn {
+    width: 45px;
+    height: 45px;
+    bottom: 20px;
+    right: 20px;
+    font-size: 16px;
+  }
+}
+
+/* Alternative color schemes - you can choose one */
+
+/* Nature/Botanical theme to match your brand */
+.scroll-to-top-btn.botanical {
+  background: linear-gradient(135deg, #2E7D32, #388E3C);
+}
+
+.scroll-to-top-btn.botanical:hover {
+  background: linear-gradient(135deg, #388E3C, #43A047);
+}
+
+/* Elegant/Minimalist theme */
+.scroll-to-top-btn.elegant {
+  background: linear-gradient(135deg, #6D4C41, #8D6E63);
+}
+
+.scroll-to-top-btn.elegant:hover {
+  background: linear-gradient(135deg, #8D6E63, #A1887F);
+}

@@ -9,6 +9,7 @@ import UserMenu from "../components/Usermenu";
 import { CartProvider } from "./context/CartContext";
 import SearchBar from "../components/Searchbar";
 import ImageWithFallback from "../components/ImageWithFallback";
+import ScrollToTop from "../components/ScrollToTop"; // Add this import
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -173,24 +174,21 @@ export default async function RootLayout({
               />
               <div className="footer-bottom">
                 <p>© 2025 Pure Botanica LLC</p>
-                <div className="footer-payment">
-                  <img src="/images/creditcart.png" alt="Creditcard" />
-                  <img src="/images/Logo-ZaloPay.png" alt="ZaloPay" />
-                  <img src="/images/Logo-MoMo.png" alt="Momo" />
-                  <img src="/images/Apple-Pay.png" alt="Apple Pay" />
-                  <img src="/images/Visa.png" alt="Visa" />
-                </div>
               </div>
             </footer>
+
+            {/* Add ScrollToTop component here */}
+            <ScrollToTop />
+
             <script
-        data-name-bot="BOT CHAT"
-        src="https://app.preny.ai/embed-global.js"
-        data-button-style="width:300px;height:300px;"
-        data-language="vi"
-        async
-        defer
-        data-preny-bot-id="687a5528c6a004caf5668ced"
-      ></script>s
+              data-name-bot="BOT CHAT"
+              src="https://app.preny.ai/embed-global.js"
+              data-button-style="width:300px;height:300px;"
+              data-language="vi"
+              async
+              defer
+              data-preny-bot-id="687a5528c6a004caf5668ced"
+            />
           </CartProvider>
         </AuthProvider>
       </body>

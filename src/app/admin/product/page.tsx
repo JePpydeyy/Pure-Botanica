@@ -8,6 +8,8 @@ import Head from "next/head";
 import React from "react";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEdit, faEye, faEyeSlash, faPlus, faCheck, faTimes, faRedo } from '@fortawesome/free-solid-svg-icons';
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 // Định nghĩa các giao diện TypeScript
 interface Option {
@@ -48,12 +50,6 @@ interface Brand {
   status: "show" | "hidden";
 }
 
-interface Notification {
-  show: boolean;
-  message: string;
-  type: "success" | "error";
-}
-
 export default function ProductPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
@@ -66,7 +62,6 @@ export default function ProductPage() {
   const [toggleSlug, setToggleSlug] = useState<string | null>(null);
   const [toggleMessage, setToggleMessage] = useState<string>("");
   const [expandedProductId, setExpandedProductId] = useState<string | null>(null);
-  const [notification, setNotification] = useState<Notification>({ show: false, message: "", type: "success" });
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
@@ -84,16 +79,27 @@ export default function ProductPage() {
     const token = localStorage.getItem("token");
     const role = localStorage.getItem("role");
     if (!token || role !== "admin") {
+      toast.error("Bạn cần quyền admin để truy cập trang này.", {
+        className: styles.customToast,
+        bodyClassName: styles.customToastBody,
+      });
       router.push("/user/login");
     }
   }, [router]);
 
   // Hàm hiển thị thông báo
   const showNotification = (message: string, type: "success" | "error") => {
-    setNotification({ show: true, message, type });
-    setTimeout(() => {
-      setNotification({ show: false, message: "", type: "success" });
-    }, 3000);
+    if (type === "success") {
+      toast.success(message, {
+        className: styles.customToast,
+        bodyClassName: styles.customToastBody,
+      });
+    } else {
+      toast.error(message, {
+        className: styles.customToast,
+        bodyClassName: styles.customToastBody,
+      });
+    }
   };
 
   // Lấy dữ liệu danh mục từ API
@@ -111,7 +117,10 @@ export default function ProductPage() {
       });
 
       if (res.status === 401 || res.status === 403) {
-        alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
+        toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!", {
+          className: styles.customToast,
+          bodyClassName: styles.customToastBody,
+        });
         localStorage.removeItem("token");
         localStorage.removeItem("role");
         localStorage.removeItem("email");
@@ -165,7 +174,10 @@ export default function ProductPage() {
       });
 
       if (res.status === 401 || res.status === 403) {
-        alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
+        toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!", {
+          className: styles.customToast,
+          bodyClassName: styles.customToastBody,
+        });
         localStorage.removeItem("token");
         localStorage.removeItem("role");
         localStorage.removeItem("email");
@@ -213,7 +225,10 @@ export default function ProductPage() {
       });
 
       if (res.status === 401 || res.status === 403) {
-        alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
+        toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!", {
+          className: styles.customToast,
+          bodyClassName: styles.customToastBody,
+        });
         localStorage.removeItem("token");
         localStorage.removeItem("role");
         localStorage.removeItem("email");
@@ -332,10 +347,10 @@ export default function ProductPage() {
         setToggleMessage(
           hasStock
             ? "Sản phẩm này còn tồn kho. Bạn có chắc chắn muốn ẩn?"
-            : "Bạn có chắc chắn muốn ẩn Sản Phẩm này?"
+            : "Bạn có chắc chắn muốn ẩn sản phẩm này?"
         );
       } else {
-        setToggleMessage("Bạn có chắc chắn muốn hiển thị Sản Phẩm thể thao này?");
+        setToggleMessage("Bạn có chắc chắn muốn hiển thị sản phẩm này?");
       }
       setToggleSlug(slug);
       setIsTogglingStatus(true);
@@ -360,7 +375,10 @@ export default function ProductPage() {
       );
 
       if (response.status === 401 || response.status === 403) {
-        alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
+        toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!", {
+          className: styles.customToast,
+          bodyClassName: styles.customToastBody,
+        });
         localStorage.removeItem("token");
         localStorage.removeItem("role");
         localStorage.removeItem("email");
@@ -442,7 +460,14 @@ export default function ProductPage() {
   };
 
   if (loading && products.length === 0) {
-    return <p className="text-center py-10">Đang tải danh sách sản phẩm...</p>;
+    return (
+      <div className={styles.errorContainer}>
+        <div className={styles.processingIndicator}>
+          <FontAwesomeIcon icon={faRedo} spin />
+          <p>Đang tải danh sách sản phẩm...</p>
+        </div>
+      </div>
+    );
   }
 
   if (error && products.length === 0) {
@@ -461,11 +486,20 @@ export default function ProductPage() {
       <Head>
         <title>Quản Lý Sản Phẩm</title>
       </Head>
-      {notification.show && (
-        <div className={`${styles.notification} ${styles[notification.type]}`}>
-          {notification.message}
-        </div>
-      )}
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+        toastClassName={styles.customToast}
+        bodyClassName={styles.customToastBody}
+      />
       {loading && products.length > 0 && (
         <div className={styles.processingIndicator}>
           <FontAwesomeIcon icon={faRedo} spin /> Đang xử lý...
@@ -510,20 +544,161 @@ export default function ProductPage() {
       <div className={styles.tableContainer}>
         <table className={styles.productTable}>
           <thead className={styles.productTableThead}>
-            <tr><th>Ảnh</th><th>Tên sản phẩm</th><th>Danh mục</th><th>Brand</th><th>Kích hoạt</th><th>Trạng thái</th><th>Hành động</th></tr>
+            <tr>
+              <th>Ảnh</th>
+              <th>Tên sản phẩm</th>
+              <th>Danh mục</th>
+              <th>Brand</th>
+              <th>Kích hoạt</th>
+              <th>Trạng thái</th>
+              <th>Hành động</th>
+            </tr>
           </thead>
           <tbody>
             {currentProducts.length > 0 ? (
               currentProducts.map((product) => (
                 <React.Fragment key={product._id}>
-                  <tr onClick={() => handleToggleDetails(product._id)} className={`${styles.productRow} ${expandedProductId === product._id ? styles.productRowActive : ""}`} style={{cursor: "pointer"}}><td><img src={normalizeImageUrl(product.images[0])} alt={product.name} width={50} height={50} className={styles.productTableImage} onError={(e) => {(e.target as HTMLImageElement).src = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";}}/></td><td>{product.name}</td><td>{categories.find((cat) => cat._id === product.id_category)?.name || "Chưa phân loại"}</td><td>{brands.find((brand) => brand._id === product.id_brand)?.name || "Chưa phân loại"}</td><td>{product.active ? "Có" : "Không"}</td><td>{product.status === "show" ? "Hiển thị" : "Ẩn"}</td><td className={styles.actionButtons}><button className={styles.editBtn} onClick={(e) => {e.stopPropagation();router.push(`/admin/edit_product/${product.slug}`);}} disabled={loading} title="Sửa sản phẩm"><FontAwesomeIcon icon={faEdit} /></button><button className={styles.toggleStatusBtn} onClick={(e) => {e.stopPropagation();confirmToggleStatus(product.slug);}} disabled={loading} title={product.status === "show" ? "Ẩn sản phẩm" : "Hiển thị sản phẩm"}><FontAwesomeIcon icon={product.status === "show" ? faEyeSlash : faEye} /></button></td></tr>
+                  <tr
+                    onClick={() => handleToggleDetails(product._id)}
+                    className={`${styles.productRow} ${expandedProductId === product._id ? styles.productRowActive : ""}`}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <td>
+                      <img
+                        src={normalizeImageUrl(product.images[0])}
+                        alt={product.name}
+                        width={50}
+                        height={50}
+                        className={styles.productTableImage}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src =
+                            "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+                        }}
+                      />
+                    </td>
+                    <td>{product.name}</td>
+                    <td>{categories.find((cat) => cat._id === product.id_category)?.name || "Chưa phân loại"}</td>
+                    <td>{brands.find((brand) => brand._id === product.id_brand)?.name || "Chưa phân loại"}</td>
+                    <td>{product.active ? "Có" : "Không"}</td>
+                    <td>{product.status === "show" ? "Hiển thị" : "Ẩn"}</td>
+                    <td className={styles.actionButtons}>
+                      <button
+                        className={styles.editBtn}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/admin/edit_product/${product.slug}`);
+                        }}
+                        disabled={loading}
+                        title="Sửa sản phẩm"
+                      >
+                        <FontAwesomeIcon icon={faEdit} />
+                      </button>
+                      <button
+                        className={styles.toggleStatusBtn}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          confirmToggleStatus(product.slug);
+                        }}
+                        disabled={loading}
+                        title={product.status === "show" ? "Ẩn sản phẩm" : "Hiển thị sản phẩm"}
+                      >
+                        <FontAwesomeIcon icon={product.status === "show" ? faEyeSlash : faEye} />
+                      </button>
+                    </td>
+                  </tr>
                   {expandedProductId === product._id && (
-                    <tr className={styles.detailsRow}><td colSpan={7}><div className={styles.productDetails}><h3>Chi tiết sản phẩm</h3><div className={styles.detailsContainer}><div className={styles.detailsSection}><h4>Thông tin cơ bản</h4><div className={styles.detailsGrid}><p><strong>Tên sản phẩm:</strong> {product.name}</p><p><strong>Slug:</strong> {product.slug}</p><p><strong>Danh mục:</strong> {categories.find((cat) => cat._id === product.id_category)?.name || "Chưa phân loại"}</p><p><strong>Thương hiệu:</strong> {brands.find((brand) => brand._id === product.id_brand)?.name || "Chưa phân loại"}</p><p><strong>Kích hoạt:</strong> {product.active ? "Có" : "Không"}</p><p><strong>Trạng thái:</strong> {product.status === "show" ? "Hiển thị" : "Ẩn"}</p><p><strong>Lượt xem:</strong> {product.view}</p><p><strong>Ngày tạo:</strong> {new Date(product.createdAt).toLocaleString()}</p><p><strong>Ngày cập nhật:</strong> {new Date(product.updatedAt).toLocaleString()}</p></div></div><div className={styles.detailsSection}><h4>Mô tả sản phẩm</h4><p><strong>Mô tả ngắn:</strong> {product.short_description}</p><br/><p><strong>Mô tả chi tiết:</strong></p><div className={styles.descriptionContent} dangerouslySetInnerHTML={{ __html: product.description }}/></div><div className={styles.detailsSection}><h4>Tùy chọn sản phẩm</h4><table className={styles.optionsTable}><thead><tr><th>Kích thước</th><th>Giá</th><th>Giá khuyến mãi</th><th>Tồn kho</th></tr></thead><tbody>{product.option.length > 0 ? product.option.map((opt, index) => (<tr key={index}><td>{opt.value}</td><td>{opt.price.toLocaleString()}₫</td><td>{opt.discount_price ? opt.discount_price.toLocaleString() + "₫" : "Không có"}</td><td>{opt.stock}</td></tr>)) : (<tr><td colSpan={4} className="text-center">Không có tùy chọn nào</td></tr>)}</tbody></table></div><div className={styles.detailsSection}><h4>Hình ảnh sản phẩm</h4><div className={styles.imageGallery}>{product.images.length > 0 ? product.images.map((img, index) => (<img key={index} src={normalizeImageUrl(img)} alt={`${product.name} hình ${index + 1}`} width={120} height={120} className={styles.detailImage} onError={(e) => {(e.target as HTMLImageElement).src = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";}}/>) ) : (<p>Không có hình ảnh</p>)}</div></div></div></div></td></tr>
+                    <tr className={styles.detailsRow}>
+                      <td colSpan={7}>
+                        <div className={styles.productDetails}>
+                          <h3>Chi tiết sản phẩm</h3>
+                          <div className={styles.detailsContainer}>
+                            <div className={styles.detailsSection}>
+                              <h4>Thông tin cơ bản</h4>
+                              <div className={styles.detailsGrid}>
+                                <p><strong>Tên sản phẩm:</strong> {product.name}</p>
+                                <p><strong>Slug:</strong> {product.slug}</p>
+                                <p><strong>Danh mục:</strong> {categories.find((cat) => cat._id === product.id_category)?.name || "Chưa phân loại"}</p>
+                                <p><strong>Thương hiệu:</strong> {brands.find((brand) => brand._id === product.id_brand)?.name || "Chưa phân loại"}</p>
+                                <p><strong>Kích hoạt:</strong> {product.active ? "Có" : "Không"}</p>
+                                <p><strong>Trạng thái:</strong> {product.status === "show" ? "Hiển thị" : "Ẩn"}</p>
+                                <p><strong>Lượt xem:</strong> {product.view}</p>
+                                <p><strong>Ngày tạo:</strong> {new Date(product.createdAt).toLocaleString()}</p>
+                                <p><strong>Ngày cập nhật:</strong> {new Date(product.updatedAt).toLocaleString()}</p>
+                              </div>
+                            </div>
+                            <div className={styles.detailsSection}>
+                              <h4>Mô tả sản phẩm</h4>
+                              <p><strong>Mô tả ngắn:</strong> {product.short_description}</p>
+                              <br />
+                              <p><strong>Mô tả chi tiết:</strong></p>
+                              <div className={styles.descriptionContent} dangerouslySetInnerHTML={{ __html: product.description }} />
+                            </div>
+                            <div className={styles.detailsSection}>
+                              <h4>Tùy chọn sản phẩm</h4>
+                              <table className={styles.optionsTable}>
+                                <thead>
+                                  <tr>
+                                    <th>Kích thước</th>
+                                    <th>Giá</th>
+                                    <th>Giá khuyến mãi</th>
+                                    <th>Tồn kho</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {product.option.length > 0 ? (
+                                    product.option.map((opt, index) => (
+                                      <tr key={index}>
+                                        <td>{opt.value}</td>
+                                        <td>{opt.price.toLocaleString()}₫</td>
+                                        <td>{opt.discount_price ? opt.discount_price.toLocaleString() + "₫" : "Không có"}</td>
+                                        <td>{opt.stock}</td>
+                                      </tr>
+                                    ))
+                                  ) : (
+                                    <tr>
+                                      <td colSpan={4} className="text-center">Không có tùy chọn nào</td>
+                                    </tr>
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                            <div className={styles.detailsSection}>
+                              <h4>Hình ảnh sản phẩm</h4>
+                              <div className={styles.imageGallery}>
+                                {product.images.length > 0 ? (
+                                  product.images.map((img, index) => (
+                                    <img
+                                      key={index}
+                                      src={normalizeImageUrl(img)}
+                                      alt={`${product.name} hình ${index + 1}`}
+                                      width={120}
+                                      height={120}
+                                      className={styles.detailImage}
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).src =
+                                          "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+                                      }}
+                                    />
+                                  ))
+                                ) : (
+                                  <p>Không có hình ảnh</p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
                   )}
                 </React.Fragment>
               ))
             ) : (
-              <tr><td colSpan={7} className="text-center py-4">Không có sản phẩm nào</td></tr>
+              <tr>
+                <td colSpan={7} className={styles.emptyState}>
+                  <h3>Không có sản phẩm</h3>
+                  <p>Vui lòng thêm sản phẩm mới hoặc điều chỉnh bộ lọc/tìm kiếm.</p>
+                </td>
+              </tr>
             )}
           </tbody>
         </table>

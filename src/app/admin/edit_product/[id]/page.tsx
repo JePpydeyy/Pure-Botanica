@@ -3,6 +3,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
 import styles from "./editproduct.module.css";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 interface Option {
   value: string;
@@ -29,11 +31,13 @@ interface Product {
 interface Category {
   _id: string;
   name: string;
+  status: string;
 }
 
 interface Brand {
   _id: string;
   name: string;
+  status: "show" | "hidden";
 }
 
 interface Notification {
@@ -84,7 +88,6 @@ const EditProduct = () => {
     return `https://api-zeal.onrender.com${path.startsWith("/") ? "" : "/"}${path}`;
   };
   const fallbackImage = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
-
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -531,16 +534,34 @@ const EditProduct = () => {
 
   if (loading) {
     return (
-      <div className={styles.loadingContainer}>
-        <div className={styles.spinner}></div>
-        <p>Đang tải thông tin sản phẩm...</p>
-      </div>
+      <main className={styles.mainContainer}>
+        <div className={styles.contentWrapper}>
+          <div className={styles.loadingContainer}>
+            <div className={styles.spinner}></div>
+            <p>Đang tải thông tin sản phẩm...</p>
+          </div>
+        </div>
+      </main>
     );
   }
 
   return (
-    <div className={styles.editProductContainer}>
-      <div className={styles.header}>
+    <main className={styles.mainContainer}>
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+        toastClassName={styles.customToast}
+        bodyClassName={styles.customToastBody}
+      />
+      <div className={styles.maintitle}>
         <h1 className={styles.title}>Chỉnh sửa sản phẩm</h1>
         <button
           type="button"
@@ -550,297 +571,296 @@ const EditProduct = () => {
           ← Quay lại
         </button>
       </div>
-
-      {notification.show && (
-        <div className={`${styles.notification} ${styles[notification.type]}`}>
-          {notification.message}
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className={styles.form}>
-        <div className={styles.basicInfo}>
-          <div className={styles.formRow}>
+      <div className={styles.contentWrapper}>
+        {notification.show && (
+          <div className={`${styles.notification} ${styles[notification.type]}`}>
+            {notification.message}
+          </div>
+        )}
+        <form onSubmit={handleSubmit} className={styles.form}>
+          <div className={styles.basicInfo}>
+            <div className={styles.formRow}>
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Tên sản phẩm *</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  className={styles.input}
+                  required
+                  placeholder="Nhập tên sản phẩm"
+                />
+              </div>
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Danh mục *</label>
+                <select
+                  name="id_category"
+                  value={formData.id_category}
+                  onChange={handleInputChange}
+                  className={styles.select}
+                  required
+                >
+                  <option value="">-- Chọn danh mục --</option>
+                  {categories
+                    .filter((cat) => cat.status !== "hidden")
+                    .map((cat) => (
+                      <option key={cat._id} value={cat._id}>
+                        {cat.name}
+                      </option>
+                    ))}
+                </select>
+              </div>
+            </div>
+            <div className={styles.formRow}>
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Thương hiệu *</label>
+                <select
+                  name="id_brand"
+                  value={formData.id_brand}
+                  onChange={handleInputChange}
+                  className={styles.select}
+                  required
+                >
+                  <option value="">-- Chọn thương hiệu --</option>
+                  {brands
+                    .filter((brand) => brand.status !== "hidden")
+                    .map((brand) => (
+                      <option key={brand._id} value={brand._id}>
+                        {brand.name}
+                      </option>
+                    ))}
+                </select>
+              </div>
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Trạng thái *</label>
+                <select
+                  name="status"
+                  value={formData.status}
+                  onChange={handleInputChange}
+                  className={styles.select}
+                  required
+                >
+                  <option value="show">Hiển thị</option>
+                  <option value="hidden">Ẩn</option>
+                </select>
+              </div>
+            </div>
             <div className={styles.formGroup}>
-              <label className={styles.label}>Tên sản phẩm *</label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
+              <label className={styles.label}>Mô tả ngắn *</label>
+              <textarea
+                name="short_description"
+                value={formData.short_description}
                 onChange={handleInputChange}
-                className={styles.input}
+                className={styles.textarea}
                 required
-                placeholder="Nhập tên sản phẩm"
+                placeholder="Nhập mô tả ngắn (tối đa 200 ký tự)"
+                maxLength={200}
               />
             </div>
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Danh mục *</label>
-              <select
-                name="id_category"
-                value={formData.id_category}
-                onChange={handleInputChange}
-                className={styles.select}
-                required
-              >
-                <option value="">-- Chọn danh mục --</option>
-                {categories
-                  .filter((cat: any) => cat.status !== "hidden")
-                  .map((cat) => (
-                    <option key={cat._id} value={cat._id}>
-                      {cat.name}
-                    </option>
-                  ))}
-              </select>
-            </div>
           </div>
-          <div className={styles.formRow}>
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Thương hiệu *</label>
-              <select
-                name="id_brand"
-                value={formData.id_brand}
-                onChange={handleInputChange}
-                className={styles.select}
-                required
-              >
-                <option value="">-- Chọn thương hiệu --</option>
-                {brands
-                  .filter((brand: any) => brand.status !== "hidden")
-                  .map((brand) => (
-                    <option key={brand._id} value={brand._id}>
-                      {brand.name}
-                    </option>
-                  ))}
-              </select>
-            </div>
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Trạng thái *</label>
-              <select
-                name="status"
-                value={formData.status}
-                onChange={handleInputChange}
-                className={styles.select}
-                required
-              >
-                <option value="show">Hiển thị</option>
-                <option value="hidden">Ẩn</option>
-              </select>
-            </div>
-          </div>
-          <div className={styles.formGroup}>
-            <label className={styles.label}>Mô tả ngắn *</label>
-            <textarea
-              name="short_description"
-              value={formData.short_description}
-              onChange={handleInputChange}
-              className={styles.textarea}
-              required
-              placeholder="Nhập mô tả ngắn (tối đa 200 ký tự)"
-              maxLength={200}
-            />
-          </div>
-        </div>
 
-        <div className={styles.formGroup}>
-          <label className={styles.label}>Tùy chọn sản phẩm *</label>
-          <table className={styles.optionsTable}>
-            <thead>
-              <tr>
-                <th>Kích thước</th>
-                <th>Giá gốc</th>
-                <th>Giá khuyến mãi</th>
-                <th>Số lượng</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {formData.option.map((option, index) => (
-                <tr key={index} className={styles.optionRow}>
-                  <td className={styles.sizeColumn}>
-                    <div className={styles.sizeInputGroup}>
+          <div className={styles.formGroup}>
+            <label className={styles.label}>Tùy chọn sản phẩm *</label>
+            <table className={styles.optionsTable}>
+              <thead>
+                <tr>
+                  <th>Kích thước</th>
+                  <th>Giá gốc</th>
+                  <th>Giá khuyến mãi</th>
+                  <th>Số lượng</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {formData.option.map((option, index) => (
+                  <tr key={index} className={styles.optionRow}>
+                    <td className={styles.sizeColumn}>
+                      <div className={styles.sizeInputGroup}>
+                        <input
+                          type="number"
+                          placeholder="e.g., 50"
+                          value={option.value}
+                          onChange={(e) => handleOptionChange(index, "value", e.target.value)}
+                          className={styles.input}
+                          required
+                          min="0"
+                        />
+                        <select
+                          value={option.unit}
+                          onChange={(e) => handleOptionChange(index, "unit", e.target.value)}
+                          className={styles.unitSelect}
+                          required
+                        >
+                          <option value="ml">ml</option>
+                          <option value="g">g</option>
+                        </select>
+                      </div>
+                    </td>
+                    <td>
                       <input
                         type="number"
-                        placeholder="e.g., 50"
-                        value={option.value}
-                        onChange={(e) => handleOptionChange(index, "value", e.target.value)}
+                        placeholder="Giá gốc"
+                        value={option.price}
+                        onChange={(e) => handleOptionChange(index, "price", e.target.value)}
                         className={styles.input}
                         required
                         min="0"
                       />
-                      <select
-                        value={option.unit}
-                        onChange={(e) => handleOptionChange(index, "unit", e.target.value)}
-                        className={styles.unitSelect}
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        placeholder="Giá khuyến mãi"
+                        value={option.discount_price}
+                        onChange={(e) => handleOptionChange(index, "discount_price", e.target.value)}
+                        className={styles.input}
+                        min="0"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        placeholder="Số lượng"
+                        value={option.stock}
+                        onChange={(e) => handleOptionChange(index, "stock", e.target.value)}
+                        className={styles.input}
                         required
-                      >
-                        <option value="ml">ml</option>
-                        <option value="g">g</option>
-                      </select>
-                    </div>
-                  </td>
-                  <td>
-                    <input
-                      type="number"
-                      placeholder="Giá gốc"
-                      value={option.price}
-                      onChange={(e) => handleOptionChange(index, "price", e.target.value)}
-                      className={styles.input}
-                      required
-                      min="0"
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="number"
-                      placeholder="Giá khuyến mãi"
-                      value={option.discount_price}
-                      onChange={(e) => handleOptionChange(index, "discount_price", e.target.value)}
-                      className={styles.input}
-                      min="0"
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="number"
-                      placeholder="Số lượng"
-                      value={option.stock}
-                      onChange={(e) => handleOptionChange(index, "stock", e.target.value)}
-                      className={styles.input}
-                      required
-                      min="0"
-                    />
-                  </td>
-                  <td>
-                    {formData.option.length > 1 && (
-                      <button type="button" className={styles.removeBtn} onClick={() => removeOption(index)}>
-                        ✕
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <button type="button" className={styles.addOptionBtn} onClick={addOption}>
-            Thêm tùy chọn +
-          </button>
-        </div>
-
-        <div className={styles.formGroup}>
-          <label className={styles.label}>Mô tả chi tiết *</label>
-          {renderToolbar()}
-          <div
-            ref={editorRef}
-            className={styles.editor}
-            contentEditable
-            onInput={handleDescriptionChange}
-            data-placeholder="Nhập mô tả sản phẩm chi tiết, thành phần, hướng dẫn sử dụng, đặc điểm nổi bật..."
-          />
-        </div>
-
-        <div className={styles.formGroup}>
-          <label className={styles.label}>Hình ảnh sản phẩm (tối đa 4 ảnh) *</label>
-          {existingImages.length > 0 && (
-            <div className={styles.imageSection}>
-              <h4 className={styles.sectionTitle}>Ảnh hiện tại:</h4>
-              <div className={styles.imagePreview}>
-                {existingImages.map((img, idx) => (
-                  <div key={idx} className={styles.imageItem}>
-                    <img
-                      src={normalizeImageUrl(img)}
-                      alt={`Ảnh ${idx + 1}`}
-                      width={100}
-                      height={100}
-                      className={styles.previewImage}
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.onerror = null;
-                        target.src = fallbackImage;
-                      }}
-                    />
-
-                    <div className={styles.imageInfo}>
-                      <span className={styles.imageName}>Ảnh {idx + 1}</span>
-                      <button
-                        type="button"
-                        onClick={() => removeExistingImage(idx)}
-                        className={styles.removeBtn}
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  </div>
+                        min="0"
+                      />
+                    </td>
+                    <td>
+                      {formData.option.length > 1 && (
+                        <button type="button" className={styles.removeBtn} onClick={() => removeOption(index)}>
+                          ✕
+                        </button>
+                      )}
+                    </td>
+                  </tr>
                 ))}
-              </div>
-            </div>
-          )}
-          <div className={styles.imageUploadArea}>
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handleFileChange}
-              className={styles.fileInput}
-              id="imageInput"
-              disabled={existingImages.length + formData.images.length >= 4}
-            />
-            <label
-              htmlFor="imageInput"
-              className={`${styles.uploadLabel} ${
-                existingImages.length + formData.images.length >= 4 ? styles.disabled : ""
-              }`}
-            >
-              <div className={styles.uploadIcon}>📷</div>
-              <span>
-                {existingImages.length + formData.images.length >= 4
-                  ? "Đã đạt giới hạn 4 ảnh"
-                  : "Thêm ảnh mới"}
-              </span>
-            </label>
+              </tbody>
+            </table>
+            <button type="button" className={styles.addOptionBtn} onClick={addOption}>
+              Thêm tùy chọn +
+            </button>
           </div>
-          {formData.images.length > 0 && (
-            <div className={styles.imageSection}>
-              <h4 className={styles.sectionTitle}>Ảnh mới sẽ thêm:</h4>
-              <div className={styles.imagePreview}>
-                {formData.images.map((img, idx) => (
-                  <div key={idx} className={styles.imageItem}>
-                    <Image
-                      src={URL.createObjectURL(img)}
-                      alt={`New Preview ${idx + 1}`}
-                      width={100}
-                      height={100}
-                      className={styles.previewImage}
-                    />
-                    <div className={styles.imageInfo}>
-                      <span className={styles.imageName}>{img.name}</span>
-                      <button
-                        type="button"
-                        onClick={() => removeNewImage(idx)}
-                        className={styles.removeBtn}
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
 
-        <div className={styles.buttonGroup}>
-          <button
-            type="button"
-            onClick={() => router.push("/admin/product")}
-            className={styles.cancelButton}
-          >
-            Hủy
-          </button>
-          <button type="submit" className={styles.submitButton} disabled={loading}>
-            <span>✓</span> Cập nhật sản phẩm
-          </button>
-        </div>
-      </form>
-    </div>
+          <div className={styles.formGroup}>
+            <label className={styles.label}>Mô tả chi tiết *</label>
+            {renderToolbar()}
+            <div
+              ref={editorRef}
+              className={styles.editor}
+              contentEditable
+              onInput={handleDescriptionChange}
+              data-placeholder="Nhập mô tả sản phẩm chi tiết, thành phần, hướng dẫn sử dụng, đặc điểm nổi bật..."
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label className={styles.label}>Hình ảnh sản phẩm (tối đa 4 ảnh) *</label>
+            {existingImages.length > 0 && (
+              <div className={styles.imageSection}>
+                <h4 className={styles.sectionTitle}>Ảnh hiện tại:</h4>
+                <div className={styles.imagePreview}>
+                  {existingImages.map((img, idx) => (
+                    <div key={idx} className={styles.imageItem}>
+                      <img
+                        src={normalizeImageUrl(img)}
+                        alt={`Ảnh ${idx + 1}`}
+                        width={100}
+                        height={100}
+                        className={styles.previewImage}
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.onerror = null;
+                          target.src = fallbackImage;
+                        }}
+                      />
+                      <div className={styles.imageInfo}>
+                        <span className={styles.imageName}>Ảnh {idx + 1}</span>
+                        <button
+                          type="button"
+                          onClick={() => removeExistingImage(idx)}
+                          className={styles.removeBtn}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className={styles.imageUploadArea}>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleFileChange}
+                className={styles.fileInput}
+                id="imageInput"
+                disabled={existingImages.length + formData.images.length >= 4}
+              />
+              <label
+                htmlFor="imageInput"
+                className={`${styles.uploadLabel} ${
+                  existingImages.length + formData.images.length >= 4 ? styles.disabled : ""
+                }`}
+              >
+                <div className={styles.uploadIcon}>📷</div>
+                <span>
+                  {existingImages.length + formData.images.length >= 4
+                    ? "Đã đạt giới hạn 4 ảnh"
+                    : "Thêm ảnh mới"}
+                </span>
+              </label>
+            </div>
+            {formData.images.length > 0 && (
+              <div className={styles.imageSection}>
+                <h4 className={styles.sectionTitle}>Ảnh mới sẽ thêm:</h4>
+                <div className={styles.imagePreview}>
+                  {formData.images.map((img, idx) => (
+                    <div key={idx} className={styles.imageItem}>
+                      <Image
+                        src={URL.createObjectURL(img)}
+                        alt={`New Preview ${idx + 1}`}
+                        width={100}
+                        height={100}
+                        className={styles.previewImage}
+                      />
+                      <div className={styles.imageInfo}>
+                        <span className={styles.imageName}>{img.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => removeNewImage(idx)}
+                          className={styles.removeBtn}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className={styles.buttonGroup}>
+            <button
+              type="button"
+              onClick={() => router.push("/admin/product")}
+              className={styles.cancelButton}
+            >
+              Hủy
+            </button>
+            <button type="submit" className={styles.submitButton} disabled={loading}>
+              <span>✓</span> Cập nhật sản phẩm
+            </button>
+          </div>
+        </form>
+      </div>
+    </main>
   );
 };
 

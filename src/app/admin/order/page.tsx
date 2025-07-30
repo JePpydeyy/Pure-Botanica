@@ -3,9 +3,11 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import styles from "./order.module.css";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
+import Head from "next/head";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTimes, faCheck } from "@fortawesome/free-solid-svg-icons";
+import { faCheck, faTimes, faRedo } from "@fortawesome/free-solid-svg-icons";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 interface Option {
   stock: number;
@@ -32,11 +34,7 @@ interface Address {
 interface Order {
   paymentMethod: string;
   _id: string;
-  user: {
-    _id: string;
-    username: string;
-    email: string;
-  } | null;
+  user: { _id: string; username: string; email: string } | null;
   createdAt: string;
   paymentStatus: string;
   shippingStatus: string;
@@ -45,31 +43,20 @@ interface Order {
   items: { product: Product | null; optionId: string; quantity: number; images: string[] }[];
 }
 
-interface Notification {
-  show: boolean;
-  message: string;
-  type: "success" | "error";
-}
-
 const API_BASE_URL = "https://api-zeal.onrender.com";
-const FALLBACK_IMAGE_URL = "https://via.placeholder.com/60x60?text=Error";
+const FALLBACK_IMAGE_URL = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
 
 const normalizeImageUrl = (url: string): string => {
-  if (url.startsWith("https://res.cloudinary.com")) {
-    return url;
-  }
-  if (!url.startsWith("http://") && !url.startsWith("https://")) {
-    return `${API_BASE_URL}/${url}?_t=${Date.now()}`;
-  }
-  return url;
+  if (url.startsWith("http")) return url;
+  return `${API_BASE_URL}${url.startsWith("/") ? "" : "/"}${url}`;
 };
 
-export default function OrderPage() {
+const OrderPage: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [showPopup, setShowPopup] = useState<boolean>(false);
+  const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
   const [showConfirm, setShowConfirm] = useState<{
     orderId: string;
     newStatus: string;
@@ -77,13 +64,8 @@ export default function OrderPage() {
   } | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [shippingStatusFilter, setShippingStatusFilter] = useState<string>("all");
-  const [notification, setNotification] = useState<Notification>({
-    show: false,
-    message: "",
-    type: "success",
-  });
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const ordersPerPage = 9; // Match product.tsx
   const router = useRouter();
 
   const paymentStatusMapping = {
@@ -115,6 +97,7 @@ export default function OrderPage() {
   };
 
   const allStatuses = [
+    { value: "all", label: "Tất cả trạng thái" },
     { value: "pending", label: "Chờ xử lý" },
     { value: "in_transit", label: "Đang vận chuyển" },
     { value: "delivered", label: "Đã giao hàng" },
@@ -127,29 +110,39 @@ export default function OrderPage() {
   };
 
   const showNotification = (message: string, type: "success" | "error") => {
-    setNotification({ show: true, message, type });
-    setTimeout(() => {
-      setNotification({ show: false, message: "", type: "success" });
-    }, 3000);
+    if (type === "success") {
+      toast.success(message, {
+        className: styles.customToast,
+        bodyClassName: styles.customToastBody,
+      });
+    } else {
+      toast.error(message, {
+        className: styles.customToast,
+        bodyClassName: styles.customToastBody,
+      });
+    }
   };
 
+  // Check admin access
   useEffect(() => {
     const token = localStorage.getItem("token");
     const role = localStorage.getItem("role");
     if (!token || role !== "admin") {
-      showNotification("Vui lòng đăng nhập với quyền admin!", "error");
-      localStorage.removeItem("token");
-      localStorage.removeItem("role");
-      localStorage.removeItem("email");
+      showNotification("Bạn cần quyền admin để truy cập trang này.", "error");
       router.push("/user/login");
     }
   }, [router]);
 
+  // Fetch orders
   useEffect(() => {
     const fetchOrders = async () => {
       try {
+        setLoading(true);
         setError(null);
         const token = localStorage.getItem("token");
+        if (!token) {
+          throw new Error("Không tìm thấy token. Vui lòng đăng nhập lại.");
+        }
         const res = await fetch(`${API_BASE_URL}/api/orders/admin/all`, {
           headers: { Authorization: `Bearer ${token}` },
           cache: "no-store",
@@ -169,18 +162,18 @@ export default function OrderPage() {
         if (!Array.isArray(data)) {
           throw new Error("Dữ liệu đơn hàng không hợp lệ");
         }
-        const invalidOrders = data.filter(order => !order.user);
+        const invalidOrders = data.filter((order) => !order.user);
         if (invalidOrders.length > 0) {
           console.warn("Found orders with null user:", invalidOrders);
         }
-        const validOrders = data;
-        setOrders(validOrders);
-        setFilteredOrders(validOrders);
+        setOrders(data);
+        setFilteredOrders(data);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
-        console.error("Lỗi khi tải danh sách đơn hàng:", errorMessage);
-        setError("Không thể tải danh sách đơn hàng. Vui lòng thử lại sau.");
         showNotification("Không thể tải danh sách đơn hàng", "error");
+        setError("Không thể tải danh sách đơn hàng. Vui lòng thử lại sau.");
+      } finally {
+        setLoading(false);
       }
     };
     fetchOrders();
@@ -202,11 +195,14 @@ export default function OrderPage() {
         const orderId = order._id.toLowerCase();
         const address = formatAddress(order.address).toLowerCase();
         const matchesSearch =
-          username.includes(searchLower) || orderId.includes(searchLower) || address.includes(searchLower);
+          username.includes(searchLower) ||
+          orderId.includes(searchLower) ||
+          address.includes(searchLower);
         const matchesShippingStatus = shippingStatus === "all" || order.shippingStatus === shippingStatus;
         return matchesSearch && matchesShippingStatus;
       });
       setFilteredOrders(filtered);
+      setCurrentPage(1);
     },
     [orders]
   );
@@ -222,19 +218,18 @@ export default function OrderPage() {
     debouncedFilter(searchQuery, shippingStatusFilter);
   }, [searchQuery, shippingStatusFilter, debouncedFilter]);
 
-  const resetFilters = () => {
-    setSearchQuery("");
-    setShippingStatusFilter("all");
-    setFilteredOrders(orders);
-  };
-
   const formatDate = (dateString: string | number | Date) => {
     const date = new Date(dateString);
     return isNaN(date.getTime())
       ? "Ngày không hợp lệ"
-      : `${date.getDate().toString().padStart(2, "0")}-${(date.getMonth() + 1)
-          .toString()
-          .padStart(2, "0")}-${date.getFullYear()}`;
+      : date.toLocaleString("vi-VN", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        });
   };
 
   const getVietnamesePaymentStatus = (paymentStatus: string) => {
@@ -270,6 +265,7 @@ export default function OrderPage() {
       reverseShippingStatusMapping[newStatus as keyof typeof reverseShippingStatusMapping] || newStatus;
 
     try {
+      setLoading(true);
       const updatePayload: { shippingStatus: string; paymentStatus?: string } = {
         shippingStatus: englishStatus,
       };
@@ -308,50 +304,29 @@ export default function OrderPage() {
       setOrders((prevOrders) =>
         prevOrders.map((o) =>
           o._id === orderId
-            ? {
-                ...o,
-                shippingStatus: order.shippingStatus,
-                paymentStatus: order.paymentStatus,
-              }
+            ? { ...o, shippingStatus: order.shippingStatus, paymentStatus: order.paymentStatus }
             : o
         )
       );
       setFilteredOrders((prevOrders) =>
         prevOrders.map((o) =>
           o._id === orderId
-            ? {
-                ...o,
-                shippingStatus: order.shippingStatus,
-                paymentStatus: order.paymentStatus,
-              }
+            ? { ...o, shippingStatus: order.shippingStatus, paymentStatus: order.paymentStatus }
             : o
         )
       );
       showNotification("Cập nhật trạng thái vận chuyển thành công", "success");
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
-      console.error("Lỗi cập nhật trạng thái vận chuyển:", errorMessage);
-      showNotification("Không thể cập nhật trạng thái vận chuyển", "error");
+      showNotification(`Không thể cập nhật trạng thái vận chuyển: ${errorMessage}`, "error");
     } finally {
       setShowConfirm(null);
+      setLoading(false);
     }
   };
 
-  const cancelConfirm = () => {
-    setShowConfirm(null);
-  };
-
-  const handleOrderClick = (order: Order, e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).tagName === "SELECT" || (e.target as HTMLElement).tagName === "INPUT") {
-      return;
-    }
-    setSelectedOrder(order);
-    setShowPopup(true);
-  };
-
-  const closePopup = () => {
-    setShowPopup(false);
-    setSelectedOrder(null);
+  const handleToggleDetails = (orderId: string) => {
+    setExpandedOrderId(expandedOrderId === orderId ? null : orderId);
   };
 
   const getProductPrice = (product: Product | null, optionId: string) => {
@@ -372,42 +347,101 @@ export default function OrderPage() {
     return FALLBACK_IMAGE_URL;
   };
 
-  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
-
-  const currentOrders = useMemo(
-    () =>
-      filteredOrders.slice(
-        (currentPage - 1) * itemsPerPage,
-        currentPage * itemsPerPage
-      ),
-    [filteredOrders, currentPage]
-  );
+  const totalPages = Math.ceil(filteredOrders.length / ordersPerPage);
+  const indexOfLastOrder = currentPage * ordersPerPage;
+  const indexOfFirstOrder = indexOfLastOrder - ordersPerPage;
+  const currentOrders = filteredOrders.slice(indexOfFirstOrder, indexOfLastOrder);
 
   const handlePageChange = (page: number) => {
-    if (page < 1 || page > totalPages) return;
-    setCurrentPage(page);
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+      setExpandedOrderId(null);
+    }
   };
 
-  if (error) {
+  const getPaginationInfo = () => {
+    const visiblePages: number[] = [];
+    let showPrevEllipsis = false;
+    let showNextEllipsis = false;
+
+    if (totalPages <= 3) {
+      for (let i = 1; i <= totalPages; i++) {
+        visiblePages.push(i);
+      }
+    } else {
+      if (currentPage === 1) {
+        visiblePages.push(1, 2, 3);
+        showNextEllipsis = totalPages > 3;
+      } else if (currentPage === totalPages) {
+        visiblePages.push(totalPages - 2, totalPages - 1, totalPages);
+        showPrevEllipsis = totalPages > 3;
+      } else {
+        visiblePages.push(currentPage - 1, currentPage, currentPage + 1);
+        showPrevEllipsis = currentPage > 2;
+        showNextEllipsis = currentPage < totalPages - 1;
+      }
+    }
+
+    return { visiblePages, showPrevEllipsis, showNextEllipsis };
+  };
+
+  if (loading && orders.length === 0) {
+    return (
+      <div className={styles.errorContainer}>
+        <div className={styles.processingIndicator}>
+          <FontAwesomeIcon icon={faRedo} spin />
+          <p>Đang tải danh sách đơn hàng...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && orders.length === 0) {
     return (
       <div className={styles.errorContainer}>
         <p className={styles.errorMessage}>{error}</p>
-        <button className={styles.retryButton} onClick={() => window.location.reload()}>
-          <FontAwesomeIcon icon={faTimes} />
+        <button
+          className={styles.retryButton}
+          onClick={() => {
+            setLoading(true);
+            setError(null);
+            fetchOrders();
+          }}
+          title="Thử lại"
+          aria-label="Thử lại tải danh sách đơn hàng"
+        >
+          <FontAwesomeIcon icon={faRedo} />
         </button>
       </div>
     );
   }
 
   return (
-    <div className={styles.productManagementContainer}>
-      {notification.show && (
-        <div className={`${styles.notification} ${styles[notification.type]}`}>
-          {notification.message}
+    <div className={styles.orderManagementContainer}>
+      <Head>
+        <title>Quản Lý Đơn Hàng</title>
+      </Head>
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+        toastClassName={styles.customToast}
+        bodyClassName={styles.customToastBody}
+      />
+      {loading && orders.length > 0 && (
+        <div className={styles.processingIndicator}>
+          <FontAwesomeIcon icon={faRedo} spin /> Đang xử lý...
         </div>
       )}
       <div className={styles.titleContainer}>
-        <h1>Quản Lý Đơn Hàng</h1>
+        <h1>QUẢN LÝ ĐƠN HÀNG</h1>
         <div className={styles.filterContainer}>
           <input
             type="text"
@@ -432,120 +466,276 @@ export default function OrderPage() {
         </div>
       </div>
       <div className={styles.tableContainer}>
-        <table className={styles.productTable}><thead className={styles.productTableThead}><tr><th>ID</th><th>Tên</th><th>Tổng Tiền</th><th>Ngày</th><th>Trạng Thái Thanh Toán</th><th>Trạng Thái Vận Chuyển</th><th>Phương Thức Thanh Toán</th></tr></thead><tbody>{currentOrders.length === 0 ? (<tr><td colSpan={7} className={styles.emptyState}><h3>{searchQuery || shippingStatusFilter !== "all" ? "Không tìm thấy đơn hàng" : "Chưa có đơn hàng"}</h3><p>{(searchQuery || shippingStatusFilter !== "all") ? "Không có đơn hàng nào khớp với bộ lọc." : "Hiện tại không có đơn hàng nào để hiển thị."}</p></td></tr>) : (currentOrders.map((order, index) => (<tr key={order._id} className={styles.productRow} onClick={(e) => handleOrderClick(order, e)}><td>{(currentPage - 1) * itemsPerPage + index + 1}</td><td>{order.user?.username || "Không xác định"}</td><td>{order.total.toLocaleString()} VND</td><td>{formatDate(order.createdAt)}</td><td>{getVietnamesePaymentStatus(order.paymentStatus)}</td><td><select
-                      value={getVietnameseShippingStatus(order.shippingStatus)}
-                      onChange={(e) =>
-                        handleShippingStatusChange(order._id, e.target.value, order.shippingStatus)
-                      }
-                      className={styles.categorySelect}
-                      onClick={(e) => e.stopPropagation()}
-                      disabled={order.shippingStatus === "returned"}
-                    >{allStatuses.map((status) => (
-                        <option
-                          key={status.value}
-                          value={status.label}
-                          disabled={
-                            order.shippingStatus === "returned" ||
-                            (!statusProgression[order.shippingStatus].includes(status.value) &&
-                              status.value !== order.shippingStatus)
-                          }
-                        >{status.label}</option>
-                      ))}</select></td><td>{order.paymentMethod === "cod" ? "Thanh toán khi nhận hàng" : order.paymentMethod === "bank" ? "Chuyển khoản" : order.paymentMethod || "Không xác định"}</td></tr>)))}</tbody></table>
-      </div>
-      {showPopup && selectedOrder && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-            <button className={styles.cancelBtn} onClick={closePopup} aria-label="Đóng chi tiết đơn hàng">
-              <FontAwesomeIcon icon={faTimes} />
-            </button>
-            <h2>Chi Tiết Đơn Hàng</h2>
-            <div className={styles.detailsContainer}>
-              <div className={styles.detailsSection}>
-                <h4>Thông Tin Khách Hàng</h4>
-                <p><strong>Tên:</strong> {selectedOrder.user?.username || "Không xác định"}</p>
-                <p><strong>Email:</strong> {selectedOrder.user?.email || "Không xác định"}</p>
-                <p><strong>Địa chỉ:</strong> {formatAddress(selectedOrder.address)}</p>
-              </div>
-              <div className={styles.detailsSection}>
-                <h4>Thông Tin Đơn Hàng</h4>
-                <p><strong>Ngày:</strong> {formatDate(selectedOrder.createdAt)}</p>
-                <p><strong>Trạng thái thanh toán:</strong> {getVietnamesePaymentStatus(selectedOrder.paymentStatus)}</p>
-                <p><strong>Trạng thái vận chuyển:</strong> {getVietnameseShippingStatus(selectedOrder.shippingStatus)}</p>
-                <p><strong>Phương thức thanh toán:</strong>
-                  {selectedOrder.paymentMethod === "cod"
-                    ? "Thanh toán khi nhận hàng"
-                    : selectedOrder.paymentMethod === "bank"
-                    ? "Chuyển khoản"
-                    : selectedOrder.paymentMethod || "Không xác định"}
-                </p>
-              </div>
-              <div className={styles.detailsSection}>
-                <h4>Sản phẩm trong đơn hàng</h4>
-                {selectedOrder.items && selectedOrder.items.length > 0 ? (
-                  <ul className={styles.imageGallery}>
-                    {selectedOrder.items.map((item, idx) => (
-                      <li key={idx} className={styles.detailsGrid}>
-                        <Image
-                          src={getProductImage(item)}
-                          alt={item.product?.name || "Không xác định"}
-                          width={100}
-                          height={100}
-                          className={styles.detailImage}
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = FALLBACK_IMAGE_URL;
-                            console.log(`Image load failed for ${item.product?.name || "Không xác định"}:`, item.images[0]);
-                          }}
-                        />
-                        <div>
-                          <p><strong>Tên:</strong> {item.product?.name || "Không xác định"}</p>
-                          <p><strong>Số lượng:</strong> {item.quantity}</p>
+        <table className={styles.orderTable}>
+          <thead className={styles.orderTableThead}>
+            <tr>
+              <th>ID</th>
+              <th>Tên</th>
+              <th>Tổng Tiền</th>
+              <th>Ngày</th>
+              <th>Trạng Thái Thanh Toán</th>
+              <th>Trạng Thái Vận Chuyển</th>
+              <th>Phương Thức Thanh Toán</th>
+            </tr>
+          </thead>
+          <tbody>
+            {currentOrders.length === 0 ? (
+              <tr>
+                <td colSpan={7} className={styles.emptyState}>
+                  <h3>{searchQuery || shippingStatusFilter !== "all" ? "Không tìm thấy đơn hàng" : "Chưa có đơn hàng"}</h3>
+                  <p>
+                    {(searchQuery || shippingStatusFilter !== "all")
+                      ? "Không có đơn hàng nào khớp với bộ lọc."
+                      : "Hiện tại không có đơn hàng nào để hiển thị."}
+                  </p>
+                </td>
+              </tr>
+            ) : (
+              currentOrders.map((order, index) => (
+                <React.Fragment key={order._id}>
+                  <tr
+                    onClick={() => handleToggleDetails(order._id)}
+                    className={`${styles.orderRow} ${
+                      expandedOrderId === order._id ? styles.orderRowActive : ""
+                    }`}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <td>{(currentPage - 1) * ordersPerPage + index + 1}</td>
+                    <td>{order.user?.username || "Không xác định"}</td>
+                    <td>{order.total.toLocaleString()}₫</td>
+                    <td>{formatDate(order.createdAt)}</td>
+                    <td>{getVietnamesePaymentStatus(order.paymentStatus)}</td>
+                    <td>
+                      <select
+                        value={getVietnameseShippingStatus(order.shippingStatus)}
+                        onChange={(e) =>
+                          handleShippingStatusChange(order._id, e.target.value, order.shippingStatus)
+                        }
+                        className={styles.categorySelect}
+                        onClick={(e) => e.stopPropagation()}
+                        disabled={order.shippingStatus === "returned" || loading}
+                        aria-label={`Thay đổi trạng thái vận chuyển cho đơn hàng ${order._id}`}
+                      >
+                        {allStatuses
+                          .filter((status) => status.value !== "all")
+                          .map((status) => (
+                            <option
+                              key={status.value}
+                              value={status.label}
+                              disabled={
+                                order.shippingStatus === "returned" ||
+                                (!statusProgression[order.shippingStatus].includes(status.value) &&
+                                  status.value !== order.shippingStatus)
+                              }
+                            >
+                              {status.label}
+                            </option>
+                          ))}
+                      </select>
+                    </td>
+                    <td>
+                      {order.paymentMethod === "cod"
+                        ? "Thanh toán khi nhận hàng"
+                        : order.paymentMethod === "bank"
+                        ? "Chuyển khoản"
+                        : order.paymentMethod || "Không xác định"}
+                    </td>
+                  </tr>
+                  {expandedOrderId === order._id && (
+                    <tr className={styles.detailsRow}>
+                      <td colSpan={7}>
+                        <div className={styles.orderDetails}>
+                          <h3>Chi tiết đơn hàng</h3>
+                          <div className={styles.detailsContainer}>
+                            <div className={styles.detailsSection}>
+                              <h4>Thông tin khách hàng</h4>
+                              <div className={styles.detailsGrid}>
+                                <p>
+                                  <strong>Tên:</strong> {order.user?.username || "Không xác định"}
+                                </p>
+                                <p>
+                                  <strong>Email:</strong> {order.user?.email || "Không xác định"}
+                                </p>
+                                <p>
+                                  <strong>Địa chỉ:</strong> {formatAddress(order.address)}
+                                </p>
+                              </div>
+                            </div>
+                            <div className={styles.detailsSection}>
+                              <h4>Thông tin đơn hàng</h4>
+                              <div className={styles.detailsGrid}>
+                                <p>
+                                  <strong>Ngày:</strong> {formatDate(order.createdAt)}
+                                </p>
+                                <p>
+                                  <strong>Trạng thái thanh toán:</strong>{" "}
+                                  {getVietnamesePaymentStatus(order.paymentStatus)}
+                                </p>
+                                <p>
+                                  <strong>Trạng thái vận chuyển:</strong>{" "}
+                                  {getVietnameseShippingStatus(order.shippingStatus)}
+                                </p>
+                                <p>
+                                  <strong>Phương thức thanh toán:</strong>{" "}
+                                  {order.paymentMethod === "cod"
+                                    ? "Thanh toán khi nhận hàng"
+                                    : order.paymentMethod === "bank"
+                                    ? "Chuyển khoản"
+                                    : order.paymentMethod || "Không xác định"}
+                                </p>
+                              </div>
+                            </div>
+                            <div className={styles.detailsSection}>
+                              <h4>Sản phẩm trong đơn hàng</h4>
+                              <table className={styles.itemsTable}>
+                                <thead>
+                                  <tr>
+                                    <th>Hình ảnh</th>
+                                    <th>Tên sản phẩm</th>
+                                    <th>Số lượng</th>
+                                    <th>Giá</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {order.items && order.items.length > 0 ? (
+                                    order.items.map((item, idx) => (
+                                      <tr key={idx}>
+                                        <td>
+                                          <img
+                                            src={getProductImage(item)}
+                                            alt={item.product?.name || "Không xác định"}
+                                            width={48}
+                                            height={48}
+                                            className={styles.orderTableImage}
+                                            onError={(e) => {
+                                              (e.target as HTMLImageElement).src = FALLBACK_IMAGE_URL;
+                                            }}
+                                          />
+                                        </td>
+                                        <td>{item.product?.name || "Không xác định"}</td>
+                                        <td>{item.quantity}</td>
+                                        <td>{getProductPrice(item.product, item.optionId).toLocaleString()}₫</td>
+                                      </tr>
+                                    ))
+                                  ) : (
+                                    <tr>
+                                      <td colSpan={4} className="text-center">
+                                        Không có sản phẩm trong đơn hàng
+                                      </td>
+                                    </tr>
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                            <div className={styles.detailsSection}>
+                              <h4>Tổng tiền</h4>
+                              <p>{order.total.toLocaleString()}₫</p>
+                            </div>
+                          </div>
                         </div>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p>Không có sản phẩm trong đơn hàng</p>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+      {totalPages > 1 && (
+        <div className={styles.pagination}>
+          {(() => {
+            const { visiblePages, showPrevEllipsis, showNextEllipsis } = getPaginationInfo();
+            return (
+              <>
+                {showPrevEllipsis && (
+                  <>
+                    <button
+                      className={`${styles.pageLink} ${styles.firstLastPage}`}
+                      onClick={() => handlePageChange(1)}
+                      disabled={loading}
+                      title="Trang đầu tiên"
+                    >
+                      1
+                    </button>
+                    <div
+                      className={styles.ellipsis}
+                      onClick={() => handlePageChange(Math.max(1, currentPage - 3))}
+                      title="Trang trước đó"
+                    >
+                      ...
+                    </div>
+                  </>
                 )}
-              </div>
-              <div className={styles.detailsSection}>
-                <h4>Tổng tiền</h4>
-                <p>{selectedOrder.total.toLocaleString()} VND</p>
-              </div>
-            </div>
-          </div>
+                {visiblePages.map((page) => (
+                  <button
+                    key={page}
+                    className={`${styles.pageLink} ${currentPage === page ? styles.pageLinkActive : ""}`}
+                    onClick={() => handlePageChange(page)}
+                    disabled={loading}
+                    title={`Trang ${page}`}
+                  >
+                    {page}
+                  </button>
+                ))}
+                {showNextEllipsis && (
+                  <>
+                    <div
+                      className={styles.ellipsis}
+                      onClick={() => handlePageChange(Math.min(totalPages, currentPage + 3))}
+                      title="Trang tiếp theo"
+                    >
+                      ...
+                    </div>
+                    <button
+                      className={`${styles.pageLink} ${styles.firstLastPage}`}
+                      onClick={() => handlePageChange(totalPages)}
+                      disabled={loading}
+                      title="Trang cuối cùng"
+                    >
+                      {totalPages}
+                    </button>
+                  </>
+                )}
+              </>
+            );
+          })()}
         </div>
       )}
       {showConfirm && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
-            <h2>Xác Nhận Thay Đổi Trạng Thái</h2>
+            <h2>Xác nhận thay đổi trạng thái</h2>
             <p>
               Bạn có chắc chắn muốn chuyển trạng thái vận chuyển sang{" "}
               <strong>{showConfirm.newStatus}</strong>?{" "}
-              {showConfirm.newStatus === "Đã giao hàng" ? (
+              {showConfirm.newStatus === "Đã giao hàng" && (
                 <>
                   Trạng thái thanh toán sẽ được cập nhật thành <strong>Đã thanh toán</strong>.
                 </>
-              ) : showConfirm.newStatus === "Đã hoàn" ? (
+              )}
+              {showConfirm.newStatus === "Đã hoàn" && (
                 <>
                   Trạng thái thanh toán sẽ được cập nhật thành <strong>Đã hoàn</strong>.
                 </>
-              ) : null}
+              )}
             </p>
             <div className={styles.modalActions}>
               <button
                 className={styles.confirmBtn}
                 onClick={confirmStatusChange}
-                aria-label="Xác nhận thay đổi trạng thái"
+                disabled={loading}
                 title="Xác nhận"
+                aria-label="Xác nhận thay đổi trạng thái"
               >
                 <FontAwesomeIcon icon={faCheck} />
               </button>
               <button
                 className={styles.cancelBtn}
-                onClick={cancelConfirm}
-                aria-label="Hủy thay đổi trạng thái"
+                onClick={() => setShowConfirm(null)}
+                disabled={loading}
                 title="Hủy"
+                aria-label="Hủy thay đổi trạng thái"
               >
                 <FontAwesomeIcon icon={faTimes} />
               </button>
@@ -553,33 +743,8 @@ export default function OrderPage() {
           </div>
         </div>
       )}
-      {totalPages > 1 && (
-        <div className={styles.pagination}>
-          <button
-            className={`${styles.pageLink} ${currentPage === 1 ? styles.pageLinkDisabled : ""}`}
-            onClick={() => handlePageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-          >
-            &lt;
-          </button>
-          {Array.from({ length: totalPages }, (_, i) => (
-            <button
-              key={i + 1}
-              className={`${styles.pageLink} ${currentPage === i + 1 ? styles.pageLinkActive : ""}`}
-              onClick={() => handlePageChange(i + 1)}
-            >
-              {i + 1}
-            </button>
-          ))}
-          <button
-            className={`${styles.pageLink} ${currentPage === totalPages ? styles.pageLinkDisabled : ""}`}
-            onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-          >
-            &gt;
-          </button>
-        </div>
-      )}
     </div>
   );
-}
+};
+
+export default OrderPage;

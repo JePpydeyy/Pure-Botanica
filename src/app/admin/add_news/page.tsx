@@ -18,7 +18,7 @@ import {
   faAlignJustify,
   faCloudUploadAlt,
 } from "@fortawesome/free-solid-svg-icons";
-import styles from "./addnews.module.css";
+import styles from "./add_news.module.css";
 import ToastNotification from "../../user/ToastNotification/ToastNotification";
 
 config.autoAddCss = false;

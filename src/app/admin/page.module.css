@@ -252,7 +252,7 @@
 }
 
 .tableContainer {
-  max-width: 1400px;
+  /* max-width: 1400px; */
   margin: 24px auto;
   background: var(--card-background);
   border-radius: 12px;

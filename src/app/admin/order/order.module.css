@@ -1,32 +1,29 @@
-
 :root {
-  --primary-color: #4CAF50; 
-  --secondary-color: #004C59; 
-  --error-color: #f44336; 
-  --toggle-color: #2196F3; 
-  --background-color: #f8fafc; 
-  --card-background: #ffffff; 
-  --text-color: #334155; 
-  --text-muted: #64748b; 
-  --border-color: #e2e8f0; 
+  --primary-color: #4CAF50;
+  --secondary-color: #000000;
+  --error-color: #f44336;
+  --background-color: #f8fafc;
+  --card-background: #ffffff;
+  --text-color: #334155;
+  --text-muted: #64748b;
+  --border-color: #e2e8f0;
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
   --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-
-.productManagementContainer {
+.orderManagementContainer {
   padding: 24px;
-  background: linear-gradient(135deg, var(--background-color) 0%, #e2e8f0 100%);
+  background: #f3f4f6;
   min-height: 100vh;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  margin-left: 250px;
+  transition: margin-left 0.3s;
 }
-
 
 .titleContainer {
   max-width: 1400px;
-  margin: 40px auto 0;
-  padding: 16px;
+  padding: 2rem;
 }
 
 .titleContainer h1 {
@@ -45,11 +42,12 @@
   background: var(--card-background);
   border-radius: 12px;
   box-shadow: var(--shadow-sm);
+  width: fit-content;
 }
 
 .searchInput {
   flex: 1;
-  min-width: 280px;
+  width: 550px;
   padding: 12px 16px 12px 40px;
   border: 1px solid var(--border-color);
   border-radius: 8px;
@@ -90,31 +88,9 @@
   box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
 }
 
-.addProductBtn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  background: var(--primary-color);
-  color: white;
-  border-radius: 8px;
-  font-size: 18px;
-  transition: var(--transition);
-  box-shadow: var(--shadow-sm);
-  border: none;
-}
-
-.addProductBtn:hover {
-  background: #45a049;
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-}
-
-
 .tableContainer {
   max-width: 1400px;
-  margin: 24px auto;
+  margin: 24px;
   background: var(--card-background);
   border-radius: 12px;
   box-shadow: var(--shadow-md);
@@ -122,18 +98,17 @@
   overflow-x: auto;
 }
 
-
-.productTable {
+.orderTable {
   width: 100%;
   border-collapse: collapse;
 }
 
-.productTableThead {
+.orderTableThead {
   background: var(--primary-color);
   color: white;
 }
 
-.productTableThead th {
+.orderTableThead th {
   padding: 14px 16px;
   text-align: left;
   font-size: 13px;
@@ -141,39 +116,61 @@
   text-transform: uppercase;
 }
 
-.productTable td {
+.orderTable td {
   padding: 14px 16px;
   border-bottom: 1px solid var(--border-color);
   font-size: 14px;
   color: var(--text-color);
 }
 
-.productTable tbody tr:last-child td {
+.orderTable tbody tr:last-child td {
   border-bottom: none;
 }
 
-.productRow {
-  transition: var(--transition);
-}
-
-.productRow:hover {
-  background: #f8fafc;
-  cursor: pointer;
-}
-
-
-.detailImage {
-  width: 100px;
-  height: 100px;
+.orderTableImage {
+  width: 48px;
+  height: 48px;
   object-fit: cover;
   border-radius: 6px;
   transition: transform 0.2s ease;
 }
 
-.detailImage:hover {
-  transform: scale(1.05);
+.orderTableImage:hover {
+  transform: scale(1.1);
 }
 
+.orderRow {
+  transition: var(--transition);
+}
+
+.orderRow:hover {
+  background: #f8fafc;
+}
+
+.orderRowActive {
+  background: rgba(76, 175, 80, 0.1);
+  border-left: 3px solid var(--primary-color);
+}
+
+.detailsRow {
+  background: #f9fafb;
+}
+
+.orderDetails {
+  padding: 20px;
+  margin: 12px;
+  background: var(--card-background);
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+}
+
+.orderDetails h3 {
+  color: var(--secondary-color);
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
 
 .detailsContainer {
   display: grid;
@@ -195,9 +192,9 @@
 }
 
 .detailsGrid {
-  display: flex;
-  gap: 20px;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 12px;
 }
 
 .detailsGrid p {
@@ -209,12 +206,28 @@
   color: var(--text-color);
 }
 
-.imageGallery {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+.itemsTable {
+  width: 100%;
+  border-collapse: collapse;
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
 }
 
+.itemsTable th,
+.itemsTable td {
+  padding: 12px;
+  font-size: 13px;
+}
+
+.itemsTable th {
+  background: var(--primary-color);
+  color: white;
+  font-weight: 600;
+}
+
+.itemsTable tbody tr:hover {
+  background: #f8fafc;
+}
 
 .modalOverlay {
   position: fixed;
@@ -235,35 +248,28 @@
   padding: 24px;
   border-radius: 12px;
   box-shadow: var(--shadow-md);
-  max-width: 600px;
+  max-width: 400px;
   width: 90%;
-  text-align: left;
-  position: relative;
+  text-align: center;
 }
 
 .modalContent h2 {
   color: var(--secondary-color);
   font-size: 20px;
   font-weight: 600;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .modalContent p {
   color: var(--text-muted);
   font-size: 14px;
-  margin-bottom: 10px;
-}
-
-.modalContent p b {
-  color: var(--text-color);
-  font-weight: 600;
+  margin-bottom: 20px;
 }
 
 .modalActions {
   display: flex;
   gap: 10px;
   justify-content: center;
-  margin-top: 20px;
 }
 
 .confirmBtn,
@@ -288,37 +294,31 @@
 .cancelBtn {
   background: var(--error-color);
   color: white;
-  position: absolute;
-  top: 16px;
-  right: 16px;
 }
 
 .cancelBtn:hover {
   background: #d32f2f;
 }
 
+.confirmBtn:disabled,
+.cancelBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
-.notification {
+.processingIndicator {
   position: fixed;
   top: 16px;
   right: 16px;
   padding: 12px 20px;
-  border-radius: 8px;
+  background: #2196F3;
   color: white;
-  font-size: 13px;
+  border-radius: 8px;
   z-index: 1001;
-  box-shadow: var(--shadow-md);
-  max-width: 350px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
-
-.notification.success {
-  background: var(--primary-color);
-}
-
-.notification.error {
-  background: var(--error-color);
-}
-
 
 .errorContainer {
   max-width: 1400px;
@@ -351,7 +351,6 @@
   background: #45a049;
 }
 
-
 .emptyState {
   text-align: center;
   padding: 48px 16px;
@@ -367,7 +366,6 @@
 .emptyState p {
   font-size: 13px;
 }
-
 
 .pagination {
   display: flex;
@@ -404,22 +402,38 @@
   border-color: var(--primary-color);
 }
 
-.pageLinkDisabled {
+.pageLink:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
+.ellipsis {
+  min-width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.ellipsis:hover {
+  color: var(--primary-color);
+}
+
+.firstLastPage {
+  font-weight: 600;
+}
 
 .searchInput:focus-visible,
 .categorySelect:focus-visible,
-.addProductBtn:focus-visible,
 .confirmBtn:focus-visible,
 .cancelBtn:focus-visible,
-.retryButton:focus-visible {
+.retryButton:focus-visible,
+.pageLink:focus-visible {
   outline: 2px solid var(--primary-color);
   outline-offset: 2px;
 }
-
 
 .tableContainer::-webkit-scrollbar {
   height: 6px;
@@ -435,6 +449,18 @@
   border-radius: 3px;
 }
 
+.customToast {
+  background: var(--card-background);
+  color: var(--text-color);
+  border-radius: 8px;
+  box-shadow: var(--shadow-md);
+  font-family: Inter, Segoe UI, Roboto, sans-serif;
+}
+
+.customToastBody {
+  font-size: 14px;
+  color: var(--text-color);
+}
 
 @media (max-width: 1280px) {
   .titleContainer,
@@ -453,38 +479,26 @@
   .categorySelect {
     min-width: 100%;
   }
-
-  .addProductBtn {
-    align-self: center;
-  }
 }
 
 @media (max-width: 768px) {
-  .productTableThead th,
-  .productTable td {
+  .orderManagementContainer {
+    margin-left: 0;
+    padding: 1rem;
+  }
+
+  .orderTableThead th,
+  .orderTable td {
     padding: 10px;
     font-size: 13px;
   }
 
-  .searchInput,
-  .categorySelect {
-    font-size: 13px;
-    padding: 10px 36px 10px 12px;
-  }
-
-  .confirmBtn,
-  .cancelBtn,
-  .retryButton {
-    width: 32px;
-    height: 32px;
-  }
-
-  .detailImage {
-    width: 80px;
-    height: 80px;
+  .orderTableImage {
+    width: 40px;
+    height: 40px;
   }
 
   .detailsGrid {
-    flex-direction: column;
+    grid-template-columns: 1fr;
   }
 }

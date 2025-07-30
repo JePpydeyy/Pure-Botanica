@@ -354,8 +354,9 @@
 }
 
 .bestSellingProducts {
+
   max-width: 1290px;
-  margin: 0 auto;
+  margin: 60px auto;
 }
 
 .bestSellingSectionTitle {
@@ -437,7 +438,7 @@
 
 
 .brandValueSection {
-  margin-top: 50px;
+
   position: relative;
   display: flex;
   align-items: center;

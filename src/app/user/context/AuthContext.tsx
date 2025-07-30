@@ -355,7 +355,7 @@ export function useRequireAuth(redirectTo: string = "/user/login") {
 export function useRequireRole(requiredRole: string, redirectTo: string = "/unauthorized") {
   const { userInfo, isLoading, hasRole } = useAuth();
   const router = useRouter();
-
+      
   useEffect(() => {
     if (!isLoading && userInfo && !hasRole(requiredRole)) {
       router.push(redirectTo);

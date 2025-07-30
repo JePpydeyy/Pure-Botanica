@@ -1,6 +1,6 @@
 "use client";
 import styles from "./Product.module.css";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -31,7 +31,7 @@ const getImageUrl = (image: string): string => {
     return ERROR_IMAGE_URL;
   }
   try {
-    new URL(image); // Validate URL
+    new URL(image);
     return image;
   } catch (e) {
     console.warn("Invalid URL format for image:", image, "using fallback:", ERROR_IMAGE_URL);
@@ -53,9 +53,23 @@ const getProductStock = (product: Product): number => {
   return 0;
 };
 
-// Type guard để kiểm tra id_category là Category
 const isCategory = (id_category: Category | string | null | undefined): id_category is Category => {
   return id_category != null && typeof id_category === "object" && "_id" in id_category;
+};
+
+// Di chuyển useToast lên trước ProductPage
+const useToast = () => {
+  const [message, setMessage] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
+  const TOAST_DURATION: number = 3000;
+
+  const showToast = (type: "success" | "error" | "info", text: string): void => {
+    setMessage({ type, text });
+    setTimeout(() => setMessage(null), TOAST_DURATION);
+  };
+
+  const hideToast = (): void => setMessage(null);
+
+  return { message, showToast, hideToast };
 };
 
 export default function ProductPage() {
@@ -69,13 +83,100 @@ export default function ProductPage() {
   const [error, setError] = useState<string | null>(null);
   const [favoriteProducts, setFavoriteProducts] = useState<string[]>([]);
   const [cacheBuster, setCacheBuster] = useState<string>("");
-
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [selectedPriceRange, setSelectedPriceRange] = useState<string>("");
+  const [addingToCart, setAddingToCart] = useState<boolean>(false);
 
   const productsPerPage: number = 9;
   const searchParams = useSearchParams();
   const searchQuery: string = searchParams.get("query")?.toLowerCase() || "";
+  const { message, showToast, hideToast } = useToast();
+
+  // Hàm gọi API
+  const apiRequest = async (url: string, options: RequestInit) => {
+    const token = localStorage.getItem("token");
+    const headers = {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...options.headers,
+    };
+    const response = await fetch(url, { ...options, headers });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+  };
+
+  // Hàm addToCart
+  const addToCart = useCallback(
+    async (product: Product) => {
+      if (!product || !product.option?.length) {
+        showToast("error", "Sản phẩm không có tùy chọn hợp lệ!");
+        return;
+      }
+
+      const selectedOption = product.option[0]; // Mặc định chọn tùy chọn đầu tiên
+      const quantity = 1; // Mặc định số lượng là 1
+      const userId = localStorage.getItem("userId");
+
+      if (selectedOption.stock < quantity) {
+        showToast("error", "Số lượng vượt quá tồn kho!");
+        return;
+      }
+
+      if (!userId) {
+        try {
+          const cartItems = JSON.parse(localStorage.getItem("cart") || "[]");
+          const existingItemIndex = cartItems.findIndex(
+            (item: any) => item.id === product._id && item.optionId === (selectedOption._id || selectedOption.value)
+          );
+
+          if (existingItemIndex !== -1) {
+            cartItems[existingItemIndex].quantity += quantity;
+          } else {
+            cartItems.push({
+              id: product._id,
+              name: product.name,
+              optionId: selectedOption._id || selectedOption.value,
+              price: selectedOption.discount_price || selectedOption.price,
+              image: product.images?.[0] || ERROR_IMAGE_URL,
+              quantity,
+            });
+          }
+
+          localStorage.setItem("cart", JSON.stringify(cartItems));
+          showToast("success", "Đã thêm vào giỏ hàng!");
+        } catch (error) {
+          showToast("error", "Lỗi khi thêm vào giỏ hàng local!");
+        }
+        return;
+      }
+
+      setAddingToCart(true);
+      try {
+        await apiRequest(`${API_BASE_URL}/api/carts/add`, {
+          method: "POST",
+          body: JSON.stringify({
+            userId,
+            productId: product._id,
+            optionIds: [selectedOption._id || selectedOption.value],
+            quantity,
+          }),
+        });
+        showToast("success", "Đã thêm sản phẩm vào giỏ hàng!");
+      } catch (error) {
+        console.error("Lỗi khi thêm vào giỏ hàng:", error);
+        showToast(
+          "error",
+          `Lỗi: ${error instanceof Error ? error.message : "Không thể thêm vào giỏ hàng"}`
+        );
+      } finally {
+        setAddingToCart(false);
+      }
+    },
+    [showToast]
+  );
 
   // Tạo cacheBuster sau khi hydration
   useEffect(() => {
@@ -121,7 +222,6 @@ export default function ProductPage() {
           throw new Error(`Lỗi tải sản phẩm: ${response.status}`);
         }
         const data: Product[] = await response.json();
-        console.log("Raw product data:", data); // Debug raw data
         const processedProducts = data.map(product => {
           const validImages = (product.images || []).filter(img => typeof img === "string" && img.trim() !== "").map(img => getImageUrl(img));
           return {
@@ -216,7 +316,7 @@ export default function ProductPage() {
       }
     };
     fetchFavoriteProducts();
-  }, []);
+  }, [showToast]);
 
   // Apply category filter from URL
   useEffect(() => {
@@ -331,22 +431,6 @@ export default function ProductPage() {
 
   const bestSellingProducts: Product[] = getTopStockProducts(products, 5);
 
-  const useToast = () => {
-    const [message, setMessage] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
-    const TOAST_DURATION: number = 3000;
-
-    const showToast = (type: "success" | "error" | "info", text: string): void => {
-      setMessage({ type, text });
-      setTimeout(() => setMessage(null), TOAST_DURATION);
-    };
-
-    const hideToast = (): void => setMessage(null);
-
-    return { message, showToast, hideToast };
-  };
-
-  const { message, showToast, hideToast } = useToast();
-
   const addToWishlist = async (productId: string): Promise<void> => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -428,7 +512,6 @@ export default function ProductPage() {
     }
   };
 
-  
   const isProductInWishlist = (productId: string): boolean => {
     return favoriteProducts.includes(productId);
   };
@@ -564,10 +647,10 @@ export default function ProductPage() {
                           </span>
                           <span
                             title="Thêm vào Giỏ Hàng"
-                            className={styles.cartIcon}
+                            className={`${styles.cartIcon} ${addingToCart ? styles.disabled : ""}`}
                             onClick={e => {
                               e.preventDefault();
-                              showToast("info", "Chức năng giỏ hàng đang được phát triển!");
+                              if (!addingToCart) addToCart(product);
                             }}
                           >
                             <i className="fas fa-shopping-cart"></i>
@@ -684,6 +767,16 @@ export default function ProductPage() {
                       {product?.name || "Tên sản phẩm"}
                     </h3>
                     <p className={styles["best-selling-price"]}>{formatPrice(product?.price)}</p>
+                    <span
+                      title="Thêm vào Giỏ Hàng"
+                      className={`${styles.cartIcon} ${addingToCart ? styles.disabled : ""}`}
+                      onClick={e => {
+                        e.preventDefault();
+                        if (!addingToCart) addToCart(product);
+                      }}
+                    >
+                      <i className="fas fa-shopping-cart"></i>
+                    </span>
                   </div>
                 </div>
               </Link>

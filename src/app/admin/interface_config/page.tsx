@@ -318,12 +318,12 @@ export default function ConfigPage() {
       <div className={styles.tableContainer}>
         {renderForm("logo", "Logo Shop")}
         {renderForm("favicon", "Favicon")}
-        {renderForm("banner1", "Banner 1 (tối đa 5 hình)", true, 5)}
-        {renderForm("banner2", "Banner 2")}
-        {renderForm("decor", "Hình trang trí (tối đa 2 hình)", true, 2)}
-        {renderForm("banner3", "Banner 3")}
-        {renderForm("bannerAbout", "Banner About")}
-        {renderForm("bannerNews", "Banner News")}
+        {renderForm("banner1", "Banner 1 trang home (tối đa 5 hình)", true, 5)}
+        {renderForm("banner2", "Banner 2 trang home")}
+        {renderForm("decor", "Hình trang trí trang home (tối đa 2 hình)", true, 2)}
+        {renderForm("banner3", "Banner 3 trang home")}
+        {renderForm("bannerAbout", "Banner trang giới thiệu")}
+        {renderForm("bannerNews", "Banner trang tin tức")}
       </div>
       {message && (
         <div

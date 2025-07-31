@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -112,6 +113,13 @@ export default function CouponPage() {
         }
 
         const data = await response.json();
+        console.log("API Response:", data);
+        // Log coupons with missing usedCount
+        data.coupons.forEach((coupon: Coupon, index: number) => {
+          if (coupon.usedCount === null || coupon.usedCount === undefined) {
+            console.warn(`Coupon ${coupon.code} (index ${index}) has missing or undefined usedCount`);
+          }
+        });
         setCoupons(data.coupons || []);
         setFilteredCoupons(data.coupons || []);
         setPagination(data.pagination || pagination);
@@ -183,11 +191,13 @@ export default function CouponPage() {
             expiryDate: formData.expiryDate || undefined,
             usageLimit: formData.usageLimit || null,
             isActive: formData.isActive,
+            usedCount: formData.usedCount ?? 0, // Preserve usedCount
           }
         : {
             ...formData,
             expiryDate: formData.expiryDate || undefined,
             usageLimit: formData.usageLimit || null,
+            usedCount: 0, // Default for new coupons
           };
 
       const response = await fetch(url, {
@@ -251,7 +261,7 @@ export default function CouponPage() {
         : "",
       usageLimit: coupon.usageLimit,
       isActive: coupon.isActive,
-      usedCount: coupon.usedCount ?? 0,
+      usedCount: coupon.usedCount ?? 0, // Default to 0 if undefined
     });
     setShowModal(true);
   };
@@ -591,7 +601,7 @@ export default function CouponPage() {
                   }
                   className={styles.categorySelect}
                   required
-                  disabled={!!formData._id} // Disable when editing
+                  disabled={!!formData._id}
                   aria-label="Loại giảm giá"
                 >
                   <option value="percentage">Phần trăm</option>

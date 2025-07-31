@@ -62,12 +62,12 @@ const useToast = () => {
   const [message, setMessage] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
   const TOAST_DURATION: number = 3000;
 
-  const showToast = (type: "success" | "error" | "info", text: string): void => {
+  const showToast = useCallback((type: "success" | "error" | "info", text: string): void => {
     setMessage({ type, text });
     setTimeout(() => setMessage(null), TOAST_DURATION);
-  };
+  }, []);
 
-  const hideToast = (): void => setMessage(null);
+  const hideToast = useCallback((): void => setMessage(null), []);
 
   return { message, showToast, hideToast };
 };
@@ -264,7 +264,7 @@ export default function ProductPage() {
     fetchCategories();
   }, []);
 
-  // Fetch favorite products from API
+  // Fetch favorite products from API - Fixed dependency array
   useEffect(() => {
     const fetchFavoriteProducts = async () => {
       const token = localStorage.getItem("token");
@@ -316,7 +316,7 @@ export default function ProductPage() {
       }
     };
     fetchFavoriteProducts();
-  }, [showToast]);
+  }, []); // Removed showToast from dependency array
 
   // Apply category filter from URL
   useEffect(() => {
@@ -431,7 +431,7 @@ export default function ProductPage() {
 
   const bestSellingProducts: Product[] = getTopStockProducts(products, 5);
 
-  const addToWishlist = async (productId: string): Promise<void> => {
+  const addToWishlist = useCallback(async (productId: string): Promise<void> => {
     const token = localStorage.getItem("token");
     if (!token) {
       showToast("error", "Vui lòng đăng nhập để thêm vào danh sách yêu thích!");
@@ -510,7 +510,7 @@ export default function ProductPage() {
       console.error("Lỗi khi quản lý danh sách yêu thích:", error);
       showToast("error", "Lỗi khi cập nhật danh sách yêu thích!");
     }
-  };
+  }, [favoriteProducts, showToast]);
 
   const isProductInWishlist = (productId: string): boolean => {
     return favoriteProducts.includes(productId);
@@ -678,51 +678,6 @@ export default function ProductPage() {
                 title="Trang trước"
                 className={`${styles["page-btn"]} ${currentPage === 1 ? styles.disabled : ""}`}
                 disabled={currentPage === 1}
-                onClick={() => setCurrentPage(currentPage - 1)}
-              >
-                <i className="fa-solid fa-chevron-left"></i>
-              </button>
-              {(() => {
-                const paginationRange: React.ReactNode[] = [];
-                let start: number = Math.max(1, currentPage - 1);
-                let end: number = Math.min(totalPages, start + 2);
-                if (end - start < 2) {
-                  start = Math.max(1, end - 2);
-                }
-                if (start > 1) {
-                  paginationRange.push(
-                    <span key="start-ellipsis" className={styles["ellipsis"]}>
-                      ...
-                    </span>
-                  );
-                }
-                for (let i = start; i <= end; i++) {
-                  paginationRange.push(
-                    <button
-                      key={`page-${i}`}
-                      className={`${styles["page-btn"]} ${currentPage === i ? styles.active : ""}`}
-                      onClick={() => setCurrentPage(i)}
-                    >
-                      {i}
-                    </button>
-                  );
-                }
-                if (end < totalPages) {
-                  paginationRange.push(
-                    <span key="end-ellipsis" className={styles["ellipsis"]}>
-                      ...
-                    </span>
-                  );
-                }
-                return paginationRange;
-              })()}
-              <button
-                type="button"
-                title="Trang sau"
-                className={`${styles["page-btn"]} ${
-                  currentPage === totalPages ? styles.disabled : ""
-                }`}
-                disabled={currentPage === totalPages}
                 onClick={() => setCurrentPage(currentPage + 1)}
               >
                 <i className="fa-solid fa-chevron-right" aria-hidden="true"></i>

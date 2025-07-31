@@ -181,13 +181,13 @@ export default async function RootLayout({
             <ScrollToTop />
 
             <script
-              data-name-bot="BOT CHAT"
+              data-name-bot="Pure Botanica - BOT"
               src="https://app.preny.ai/embed-global.js"
               data-button-style="width:300px;height:300px;"
               data-language="vi"
               async
               defer
-              data-preny-bot-id="687a5528c6a004caf5668ced"
+              data-preny-bot-id="688b301f028789fb73444172"
             />
           </CartProvider>
         </AuthProvider>

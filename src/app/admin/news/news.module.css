@@ -1,17 +1,3 @@
-:root {
-  --primary-color: #4CAF50;
-  --secondary-color: #000000;
-  --error-color: #f44336;
-  --background-color: #f8fafc;
-  --card-background: #ffffff;
-  --text-color: #334155;
-  --text-muted: #64748b;
-  --border-color: #e2e8f0;
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
-  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
 .orderManagementContainer {
   padding: 24px;
   background: #f3f4f6;
@@ -27,7 +13,7 @@
 }
 
 .titleContainer h1 {
-  color: var(--secondary-color);
+  color: #000000;
   font-size: 28px;
   font-weight: 700;
   margin-bottom: 24px;
@@ -39,9 +25,9 @@
   flex-wrap: wrap;
   gap: 12px;
   padding: 16px;
-  background: var(--card-background);
+  background: #ffffff;
   border-radius: 12px;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   width: fit-content;
 }
 
@@ -49,49 +35,49 @@
   flex: 1;
   width: 550px;
   padding: 12px 16px 12px 40px;
-  border: 1px solid var(--border-color);
+  border: 1px solid #e2e8f0;
   border-radius: 8px;
   font-size: 14px;
-  color: var(--text-color);
-  background: var(--card-background) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z'/%3E%3C/svg%3E") no-repeat 12px center;
+  color: #334155;
+  background: #ffffff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z'/%3E%3C/svg%3E") no-repeat 12px center;
   background-size: 18px;
-  transition: var(--transition);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .searchInput:focus {
-  border-color: var(--primary-color);
+  border-color: #4CAF50;
   box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
 }
 
 .searchInput::placeholder {
-  color: var(--text-muted);
+  color: #64748b;
   font-weight: 400;
 }
 
 .categorySelect {
   min-width: 200px;
   padding: 12px 36px 12px 12px;
-  border: 1px solid var(--border-color);
+  border: 1px solid #e2e8f0;
   border-radius: 8px;
   font-size: 14px;
-  color: var(--text-color);
-  background: var(--card-background) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E") no-repeat calc(100% - 12px) center;
+  color: #334155;
+  background: #ffffff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E") no-repeat calc(100% - 12px) center;
   background-size: 18px;
   appearance: none;
   cursor: pointer;
-  transition: var(--transition);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .categorySelect:focus,
 .categorySelect:hover {
-  border-color: var(--primary-color);
+  border-color: #4CAF50;
   box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
 }
 
 .addProductBtn {
   width: 150px;
   height: 40px;
-  background: var(--primary-color);
+  background: #4CAF50;
   color: white;
   border: none;
   border-radius: 6px;
@@ -100,7 +86,7 @@
   text-align: center;
   line-height: 40px;
   text-decoration: none;
-  transition: var(--transition);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .addProductBtn:hover {
@@ -110,10 +96,10 @@
 .tableContainer {
   max-width: 1400px;
   margin: 24px;
-  background: var(--card-background);
+  background: #ffffff;
   border-radius: 12px;
-  box-shadow: var(--shadow-md);
-  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
   overflow-x: auto;
 }
 
@@ -123,7 +109,7 @@
 }
 
 .orderTableThead {
-  background: var(--primary-color);
+  background: #4CAF50;
   color: white;
 }
 
@@ -137,9 +123,9 @@
 
 .orderTable td {
   padding: 14px 16px;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid #e2e8f0;
   font-size: 14px;
-  color: var(--text-color);
+  color: #334155;
 }
 
 .orderTable tbody tr:last-child td {
@@ -159,7 +145,7 @@
 }
 
 .orderRow {
-  transition: var(--transition);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .orderRow:hover {
@@ -185,7 +171,7 @@
   border-radius: 6px;
   cursor: pointer;
   font-size: 16px;
-  transition: var(--transition);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .editBtn {
@@ -234,11 +220,11 @@
 .emptyState {
   text-align: center;
   padding: 48px 16px;
-  color: var(--text-muted);
+  color: #64748b;
 }
 
 .emptyState h3 {
-  color: var(--secondary-color);
+  color: #000000;
   font-size: 16px;
   margin-bottom: 8px;
 }
@@ -262,10 +248,10 @@
 }
 
 .modalContent {
-  background: var(--card-background);
+  background: #ffffff;
   padding: 24px;
   border-radius: 12px;
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   max-width: 800px;
   width: 90%;
   max-height: 80vh;
@@ -274,14 +260,14 @@
 }
 
 .modalContentTitle {
-  color: var(--secondary-color);
+  color: #000000;
   font-size: 20px;
   font-weight: 600;
   margin-bottom: 12px;
 }
 
 .popupDetails {
-  color: var(--text-muted);
+  color: #64748b;
   font-size: 14px;
 }
 
@@ -290,7 +276,7 @@
 }
 
 .popupDetails strong {
-  color: var(--text-color);
+  color: #334155;
 }
 
 .popupThumbnail {
@@ -301,7 +287,7 @@
   max-width: 100%;
   height: auto;
   border-radius: 6px;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .popupContentBody {
@@ -311,7 +297,7 @@
 .popupContentBody div {
   font-size: 14px;
   line-height: 1.6;
-  color: var(--text-color);
+  color: #334155;
 }
 
 .popupContentBody img {
@@ -335,11 +321,11 @@
   border-radius: 6px;
   border: none;
   cursor: pointer;
-  transition: var(--transition);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .confirmBtn {
-  background: var(--primary-color);
+  background: #4CAF50;
   color: white;
 }
 
@@ -348,7 +334,7 @@
 }
 
 .cancelBtn {
-  background: var(--error-color);
+  background: #f44336;
   color: white;
 }
 
@@ -360,7 +346,7 @@
   position: absolute;
   top: 10px;
   right: 10px;
-  background: var(--error-color);
+  background: #f44336;
   color: white;
   border: none;
   border-radius: 6px;
@@ -371,7 +357,7 @@
   align-items: center;
   cursor: pointer;
   font-size: 16px;
-  transition: var(--transition);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .closePopupBtn:hover {
@@ -382,14 +368,14 @@
   max-width: 1400px;
   margin: 24px auto;
   padding: 32px;
-  background: var(--card-background);
+  background: #ffffff;
   border-radius: 12px;
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   text-align: center;
 }
 
 .errorContainer p {
-  color: var(--error-color);
+  color: #f44336;
   font-size: 15px;
   margin-bottom: 16px;
 }
@@ -423,24 +409,24 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--border-color);
+  border: 1px solid #e2e8f0;
   border-radius: 6px;
-  background: var(--card-background);
-  color: var(--text-color);
+  background: #ffffff;
+  color: #334155;
   font-size: 13px;
   cursor: pointer;
-  transition: var(--transition);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .pageLink:hover {
   background: #f8fafc;
-  border-color: var(--primary-color);
+  border-color: #4CAF50;
 }
 
 .pageLinkActive {
-  background: var(--primary-color);
+  background: #4CAF50;
   color: white;
-  border-color: var(--primary-color);
+  border-color: #4CAF50;
 }
 
 .pageLink:disabled {
@@ -454,12 +440,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-muted);
+  color: #64748b;
   font-size: 14px;
 }
 
 .ellipsis:hover {
-  color: var(--primary-color);
+  color: #4CAF50;
 }
 
 .firstLastPage {
@@ -467,16 +453,16 @@
 }
 
 .customToast {
-  background: var(--card-background);
-  color: var(--text-color);
+  background: #ffffff;
+  color: #334155;
   border-radius: 8px;
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   font-family: Inter, Segoe UI, Roboto, sans-serif;
 }
 
 .customToastBody {
   font-size: 14px;
-  color: var(--text-color);
+  color: #334155;
 }
 
 .searchInput:focus-visible,
@@ -485,7 +471,7 @@
 .cancelBtn:focus-visible,
 .closePopupBtn:focus-visible,
 .pageLink:focus-visible {
-  outline: 2px solid var(--primary-color);
+  outline: 2px solid #4CAF50;
   outline-offset: 2px;
 }
 
@@ -499,7 +485,7 @@
 }
 
 .tableContainer::-webkit-scrollbar-thumb {
-  background: var(--primary-color);
+  background: #4CAF50;
   border-radius: 3px;
 }
 

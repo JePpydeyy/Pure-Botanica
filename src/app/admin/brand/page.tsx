@@ -711,13 +711,6 @@ export default function Brands() {
                           icon={brand.status === "show" ? faEyeSlash : faEye}
                         />
                       </button>
-                      <button
-                        className={styles.cancelBtn}
-                        onClick={() => handleDeleteBrand(brand)}
-                        title="Xóa thương hiệu"
-                      >
-                        <FontAwesomeIcon icon={faTrash} />
-                      </button>
                     </div>
                   </td>
                 </tr>

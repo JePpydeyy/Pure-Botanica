@@ -37,7 +37,7 @@ export default function CouponPage() {
   const [notification, setNotification] = useState<Notification>({ show: false, message: "", type: "success" });
   const [pagination, setPagination] = useState<Pagination>({
     page: 1,
-    limit: 9, // Đồng bộ với itemsPerPage trong AdminNewsPage
+    limit: 9,
     total: 0,
     totalPages: 1,
   });
@@ -251,7 +251,7 @@ export default function CouponPage() {
         : "",
       usageLimit: coupon.usageLimit,
       isActive: coupon.isActive,
-      usedCount: coupon.usedCount,
+      usedCount: coupon.usedCount ?? 0,
     });
     setShowModal(true);
   };
@@ -591,6 +591,7 @@ export default function CouponPage() {
                   }
                   className={styles.categorySelect}
                   required
+                  disabled={!!formData._id} // Disable when editing
                   aria-label="Loại giảm giá"
                 >
                   <option value="percentage">Phần trăm</option>

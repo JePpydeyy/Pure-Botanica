@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import styles from "./comment.module.css";
 import Head from "next/head";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEye, faEyeSlash, faCheck, faTimes, faRedo } from "@fortawesome/free-solid-svg-icons";
+import { faRedo } from "@fortawesome/free-solid-svg-icons";
 import ToastNotification from "../../user/ToastNotification/ToastNotification";
 
 interface User {
@@ -23,11 +23,11 @@ interface Product {
 interface Comment {
   _id: string;
   content: string;
-  status: "show" | "hidden";
   createdAt: string;
   updatedAt: string;
   user: User | null;
   product: Product | null;
+  rating: number;
 }
 
 const CommentPage: React.FC = () => {
@@ -37,12 +37,8 @@ const CommentPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedCommentId, setSelectedCommentId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [isTogglingStatus, setIsTogglingStatus] = useState<boolean>(false);
-  const [toggleCommentId, setToggleCommentId] = useState<string | null>(null);
-  const [toggleMessage, setToggleMessage] = useState<string>("");
-  const commentsPerPage = 9; // Match product.tsx
+  const commentsPerPage = 9;
   const router = useRouter();
   const [notification, setNotification] = useState({
     show: false,
@@ -71,7 +67,21 @@ const CommentPage: React.FC = () => {
     });
   };
 
-  // Check admin access
+  const renderStars = (rating: number | undefined) => {
+    const stars = rating ? Math.min(Math.max(rating, 0), 5) : 0;
+    return (
+      <>
+        {Array(5)
+          .fill(0)
+          .map((_, i) => (
+            <span key={i} style={{ color: i < stars ? "#ffa500" : "#ccc" }}>
+              ★
+            </span>
+          ))}
+      </>
+    );
+  };
+
   useEffect(() => {
     const token = localStorage.getItem("token");
     const role = localStorage.getItem("role");
@@ -81,7 +91,6 @@ const CommentPage: React.FC = () => {
     }
   }, [router]);
 
-  // Fetch comments
   useEffect(() => {
     const fetchComments = async () => {
       try {
@@ -130,7 +139,6 @@ const CommentPage: React.FC = () => {
     fetchComments();
   }, [router]);
 
-  // Filter comments
   useEffect(() => {
     const filtered = comments.filter((comment) => {
       const matchesSearch =
@@ -139,84 +147,11 @@ const CommentPage: React.FC = () => {
           comment.user.username.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (comment.product?.name &&
           comment.product.name.toLowerCase().includes(searchQuery.toLowerCase()));
-      const matchesStatus = selectedStatus === "all" || comment.status === selectedStatus;
-      return matchesSearch && matchesStatus;
+      return matchesSearch;
     });
     setFilteredComments(filtered);
     setCurrentPage(1);
-  }, [searchQuery, selectedStatus, comments]);
-
-  const confirmToggleStatus = (commentId: string) => {
-    const comment = comments.find((c) => c._id === commentId);
-    if (comment) {
-      setToggleMessage(
-        comment.status === "show"
-          ? `Bạn có chắc chắn muốn ẩn bình luận này?`
-          : `Bạn có chắc chắn muốn hiển thị bình luận này?`
-      );
-      setToggleCommentId(commentId);
-      setIsTogglingStatus(true);
-    }
-  };
-
-  const handleToggleStatus = async () => {
-    if (!toggleCommentId) return;
-    try {
-      setLoading(true);
-      const token = localStorage.getItem("token");
-      if (!token) {
-        throw new Error("Không tìm thấy token. Vui lòng đăng nhập lại.");
-      }
-
-      const comment = comments.find((c) => c._id === toggleCommentId);
-      const newStatus = comment?.status === "show" ? "hidden" : "show";
-
-      const res = await fetch(
-        `https://api-zeal.onrender.com/api/comments/toggle-visibility/${toggleCommentId}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ status: newStatus }),
-        }
-      );
-
-      if (res.status === 401 || res.status === 403) {
-        showNotification("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!", "error");
-        localStorage.removeItem("token");
-        localStorage.removeItem("role");
-        router.push("/user/login");
-        return;
-      }
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ message: `Lỗi ${res.status}` }));
-        throw new Error(errorData.message);
-      }
-
-      const updatedComment = await res.json();
-      setComments(
-        comments.map((c) =>
-          c._id === toggleCommentId ? { ...c, status: updatedComment.comment.status } : c
-        )
-      );
-      setFilteredComments(
-        filteredComments.map((c) =>
-          c._id === toggleCommentId ? { ...c, status: updatedComment.comment.status } : c
-        )
-      );
-      showNotification(`Bình luận đã được ${newStatus === "show" ? "hiển thị" : "ẩn"}`, "success");
-    } catch (error: any) {
-      showNotification(`Không thể cập nhật trạng thái bình luận: ${error.message}`, "error");
-    } finally {
-      setIsTogglingStatus(false);
-      setToggleCommentId(null);
-      setToggleMessage("");
-      setLoading(false);
-    }
-  };
+  }, [searchQuery, comments]);
 
   const handleToggleDetails = (commentId: string) => {
     setSelectedCommentId(selectedCommentId === commentId ? null : commentId);
@@ -280,7 +215,49 @@ const CommentPage: React.FC = () => {
           onClick={() => {
             setLoading(true);
             setError(null);
-            fetchComments();
+            (async () => {
+              try {
+                setLoading(true);
+                const token = localStorage.getItem("token");
+                if (!token) {
+                  throw new Error("Không tìm thấy token. Vui lòng đăng nhập lại.");
+                }
+
+                const res = await fetch("https://api-zeal.onrender.com/api/comments", {
+                  method: "GET",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                  },
+                  cache: "no-store",
+                });
+
+                if (res.status === 401 || res.status === 403) {
+                  showNotification("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!", "error");
+                  localStorage.removeItem("token");
+                  localStorage.removeItem("role");
+                  router.push("/user/login");
+                  return;
+                }
+
+                if (!res.ok) {
+                  throw new Error(`Lỗi khi tải danh sách bình luận: ${res.status}`);
+                }
+
+                const data: Comment[] = await res.json();
+                if (!Array.isArray(data)) {
+                  throw new Error("Dữ liệu bình luận không hợp lệ");
+                }
+                setComments(data);
+                setFilteredComments(data);
+              } catch (error: any) {
+                const errorMessage = error.message || "Không thể tải danh sách bình luận.";
+                showNotification(errorMessage, "error");
+                setError(errorMessage);
+              } finally {
+                setLoading(false);
+              }
+            })();
           }}
           title="Thử lại"
         >
@@ -318,16 +295,6 @@ const CommentPage: React.FC = () => {
             className={styles.searchInput}
             aria-label="Tìm kiếm bình luận"
           />
-          <select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className={styles.categorySelect}
-            aria-label="Lọc theo trạng thái bình luận"
-          >
-            <option value="all">Tất cả trạng thái</option>
-            <option value="show">Hiển thị</option>
-            <option value="hidden">Ẩn</option>
-          </select>
         </div>
       </div>
       <div className={styles.tableContainer}>
@@ -338,9 +305,8 @@ const CommentPage: React.FC = () => {
               <th>Người dùng</th>
               <th>Sản phẩm</th>
               <th>Nội dung</th>
+              <th>Số sao</th>
               <th>Ngày bình luận</th>
-              <th>Trạng thái</th>
-              <th>Hành động</th>
             </tr>
           </thead>
           <tbody>
@@ -378,26 +344,12 @@ const CommentPage: React.FC = () => {
                     </td>
                     <td>{comment.product?.name || "Sản phẩm không tồn tại"}</td>
                     <td>{comment.content}</td>
+                    <td>{renderStars(comment.rating)}</td>
                     <td>{formatDate(comment.createdAt)}</td>
-                    <td>{comment.status === "show" ? "Hiển thị" : "Ẩn"}</td>
-                    <td className={styles.actionButtons}>
-                      <button
-                        className={styles.toggleStatusBtn}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          confirmToggleStatus(comment._id);
-                        }}
-                        disabled={loading}
-                        title={comment.status === "show" ? "Ẩn bình luận" : "Hiển thị bình luận"}
-                        aria-label={comment.status === "show" ? "Ẩn bình luận" : "Hiển thị bình luận"}
-                      >
-                        <FontAwesomeIcon icon={comment.status === "show" ? faEyeSlash : faEye} />
-                      </button>
-                    </td>
                   </tr>
                   {selectedCommentId === comment._id && (
                     <tr className={styles.detailsRow}>
-                      <td colSpan={7}>
+                      <td colSpan={6}>
                         <div className={styles.commentDetails}>
                           <h3>Chi tiết bình luận</h3>
                           <div className={styles.detailsContainer}>
@@ -416,6 +368,10 @@ const CommentPage: React.FC = () => {
                             <div className={styles.detailsSection}>
                               <h4>Nội dung bình luận</h4>
                               <p>{comment.content}</p>
+                            </div>
+                            <div className={styles.detailsSection}>
+                              <h4>Số sao</h4>
+                              <p>{renderStars(comment.rating)} ({comment.rating || 0}/5)</p>
                             </div>
                             <div className={styles.detailsSection}>
                               <h4>Thông tin sản phẩm</h4>
@@ -445,7 +401,7 @@ const CommentPage: React.FC = () => {
               ))
             ) : (
               <tr>
-                <td colSpan={7} className={styles.emptyState}>
+                <td colSpan={6} className={styles.emptyState}>
                   <h3>Không có bình luận</h3>
                   <p>Chưa có bình luận nào phù hợp với bộ lọc.</p>
                 </td>
@@ -514,36 +470,6 @@ const CommentPage: React.FC = () => {
               </>
             );
           })()}
-        </div>
-      )}
-      {isTogglingStatus && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modalContent}>
-            <h2>Xác nhận thay đổi trạng thái</h2>
-            <p>{toggleMessage}</p>
-            <div className={styles.modalActions}>
-              <button
-                className={styles.confirmBtn}
-                onClick={handleToggleStatus}
-                title="Xác nhận"
-                aria-label="Xác nhận thay đổi trạng thái"
-              >
-                <FontAwesomeIcon icon={faCheck} />
-              </button>
-              <button
-                className={styles.cancelBtn}
-                onClick={() => {
-                  setIsTogglingStatus(false);
-                  setToggleCommentId(null);
-                  setToggleMessage("");
-                }}
-                title="Hủy"
-                aria-label="Hủy thay đổi trạng thái"
-              >
-                <FontAwesomeIcon icon={faTimes} />
-              </button>
-            </div>
-          </div>
         </div>
       )}
     </div>

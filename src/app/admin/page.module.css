@@ -445,7 +445,77 @@
 .cancelBtn:hover {
   background: #d32f2f;
 }
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+  padding: 10px 0;
+}
 
+/* Nút phân trang chung */
+.paginationButton {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid #dcdcdc;
+  border-radius: 4px;
+  background-color: #ffffff;
+  color: #333333;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+/* Nút phân trang khi được chọn (active) */
+.paginationButton.active {
+  background-color: #45a049;
+  color: #ffffff;
+  border-color: #45a049;
+  font-weight: 600;
+}
+
+/* Hiệu ứng hover cho nút phân trang */
+.paginationButton:hover:not(:disabled) {
+  background-color: #e6f0fa;
+  border-color: #45a049;
+}
+
+/* Nút phân trang bị vô hiệu hóa */
+.paginationButton:disabled {
+  background-color: #f8f8f8;
+  color: #cccccc;
+  border-color: #dcdcdc;
+  cursor: not-allowed;
+}
+
+/* Nút cho trang đầu tiên và cuối cùng */
+.paginationButton.firstLastPage {
+  font-weight: 600;
+}
+
+/* Dấu chấm lửng (...) */
+.ellipsis {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 36px;
+  height: 36px;
+  font-size: 14px;
+  color: #666666;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Hiệu ứng hover cho dấu chấm lửng */
+.ellipsis:hover {
+  color: #0056b3;
+}
 
 @media (max-width: 1024px) {
   .statsContainer {

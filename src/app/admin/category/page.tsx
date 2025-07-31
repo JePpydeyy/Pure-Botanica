@@ -13,11 +13,13 @@ interface Product {
   name: string;
   status: string;
   active: boolean;
+  id_category: string | { _id: string; name: string; status: string }; // Handle both ObjectId and populated object
   option?: { value: string; stock: number }[];
 }
 
 export default function Category() {
   const [categories, setCategories] = useState<Category[]>([]);
+  const [productCounts, setProductCounts] = useState<{ [key: string]: number }>({});
   const [loading, setLoading] = useState(true);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -38,16 +40,76 @@ export default function Category() {
     setNotification({ show: true, message, type });
   };
 
+  // Fetch product counts for each category
+  const fetchProductCounts = useCallback(async () => {
+    if (!token || categories.length === 0) {
+      console.log("Skipping fetchProductCounts: No token or categories available");
+      return;
+    }
+    try {
+      console.log("Fetching products from API...");
+      const productsRes = await fetch("https://api-zeal.onrender.com/api/products", {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        cache: "no-store",
+      });
+
+      if (!productsRes.ok) {
+        console.error("API Error:", productsRes.status, productsRes.statusText);
+        throw new Error(`Lỗi khi tải danh sách sản phẩm: ${productsRes.status}`);
+      }
+
+      const productsData: Product[] = await productsRes.json();
+      console.log("Products Data:", productsData);
+
+      // Log category IDs for comparison
+      const categoryIds = categories.map((cat) => cat._id);
+      console.log("Category IDs:", categoryIds);
+
+      // Count products per category
+      const counts = productsData.reduce(
+        (acc: { [key: string]: number }, product: Product) => {
+          const categoryId = typeof product.id_category === "string" ? product.id_category : product.id_category?._id;
+          if (categoryId) {
+            if (categoryIds.includes(categoryId)) {
+              acc[categoryId] = (acc[categoryId] || 0) + 1;
+            } else {
+              console.warn(`Product ${product._id} has id_category ${categoryId} not matching any category`);
+            }
+          } else {
+            console.warn(`Product ${product._id} has no id_category`);
+          }
+          return acc;
+        },
+        {}
+      );
+
+      console.log("Product Counts:", counts);
+      setProductCounts(counts);
+    } catch (error: any) {
+      console.error("Error in fetchProductCounts:", error);
+      showNotification(`Lỗi khi tải số lượng sản phẩm: ${error.message}`, "error");
+    }
+  }, [token, categories]);
+
+  // Fetch categories and token
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
     setToken(storedToken);
 
     const fetchCategories = async () => {
+      if (!storedToken) {
+        showNotification("Vui lòng đăng nhập để truy cập trang này.", "error");
+        router.push("/login");
+        return;
+      }
       try {
         const res = await fetch("https://api-zeal.onrender.com/api/categories", {
           headers: {
             "Content-Type": "application/json",
-            ...(storedToken && { Authorization: `Bearer ${storedToken}` }),
+            Authorization: `Bearer ${storedToken}`,
           },
           cache: "no-store",
         });
@@ -61,8 +123,10 @@ export default function Category() {
           throw new Error(`Không thể tải danh mục: ${res.status}`);
         }
         const data: Category[] = await res.json();
+        console.log("Categories Data:", data);
         setCategories(data);
       } catch (error: any) {
+        console.error("Error fetching categories:", error);
         showNotification(error.message || "Đã xảy ra lỗi khi tải danh sách danh mục.", "error");
       } finally {
         setLoading(false);
@@ -72,6 +136,11 @@ export default function Category() {
     fetchCategories();
   }, [router]);
 
+  // Fetch product counts when token or categories change
+  useEffect(() => {
+    fetchProductCounts();
+  }, [fetchProductCounts]);
+
   const checkCategoryCanHide = useCallback(async (categoryId: string): Promise<boolean> => {
     if (!token) {
       showNotification("Vui lòng đăng nhập lại!", "error");
@@ -79,14 +148,15 @@ export default function Category() {
       return false;
     }
     try {
-      const res = await fetch(`https://api-zeal.onrender.com/api/products?id_category=${categoryId}`, {
+      const res = await fetch(`https://api-zeal.onrender.com/api/categories/products?id_category=${categoryId}`, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
       });
-      if (!res.ok) throw new Error("Không thể kiểm tra sản phẩm của danh mục");
+      if (!res.ok) throw new Error(`Không thể kiểm tra sản phẩm của danh mục: ${res.status}`);
       const products: Product[] = await res.json();
+      console.log(`Products for category ${categoryId}:`, products);
 
       if (!products || products.length === 0) return true;
 
@@ -99,6 +169,7 @@ export default function Category() {
       showNotification("Không thể ẩn danh mục vì vẫn còn sản phẩm có tồn kho!", "error");
       return false;
     } catch (error: any) {
+      console.error("Error checking category stock:", error);
       showNotification(error.message || "Lỗi khi kiểm tra danh mục.", "error");
       return false;
     }
@@ -116,12 +187,17 @@ export default function Category() {
       return;
     }
 
+    if (category.status === "show") {
+      const canHide = await checkCategoryCanHide(id);
+      if (!canHide) return;
+    }
+
     setShowConfirmPopup({
       id,
       name: category.name,
       action: category.status === "show" ? "ẩn" : "hiển thị",
     });
-  }, [categories, token]);
+  }, [categories, token, checkCategoryCanHide]);
 
   const confirmToggleVisibility = useCallback(async () => {
     if (!showConfirmPopup || !token) return;
@@ -147,13 +223,18 @@ export default function Category() {
         return;
       }
       setCategories((prev) => prev.map((cat) => (cat._id === id ? result.category : cat)));
-      showNotification(`Danh mục "${name}" đã được ${result.category.status === "show" ? "hiển thị" : "ẩn"} thành công!`, "success");
+      await fetchProductCounts(); // Update product counts after toggling
+      showNotification(
+        `Danh mục "${name}" đã được ${result.category.status === "show" ? "hiển thị" : "ẩn"} thành công!`,
+        "success"
+      );
     } catch (error: any) {
+      console.error("Error toggling visibility:", error);
       showNotification(error.message || `Không thể ${action} danh mục "${name}"`, "error");
     } finally {
       setShowConfirmPopup(null);
     }
-  }, [showConfirmPopup, token, router]);
+  }, [showConfirmPopup, token, fetchProductCounts]);
 
   const handleEdit = useCallback((id: string) => {
     const category = categories.find((cat) => cat._id === id);
@@ -162,47 +243,52 @@ export default function Category() {
     }
   }, [categories]);
 
-  const handleUpdate = useCallback(async (id: string, updatedName: string) => {
-    if (!token) {
-      showNotification("Vui lòng đăng nhập để thực hiện thao tác này!", "error");
-      router.push("/login");
-      return;
-    }
-    if (!updatedName.trim()) {
-      showNotification("Tên danh mục không được để trống!", "error");
-      return;
-    }
-    try {
-      const res = await fetch(`https://api-zeal.onrender.com/api/categories/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ name: updatedName }),
-      });
-      if (res.status === 401) {
-        showNotification("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", "error");
-        localStorage.removeItem("token");
-        setToken(null);
+  const handleUpdate = useCallback(
+    async (id: string, updatedName: string) => {
+      if (!token) {
+        showNotification("Vui lòng đăng nhập để thực hiện thao tác này!", "error");
         router.push("/login");
         return;
       }
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || "Cập nhật thất bại");
+      if (!updatedName.trim()) {
+        showNotification("Tên danh mục không được để trống!", "error");
+        return;
       }
-      const { category } = await res.json();
-      setCategories((prev) => prev.map((cat) => (cat._id === id ? category : cat)));
-      setEditingCategory(null);
-      showNotification("Cập nhật danh mục thành công!", "success");
-    } catch (error: any) {
-      showNotification(`Cập nhật thất bại: ${error.message}`, "error");
-    }
-  }, [token, router]);
+      try {
+        const res = await fetch(`https://api-zeal.onrender.com/api/categories/${id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ name: updatedName }),
+        });
+        if (res.status === 401) {
+          showNotification("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", "error");
+          localStorage.removeItem("token");
+          setToken(null);
+          router.push("/login");
+          return;
+        }
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.message || "Cập nhật thất bại");
+        }
+        const { category } = await res.json();
+        setCategories((prev) => prev.map((cat) => (cat._id === id ? category : cat)));
+        await fetchProductCounts(); // Update product counts after editing
+        showNotification("Cập nhật danh mục thành công!", "success");
+        setEditingCategory(null);
+      } catch (error: any) {
+        console.error("Error updating category:", error);
+        showNotification(`Cập nhật thất bại: ${error.message}`, "error");
+      }
+    },
+    [token, router, fetchProductCounts]
+  );
 
   const filteredCategories = categories
-    .filter((cat) => statusFilter === "all" ? true : cat.status === statusFilter)
+    .filter((cat) => (statusFilter === "all" ? true : cat.status === statusFilter))
     .filter((cat) => cat.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
   const totalPages = Math.ceil(filteredCategories.length / itemsPerPage);
@@ -330,7 +416,7 @@ export default function Category() {
                       category.name
                     )}
                   </td>
-                  <td>{category.productCount ?? 0}</td>
+                  <td>{productCounts[category._id] || 0}</td>
                   <td>{category.status === "show" ? "Hiển thị" : "Ẩn"}</td>
                   <td className={styles.actionButtons}>
                     {editingCategory?._id === category._id ? (

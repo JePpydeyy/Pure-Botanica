@@ -18,8 +18,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { jwtDecode } from "jwt-decode";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTimes, faCheck } from "@fortawesome/free-solid-svg-icons";
-
+import { faCheck, faTimes } from "@fortawesome/free-solid-svg-icons";
 
 ChartJS.register(CategoryScale, LinearScale, LineElement, PointElement, Title, Tooltip, Legend);
 
@@ -146,7 +145,7 @@ const AD_Home: React.FC = () => {
   const [timePeriod, setTimePeriod] = useState<"week" | "month" | "year">("week");
   const [selectedMonth, setSelectedMonth] = useState<number>(currentDate.getMonth());
   const [selectedYear, setSelectedYear] = useState<number>(currentDate.getFullYear());
-  const [selectedWeek, setSelectedWeek] = useState<number>(1); // Will be updated to current week
+  const [selectedWeek, setSelectedWeek] = useState<number>(1);
   const [chartData, setChartData] = useState<ChartData<"line">>({
     labels: [],
     datasets: [
@@ -160,6 +159,7 @@ const AD_Home: React.FC = () => {
     ],
   });
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
+  const [pendingOrders, setPendingOrders] = useState<Order[]>([]);
   const [stats, setStats] = useState<Stats>({
     orders: 0,
     newUsers: 0,
@@ -178,6 +178,8 @@ const AD_Home: React.FC = () => {
     newStatus: string;
     currentStatus: string;
   } | null>(null);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const ordersPerPage = 10;
 
   const years = useMemo(() => {
     const currentYear = new Date().getFullYear();
@@ -189,13 +191,11 @@ const AD_Home: React.FC = () => {
     "Tháng 7", "Tháng 8", "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12",
   ];
 
-  // Calculate weeks with start and end date labels (e.g., "30/06 - 06/07")
   const weeks = useMemo(() => {
     const firstDayOfMonth = new Date(selectedYear, selectedMonth, 1);
     const lastDayOfMonth = new Date(selectedYear, selectedMonth + 1, 0);
     const firstMonday = new Date(firstDayOfMonth);
 
-    // Find the first Monday on or before the first day of the month
     if (firstDayOfMonth.getDay() !== 1) {
       const offset = firstDayOfMonth.getDay() === 0 ? -6 : 1 - firstDayOfMonth.getDay();
       firstMonday.setDate(firstDayOfMonth.getDate() + offset);
@@ -204,7 +204,6 @@ const AD_Home: React.FC = () => {
     const weekLabels: string[] = [];
     let weekStart = new Date(firstMonday);
 
-    // Continue until the week no longer includes any days in the month
     while (weekStart <= lastDayOfMonth) {
       const weekEnd = new Date(weekStart);
       weekEnd.setDate(weekStart.getDate() + 6);
@@ -215,7 +214,6 @@ const AD_Home: React.FC = () => {
     return weekLabels;
   }, [selectedMonth, selectedYear]);
 
-  // Set default selectedWeek to the current week
   useEffect(() => {
     const currentDate = new Date();
     if (selectedYear === currentDate.getFullYear() && selectedMonth === currentDate.getMonth()) {
@@ -239,7 +237,7 @@ const AD_Home: React.FC = () => {
         weekIndex++;
       }
     } else {
-      setSelectedWeek(1); // Reset to first week for non-current month
+      setSelectedWeek(1);
     }
   }, [selectedMonth, selectedYear]);
 
@@ -270,7 +268,7 @@ const AD_Home: React.FC = () => {
   const confirmStatusChange = async () => {
     if (!showConfirm) return;
 
-    const { orderId, newStatus, currentStatus } = showConfirm;
+    const { orderId, newStatus } = showConfirm;
     const englishStatus =
       reverseShippingStatusMapping[newStatus as keyof typeof reverseShippingStatusMapping] || newStatus;
 
@@ -310,17 +308,34 @@ const AD_Home: React.FC = () => {
       }
 
       const { order }: { order: Order } = await response.json();
+
+      // Update recentOrders locally
       setRecentOrders((prevOrders) =>
         prevOrders.map((o) =>
           o._id === orderId
-            ? {
-                ...o,
-                shippingStatus: order.shippingStatus,
-                paymentStatus: order.paymentStatus,
-              }
+            ? { ...o, shippingStatus: order.shippingStatus, paymentStatus: order.paymentStatus }
             : o
         )
       );
+
+      // Re-fetch pending orders to reload the table
+      const pendingOrdersRes = await fetch(
+        "https://api-zeal.onrender.com/api/orders/admin/all?shippingStatus=pending",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (!pendingOrdersRes.ok) {
+        throw new Error("Lỗi khi tải lại danh sách đơn hàng đang chờ xử lý.");
+      }
+
+      const pendingOrdersData = await pendingOrdersRes.json();
+      const filteredPendingOrders = pendingOrdersData.filter(
+        (order: Order) => order.shippingStatus === "pending"
+      );
+      setPendingOrders(filteredPendingOrders);
+
       showNotification("Cập nhật trạng thái vận chuyển thành công", "success");
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
@@ -370,12 +385,7 @@ const AD_Home: React.FC = () => {
         x: {
           title: {
             display: true,
-            text:
-              timePeriod === "week"
-                ? "Ngày"
-                : timePeriod === "month"
-                ? "Ngày"
-                : "Tháng",
+            text: timePeriod === "week" ? "Ngày" : timePeriod === "month" ? "Ngày" : "Tháng",
           },
           ticks: {
             maxTicksLimit: timePeriod === "month" ? 15 : 12,
@@ -489,7 +499,7 @@ const AD_Home: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const [ordersRes, usersRes, commentsRes] = await Promise.all([
+        const [ordersRes, usersRes, commentsRes, pendingOrdersRes] = await Promise.all([
           fetch("https://api-zeal.onrender.com/api/orders/admin/all", {
             headers: { Authorization: `Bearer ${token}` },
           }),
@@ -499,15 +509,19 @@ const AD_Home: React.FC = () => {
           fetch("https://api-zeal.onrender.com/api/comments/", {
             headers: { Authorization: `Bearer ${token}` },
           }),
+          fetch("https://api-zeal.onrender.com/api/orders/admin/all?shippingStatus=pending", {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
         ]);
 
-        if (!ordersRes.ok || !usersRes.ok) {
+        if (!ordersRes.ok || !usersRes.ok || !pendingOrdersRes.ok) {
           throw new Error("Lỗi khi tải dữ liệu từ API.");
         }
 
-        const [orders, users] = await Promise.all([
+        const [orders, users, pendingOrdersData] = await Promise.all([
           ordersRes.json() as Promise<Order[]>,
           usersRes.json() as Promise<User[]>,
+          pendingOrdersRes.json() as Promise<Order[]>,
         ]);
 
         let comments: Comment[] = [];
@@ -516,6 +530,11 @@ const AD_Home: React.FC = () => {
         } else if (commentsRes.ok) {
           comments = await commentsRes.json();
         }
+
+        // Explicitly filter pendingOrders to ensure only "pending" status
+        const filteredPendingOrders = pendingOrdersData.filter(
+          (order) => order.shippingStatus === "pending"
+        );
 
         const isInPeriod = (date: Date): boolean => {
           if (timePeriod === "week") {
@@ -529,7 +548,6 @@ const AD_Home: React.FC = () => {
             weekStart.setDate(firstMonday.getDate() + (selectedWeek - 1) * 7);
             const weekEnd = new Date(weekStart);
             weekEnd.setDate(weekStart.getDate() + 6);
-
             return date >= weekStart && date <= weekEnd;
           }
           if (timePeriod === "month") {
@@ -556,6 +574,7 @@ const AD_Home: React.FC = () => {
             .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
             .slice(0, 5)
         );
+        setPendingOrders(filteredPendingOrders);
       } catch (err) {
         console.error("Lỗi khi tải dữ liệu:", err);
         setError("Không thể tải dữ liệu. Vui lòng thử lại sau.");
@@ -566,6 +585,19 @@ const AD_Home: React.FC = () => {
 
     fetchData();
   }, [timePeriod, selectedMonth, selectedYear, selectedWeek, router, calculateRevenue]);
+
+  // Pagination logic
+  const totalPages = Math.ceil(pendingOrders.length / ordersPerPage);
+  const paginatedOrders = useMemo(() => {
+    const startIndex = (currentPage - 1) * ordersPerPage;
+    return pendingOrders.slice(startIndex, startIndex + ordersPerPage);
+  }, [pendingOrders, currentPage]);
+
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
 
   return (
     <div className={styles.mainContent}>
@@ -669,7 +701,7 @@ const AD_Home: React.FC = () => {
 
       <section className={styles.recentOrders}>
         <div className={styles.sectionHeader}>
-          <h3>Đơn hàng gần đây nhất</h3>
+          <h3>Đơn hàng đang chờ xử lý</h3>
         </div>
         <div className={styles.tableContainer}>
           <table className={styles.productTable}>
@@ -691,10 +723,10 @@ const AD_Home: React.FC = () => {
                     Đang tải...
                   </td>
                 </tr>
-              ) : recentOrders.length > 0 ? (
-                recentOrders.map((order, index) => (
+              ) : paginatedOrders.length > 0 ? (
+                paginatedOrders.map((order, index) => (
                   <tr key={order._id} className={styles.productRow}>
-                    <td>{index + 1}</td>
+                    <td>{(currentPage - 1) * ordersPerPage + index + 1}</td>
                     <td>{order.user?.username || "Không xác định"}</td>
                     <td>{order.total.toLocaleString()} VND</td>
                     <td>{formatDate(order.createdAt)}</td>
@@ -736,14 +768,41 @@ const AD_Home: React.FC = () => {
               ) : (
                 <tr>
                   <td colSpan={7} className={styles.emptyState}>
-                    <h3>Chưa có đơn hàng</h3>
-                    <p>Hiện tại không có đơn hàng nào để hiển thị.</p>
+                    <h3>Chưa có đơn hàng đang chờ xử lý</h3>
+                    <p>Hiện tại không có đơn hàng nào đang chờ xử lý.</p>
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
+        {totalPages > 1 && (
+          <div className={styles.pagination}>
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className={styles.paginationButton}
+            >
+              Trước
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              <button
+                key={page}
+                onClick={() => handlePageChange(page)}
+                className={`${styles.paginationButton} ${currentPage === page ? styles.active : ""}`}
+              >
+                {page}
+              </button>
+            ))}
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className={styles.paginationButton}
+            >
+              Sau
+            </button>
+          </div>
+        )}
       </section>
 
       {showConfirm && (
@@ -769,14 +828,14 @@ const AD_Home: React.FC = () => {
                 onClick={confirmStatusChange}
                 aria-label="Xác nhận thay đổi trạng thái"
               >
-               <FontAwesomeIcon icon={faCheck} />
+                <FontAwesomeIcon icon={faCheck} />
               </button>
               <button
                 className={styles.cancelBtn}
                 onClick={cancelConfirm}
                 aria-label="Hủy thay đổi trạng thái"
               >
-               <FontAwesomeIcon icon={faTimes} />
+                <FontAwesomeIcon icon={faTimes} />
               </button>
             </div>
           </div>

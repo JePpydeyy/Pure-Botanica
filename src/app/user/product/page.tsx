@@ -8,6 +8,8 @@ import { Category } from "@/app/components/category_interface";
 import { Brand } from "@/app/components/Brand_interface";
 import { Product } from "@/app/components/product_interface";
 import ToastNotification from "../ToastNotification/ToastNotification";
+import ScrollInView from "../../components/ScrollInView";
+
 
 const API_BASE_URL: string = "https://api-zeal.onrender.com";
 const ERROR_IMAGE_URL: string = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
@@ -517,11 +519,18 @@ export default function ProductPage() {
   };
 
   return (
+
     <div>
+      <ScrollInView>
       <section className={styles.productBanner}>
         <img src="/images/productBanner.png" alt="Banner" className={styles["banner-image"]} />
       </section>
+      </ScrollInView>
+      <ScrollInView>
       <h1 className={styles["product-main-title"]}>Danh sách sản phẩm</h1>
+      </ScrollInView>
+
+      <ScrollInView>
       <div className={styles.containerBox}>
         <aside className={styles.productSidebar}>
           <h3 className={styles["sidebar-title"]}>DANH MỤC SẢN PHẨM</h3>
@@ -687,6 +696,9 @@ export default function ProductPage() {
           )}
         </section>
       </div>
+      </ScrollInView>
+
+      <ScrollInView>
       <div className={styles["best-selling-products"]}>
         <h3 className={styles["slider-title"]}>Có thể bạn sẽ thích</h3>
         <div className={styles["best-selling-grid"]}>
@@ -741,6 +753,7 @@ export default function ProductPage() {
           )}
         </div>
       </div>
+      </ScrollInView>
       {message && (
         <ToastNotification
           message={message.text}

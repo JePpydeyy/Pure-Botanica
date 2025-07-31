@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from "react";
 import styles from "./contact.module.css";
 import ToastNotification from "../ToastNotification/ToastNotification"; 
+import ScrollInView from "../../components/ScrollInView";
+
 
 const API_BASE_URL = "https://api-zeal.onrender.com";
 
@@ -115,6 +117,7 @@ const ContactPage: React.FC = () => {
   };
 
   return (
+    <ScrollInView>
     <div className={styles.contactPage}>
       <div className={styles.contactHeader}>
         <h1>THÔNG TIN LIÊN HỆ</h1>
@@ -249,6 +252,7 @@ const ContactPage: React.FC = () => {
         </div>
       </div>
     </div>
+    </ScrollInView>
   );
 };
 

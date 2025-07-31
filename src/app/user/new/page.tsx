@@ -5,6 +5,8 @@ import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faCalendarDays, faArrowRight } from "@fortawesome/free-solid-svg-icons";
 import styles from "./new.module.css";
+import ScrollInView from "../../components/ScrollInView";
+
 
 interface NewsItem {
   _id: string;
@@ -108,6 +110,7 @@ export default function NewsPage() {
 
   return (
     <>
+    <ScrollInView>
       {}
       {bannerLoading ? (
         <p>Đang tải banner...</p>
@@ -125,14 +128,20 @@ export default function NewsPage() {
           }}
         />
       )}
+      </ScrollInView>
+
+      <ScrollInView>
 
       <section className={styles.namePage}>
         <p className={styles.nameTagPage}>
           <strong>Tin Tức</strong>
         </p>
       </section>
+      </ScrollInView>
+      
 
       <section className={styles.container}>
+        <ScrollInView>
         <p className={styles.sectionTitle}>
           <strong>Tin Tức Nổi Bật</strong>
         </p>
@@ -141,7 +150,9 @@ export default function NewsPage() {
           <br />
           Pure Botanica
         </p>
+        </ScrollInView>
 
+        <ScrollInView>
         <section className={styles.hotNewPage}>
           {highlightedNews.map((item) => (
             <Link href={`/user/newdetail/${item.slug}`} key={item._id}>
@@ -169,10 +180,16 @@ export default function NewsPage() {
             </Link>
           ))}
         </section>
+        </ScrollInView>
+
+        <ScrollInView>
 
         <h1 className={styles.sectionTitle}>
           <strong>Tin Tức Hữu Ích</strong>
         </h1>
+        </ScrollInView>
+
+        <ScrollInView>
 
         <section className={styles.newsPost}>
           {loading ? (
@@ -227,7 +244,11 @@ export default function NewsPage() {
           )}
         </section>
 
+        </ScrollInView>
+
+
         {totalPages > 1 && (
+          <ScrollInView>
           <section className={styles.pagination}>
             <button
               onClick={() => handlePageChange(currentPage - 1)}
@@ -255,6 +276,7 @@ export default function NewsPage() {
               Trang sau
             </button>
           </section>
+          </ScrollInView>
         )}
       </section>
     </>

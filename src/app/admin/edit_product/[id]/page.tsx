@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
 import styles from "./editproduct.module.css";
-import ToastNotification from "../../user/ToastNotification/ToastNotification";
+import ToastNotification from "../../../user/ToastNotification/ToastNotification";
 
 interface Option {
   value: string;

@@ -3,8 +3,56 @@ import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import styles from "./add_product.module.css";
-// Thay thế react-toastify bằng ToastNotification
 import ToastNotification from "../../user/ToastNotification/ToastNotification";
+
+// Hàm slugify tùy chỉnh cho tiếng Việt
+const slugify = (text: string): string => {
+  // Bảng ánh xạ các ký tự tiếng Việt sang không dấu
+  const vietnameseMap: { [key: string]: string } = {
+    'á': 'a', 'à': 'a', 'ả': 'a', 'ã': 'a', 'ạ': 'a',
+    'ă': 'a', 'ắ': 'a', 'ằ': 'a', 'ẳ': 'a', 'ẵ': 'a', 'ặ': 'a',
+    'â': 'a', 'ấ': 'a', 'ầ': 'a', 'ẩ': 'a', 'ẫ': 'a', 'ậ': 'a',
+    'é': 'e', 'è': 'e', 'ẻ': 'e', 'ẽ': 'e', 'ẹ': 'e',
+    'ê': 'e', 'ế': 'e', 'ề': 'e', 'ể': 'e', 'ễ': 'e', 'ệ': 'e',
+    'í': 'i', 'ì': 'i', 'ỉ': 'i', 'ĩ': 'i', 'ị': 'i',
+    'ó': 'o', 'ò': 'o', 'ỏ': 'o', 'õ': 'o', 'ọ': 'o',
+    'ô': 'o', 'ố': 'o', 'ồ': 'o', 'ổ': 'o', 'ỗ': 'o', 'ộ': 'o',
+    'ơ': 'o', 'ớ': 'o', 'ờ': 'o', 'ở': 'o', 'ỡ': 'o', 'ợ': 'o',
+    'ú': 'u', 'ù': 'u', 'ủ': 'u', 'ũ': 'u', 'ụ': 'u',
+    'ư': 'u', 'ứ': 'u', 'ừ': 'u', 'ử': 'u', 'ữ': 'u', 'ự': 'u',
+    'ý': 'y', 'ỳ': 'y', 'ỷ': 'y', 'ỹ': 'y', 'ỵ': 'y',
+    'đ': 'd',
+    'Á': 'A', 'À': 'A', 'Ả': 'A', 'Ã': 'A', 'Ạ': 'A',
+    'Ă': 'A', 'Ắ': 'A', 'Ằ': 'A', 'Ẳ': 'A', 'Ẵ': 'A', 'Ặ': 'A',
+    'Â': 'A', 'Ấ': 'A', 'Ầ': 'A', 'Ẩ': 'A', 'Ẫ': 'A', 'Ậ': 'A',
+    'É': 'E', 'È': 'E', 'Ẻ': 'E', 'Ẽ': 'E', 'Ẹ': 'E',
+    'Ê': 'E', 'Ế': 'E', 'Ề': 'E', 'Ể': 'E', 'Ễ': 'E', 'Ệ': 'E',
+    'Í': 'I', 'Ì': 'I', 'Ỉ': 'I', 'Ĩ': 'I', 'Ị': 'I',
+    'Ó': 'O', 'Ò': 'O', 'Ỏ': 'O', 'Õ': 'O', 'Ọ': 'O',
+    'Ô': 'O', 'Ố': 'O', 'Ồ': 'O', 'Ổ': 'O', 'Ỗ': 'O', 'Ộ': 'O',
+    'Ơ': 'O', 'Ớ': 'O', 'Ờ': 'O', 'Ở': 'O', 'Ỡ': 'O', 'Ợ': 'O',
+    'Ú': 'U', 'Ù': 'U', 'Ủ': 'U', 'Ũ': 'U', 'Ụ': 'U',
+    'Ư': 'U', 'Ứ': 'U', 'Ừ': 'U', 'Ử': 'U', 'Ữ': 'U', 'Ự': 'U',
+    'Ý': 'Y', 'Ỳ': 'Y', 'Ỷ': 'Y', 'Ỹ': 'Y', 'Ỵ': 'Y',
+  };
+
+  // Chuyển đổi ký tự tiếng Việt thành không dấu
+  let slug = text
+    .split('')
+    .map((char) => vietnameseMap[char] || char)
+    .join('')
+    // Chuyển thành chữ thường
+    .toLowerCase()
+    // Thay thế ký tự đặc biệt và khoảng trắng bằng dấu gạch ngang
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    // Loại bỏ các dấu gạch ngang liên tiếp
+    .replace(/-+/g, '-')
+    // Loại bỏ dấu gạch ngang ở đầu và cuối
+    .replace(/^-|-$/g, '');
+
+  return slug || 'unnamed'; // Trả về giá trị mặc định nếu slug rỗng
+};
 
 // Định nghĩa giao diện TypeScript
 interface Category {
@@ -45,6 +93,7 @@ const AddProduct = () => {
   const [brands, setBrands] = useState<Brand[]>([]);
   const [formData, setFormData] = useState({
     name: "",
+    slug: "", // Thêm trường slug
     id_category: "",
     id_brand: "",
     short_description: "",
@@ -196,6 +245,7 @@ const AddProduct = () => {
     setFormData((prevState) => ({
       ...prevState,
       [name]: value,
+      ...(name === "name" && { slug: slugify(value) }), // Tạo slug khi tên thay đổi
     }));
   };
 
@@ -404,10 +454,15 @@ const AddProduct = () => {
       showNotification("Vui lòng chọn ít nhất một hình ảnh.", "error");
       return;
     }
+    if (!formData.slug) {
+      showNotification("Slug không hợp lệ. Vui lòng kiểm tra tên sản phẩm.", "error");
+      return;
+    }
 
     try {
       const productData = new FormData();
       productData.append("name", formData.name);
+      productData.append("slug", formData.slug); // Thêm slug vào FormData
       productData.append("id_category", formData.id_category);
       productData.append("id_brand", formData.id_brand);
       productData.append("short_description", formData.short_description);
@@ -447,6 +502,7 @@ const AddProduct = () => {
         showNotification("Thêm sản phẩm thành công", "success");
         setFormData({
           name: "",
+          slug: "", // Reset slug
           id_category: "",
           id_brand: "",
           short_description: "",
@@ -506,6 +562,19 @@ const AddProduct = () => {
                   className={styles.input}
                   required
                   placeholder="Nhập tên sản phẩm"
+                />
+              </div>
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Slug *</label>
+                <input
+                  type="text"
+                  name="slug"
+                  value={formData.slug}
+                  onChange={handleInputChange}
+                  className={styles.input}
+                  required
+                  placeholder="Slug sẽ được tạo tự động"
+                  readOnly // Làm trường slug chỉ đọc
                 />
               </div>
               <div className={styles.formGroup}>
@@ -645,7 +714,6 @@ const AddProduct = () => {
               Thêm tùy chọn +
             </button>
           </div>
-
           <div className={styles.formGroup}>
             <label className={styles.label}>Mô tả chi tiết *</label>
             {renderToolbar()}
@@ -657,7 +725,6 @@ const AddProduct = () => {
               data-placeholder="Nhập mô tả sản phẩm chi tiết, thành phần, hướng dẫn sử dụng, đặc điểm nổi bật..."
             />
           </div>
-
           <div className={styles.formGroup}>
             <label className={styles.label}>Hình ảnh sản phẩm (tối đa 4 ảnh) *</label>
             <div className={styles.imageUploadArea}>
@@ -696,7 +763,6 @@ const AddProduct = () => {
               </div>
             )}
           </div>
-
           <button type="submit" className={styles.submitButton}>
             <span>✓</span> Thêm sản phẩm
           </button>

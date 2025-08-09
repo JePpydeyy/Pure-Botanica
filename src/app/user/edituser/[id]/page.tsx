@@ -319,23 +319,25 @@ export default function EditUser({ params }: { params: Promise<{ id: string }> }
             placeholder="Nhập tên"
             className={styles.input}
             required={!user.googleId}
-          />
+          />  
         </div>
-        <div className={styles.formGroup}>
-          <label htmlFor="email" className={styles.label}>
-            Email:
-          </label>
-          <input
-            id="email"
-            type="email"
-            name="email"
-            value={formData.email || ""}
-            onChange={handleInputChange}
-            required
-            placeholder="Nhập email"
-            className={styles.input}
-          />
-        </div>
+       <div className={styles.formGroup}>
+  <label htmlFor="email" className={styles.label}>
+    Email:
+  </label>
+  <input
+    id="email"
+    type="email"
+    name="email"
+    value={formData.email || ""}
+    onChange={handleInputChange}
+    required
+    placeholder="Nhập email"
+    className={styles.input}
+    disabled // Add this to prevent email changes
+  />
+  <small className={styles.note}>Email không thể thay đổi.</small> {/* Optional: Inform the user */}
+          </div>
         <div className={styles.formGroup}>
           <label htmlFor="phone" className={styles.label}>
             SĐT:

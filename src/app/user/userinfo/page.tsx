@@ -56,6 +56,19 @@ interface Comment {
   createdAt: string;
 }
 
+interface Coupon {
+  _id: string;
+  code: string;
+  discountType: string;
+  discountValue: number;
+  minOrderValue: number;
+  expiryDate: string;
+  usageLimit: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
   const token = localStorage.getItem("token");
   if (!token) {
@@ -118,6 +131,16 @@ const formatPrice = (price: number | undefined | null): string => {
   return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "đ";
 };
 
+const formatDate = (date: string): string => {
+  return new Date(date).toLocaleDateString("vi-VN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
 const useToast = () => {
   const [message, setMessage] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
   const TOAST_DURATION = 3000;
@@ -134,14 +157,18 @@ export default function UserProfile() {
   const [user, setUser] = useState<User | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [selectedSection, setSelectedSection] = useState<"profile" | "orders" | "wishlist">("profile");
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [selectedSection, setSelectedSection] = useState<"profile" | "orders" | "wishlist" | "coupons">("profile");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [ordersLoading, setOrdersLoading] = useState<boolean>(false);
   const [ordersError, setOrdersError] = useState<string | null>(null);
   const [wishlistLoading, setWishlistLoading] = useState<boolean>(false);
   const [wishlistError, setWishlistError] = useState<string | null>(null);
+  const [couponsLoading, setCouponsLoading] = useState<boolean>(false);
+  const [couponsError, setCouponsError] = useState<string | null>(null);
   const [paymentMap, setPaymentMap] = useState<Record<string, string>>({});
   const [cacheBuster, setCacheBuster] = useState("");
   const [canReviewMap, setCanReviewMap] = useState<Record<string, boolean>>({});
@@ -245,7 +272,6 @@ export default function UserProfile() {
         })),
       }));
       setOrders(ordersData);
-      // Kiểm tra điều kiện đánh giá (chỉ cần thiết khi xem chi tiết đơn hàng, nhưng tải trước để tránh delay)
       const reviewMap: Record<string, boolean> = {};
       const currentDate = new Date();
       for (const order of ordersData) {
@@ -315,7 +341,6 @@ export default function UserProfile() {
       window.location.href = "/user/login";
       return;
     }
-
     setWishlistLoading(true);
     setWishlistError(null);
     try {
@@ -365,13 +390,75 @@ export default function UserProfile() {
     }
   };
 
+  const fetchCoupons = async () => {
+    setCouponsLoading(true);
+    setCouponsError(null);
+    try {
+      const res = await fetchWithAuth(`${API_BASE_URL}/api/coupons`, {
+        cache: "no-store",
+      });
+      if (!res.ok) {
+        if (res.status === 401) {
+          throw new Error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+        } else if (res.status === 404) {
+          setCoupons([]);
+          return;
+        }
+        throw new Error("Lỗi khi tải danh sách mã giảm giá.");
+      }
+      const data = await res.json();
+      if (data.message === "Lấy danh sách mã giảm giá thành công" && Array.isArray(data.coupons)) {
+        const currentDate = new Date();
+        const validCoupons = data.coupons.filter((coupon: Coupon) => 
+          coupon.isActive && new Date(coupon.expiryDate) > currentDate
+        );
+        setCoupons(validCoupons);
+      } else {
+        setCoupons([]);
+      }
+    } catch (err: any) {
+      setCouponsError(err.message || "Lỗi khi tải danh sách mã giảm giá.");
+      showToast("error", err.message || "Lỗi khi tải danh sách mã giảm giá!");
+    } finally {
+      setCouponsLoading(false);
+    }
+  };
+
+  const fetchCouponById = async (couponId: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetchWithAuth(`${API_BASE_URL}/api/coupons/${couponId}`, {
+        cache: "no-store",
+      });
+      if (!res.ok) {
+        if (res.status === 401) {
+          throw new Error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+        } else if (res.status === 404) {
+          throw new Error("Không tìm thấy mã giảm giá.");
+        }
+        throw new Error("Lỗi khi tải chi tiết mã giảm giá.");
+      }
+      const data = await res.json();
+      if (data.message === "Lấy chi tiết mã giảm giá thành công" && data.coupon) {
+        setSelectedCoupon(data.coupon);
+      } else {
+        throw new Error("Dữ liệu mã giảm giá không hợp lệ.");
+      }
+    } catch (err: any) {
+      setError(err.message || "Lỗi khi tải chi tiết mã giảm giá.");
+      showToast("error", err.message || "Lỗi khi tải chi tiết mã giảm giá!");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const removeFromWishlist = useCallback(async (productId: string) => {
     const token = localStorage.getItem("token");
     if (!token) {
       showToast("error", "Vui lòng đăng nhập để xóa sản phẩm!");
       return;
     }
-
     try {
       const res = await fetchWithAuth(`${API_BASE_URL}/api/users/favorite-products/${productId}`, {
         method: "DELETE",
@@ -484,6 +571,10 @@ export default function UserProfile() {
     }
   };
 
+  const retryFetchCoupons = () => {
+    fetchCoupons();
+  };
+
   const renderOrderStatus = (order: Order) => (
     <div className={styles.statusGroup}>
       <span
@@ -557,6 +648,7 @@ export default function UserProfile() {
         await fetchUserInfo();
         await fetchOrders(userId);
         await fetchWishlist();
+        await fetchCoupons();
       } catch (err: any) {
         setError(err.message || "Lỗi khi tải dữ liệu.");
       } finally {
@@ -583,6 +675,7 @@ export default function UserProfile() {
             onClick={() => {
               setSelectedSection("profile");
               setSelectedOrder(null);
+              setSelectedCoupon(null);
             }}
           >
             Tài khoản
@@ -592,6 +685,7 @@ export default function UserProfile() {
             onClick={() => {
               setSelectedSection("orders");
               setSelectedOrder(null);
+              setSelectedCoupon(null);
             }}
           >
             Đơn hàng
@@ -601,9 +695,20 @@ export default function UserProfile() {
             onClick={() => {
               setSelectedSection("wishlist");
               setSelectedOrder(null);
+              setSelectedCoupon(null);
             }}
           >
             Sản phẩm yêu thích
+          </li>
+          <li
+            className={`${styles.menuItem} ${selectedSection === "coupons" ? styles.active : ""}`}
+            onClick={() => {
+              setSelectedSection("coupons");
+              setSelectedOrder(null);
+              setSelectedCoupon(null);
+            }}
+          >
+            Mã giảm giá
           </li>
         </ul>
       </div>
@@ -658,6 +763,7 @@ export default function UserProfile() {
                         <p>Ngày đặt: {new Date(order.createdAt).toLocaleDateString()}</p>
                         <p>Tổng tiền: {formatPrice(order.total)}</p>
                         <p>Thanh toán: {order.paymentMethod || "COD"}</p>
+                        {order.couponCode && <p>Mã giảm giá: {order.couponCode}</p>}
                         <button
                           className={styles.detailButton}
                           onClick={() => fetchOrderById(order._id)}
@@ -716,24 +822,24 @@ export default function UserProfile() {
                           {optionValue && <span style={{ color: "#888", fontWeight: 400 }}> ({optionValue})</span>}
                         </div>
                         <div className={styles.cartItemDesc}>Số lượng: {item.quantity}</div>
-                       {item.product?._id && canReviewMap[`${item.product._id}-${selectedOrder._id}`] && (
-                        <Link
-                          href={`/user/detail/${item.product.slug || item.product._id}#writeReviewForm`}
-                          className={styles.reviewLink}
-                          style={{
-                            display: "inline-block",
-                            background: "#2d8cf0",
-                            color: "#fff",
-                            padding: "6px 12px",
-                            borderRadius: 4,
-                            textDecoration: "none",
-                            fontSize: "14px",
-                            marginTop: "8px",
-                          }}
-                        >
-                          Viết đánh giá
-                        </Link>
-                      )}
+                        {item.product?._id && canReviewMap[`${item.product._id}-${selectedOrder._id}`] && (
+                          <Link
+                            href={`/user/detail/${item.product.slug || item.product._id}#writeReviewForm`}
+                            className={styles.reviewLink}
+                            style={{
+                              display: "inline-block",
+                              background: "#2d8cf0",
+                              color: "#fff",
+                              padding: "6px 12px",
+                              borderRadius: 4,
+                              textDecoration: "none",
+                              fontSize: "14px",
+                              marginTop: "8px",
+                            }}
+                          >
+                            Viết đánh giá
+                          </Link>
+                        )}
                       </div>
                       <div className={styles.productPrice}>
                         {formatPrice(price * item.quantity)}
@@ -872,12 +978,108 @@ export default function UserProfile() {
                 )}
               </>
             )}
-            {message && (
-              <div className={styles.toastNotification}>
-                <p className={`${styles[message.type]}`}>{message.text}</p>
+          </>
+        )}
+
+        {selectedSection === "coupons" && !selectedCoupon && (
+          <>
+            <h2 className={styles.title}>Mã giảm giá</h2>
+            {couponsLoading && <p className={styles.loading}>Đang tải danh sách mã giảm giá...</p>}
+            {couponsError && (
+              <div className={styles.error}>
+                <p>{couponsError}</p>
+                <button onClick={retryFetchCoupons} className={styles.editButton}>
+                  Thử lại
+                </button>
+              </div>
+            )}
+            {!couponsLoading && !couponsError && (
+              <>
+                {coupons.length === 0 ? (
+                  <p className={styles.infoRow}>Chưa có mã giảm giá hợp lệ</p>
+                ) : (
+                  <div className={styles.orderCards}>
+                    {coupons.map((coupon) => (
+                      <div key={coupon._id} className={styles.orderCard}>
+                        <div className={styles.orderHeader}>
+                          <span>Mã: {coupon.code}</span>
+                          <span
+                            className={`${styles.statusButton} ${
+                              coupon.isActive ? styles.completed : styles.cancelled
+                            }`}
+                          >
+                            {coupon.isActive ? "Đang hoạt động" : "Không hoạt động"}
+                          </span>
+                        </div>
+                        <p>Giảm: {coupon.discountType === "percentage" ? `${coupon.discountValue}%` : formatPrice(coupon.discountValue)}</p>
+                        <p>Đơn tối thiểu: {formatPrice(coupon.minOrderValue)}</p>
+                        <p>Hết hạn: {formatDate(coupon.expiryDate)}</p>
+                        <button
+                          className={styles.detailButton}
+                          onClick={() => fetchCouponById(coupon._id)}
+                        >
+                          Xem chi tiết
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </>
+        )}
+
+        {selectedSection === "coupons" && selectedCoupon && (
+          <>
+            <h2 className={styles.title}>Chi tiết mã giảm giá: {selectedCoupon.code}</h2>
+            {loading && <p className={styles.loading}>Đang tải chi tiết mã giảm giá...</p>}
+            {error && <p className={styles.error}>{error}</p>}
+            {!loading && !error && (
+              <div className={styles.userInfo}>
+                <p className={styles.infoRow}><strong>Mã giảm giá:</strong> {selectedCoupon.code}</p>
+                <p className={styles.infoRow}>
+                  <strong>Loại giảm giá:</strong>{" "}
+                  {selectedCoupon.discountType === "percentage" ? "Phần trăm" : "Cố định"}
+                </p>
+                <p className={styles.infoRow}>
+                  <strong>Giá trị giảm:</strong>{" "}
+                  {selectedCoupon.discountType === "percentage"
+                    ? `${selectedCoupon.discountValue}%`
+                    : formatPrice(selectedCoupon.discountValue)}
+                </p>
+                <p className={styles.infoRow}>
+                  <strong>Đơn hàng tối thiểu:</strong> {formatPrice(selectedCoupon.minOrderValue)}
+                </p>
+                <p className={styles.infoRow}>
+                  <strong>Hạn sử dụng:</strong> {formatDate(selectedCoupon.expiryDate)}
+                </p>
+                <p className={styles.infoRow}>
+                  <strong>Giới hạn sử dụng:</strong> {selectedCoupon.usageLimit} lần
+                </p>
+                <p className={styles.infoRow}>
+                  <strong>Trạng thái:</strong> {selectedCoupon.isActive ? "Đang hoạt động" : "Không hoạt động"}
+                </p>
+                <p className={styles.infoRow}>
+                  <strong>Ngày tạo:</strong> {formatDate(selectedCoupon.createdAt)}
+                </p>
+                <p className={styles.infoRow}>
+                  <strong>Ngày cập nhật:</strong> {formatDate(selectedCoupon.updatedAt)}
+                </p>
+                <button
+                  className={styles.backButton}
+                  onClick={() => setSelectedCoupon(null)}
+                >
+                  Trở lại
+                </button>
               </div>
             )}
           </>
+        )}
+
+        {message && (
+          <div className={styles.toastNotification}>
+            <p className={`${styles[message.type]}`}>{message.text}</p>
+          </div>
         )}
       </div>
     </div>

@@ -181,56 +181,6 @@ export default function DetailPage() {
   }, [selectedOptionIndex]);
 
   // Kiểm tra điều kiện đánh giá
-  useEffect(() => {
-    const checkReviewEligibility = async () => {
-      if (!product?._id || !userId || userLoading) {
-        setCanReview(false);
-        return;
-      }
-
-      try {
-        // Lấy danh sách đơn hàng của người dùng
-        const orders = await apiRequest(`/api/orders/user/${userId}`);
-        if (!Array.isArray(orders) || orders.length === 0) {
-          setCanReview(false);
-          return;
-        }
-
-        // Lấy danh sách bình luận của sản phẩm
-        const existingComments = await apiRequest(`/api/comments/product/${product._id}`);
-        const commentedOrderIds = existingComments
-          .filter((comment: Comment) => comment.userId === userId && comment.orderId)
-          .map((comment: Comment) => comment.orderId);
-
-        // Kiểm tra đơn hàng hợp lệ chưa được bình luận
-        const currentDate = new Date();
-        const eligibleOrder = orders.find((order: any) => {
-          if (
-            order.paymentStatus !== "completed" ||
-            order.shippingStatus !== "delivered" ||
-            commentedOrderIds.includes(order._id)
-          ) {
-            return false;
-          }
-
-          const orderDate = new Date(order.createdAt);
-          const daysDiff = (currentDate.getTime() - orderDate.getTime()) / (1000 * 60 * 60 * 24);
-          if (daysDiff > REVIEW_WINDOW_DAYS) {
-            return false;
-          }
-
-          return order.items.some((item: any) => item.product._id === product._id);
-        });
-
-        setCanReview(!!eligibleOrder);
-      } catch (error) {
-        console.error("Lỗi khi kiểm tra điều kiện đánh giá:", error);
-        setCanReview(false);
-      }
-    };
-
-    checkReviewEligibility();
-  }, [product?._id, userId, userLoading]);
 
   // Lấy thông tin sản phẩm và danh sách yêu thích
   useEffect(() => {

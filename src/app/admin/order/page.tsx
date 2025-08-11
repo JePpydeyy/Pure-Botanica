@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import Head from "next/head";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck, faTimes, faRedo } from "@fortawesome/free-solid-svg-icons";
-import ToastNotification from "../../user/ToastNotification/ToastNotification"; // Thay thế import
+import ToastNotification from "../../user/ToastNotification/ToastNotification";
 
 interface Option {
   stock: number;
@@ -64,7 +64,7 @@ const OrderPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [shippingStatusFilter, setShippingStatusFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [notification, setNotification] = useState<{ message: string; type: "success" | "error" } | null>(null); // Thêm state cho notification
+  const [notification, setNotification] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const ordersPerPage = 9;
   const router = useRouter();
 
@@ -152,12 +152,21 @@ const OrderPage: React.FC = () => {
         if (!Array.isArray(data)) {
           throw new Error("Dữ liệu đơn hàng không hợp lệ");
         }
-        const invalidOrders = data.filter((order) => !order.user);
+
+        // Normalize orders with invalid shippingStatus
+        const normalizedOrders = data.map((order) => ({
+          ...order,
+          shippingStatus: order.shippingStatus && statusProgression[order.shippingStatus]
+            ? order.shippingStatus
+            : "pending", // Fallback to 'pending' if invalid
+        }));
+
+        const invalidOrders = normalizedOrders.filter((order) => !order.user);
         if (invalidOrders.length > 0) {
           console.warn("Found orders with null user:", invalidOrders);
         }
-        setOrders(data);
-        setFilteredOrders(data);
+        setOrders(normalizedOrders);
+        setFilteredOrders(normalizedOrders);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
         showNotification("Không thể tải danh sách đơn hàng", "error");
@@ -239,7 +248,7 @@ const OrderPage: React.FC = () => {
     const englishStatus =
       reverseShippingStatusMapping[newStatus as keyof typeof reverseShippingStatusMapping] || newStatus;
 
-    if (!statusProgression[currentStatus].includes(englishStatus)) {
+    if (!statusProgression[currentStatus]?.includes(englishStatus)) {
       showNotification("Trạng thái không hợp lệ hoặc không thể chuyển về trạng thái trước đó", "error");
       return;
     }
@@ -395,6 +404,7 @@ const OrderPage: React.FC = () => {
           onClick={() => {
             setLoading(true);
             setError(null);
+            // Trigger re-fetch
             fetchOrders();
           }}
           title="Thử lại"
@@ -501,19 +511,24 @@ const OrderPage: React.FC = () => {
                       >
                         {allStatuses
                           .filter((status) => status.value !== "all")
-                          .map((status) => (
-                            <option
-                              key={status.value}
-                              value={status.label}
-                              disabled={
-                                order.shippingStatus === "returned" ||
-                                (!statusProgression[order.shippingStatus].includes(status.value) &&
-                                  status.value !== order.shippingStatus)
-                              }
-                            >
-                              {status.label}
-                            </option>
-                          ))}
+                          .map((status) => {
+                            const isValidStatus = order.shippingStatus && statusProgression[order.shippingStatus];
+                            return (
+                              <option
+                                key={status.value}
+                                value={status.label}
+                                disabled={
+                                  order.shippingStatus === "returned" ||
+                                  (isValidStatus
+                                    ? !statusProgression[order.shippingStatus].includes(status.value) &&
+                                      status.value !== order.shippingStatus
+                                    : true)
+                                }
+                              >
+                                {status.label}
+                              </option>
+                            );
+                          })}
                       </select>
                     </td>
                     <td>

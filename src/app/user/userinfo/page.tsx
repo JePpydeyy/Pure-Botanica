@@ -7,7 +7,7 @@ import Image from "next/image";
 import styles from "./Userinfo.module.css";
 import { User } from "@/app/components/user_interface";
 
-const API_BASE_URL = "https://api-zeal.onrender.com";
+const API_BASE_URL = "http://localhost:10000";
 const ERROR_IMAGE_URL = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
 
 interface Order {
@@ -17,6 +17,9 @@ interface Order {
   total: number;
   paymentStatus: string;
   shippingStatus: string;
+  returnStatus: "none" | "requested" | "approved" | "rejected";
+  returnReason?: string;
+  returnRequestDate?: string;
   paymentMethod?: string;
   couponCode?: string;
   discount?: number;
@@ -30,6 +33,10 @@ interface Order {
   };
   sdt?: string;
   note?: string;
+  cancelReason?: string;
+  cancelNote?: string;
+  cancelledAt?: string;
+  cancelledBy?: string;
   items: {
     product: { _id: string; name?: string; price?: number; images?: string[]; option?: any[]; slug?: string } | null;
     optionId?: string;
@@ -83,6 +90,25 @@ const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
     },
   });
 };
+const translateCancelReason = (reason: string): string => {
+  const reasonMap: { [key: string]: string } = {
+    "out_of_stock": "Hết hàng",
+    "customer_cancelled": "Khách hàng hủy",
+    "system_error": "Lỗi hệ thống",
+    "other": "Lý do khác"
+  };
+  
+  return reasonMap[reason] || reason;
+};
+// Add this helper function at the top of your file
+const translatePaymentMethod = (method: string): string => {
+  const paymentMethods: { [key: string]: string } = {
+    "bank": "Chuyển khoản ngân hàng",
+    "cod": "Thanh toán khi nhận hàng"
+  };
+  return paymentMethods[method?.toLowerCase()] || "Thanh toán khi nhận hàng";
+};
+
 
 const getImageUrl = (image: string, productName: string, cacheBuster: string): string => {
   if (!image || typeof image !== "string" || image.trim() === "") {
@@ -172,8 +198,14 @@ export default function UserProfile() {
   const [paymentMap, setPaymentMap] = useState<Record<string, string>>({});
   const [cacheBuster, setCacheBuster] = useState("");
   const [canReviewMap, setCanReviewMap] = useState<Record<string, boolean>>({});
+  const [showReturnForm, setShowReturnForm] = useState<boolean>(false);
+  const [returnReason, setReturnReason] = useState<string>("");
   const { message, showToast, hideToast } = useToast();
   const REVIEW_WINDOW_DAYS = 7;
+  // Thêm vào phần khai báo state
+const [showCancelForm, setShowCancelForm] = useState<boolean>(false);
+const [cancelReason, setCancelReason] = useState<string>("");
+const [cancelNote, setCancelNote] = useState<string>("");
 
   useEffect(() => {
     setCacheBuster(`t=${Date.now()}`);
@@ -564,6 +596,84 @@ export default function UserProfile() {
     }
   };
 
+const cancelOrder = async (orderId: string) => {
+  try {
+    const res = await fetchWithAuth(`${API_BASE_URL}/api/orders/cancel/${orderId}`, {
+      method: "DELETE",
+      body: JSON.stringify({
+        cancelReason: cancelReason,
+        cancelNote: cancelNote
+      })
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.error || "Lỗi khi hủy đơn hàng");
+    }
+
+    const data = await res.json();
+    showToast("success", "Đã hủy đơn hàng thành công!");
+
+    // Cập nhật UI
+    setOrders(prev => 
+      prev.map(order => 
+        order._id === orderId 
+          ? { ...order, paymentStatus: "cancelled", shippingStatus: "cancelled" }
+          : order
+      )
+    );
+
+    if (selectedOrder?._id === orderId) {
+      setSelectedOrder(prev => 
+        prev ? { ...prev, paymentStatus: "cancelled", shippingStatus: "cancelled" } : null
+      );
+    }
+
+    // Reset form
+    setShowCancelForm(false);
+    setCancelReason("");
+    setCancelNote("");
+
+    // Tải lại danh sách đơn hàng
+    const userId = localStorage.getItem("userId");
+    if (userId) {
+      await fetchOrders(userId);
+    }
+
+  } catch (err: any) {
+    showToast("error", err.message || "Lỗi khi hủy đơn hàng");
+  }
+};
+
+  const requestOrderReturn = async (orderId: string, reason: string) => {
+    try {
+      const res = await fetchWithAuth(`${API_BASE_URL}/api/orders/return/${orderId}`, {
+        method: "POST",
+        body: JSON.stringify({ returnReason: reason }),
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Lỗi khi yêu cầu hoàn hàng.");
+      }
+      const data = await res.json();
+      showToast("success", data.message || "Yêu cầu hoàn hàng đã được gửi!");
+      setOrders((prev) =>
+        prev.map((order) =>
+          order._id === orderId
+            ? { ...order, returnStatus: "requested", returnReason: reason }
+            : order
+        )
+      );
+      if (selectedOrder && selectedOrder._id === orderId) {
+        setSelectedOrder({ ...selectedOrder, returnStatus: "requested", returnReason: reason });
+      }
+      setShowReturnForm(false);
+      setReturnReason("");
+    } catch (err: any) {
+      showToast("error", err.message || "Lỗi khi yêu cầu hoàn hàng.");
+    }
+  };
+
   const retryFetchOrders = () => {
     const userId = localStorage.getItem("userId");
     if (userId) {
@@ -575,49 +685,77 @@ export default function UserProfile() {
     fetchCoupons();
   };
 
-  const renderOrderStatus = (order: Order) => (
-    <div className={styles.statusGroup}>
-      <span
-        className={`${styles.statusButton} ${
-          order.paymentStatus === "pending"
-            ? styles.pending
-            : order.paymentStatus === "completed"
-            ? styles.completed
-            : order.paymentStatus === "cancelled"
-            ? styles.cancelled
-            : styles.failed
-        }`}
-      >
-        {order.paymentStatus === "pending"
-          ? "Chờ thanh toán"
+const renderOrderStatus = (order: Order) => (
+  <div className={styles.statusGroup}>
+    <span
+      className={`${styles.statusButton} ${
+        order.paymentStatus === "pending"
+          ? styles.pending
           : order.paymentStatus === "completed"
-          ? "Đã thanh toán"
+          ? styles.completed
           : order.paymentStatus === "cancelled"
-          ? "Đã hủy"
-          : "Thanh toán lỗi"}
-      </span>
+          ? styles.cancelled
+          : styles.failed
+      }`}
+    >
+      {order.paymentStatus === "pending"
+        ? "Chờ thanh toán"
+        : order.paymentStatus === "completed"
+        ? "Đã thanh toán"
+        : order.paymentStatus === "cancelled"
+        ? "Đã hủy"
+        : "Thanh toán lỗi"}
+    </span>
+    <span
+      className={`${styles.statusButton} ${
+        order.shippingStatus === "pending"
+          ? styles.pending
+          : order.shippingStatus === "in_transit"
+          ? styles.intransit
+          : order.shippingStatus === "delivered"
+          ? styles.delivered
+          : styles.returned
+      }`}
+      style={{ marginLeft: 8 }}
+    >
+      {order.shippingStatus === "pending"
+        ? "Chờ giao hàng"
+        : order.shippingStatus === "in_transit"
+        ? "Đang giao"
+        : order.shippingStatus === "delivered"
+        ? "Đã giao"
+        : order.shippingStatus === "cancelled"
+        ? "Đã hủy"
+        : "Đã trả hàng"}
+    </span>
+    {order.returnStatus !== "none" && (
       <span
         className={`${styles.statusButton} ${
-          order.shippingStatus === "pending"
+          order.returnStatus === "requested"
             ? styles.pending
-            : order.shippingStatus === "in_transit"
-            ? styles.intransit
-            : order.shippingStatus === "delivered"
-            ? styles.delivered
-            : styles.returned
+            : order.returnStatus === "approved"
+            ? styles.completed
+            : styles.cancelled
         }`}
         style={{ marginLeft: 8 }}
       >
-        {order.shippingStatus === "pending"
-          ? "Chờ giao hàng"
-          : order.shippingStatus === "in_transit"
-          ? "Đang giao"
-          : order.shippingStatus === "delivered"
-          ? "Đã giao"
-          : "Đã trả hàng"}
+        {order.returnStatus === "requested"
+          ? "Đã yêu cầu hoàn hàng"
+          : order.returnStatus === "approved"
+          ? "Hoàn hàng được chấp nhận"
+          : "Hoàn hàng bị từ chối"}
       </span>
-    </div>
-  );
+    )}
+    {order.shippingStatus === "cancelled" && (
+      <span
+        className={`${styles.statusButton} ${styles.cancelled}`}
+        style={{ marginLeft: 8 }}
+      >
+        Đã hủy
+      </span>
+    )}
+  </div>
+);
 
   const formatAddress = (address: any) => {
     if (!address) return "Chưa cập nhật";
@@ -628,6 +766,16 @@ export default function UserProfile() {
       return `${address.addressLine}, ${address.ward}, ${address.district}, ${address.cityOrProvince}`;
     }
     return "Chưa cập nhật";
+  };
+
+  const canRequestReturn = (order: Order) => {
+    if (order.shippingStatus !== "delivered" || order.returnStatus !== "none") {
+      return false;
+    }
+    const orderDate = new Date(order.createdAt);
+    const currentDate = new Date();
+    const daysDiff = (currentDate.getTime() - orderDate.getTime()) / (1000 * 60 * 60 * 24);
+    return daysDiff <= 4;
   };
 
   useEffect(() => {
@@ -676,6 +824,7 @@ export default function UserProfile() {
               setSelectedSection("profile");
               setSelectedOrder(null);
               setSelectedCoupon(null);
+              setShowReturnForm(false);
             }}
           >
             Tài khoản
@@ -686,6 +835,7 @@ export default function UserProfile() {
               setSelectedSection("orders");
               setSelectedOrder(null);
               setSelectedCoupon(null);
+              setShowReturnForm(false);
             }}
           >
             Đơn hàng
@@ -696,6 +846,7 @@ export default function UserProfile() {
               setSelectedSection("wishlist");
               setSelectedOrder(null);
               setSelectedCoupon(null);
+              setShowReturnForm(false);
             }}
           >
             Sản phẩm yêu thích
@@ -706,6 +857,7 @@ export default function UserProfile() {
               setSelectedSection("coupons");
               setSelectedOrder(null);
               setSelectedCoupon(null);
+              setShowReturnForm(false);
             }}
           >
             Mã giảm giá
@@ -736,191 +888,445 @@ export default function UserProfile() {
           </>
         )}
 
-        {selectedSection === "orders" && !selectedOrder && (
-          <>
-            <h2 className={styles.title}>Đơn hàng</h2>
-            {ordersLoading && <p className={styles.loading}>Đang tải danh sách đơn hàng...</p>}
-            {ordersError && (
-              <div className={styles.error}>
-                <p>{ordersError}</p>
-                <button onClick={retryFetchOrders} className={styles.editButton}>
-                  Thử lại
-                </button>
-              </div>
-            )}
-            {!ordersLoading && !ordersError && (
-              <>
-                {orders.length === 0 ? (
-                  <p className={styles.infoRow}>Chưa có đơn hàng</p>
-                ) : (
-                  <div className={styles.orderCards}>
-                    {orders.map((order) => (
-                      <div key={order._id} className={styles.orderCard}>
-                        <div className={styles.orderHeader}>
-                          <span>Mã đơn hàng: {order._id}</span>
-                          {renderOrderStatus(order)}
-                        </div>
-                        <p>Ngày đặt: {new Date(order.createdAt).toLocaleDateString()}</p>
-                        <p>Tổng tiền: {formatPrice(order.total)}</p>
-                        <p>Thanh toán: {order.paymentMethod || "COD"}</p>
-                        {order.couponCode && <p>Mã giảm giá: {order.couponCode}</p>}
-                        <button
-                          className={styles.detailButton}
-                          onClick={() => fetchOrderById(order._id)}
-                        >
-                          Xem chi tiết
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-          </>
-        )}
-
-        {selectedSection === "orders" && selectedOrder && (
-          <>
-            <h2 className={styles.title}>Chi tiết đơn hàng: {selectedOrder._id}</h2>
-            {loading && <p className={styles.loading}>Đang tải chi tiết đơn hàng...</p>}
-            {error && <p className={styles.error}>{error}</p>}
-            {!loading && !error && (
-              <div className={styles.orderDetails}>
-                <div className={styles.cartTitle}>
-                  <span>Sản phẩm</span>
-                  <span>Tổng</span>
+      {selectedSection === "orders" && !selectedOrder && (
+  <>
+    <h2 className={styles.title}>Đơn hàng</h2>
+    {ordersLoading && <p className={styles.loading}>Đang tải danh sách đơn hàng...</p>}
+    {ordersError && (
+      <div className={styles.error}>
+        <p>{ordersError}</p>
+        <button onClick={retryFetchOrders} className={styles.editButton}>
+          Thử lại
+        </button>
+      </div>
+    )}
+    {!ordersLoading && !ordersError && (
+      <>
+        {orders.length === 0 ? (
+          <p className={styles.infoRow}>Chưa có đơn hàng</p>
+        ) : (
+          <div className={styles.orderCards}>
+            {orders.map((order) => (
+              <div key={order._id} className={styles.orderCard}>
+                <div className={styles.orderHeader}>
+                  <span>Mã đơn hàng: {order._id}</span>
+                  <span
+                    className={`${styles.statusButton} ${
+                      order.shippingStatus === "pending"
+                        ? styles.pending
+                        : order.shippingStatus === "in_transit"
+                        ? styles.intransit  
+                        : order.shippingStatus === "delivered"
+                        ? styles.delivered
+                        : order.shippingStatus === "cancelled"
+                        ? styles.cancelled
+                        : styles.returned
+                    }`}
+                  >
+                    {order.shippingStatus === "pending"
+                      ? "Đang chờ xử lý"
+                      : order.shippingStatus === "in_transit"
+                      ? "Đang giao"
+                      : order.shippingStatus === "delivered" 
+                      ? "Đã giao"
+                      : order.shippingStatus === "cancelled"
+                      ? "Hủy hàng"
+                      : "Hoàn hàng"}
+                  </span>
                 </div>
-                {selectedOrder.items.map((item, index) => {
-                  const price = item.product ? getProductPrice(item.product, item.product.name || "Unknown") : 0;
-                  let optionValue = "";
-                  if (item.product && item.product.option && Array.isArray(item.product.option) && item.optionId) {
-                    const opt = item.product.option.find((o: any) => o?._id === item.optionId);
-                    if (opt && opt.value) optionValue = opt.value;
-                  }
-                  return (
-                    <div key={index} className={styles.productItem}>
-                      <div className={styles.cartItemImage}>
-                        <Image
-                          src={
-                            item.product && item.product.images && item.product.images.length > 0
-                              ? item.product.images[0]
-                              : ERROR_IMAGE_URL
-                          }
-                          alt={item.product?.name || "Sản phẩm"}
-                          width={100}
-                          height={100}
-                          quality={100}
-                          onError={(e) => {
-                            console.error(`Image load failed for product "${item.product?.name || "Unknown"}"`);
-                            (e.target as HTMLImageElement).src = ERROR_IMAGE_URL;
-                          }}
-                        />
-                      </div>
-                      <div className={styles.productInfo}>
-                        <div className={styles.cartItemName}>
-                          {item.product?.name || "Sản phẩm không xác định"}
-                          {optionValue && <span style={{ color: "#888", fontWeight: 400 }}> ({optionValue})</span>}
-                        </div>
-                        <div className={styles.cartItemDesc}>Số lượng: {item.quantity}</div>
-                        {item.product?._id && canReviewMap[`${item.product._id}-${selectedOrder._id}`] && (
-                          <Link
-                            href={`/user/detail/${item.product.slug || item.product._id}#writeReviewForm`}
-                            className={styles.reviewLink}
-                            style={{
-                              display: "inline-block",
-                              background: "#2d8cf0",
-                              color: "#fff",
-                              padding: "6px 12px",
-                              borderRadius: 4,
-                              textDecoration: "none",
-                              fontSize: "14px",
-                              marginTop: "8px",
-                            }}
-                          >
-                            Viết đánh giá
-                          </Link>
-                        )}
-                      </div>
-                      <div className={styles.productPrice}>
-                        {formatPrice(price * item.quantity)}
-                      </div>
-                    </div>
-                  );
-                })}
-                <div className={styles.cartSummary}>
-                  <div className={styles.summaryRow}>
-                    <span>Tổng</span>
-                    <span>{formatPrice(selectedOrder.subtotal || selectedOrder.total)}</span>
-                  </div>
-                  <div className={styles.summaryRow}>
-                    <span>Mã giảm</span>
-                    <span>-{formatPrice(selectedOrder.discount || 0)}</span>
-                  </div>
-                  <div className={`${styles.summaryRow} ${styles.total}`}>
-                    <span>Tổng cộng</span>
-                    <span>{formatPrice(selectedOrder.total)}</span>
-                  </div>
-                  <div className={styles.summaryNote}>
-                    (Tổng giá bao gồm tất cả các loại thuế và phí)
-                  </div>
-                </div>
-
-                {selectedOrder.note && (
-                  <div className={styles.noteSection}>
-                    <h3>Ghi chú đơn hàng</h3>
-                    <p>{selectedOrder.note}</p>
-                  </div>
-                )}
-
-                {selectedOrder.paymentMethod === "bank" && selectedOrder.paymentStatus === "pending" && selectedOrder.paymentCode && (
-                  <div className={styles.paymentNotice}>
-                    <p style={{ color: "#e67e22", margin: "12px 0" }}>
-                      Đơn hàng của bạn chưa được thanh toán. Vui lòng thanh toán online để hoàn tất đơn hàng.
-                    </p>
-                    <a
-                      href={`/user/payment?paymentCode=${encodeURIComponent(selectedOrder.paymentCode)}&amount=${selectedOrder.total}`}
-                      className={styles.paymentLink}
-                      style={{
-                        display: "inline-block",
-                        background: "#2d8cf0",
-                        color: "#fff",
-                        padding: "8px 20px",
-                        borderRadius: 6,
-                        textDecoration: "none",
-                        fontWeight: 500,
-                        marginBottom: 16,
-                      }}
-                    >
-                      Thanh toán ngay
-                    </a>
-                  </div>
-                )}
-
-                <div className={styles.addressSection}>
-                  <h3>Địa chỉ nhận hàng</h3>
-                  <p><strong>Tên:</strong> {user.username}</p>
-                  <p><strong>SĐT:</strong> {selectedOrder.sdt || user.phone}</p>
-                  <p>
-                    <strong>Địa chỉ:</strong>{" "}
-                    {selectedOrder.address ? (
-                      formatAddress(selectedOrder.address)
-                    ) : (
-                      formatAddress(user.address)
-                    )}
-                  </p>
-                  <p><strong>Giao hàng:</strong> Giao Hàng Nhanh</p>
-                </div>
-
+                <p>Ngày đặt: {new Date(order.createdAt).toLocaleDateString()}</p>
+                <p>Tổng tiền: {formatPrice(order.total)}</p>
+              <p>Thanh toán: {translatePaymentMethod(order.paymentMethod)}</p>
+                {order.couponCode && <p>Mã giảm giá: {order.couponCode}</p>}
                 <button
-                  className={styles.backButton}
-                  onClick={() => setSelectedOrder(null)}
+                  className={styles.detailButton}
+                  onClick={() => fetchOrderById(order._id)}
                 >
-                  Trở lại
+                  Xem chi tiết
                 </button>
               </div>
+            ))}
+          </div>
+        )}
+      </>
+    )}
+  </>
+)}
+
+{selectedSection === "orders" && selectedOrder && (
+  <>
+    <h2 className={styles.title}>Chi tiết đơn hàng: {selectedOrder._id}</h2>
+    {loading && <p className={styles.loading}>Đang tải chi tiết đơn hàng...</p>}
+    {error && <p className={styles.error}>{error}</p>}
+    {!loading && !error && (
+      <div className={styles.orderDetails}>
+        <div className={styles.cartTitle}>
+          <span>Sản phẩm</span>
+          <span>Tổng</span>
+        </div>
+        {selectedOrder.items.map((item, index) => {
+          const price = item.product ? getProductPrice(item.product, item.product.name || "Unknown") : 0;
+          let optionValue = "";
+          if (item.product && item.product.option && Array.isArray(item.product.option) && item.optionId) {
+            const opt = item.product.option.find((o: any) => o?._id === item.optionId);
+            if (opt && opt.value) optionValue = opt.value;
+          }
+          return (
+            <div key={index} className={styles.productItem}>
+              <div className={styles.cartItemImage}>
+                <Image
+                  src={
+                    item.product && item.product.images && item.product.images.length > 0
+                      ? item.product.images[0]
+                      : ERROR_IMAGE_URL
+                  }
+                  alt={item.product?.name || "Sản phẩm"}
+                  width={100}
+                  height={100}
+                  quality={100}
+                  onError={(e) => {
+                    console.error(`Image load failed for product "${item.product?.name || "Unknown"}"`);
+                    (e.target as HTMLImageElement).src = ERROR_IMAGE_URL;
+                  }}
+                />
+              </div>
+              <div className={styles.productInfo}>
+                <div className={styles.cartItemName}>
+                  {item.product?.name || "Sản phẩm không xác định"}
+                  {optionValue && <span style={{ color: "#888", fontWeight: 400 }}> ({optionValue})</span>}
+                </div>
+                <div className={styles.cartItemDesc}>Số lượng: {item.quantity}</div>
+                {item.product?._id && canReviewMap[`${item.product._id}-${selectedOrder._id}`] && (
+                  <Link
+                    href={`/user/detail/${item.product.slug || item.product._id}#writeReviewForm`}
+                    className={styles.reviewLink}
+                    style={{
+                      display: "inline-block",
+                      background: "#2d8cf0",
+                      color: "#fff",
+                      padding: "6px 12px",
+                      borderRadius: 4,
+                      textDecoration: "none",
+                      fontSize: "14px",
+                      marginTop: "8px",
+                    }}
+                  >
+                    Viết đánh giá
+                  </Link>
+                )}
+              </div>
+              <div className={styles.productPrice}>
+                {formatPrice(price * item.quantity)}
+              </div>
+            </div>
+          );
+        })}
+        <div className={styles.cartSummary}>
+          <div className={styles.summaryRow}>
+            <span>Tổng</span>
+            <span>{formatPrice(selectedOrder.subtotal || selectedOrder.total)}</span>
+          </div>
+          <div className={styles.summaryRow}>
+            <span>Mã giảm</span>
+            <span>-{formatPrice(selectedOrder.discount || 0)}</span>
+          </div>
+          <div className={`${styles.summaryRow} ${styles.total}`}>
+            <span>Tổng cộng</span>
+            <span>{formatPrice(selectedOrder.total)}</span>
+          </div>
+          <div className={styles.summaryNote}>
+            (Tổng giá bao gồm tất cả các loại thuế và phí)
+          </div>
+        </div>
+
+        {selectedOrder.note && (
+          <div className={styles.noteSection}>
+            <h3>Ghi chú đơn hàng</h3>
+            <p>{selectedOrder.note}</p>
+          </div>
+        )}
+
+      {(selectedOrder.shippingStatus === "cancelled" || selectedOrder.paymentStatus === "cancelled") && (
+  <div className={styles.noteSection}>
+    <h3>Thông tin hủy đơn hàng</h3>
+    <p><strong>Trạng thái:</strong> Đã hủy</p>
+    {selectedOrder.cancelReason && (
+      <p>
+        <strong>Lý do hủy:</strong> {translateCancelReason(selectedOrder.cancelReason)}
+      </p>
+    )}
+    {selectedOrder.cancelNote && (
+      <p><strong>Ghi chú hủy:</strong> {selectedOrder.cancelNote}</p>
+    )}
+    {selectedOrder.cancelledAt && (
+      <p><strong>Thời gian hủy:</strong> {formatDate(selectedOrder.cancelledAt)}</p>
+    )}
+    {selectedOrder.cancelledBy && (
+      <p>
+        <strong>Hủy bởi:</strong> {selectedOrder.cancelledBy === "admin" ? "Quản trị viên" : "Khách hàng"}
+      </p>
+    )}
+  </div>
+)}
+
+        {selectedOrder.returnStatus !== "none" && (
+          <div className={styles.noteSection}>
+            <h3>Trạng thái hoàn hàng</h3>
+            <p>
+              <strong>Trạng thái:</strong>{" "}
+              {selectedOrder.returnStatus === "requested"
+                ? "Đã yêu cầu hoàn hàng"
+                : selectedOrder.returnStatus === "approved"
+                ? "Hoàn hàng được chấp nhận"
+                : "Hoàn hàng bị từ chối"}
+            </p>
+            {selectedOrder.returnReason && (
+              <p><strong>Lý do hoàn hàng:</strong> {selectedOrder.returnReason}</p>
+            )}
+          </div>
+        )}
+
+        {selectedOrder.paymentMethod === "bank" && selectedOrder.paymentStatus === "pending" && selectedOrder.paymentCode && (
+          <div className={styles.paymentNotice}>
+            <p style={{ color: "#e67e22", margin: "12px 0" }}>
+              Đơn hàng của bạn chưa được thanh toán. Vui lòng thanh toán online để hoàn tất đơn hàng.
+            </p>
+            <a
+              href={`/user/payment?paymentCode=${encodeURIComponent(selectedOrder.paymentCode)}&amount=${selectedOrder.total}`}
+              className={styles.paymentLink}
+              style={{
+                display: "inline-block",
+                background: "#2d8cf0",
+                color: "#fff",
+                padding: "8px 20px",
+                borderRadius: 6,
+                textDecoration: "none",
+                fontWeight: 500,
+                marginBottom: 16,
+              }}
+            >
+              Thanh toán ngay
+            </a>
+          </div>
+        )}
+
+        <div className={styles.addressSection}>
+          <h3>Địa chỉ nhận hàng</h3>
+          <p><strong>Tên:</strong> {user.username}</p>
+          <p><strong>SĐT:</strong> {selectedOrder.sdt || user.phone}</p>
+          <p>
+            <strong>Địa chỉ:</strong>{" "}
+            {selectedOrder.address ? (
+              formatAddress(selectedOrder.address)
+            ) : (
+              formatAddress(user.address)
+            )}
+          </p>
+          <p><strong>Giao hàng:</strong> Giao Hàng Nhanh</p>
+        </div>
+
+        {selectedOrder.paymentStatus === "pending" && selectedOrder.shippingStatus === "pending" && (
+          <>
+            {!showCancelForm ? (
+              <button
+                className={styles.cancelButton}
+                style={{
+                  background: "#e74c3c",
+                  color: "#fff",
+                  padding: "8px 20px",
+                  borderRadius: 6,
+                  border: "none",
+                  cursor: "pointer",
+                  marginTop: "16px",
+                }}
+                onClick={() => setShowCancelForm(true)}
+              >
+                Hủy đơn hàng
+              </button>
+            ) : (
+             <div className={styles.cancelForm}>
+  <h3>Lý do hủy đơn hàng</h3>
+  <select
+    value={cancelReason}
+    onChange={(e) => setCancelReason(e.target.value)}
+    style={{
+      width: "100%",
+      padding: "8px",
+      marginBottom: "12px",
+      borderRadius: "4px",
+      border: "1px solid #ccc",
+    }}
+  >
+    <option value="">-- Chọn lý do hủy --</option>
+    <option value="Đổi ý không mua nữa">Đổi ý không mua nữa</option>
+    <option value="Muốn thay đổi sản phẩm">Muốn thay đổi sản phẩm</option>
+    <option value="Thay đổi phương thức thanh toán">Thay đổi phương thức thanh toán</option>
+    <option value="Thay đổi địa chỉ giao hàng">Thay đổi địa chỉ giao hàng</option>
+    <option value="Lý do khác">Lý do khác</option>
+  </select>
+
+  {/* Hiển thị lý do đã chọn */}
+  {cancelReason && (
+    <div className={styles.selectedReason}>
+      <p><strong>Lý do đã chọn:</strong> {cancelReason}</p>
+    </div>
+  )}
+
+  <textarea
+    value={cancelNote}
+    onChange={(e) => setCancelNote(e.target.value)}
+    placeholder="Nhập thêm ghi chú (nếu có)"
+    style={{
+      width: "100%",
+      minHeight: "100px",
+      padding: "8px",
+      marginBottom: "12px",
+      borderRadius: "4px",
+      border: "1px solid #ccc",
+    }}
+  />
+
+  {/* Hiển thị ghi chú đã nhập */}
+  {cancelNote && (
+    <div className={styles.selectedNote}>
+      <p><strong>Ghi chú:</strong> {cancelNote}</p>
+    </div>
+  )}
+
+  <div>
+    <button
+      className={styles.submitCancelButton}
+      style={{
+        background: "#e74c3c",
+        color: "#fff",
+        padding: "8px 20px",
+        borderRadius: 6,
+        border: "none",
+        cursor: "pointer",
+        marginRight: "12px",
+      }}
+      onClick={() => {
+        if (!cancelReason) {
+          showToast("error", "Vui lòng chọn lý do hủy đơn hàng");
+          return;
+        }
+        cancelOrder(selectedOrder._id);
+      }}
+      disabled={!cancelReason}
+    >
+      Xác nhận hủy
+    </button>
+    <button
+      className={styles.cancelButton}
+      style={{
+        background: "#95a5a6",
+        color: "#fff",
+        padding: "8px 20px",
+        borderRadius: 6,
+        border: "none",
+        cursor: "pointer",
+      }}
+      onClick={() => {
+        setShowCancelForm(false);
+        setCancelReason("");
+        setCancelNote("");
+      }}
+    >
+      Đóng
+    </button>
+  </div>
+</div>
             )}
           </>
         )}
+
+        {canRequestReturn(selectedOrder) && (
+          <button
+            className={styles.returnButton}
+            style={{
+              background: "#f39c12",
+              color: "#fff",
+              padding: "8px 20px",
+              borderRadius: 6,
+              border: "none",
+              cursor: "pointer",
+              marginTop: "16px",
+              marginLeft: "16px",
+            }}
+            onClick={() => setShowReturnForm(true)}
+          >
+            Yêu cầu hoàn hàng
+          </button>
+        )}
+
+        {showReturnForm && (
+          <div className={styles.returnForm}>
+            <h3>Lý do yêu cầu hoàn hàng</h3>
+            <textarea
+              value={returnReason}
+              onChange={(e) => setReturnReason(e.target.value)}
+              placeholder="Vui lòng nhập lý do hoàn hàng"
+              style={{
+                width: "100%",
+                minHeight: "100px",
+                padding: "8px",
+                marginBottom: "12px",
+                borderRadius: 4,
+                border: "1px solid #ccc",
+              }}
+            />
+            <div>
+              <button
+                className={styles.submitReturnButton}
+                style={{
+                  background: "#2d8cf0",
+                  color: "#fff",
+                  padding: "8px 20px",
+                  borderRadius: 6,
+                  border: "none",
+                  cursor: "pointer",
+                  marginRight: "12px",
+                }}
+                onClick={() => requestOrderReturn(selectedOrder._id, returnReason)}
+                disabled={!returnReason.trim()}
+              >
+                Gửi yêu cầu
+              </button>
+              <button
+                className={styles.cancelReturnButton}
+                style={{
+                  background: "#e74c3c",
+                  color: "#fff",
+                  padding: "8px 20px",
+                  borderRadius: 6,
+                  border: "none",
+                  cursor: "pointer",
+                }}
+                onClick={() => {
+                  setShowReturnForm(false);
+                  setReturnReason("");
+                }}
+              >
+                Hủy
+              </button>
+            </div>
+          </div>
+        )}
+
+        <button
+          className={styles.backButton}
+          onClick={() => {
+            setSelectedOrder(null);
+            setShowReturnForm(false);
+            setReturnReason("");
+          }}
+        >
+          Trở lại
+        </button>
+      </div>
+    )}
+  </>
+)}
 
         {selectedSection === "wishlist" && (
           <>
@@ -1054,7 +1460,7 @@ export default function UserProfile() {
                   <strong>Hạn sử dụng:</strong> {formatDate(selectedCoupon.expiryDate)}
                 </p>
                 <p className={styles.infoRow}>
-                  <strong>Giới hạn sử dụng:</strong> {selectedCoupon.usageLimit} lần
+                  <strong>Giới hạn sử dụng:</strong> {selectedCoupon.usageLimit} 
                 </p>
                 <p className={styles.infoRow}>
                   <strong>Trạng thái:</strong> {selectedCoupon.isActive ? "Đang hoạt động" : "Không hoạt động"}

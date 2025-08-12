@@ -158,7 +158,7 @@ const OrderPage: React.FC = () => {
           ...order,
           shippingStatus: order.shippingStatus && statusProgression[order.shippingStatus]
             ? order.shippingStatus
-            : "pending", // Fallback to 'pending' if invalid
+            : "pending",
         }));
 
         const invalidOrders = normalizedOrders.filter((order) => !order.user);
@@ -200,7 +200,15 @@ const OrderPage: React.FC = () => {
         const matchesShippingStatus = shippingStatus === "all" || order.shippingStatus === shippingStatus;
         return matchesSearch && matchesShippingStatus;
       });
-      setFilteredOrders(filtered);
+      // Sắp xếp filtered orders theo createdAt từ mới nhất đến cũ nhất
+      const sortedFiltered = filtered.sort((a, b) => {
+        const dateA = new Date(a.createdAt);
+        const dateB = new Date(b.createdAt);
+        if (isNaN(dateA.getTime())) return 1;
+        if (isNaN(dateB.getTime())) return -1;
+        return dateB.getTime() - dateA.getTime();
+      });
+      setFilteredOrders(sortedFiltered);
       setCurrentPage(1);
     },
     [orders]

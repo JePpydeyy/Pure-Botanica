@@ -1,11 +1,11 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import styles from "./comment.module.css";
 import Head from "next/head";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faRedo } from "@fortawesome/free-solid-svg-icons";
+import { faRedo, faReply } from "@fortawesome/free-solid-svg-icons";
 import ToastNotification from "../../user/ToastNotification/ToastNotification";
+import styles from "./comment.module.css";
 
 interface User {
   _id: string;
@@ -20,14 +20,22 @@ interface Product {
   images: string[];
 }
 
+interface Reply {
+  _id: string;
+  content: string;
+  createdAt: string;
+  user: User | null;
+}
+
 interface Comment {
   _id: string;
   content: string;
   createdAt: string;
   updatedAt: string;
-  user: User | null;
-  product: Product | null;
+  user: User | null | undefined;
+  product: Product | null | undefined;
   rating: number;
+  replies?: Reply[];
 }
 
 const CommentPage: React.FC = () => {
@@ -38,12 +46,17 @@ const CommentPage: React.FC = () => {
   const [selectedCommentId, setSelectedCommentId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [replyContent, setReplyContent] = useState<{ [key: string]: string }>({});
   const commentsPerPage = 9;
   const router = useRouter();
-  const [notification, setNotification] = useState({
+  const [notification, setNotification] = useState<{
+    show: boolean;
+    message: string;
+    type: "success" | "error";
+  }>({
     show: false,
     message: "",
-    type: "success" as "success" | "error",
+    type: "success",
   });
 
   const showNotification = (message: string, type: "success" | "error") => {
@@ -91,51 +104,59 @@ const CommentPage: React.FC = () => {
     }
   }, [router]);
 
-  useEffect(() => {
-    const fetchComments = async () => {
-      try {
-        setLoading(true);
-        const token = localStorage.getItem("token");
-        if (!token) {
-          throw new Error("Không tìm thấy token. Vui lòng đăng nhập lại.");
-        }
-
-        const res = await fetch("https://api-zeal.onrender.com/api/comments", {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          cache: "no-store",
-        });
-
-        if (res.status === 401 || res.status === 403) {
-          showNotification("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!", "error");
-          localStorage.removeItem("token");
-          localStorage.removeItem("role");
-          router.push("/user/login");
-          return;
-        }
-
-        if (!res.ok) {
-          throw new Error(`Lỗi khi tải danh sách bình luận: ${res.status}`);
-        }
-
-        const data: Comment[] = await res.json();
-        if (!Array.isArray(data)) {
-          throw new Error("Dữ liệu bình luận không hợp lệ");
-        }
-        setComments(data);
-        setFilteredComments(data);
-      } catch (error: any) {
-        const errorMessage = error.message || "Không thể tải danh sách bình luận.";
-        showNotification(errorMessage, "error");
-        setError(errorMessage);
-      } finally {
-        setLoading(false);
+  const fetchComments = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Không tìm thấy token. Vui lòng đăng nhập lại.");
       }
-    };
 
+      const res = await fetch("https://api-zeal.onrender.com/api/comments", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        cache: "no-store",
+      });
+
+      if (res.status === 401 || res.status === 403) {
+        showNotification("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!", "error");
+        localStorage.removeItem("token");
+        localStorage.removeItem("role");
+        router.push("/user/login");
+        return;
+      }
+
+      if (!res.ok) {
+        throw new Error(`Lỗi khi tải danh sách bình luận: ${res.status}`);
+      }
+
+      const data: Comment[] = await res.json();
+      if (!Array.isArray(data)) {
+        throw new Error("Dữ liệu bình luận không hợp lệ");
+      }
+
+      // Sanitize data to ensure user and product are null if undefined
+      const sanitizedData = data.map((comment) => ({
+        ...comment,
+        user: comment.user ?? null,
+        product: comment.product ?? null,
+      }));
+
+      setComments(sanitizedData);
+      setFilteredComments(sanitizedData);
+    } catch (error: any) {
+      const errorMessage = error.message || "Không thể tải danh sách bình luận.";
+      showNotification(errorMessage, "error");
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchComments();
   }, [router]);
 
@@ -143,10 +164,12 @@ const CommentPage: React.FC = () => {
     const filtered = comments.filter((comment) => {
       const matchesSearch =
         comment.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (comment.user?.username &&
-          comment.user.username.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (comment.product?.name &&
-          comment.product.name.toLowerCase().includes(searchQuery.toLowerCase()));
+        (comment.user && comment.user.username
+          ? comment.user.username.toLowerCase().includes(searchQuery.toLowerCase())
+          : false) ||
+        (comment.product && comment.product.name
+          ? comment.product.name.toLowerCase().includes(searchQuery.toLowerCase())
+          : false);
       return matchesSearch;
     });
     setFilteredComments(filtered);
@@ -155,6 +178,72 @@ const CommentPage: React.FC = () => {
 
   const handleToggleDetails = (commentId: string) => {
     setSelectedCommentId(selectedCommentId === commentId ? null : commentId);
+  };
+
+  const handleReplyChange = (commentId: string, value: string) => {
+    setReplyContent((prev) => ({ ...prev, [commentId]: value }));
+  };
+
+  const handleReplySubmit = async (commentId: string) => {
+    const content = replyContent[commentId]?.trim();
+    if (!content) {
+      showNotification("Nội dung phản hồi không được để trống.", "error");
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Không tìm thấy token. Vui lòng đăng nhập lại.");
+      }
+
+      const res = await fetch(`https://api-zeal.onrender.com/api/comments/${commentId}/reply`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ content }),
+      });
+
+      if (res.status === 401 || res.status === 403) {
+        showNotification("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!", "error");
+        localStorage.removeItem("token");
+        localStorage.removeItem("role");
+        router.push("/user/login");
+        return;
+      }
+
+      if (!res.ok) {
+        throw new Error(`Lỗi khi gửi phản hồi: ${res.status}`);
+      }
+
+      const data = await res.json();
+      showNotification(data.message || "Phản hồi đã được gửi thành công!", "success");
+
+      // Optional: Update client-side state for immediate feedback
+      setComments((prevComments) =>
+        prevComments.map((comment) =>
+          comment._id === commentId
+            ? { ...comment, replies: [...(comment.replies || []), data.reply] }
+            : comment
+        )
+      );
+      setFilteredComments((prevFiltered) =>
+        prevFiltered.map((comment) =>
+          comment._id === commentId
+            ? { ...comment, replies: [...(comment.replies || []), data.reply] }
+            : comment
+        )
+      );
+      setReplyContent((prev) => ({ ...prev, [commentId]: "" }));
+
+      // Reload comments from API to ensure data consistency
+      await fetchComments();
+    } catch (error: any) {
+      const errorMessage = error.message || "Không thể gửi phản hồi.";
+      showNotification(errorMessage, "error");
+    }
   };
 
   const totalPages = Math.ceil(filteredComments.length / commentsPerPage);
@@ -215,49 +304,7 @@ const CommentPage: React.FC = () => {
           onClick={() => {
             setLoading(true);
             setError(null);
-            (async () => {
-              try {
-                setLoading(true);
-                const token = localStorage.getItem("token");
-                if (!token) {
-                  throw new Error("Không tìm thấy token. Vui lòng đăng nhập lại.");
-                }
-
-                const res = await fetch("https://api-zeal.onrender.com/api/comments", {
-                  method: "GET",
-                  headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                  },
-                  cache: "no-store",
-                });
-
-                if (res.status === 401 || res.status === 403) {
-                  showNotification("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!", "error");
-                  localStorage.removeItem("token");
-                  localStorage.removeItem("role");
-                  router.push("/user/login");
-                  return;
-                }
-
-                if (!res.ok) {
-                  throw new Error(`Lỗi khi tải danh sách bình luận: ${res.status}`);
-                }
-
-                const data: Comment[] = await res.json();
-                if (!Array.isArray(data)) {
-                  throw new Error("Dữ liệu bình luận không hợp lệ");
-                }
-                setComments(data);
-                setFilteredComments(data);
-              } catch (error: any) {
-                const errorMessage = error.message || "Không thể tải danh sách bình luận.";
-                showNotification(errorMessage, "error");
-                setError(errorMessage);
-              } finally {
-                setLoading(false);
-              }
-            })();
+            fetchComments();
           }}
           title="Thử lại"
         >
@@ -323,11 +370,11 @@ const CommentPage: React.FC = () => {
                     <td>
                       <img
                         src={
-                          comment.product?.images && comment.product.images.length > 0
+                          comment.product && comment.product.images && comment.product.images.length > 0
                             ? normalizeImageUrl(comment.product.images[0])
                             : "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg"
                         }
-                        alt={comment.product?.name || "Sản phẩm"}
+                        alt={comment.product && comment.product.name ? comment.product.name : "Sản phẩm"}
                         width={48}
                         height={48}
                         className={styles.commentTableImage}
@@ -338,11 +385,11 @@ const CommentPage: React.FC = () => {
                       />
                     </td>
                     <td>
-                      {comment.user
+                      {comment.user && comment.user.username && comment.user.email
                         ? `${comment.user.username} (${comment.user.email})`
                         : "Người dùng không tồn tại"}
                     </td>
-                    <td>{comment.product?.name || "Sản phẩm không tồn tại"}</td>
+                    <td>{comment.product && comment.product.name ? comment.product.name : "Sản phẩm không tồn tại"}</td>
                     <td>{comment.content}</td>
                     <td>{renderStars(comment.rating)}</td>
                     <td>{formatDate(comment.createdAt)}</td>
@@ -358,10 +405,11 @@ const CommentPage: React.FC = () => {
                               <div className={styles.detailsGrid}>
                                 <p>
                                   <strong>Tên người dùng:</strong>{" "}
-                                  {comment.user?.username || "Không có"}
+                                  {comment.user && comment.user.username ? comment.user.username : "Không có"}
                                 </p>
                                 <p>
-                                  <strong>Email:</strong> {comment.user?.email || "Không có"}
+                                  <strong>Email:</strong>{" "}
+                                  {comment.user && comment.user.email ? comment.user.email : "Không có"}
                                 </p>
                               </div>
                             </div>
@@ -378,11 +426,11 @@ const CommentPage: React.FC = () => {
                               <div className={styles.detailsGrid}>
                                 <p>
                                   <strong>Tên sản phẩm:</strong>{" "}
-                                  {comment.product?.name || "Không có"}
+                                  {comment.product && comment.product.name ? comment.product.name : "Không có"}
                                 </p>
                                 <p>
                                   <strong>Giá:</strong>{" "}
-                                  {comment.product?.price
+                                  {comment.product && comment.product.price
                                     ? comment.product.price.toLocaleString() + "₫"
                                     : "Không có"}
                                 </p>
@@ -391,6 +439,48 @@ const CommentPage: React.FC = () => {
                             <div className={styles.detailsSection}>
                               <h4>Ngày bình luận</h4>
                               <p>{formatDate(comment.createdAt)}</p>
+                            </div>
+                            <div className={styles.detailsSection}>
+                              <h4>Phản hồi</h4>
+                              {comment.replies && comment.replies.length > 0 ? (
+                                <div className={styles.repliesContainer}>
+                                  {comment.replies.map((reply) => (
+                                    <div key={reply._id} className={styles.replyItem}>
+                                      <p>
+                                        <strong>
+                                          {reply.user && reply.user.username
+                                            ? reply.user.username
+                                            : "Admin"}
+                                          :
+                                        </strong>{" "}
+                                        {reply.content}
+                                      </p>
+                                      <p className={styles.replyDate}>
+                                        {formatDate(reply.createdAt)}
+                                      </p>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p>Chưa có phản hồi.</p>
+                              )}
+                              <div className={styles.replyInputContainer}>
+                                <textarea
+                                  value={replyContent[comment._id] || ""}
+                                  onChange={(e) => handleReplyChange(comment._id, e.target.value)}
+                                  placeholder="Nhập phản hồi của bạn..."
+                                  className={styles.replyInput}
+                                  aria-label="Nhập phản hồi"
+                                />
+                                <button
+                                  onClick={() => handleReplySubmit(comment._id)}
+                                  className={styles.replyButton}
+                                  title="Gửi phản hồi"
+                                  disabled={loading || !replyContent[comment._id]?.trim()}
+                                >
+                                  <FontAwesomeIcon icon={faReply} /> Gửi
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </div>

@@ -483,7 +483,7 @@ const AddBlog = () => {
       if (!response.ok) {
         if (result.error.includes("duplicate key")) {
           const newSlug = `${formData.slug}-${Date.now()}`;
-          showNotification(`Slug '${formData.slug}' đã tồn tại. Đã tạo slug mới: ${newSlug}`, "warning");
+          showNotification(`Slug '${formData.slug}' đã tồn tại. Đã tạo slug mới: ${newSlug}`, "success");
           formDataToSend.set("slug", newSlug);
           const retryResponse = await fetch(`${API_DOMAIN}/api/news`, {
             method: "POST",

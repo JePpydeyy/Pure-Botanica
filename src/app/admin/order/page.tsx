@@ -72,7 +72,7 @@ const OrderPage: React.FC = () => {
   const [selectedCancelReason, setSelectedCancelReason] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [shippingStatusFilter, setShippingStatusFilter] = useState<string>("all");
-  const [sortOrder, setSortOrder] = useState<SortOrder>("desc"); // New state for sort order
+  const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [notification, setNotification] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const ordersPerPage = 9;
@@ -121,7 +121,7 @@ const OrderPage: React.FC = () => {
   };
 
   const statusProgression: { [key: string]: string[] } = {
-    pending: ["in_transit", "cancelled"],
+    pending: ["in_transit"],
     in_transit: ["delivered"],
     delivered: [],
     returned: [],
@@ -134,7 +134,6 @@ const OrderPage: React.FC = () => {
     { value: "in_transit", label: "Đang vận chuyển" },
     { value: "delivered", label: "Đã giao hàng" },
     { value: "returned", label: "Hoàn hàng" },
-    { value: "cancelled", label: "Hủy đơn hàng" },
   ];
 
   const returnStatuses = [
@@ -151,7 +150,6 @@ const OrderPage: React.FC = () => {
     setNotification({ message, type });
   };
 
-  // Check admin access
   useEffect(() => {
     const token = localStorage.getItem("token");
     const role = localStorage.getItem("role");
@@ -161,7 +159,6 @@ const OrderPage: React.FC = () => {
     }
   }, [router]);
 
-  // Fetch orders
   useEffect(() => {
     const fetchOrders = async () => {
       try {
@@ -241,7 +238,6 @@ const OrderPage: React.FC = () => {
         return matchesSearch && matchesShippingStatus;
       });
 
-      // Sort orders by createdAt
       filtered = filtered.sort((a, b) => {
         const dateA = new Date(a.createdAt).getTime();
         const dateB = new Date(b.createdAt).getTime();

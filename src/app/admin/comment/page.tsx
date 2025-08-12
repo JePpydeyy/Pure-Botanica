@@ -2,11 +2,13 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Head from "next/head";
+import Image from "next/image";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faRedo, faReply } from "@fortawesome/free-solid-svg-icons";
 import ToastNotification from "../../user/ToastNotification/ToastNotification";
 import styles from "./comment.module.css";
 
+// Interface definitions
 interface User {
   _id: string;
   username: string;
@@ -26,7 +28,6 @@ interface Reply {
   content: string;
   createdAt: string;
   user: User | null;
-  parentReplyIndex?: number;
 }
 
 interface Comment {
@@ -37,50 +38,268 @@ interface Comment {
   user: User | null;
   product: Product | null;
   rating: number;
-  replies?: Reply[];
+  images: string[]; // Thêm trường images từ schema
+  status: "show" | "hidden";
+  adminReply?: Reply;
 }
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api-zeal.onrender.com";
+const TIMEOUT_DURATION = 10000;
+const TOAST_DURATION = 3000;
+const ERROR_IMAGE_URL = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+
+// Hàm tiện ích: Lấy URL hình ảnh (tái sử dụng từ DetailPage)
+const getImageUrl = (image: string): string => {
+  if (!image || typeof image !== "string" || image.trim() === "") {
+    console.warn("Invalid image URL detected, using fallback:", ERROR_IMAGE_URL);
+    return ERROR_IMAGE_URL;
+  }
+  try {
+    new URL(image);
+    return image;
+  } catch (e) {
+    console.warn("Invalid URL format for image:", image, "using fallback:", ERROR_IMAGE_URL);
+    return ERROR_IMAGE_URL;
+  }
+};
+
+// Hàm giải mã token JWT (tái sử dụng từ DetailPage)
+const decodeToken = (token: string) => {
+  try {
+    const base64Url = token.split(".")[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join("")
+    );
+    return JSON.parse(jsonPayload);
+  } catch (error) {
+    console.error("Lỗi khi giải mã token:", error);
+    return null;
+  }
+};
+
+// Hook lấy thông tin người dùng (tái sử dụng từ DetailPage)
+const useUserInfo = () => {
+  const [userId, setUserId] = useState<string | null>(null);
+  const [role, setRole] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      const decoded = decodeToken(token);
+      if (decoded) {
+        setUserId(decoded.id || decoded._id);
+        setRole(decoded.role || "user");
+      }
+    }
+    setLoading(false);
+  }, []);
+
+  return { userId, role, loading };
+};
+
+// Hook quản lý toast (tái sử dụng từ DetailPage)
+const useToast = () => {
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  const showToast = (type: "success" | "error", text: string) => {
+    setMessage({ type, text });
+    setTimeout(() => setMessage(null), TOAST_DURATION);
+  };
+
+  const hideToast = () => setMessage(null);
+
+  return { message, showToast, hideToast };
+};
+
+// Hàm gọi API với timeout (tái sử dụng từ DetailPage)
+const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
+  const url = `${API_BASE_URL}${endpoint}`;
+  const token = localStorage.getItem("token");
+
+  const defaultHeaders: HeadersInit = {
+    ...(token && { Authorization: `Bearer ${token}` }),
+  };
+
+  const config: RequestInit = {
+    ...options,
+    headers: {
+      ...defaultHeaders,
+      ...options.headers,
+    },
+  };
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_DURATION);
+
+  try {
+    const response = await fetch(url, {
+      ...config,
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Lỗi HTTP: ${response.status} - ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error("Yêu cầu bị timeout");
+    }
+    throw error;
+  }
+};
 
 const CommentPage: React.FC = () => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [filteredComments, setFilteredComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedCommentId, setSelectedCommentId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [replyContent, setReplyContent] = useState<{ [key: string]: string }>({});
-  const [replyToReplyContent, setReplyToReplyContent] = useState<{ [key: string]: string }>({});
-  const [replyingTo, setReplyingTo] = useState<{ commentId: string; replyIndex: number } | null>(null);
+  const [selectedCommentId, setSelectedCommentId] = useState<string | null>(null);
+  const [showReplyForm, setShowReplyForm] = useState<string | null>(null);
+  const [adminReplyContent, setAdminReplyContent] = useState<string>("");
+  const [submittingAdminReply, setSubmittingAdminReply] = useState<boolean>(false);
+  const [cacheBuster, setCacheBuster] = useState<string>("");
   const commentsPerPage = 9;
-  const router = useRouter();
-  const [notification, setNotification] = useState<{
-    show: boolean;
-    message: string;
-    type: "success" | "error";
-  }>({
-    show: false,
-    message: "",
-    type: "success",
-  });
 
-  const showNotification = (message: string, type: "success" | "error") => {
-    setNotification({ show: true, message, type });
+  const router = useRouter();
+  const { role, loading: userLoading } = useUserInfo();
+  const { message, showToast, hideToast } = useToast();
+
+  // Tạo cacheBuster để tránh cache hình ảnh
+  useEffect(() => {
+    setCacheBuster(`t=${Date.now()}`);
+  }, []);
+
+  // Kiểm tra quyền admin
+  useEffect(() => {
+    if (!userLoading && role !== "admin") {
+      showToast("error", "Bạn cần quyền admin để truy cập trang này.");
+      router.push("/user/login");
+    }
+  }, [role, userLoading, router, showToast]);
+
+  // Lấy danh sách bình luận
+  const fetchComments = async () => {
+    try {
+      setLoading(true);
+      const data = await apiRequest("/api/comments");
+      const sanitizedData = data
+        .filter((comment: Comment) => comment.user && comment.product)
+        .map((comment: Comment) => ({
+          ...comment,
+          user: comment.user ?? null,
+          product: comment.product ?? null,
+          images: Array.isArray(comment.images) ? comment.images : [],
+          adminReply: comment.adminReply ?? undefined,
+        }));
+      setComments(sanitizedData);
+      setFilteredComments(sanitizedData);
+    } catch (error: any) {
+      showToast("error", error.message || "Không thể tải danh sách bình luận.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (role === "admin") {
+      fetchComments();
+    }
+  }, [role]);
+
+  // Lọc bình luận theo tìm kiếm
+  useEffect(() => {
+    const filtered = comments.filter((comment) => {
+      const matchesSearch =
+        (comment.content || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (comment.user?.username || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (comment.product?.name || "").toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesSearch;
+    });
+    setFilteredComments(filtered);
+    setCurrentPage(1);
+    setSelectedCommentId(null);
+    setShowReplyForm(null);
+  }, [searchQuery, comments]);
+
+  // Gửi phản hồi admin
+  const submitAdminReply = async (commentId: string) => {
+    if (!adminReplyContent.trim()) {
+      showToast("error", "Vui lòng nhập nội dung phản hồi!");
+      return;
+    }
+    if (role !== "admin") {
+      showToast("error", "Bạn không có quyền gửi phản hồi admin!");
+      return;
+    }
+
+    setSubmittingAdminReply(true);
+    try {
+      await apiRequest(`/api/comments/${commentId}/reply`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ content: adminReplyContent.trim() }),
+      });
+
+      const updatedComments = await apiRequest("/api/comments");
+      const sanitizedData = updatedComments
+        .filter((comment: Comment) => comment.user && comment.product)
+        .map((comment: Comment) => ({
+          ...comment,
+          user: comment.user ?? null,
+          product: comment.product ?? null,
+          images: Array.isArray(comment.images) ? comment.images : [],
+          adminReply: comment.adminReply ?? undefined,
+        }));
+      setComments(sanitizedData);
+      setFilteredComments(sanitizedData);
+      setAdminReplyContent("");
+      setShowReplyForm(null);
+      showToast("success", "Phản hồi đã được gửi!");
+    } catch (error: any) {
+      showToast("error", error.message || "Lỗi khi gửi phản hồi admin!");
+    } finally {
+      setSubmittingAdminReply(false);
+    }
+  };
+
+  // Toggle hiển thị chi tiết
+  const handleToggleDetails = (commentId: string) => {
+    setSelectedCommentId(selectedCommentId === commentId ? null : commentId);
+    setShowReplyForm(null);
+    setAdminReplyContent("");
+  };
+
+  // Toggle form trả lời
+  const toggleReplyForm = (commentId: string) => {
+    setShowReplyForm((prev) => (prev === commentId ? null : commentId));
+    setAdminReplyContent("");
   };
 
   const normalizeImageUrl = (path: string): string => {
-    if (path.startsWith("http")) return path;
-    return `https://api-zeal.onrender.com${path.startsWith("/") ? "" : "/"}${path}`;
+    return getImageUrl(path);
   };
 
   const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    return date.toLocaleString("vi-VN", {
+    return new Date(dateString).toLocaleString("vi-VN", {
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
       hour: "2-digit",
       minute: "2-digit",
-      second: "2-digit",
     });
   };
 
@@ -99,239 +318,6 @@ const CommentPage: React.FC = () => {
     );
   };
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    const role = localStorage.getItem("role");
-    if (!token || role !== "admin") {
-      showNotification("Bạn cần quyền admin để truy cập trang này.", "error");
-      router.push("/user/login");
-    }
-  }, [router]);
-
-  const fetchComments = async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem("token");
-      if (!token) {
-        throw new Error("Không tìm thấy token. Vui lòng đăng nhập lại.");
-      }
-
-      const res = await fetch("https://api-zeal.onrender.com/api/comments", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        cache: "no-store",
-      });
-
-      if (res.status === 401 || res.status === 403) {
-        showNotification("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!", "error");
-        localStorage.removeItem("token");
-        localStorage.removeItem("role");
-        router.push("/user/login");
-        return;
-      }
-
-      if (!res.ok) {
-        throw new Error(`Lỗi khi tải danh sách bình luận: ${res.status}`);
-      }
-
-      const data: Comment[] = await res.json();
-      console.log("Dữ liệu thô từ API:", data);
-
-      if (!Array.isArray(data)) {
-        throw new Error("Dữ liệu bình luận không hợp lệ");
-      }
-
-      const sanitizedData = data
-        .filter((comment) => comment.user && comment.product)
-        .map((comment) => ({
-          ...comment,
-          user: comment.user ?? null,
-          product: comment.product ?? null,
-          replies: comment.replies?.map((reply) => ({
-            ...reply,
-            user: reply.user ?? null,
-            parentReplyIndex: reply.parentReplyIndex ?? undefined,
-          })) ?? [],
-        }));
-
-      setComments(sanitizedData);
-      setFilteredComments(sanitizedData);
-    } catch (error: any) {
-      const errorMessage = error.message || "Không thể tải danh sách bình luận.";
-      showNotification(errorMessage, "error");
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchComments();
-  }, [router]);
-
-  useEffect(() => {
-    const filtered = comments.filter((comment) => {
-      const matchesSearch =
-        (comment.content || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (comment.user?.username
-          ? comment.user.username.toLowerCase().includes(searchQuery.toLowerCase())
-          : false) ||
-        (comment.product?.name
-          ? comment.product.name.toLowerCase().includes(searchQuery.toLowerCase())
-          : false);
-      return matchesSearch;
-    });
-    setFilteredComments(filtered);
-    setCurrentPage(1);
-  }, [searchQuery, comments]);
-
-  const handleToggleDetails = (commentId: string) => {
-    setSelectedCommentId(selectedCommentId === commentId ? null : commentId);
-    setReplyingTo(null);
-  };
-
-  const handleReplyChange = (commentId: string, value: string) => {
-    setReplyContent((prev) => ({ ...prev, [commentId]: value }));
-  };
-
-  const handleReplyToReplyChange = (commentId: string, replyIndex: number, value: string) => {
-    const key = `${commentId}-${replyIndex}`;
-    setReplyToReplyContent((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const handleReplySubmit = async (commentId: string) => {
-    const content = replyContent[commentId]?.trim();
-    if (!content) {
-      showNotification("Nội dung phản hồi không được để trống.", "error");
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        throw new Error("Không tìm thấy token. Vui lòng đăng nhập lại.");
-      }
-
-      const res = await fetch(`https://api-zeal.onrender.com/api/comments/${commentId}/reply`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ content }),
-      });
-
-      if (res.status === 401 || res.status === 403) {
-        showNotification("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!", "error");
-        localStorage.removeItem("token");
-        localStorage.removeItem("role");
-        router.push("/user/login");
-        return;
-      }
-
-      if (!res.ok) {
-        throw new Error(`Lỗi khi gửi phản hồi: ${res.status}`);
-      }
-
-      const data = await res.json();
-      showNotification(data.message || "Phản hồi đã được gửi thành công!", "success");
-
-      setComments((prevComments) =>
-        prevComments.map((comment) =>
-          comment._id === commentId
-            ? { ...comment, replies: [...(comment.replies || []), data.comment.replies[data.comment.replies.length - 1]] }
-            : comment
-        )
-      );
-      setFilteredComments((prevFiltered) =>
-        prevFiltered.map((comment) =>
-          comment._id === commentId
-            ? { ...comment, replies: [...(comment.replies || []), data.comment.replies[data.comment.replies.length - 1]] }
-            : comment
-        )
-      );
-      setReplyContent((prev) => ({ ...prev, [commentId]: "" }));
-
-      await fetchComments();
-    } catch (error: any) {
-      const errorMessage = error.message || "Không thể gửi phản hồi.";
-      showNotification(errorMessage, "error");
-    }
-  };
-
-  const handleReplyToReplySubmit = async (commentId: string, replyIndex: number) => {
-    const key = `${commentId}-${replyIndex}`;
-    const content = replyToReplyContent[key]?.trim();
-    if (!content) {
-      showNotification("Nội dung phản hồi không được để trống.", "error");
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        throw new Error("Không tìm thấy token. Vui lòng đăng nhập lại.");
-      }
-
-      const res = await fetch(`https://api-zeal.onrender.com/api/comments/${commentId}/reply-to-reply`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ content, replyIndex }),
-      });
-
-      if (res.status === 401 || res.status === 403) {
-        showNotification("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!", "error");
-        localStorage.removeItem("token");
-        localStorage.removeItem("role");
-        router.push("/user/login");
-        return;
-      }
-
-      if (!res.ok) {
-        throw new Error(`Lỗi khi gửi phản hồi: ${res.status}`);
-      }
-
-      const data = await res.json();
-      showNotification(data.message || "Phản hồi đã được gửi thành công!", "success");
-
-      setComments((prevComments) =>
-        prevComments.map((comment) =>
-          comment._id === commentId
-            ? { ...comment, replies: [...(comment.replies || []), data.comment.replies[data.comment.replies.length - 1]] }
-            : comment
-        )
-      );
-      setFilteredComments((prevFiltered) =>
-        prevFiltered.map((comment) =>
-          comment._id === commentId
-            ? { ...comment, replies: [...(comment.replies || []), data.comment.replies[data.comment.replies.length - 1]] }
-            : comment
-        )
-      );
-      setReplyToReplyContent((prev) => ({ ...prev, [key]: "" }));
-      setReplyingTo(null);
-
-      await fetchComments();
-    } catch (error: any) {
-      const errorMessage = error.message || "Không thể gửi phản hồi.";
-      showNotification(errorMessage, "error");
-    }
-  };
-
-  const handleToggleReplyForm = (commentId: string, replyIndex: number) => {
-    setReplyingTo(
-      replyingTo?.commentId === commentId && replyingTo?.replyIndex === replyIndex
-        ? null
-        : { commentId, replyIndex }
-    );
-  };
-
   const totalPages = Math.ceil(filteredComments.length / commentsPerPage);
   const indexOfLastComment = currentPage * commentsPerPage;
   const indexOfFirstComment = indexOfLastComment - commentsPerPage;
@@ -341,7 +327,7 @@ const CommentPage: React.FC = () => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
       setSelectedCommentId(null);
-      setReplyingTo(null);
+      setShowReplyForm(null);
     }
   };
 
@@ -382,36 +368,13 @@ const CommentPage: React.FC = () => {
     );
   }
 
-  if (error && comments.length === 0) {
-    return (
-      <div className={styles.errorContainer}>
-        <p className={styles.errorMessage}>{error}</p>
-        <button
-          className={styles.retryButton}
-          onClick={() => {
-            setLoading(true);
-            setError(null);
-            fetchComments();
-          }}
-          title="Thử lại"
-        >
-          <FontAwesomeIcon icon={faRedo} />
-        </button>
-      </div>
-    );
-  }
-
   return (
     <div className={styles.commentManagementContainer}>
       <Head>
         <title>Quản Lý Bình Luận</title>
       </Head>
-      {notification.show && (
-        <ToastNotification
-          message={notification.message}
-          type={notification.type}
-          onClose={() => setNotification({ show: false, message: "", type: "success" })}
-        />
+      {message && (
+        <ToastNotification message={message.text} type={message.type} onClose={hideToast} />
       )}
       {loading && comments.length > 0 && (
         <div className={styles.processingIndicator}>
@@ -459,15 +422,15 @@ const CommentPage: React.FC = () => {
                         src={
                           comment.product?.images?.length
                             ? normalizeImageUrl(comment.product.images[0])
-                            : "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg"
+                            : ERROR_IMAGE_URL
                         }
                         alt={comment.product?.name || "Sản phẩm"}
                         width={48}
                         height={48}
                         className={styles.commentTableImage}
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src =
-                            "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+                          console.log(`Product image load failed, switched to 404 fallback`);
+                          (e.target as HTMLImageElement).src = ERROR_IMAGE_URL;
                         }}
                       />
                     </td>
@@ -518,78 +481,81 @@ const CommentPage: React.FC = () => {
                               </div>
                             </div>
                             <div className={styles.detailsSection}>
+                              <h4>Hình ảnh đánh giá</h4>
+                              {comment.images && comment.images.length > 0 ? (
+                                <div className={styles.commentImages}>
+                                  {comment.images.map((image, imgIndex) => (
+                                    <Image
+                                      key={`comment-img-${imgIndex}`}
+                                      src={`${getImageUrl(image)}?${cacheBuster}`}
+                                      alt={`Comment image ${imgIndex + 1}`}
+                                      width={100}
+                                      height={100}
+                                      className={styles.commentImg}
+                                      onError={(e) => {
+                                        console.log(`Comment image ${imgIndex + 1} load failed, switched to 404 fallback`);
+                                        (e.target as HTMLImageElement).src = ERROR_IMAGE_URL;
+                                      }}
+                                    />
+                                  ))}
+                                </div>
+                              ) : (
+                                <p>Không có hình ảnh.</p>
+                              )}
+                            </div>
+                            <div className={styles.detailsSection}>
                               <h4>Ngày đánh giá</h4>
                               <p>{formatDate(comment.createdAt)}</p>
                             </div>
                             <div className={styles.detailsSection}>
                               <h4>Phản hồi</h4>
-                              {comment.replies && comment.replies.length > 0 ? (
-                                <div className={styles.repliesContainer}>
-                                  {comment.replies.map((reply, index) => (
-                                    <div key={reply._id} className={styles.replyItem}>
-                                      <p>
-                                        <strong>
-                                          {reply.user?.username || "Admin"}:
-                                        </strong>{" "}
-                                        {reply.content}
-                                      </p>
-                                      <p className={styles.replyDate}>
-                                        {formatDate(reply.createdAt)}
-                                      </p>
-                                      {reply.user?.role === "admin" && (
-                                        <button
-                                          onClick={() => handleToggleReplyForm(comment._id, index)}
-                                          className={styles.replyButton}
-                                          title="Trả lời phản hồi"
-                                        >
-                                          <FontAwesomeIcon icon={faReply} /> Trả lời
-                                        </button>
-                                      )}
-                                      {replyingTo?.commentId === comment._id &&
-                                        replyingTo?.replyIndex === index && (
-                                          <div className={styles.replyInputContainer}>
-                                            <textarea
-                                              value={replyToReplyContent[`${comment._id}-${index}`] || ""}
-                                              onChange={(e) =>
-                                                handleReplyToReplyChange(comment._id, index, e.target.value)
-                                              }
-                                              placeholder="Nhập phản hồi của bạn..."
-                                              className={styles.replyInput}
-                                              aria-label="Nhập phản hồi cho phản hồi"
-                                            />
-                                            <button
-                                              onClick={() => handleReplyToReplySubmit(comment._id, index)}
-                                              className={styles.replyButton}
-                                              title="Gửi phản hồi"
-                                              disabled={loading || !replyToReplyContent[`${comment._id}-${index}`]?.trim()}
-                                            >
-                                              <FontAwesomeIcon icon={faReply} /> Gửi
-                                            </button>
-                                          </div>
-                                        )}
-                                    </div>
-                                  ))}
+                              {comment.adminReply ? (
+                                <div className={styles.adminReply}>
+                                  <p>
+                                    <strong>Admin:</strong> {comment.adminReply.content}
+                                  </p>
+                                  <p>{formatDate(comment.adminReply.createdAt)}</p>
                                 </div>
                               ) : (
-                                <p>Chưa có phản hồi.</p>
+                                <>
+                                  <button
+                                    className={styles.replyButton}
+                                    onClick={() => toggleReplyForm(comment._id)}
+                                    disabled={submittingAdminReply}
+                                  >
+                                    <FontAwesomeIcon icon={faReply} /> Trả lời
+                                  </button>
+                                  {showReplyForm === comment._id && (
+                                    <div className={styles.adminReplyForm}>
+                                      <textarea
+                                        value={adminReplyContent}
+                                        onChange={(e) => setAdminReplyContent(e.target.value)}
+                                        placeholder="Nhập phản hồi của bạn..."
+                                        rows={2}
+                                        maxLength={500}
+                                        disabled={submittingAdminReply}
+                                        className={styles.replyInput}
+                                      />
+                                      <div className={styles.formButtons}>
+                                        <button
+                                          onClick={() => submitAdminReply(comment._id)}
+                                          disabled={submittingAdminReply || !adminReplyContent.trim()}
+                                          className={styles.replyButton}
+                                        >
+                                          {submittingAdminReply ? "Đang gửi..." : "Gửi phản hồi"}
+                                        </button>
+                                        <button
+                                          onClick={() => toggleReplyForm(comment._id)}
+                                          disabled={submittingAdminReply}
+                                          className={styles.cancelButton}
+                                        >
+                                          Hủy
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )}
+                                </>
                               )}
-                              <div className={styles.replyInputContainer}>
-                                <textarea
-                                  value={replyContent[comment._id] || ""}
-                                  onChange={(e) => handleReplyChange(comment._id, e.target.value)}
-                                  placeholder="Nhập phản hồi của bạn..."
-                                  className={styles.replyInput}
-                                  aria-label="Nhập phản hồi"
-                                />
-                                <button
-                                  onClick={() => handleReplySubmit(comment._id)}
-                                  className={styles.replyButton}
-                                  title="Gửi phản hồi"
-                                  disabled={loading || !replyContent[comment._id]?.trim()}
-                                >
-                                  <FontAwesomeIcon icon={faReply} /> Gửi
-                                </button>
-                              </div>
                             </div>
                           </div>
                         </div>
@@ -621,14 +587,12 @@ const CommentPage: React.FC = () => {
                       className={`${styles.pageLink} ${styles.firstLastPage}`}
                       onClick={() => handlePageChange(1)}
                       disabled={loading}
-                      title="Trang đầu tiên"
                     >
                       1
                     </button>
                     <div
                       className={styles.ellipsis}
                       onClick={() => handlePageChange(Math.max(1, currentPage - 3))}
-                      title="Trang trước đó"
                     >
                       ...
                     </div>
@@ -642,7 +606,6 @@ const CommentPage: React.FC = () => {
                     }`}
                     onClick={() => handlePageChange(page)}
                     disabled={loading}
-                    title={`Trang ${page}`}
                   >
                     {page}
                   </button>
@@ -652,7 +615,6 @@ const CommentPage: React.FC = () => {
                     <div
                       className={styles.ellipsis}
                       onClick={() => handlePageChange(Math.min(totalPages, currentPage + 3))}
-                      title="Trang tiếp theo"
                     >
                       ...
                     </div>
@@ -660,7 +622,6 @@ const CommentPage: React.FC = () => {
                       className={`${styles.pageLink} ${styles.firstLastPage}`}
                       onClick={() => handlePageChange(totalPages)}
                       disabled={loading}
-                      title="Trang cuối cùng"
                     >
                       {totalPages}
                     </button>

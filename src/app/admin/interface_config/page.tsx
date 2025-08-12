@@ -19,7 +19,7 @@ type PreviewType = {
 
 export default function ConfigPage() {
   const [message, setMessage] = useState("");
-  const [messageType, setMessageType] = useState<"success" | "error" | "warning" | "">("");
+  const [messageType, setMessageType] = useState<null | "success" | "error" | "warning">(null)
   const [loading, setLoading] = useState(false);
   const [previews, setPreviews] = useState<PreviewType>({
     logo: null,
@@ -138,7 +138,8 @@ export default function ConfigPage() {
     if (message && messageType) {
       const timer = setTimeout(() => {
         setMessage("");
-        setMessageType("");
+        setMessageType(null);
+
       }, 3000);
       return () => clearTimeout(timer);
     }
@@ -167,7 +168,8 @@ export default function ConfigPage() {
     event.preventDefault();
     setLoading(true);
     setMessage("");
-    setMessageType("");
+    setMessageType(null);
+
 
     const token = localStorage.getItem("token");
     if (!validateToken(token)) {
@@ -315,7 +317,8 @@ export default function ConfigPage() {
           type={messageType}
           onClose={() => {
             setMessage("");
-            setMessageType("");
+            setMessageType(null);
+
           }}
         />
       )}

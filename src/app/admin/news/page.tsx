@@ -92,13 +92,12 @@ const AdminNewsPage: React.FC = () => {
   const showNotification = (message: string, type: "success" | "error") => {
     if (type === "success") {
       toast.success(message, {
-        className: styles.customToast,
-        bodyClassName: styles.customToastBody,
+         className: `${styles.customToast} ${styles.customToastBody}`
       });
     } else {
       toast.error(message, {
-        className: styles.customToast,
-        bodyClassName: styles.customToastBody,
+                 className: `${styles.customToast} ${styles.customToastBody}`
+
       });
     }
   };
@@ -249,19 +248,19 @@ const AdminNewsPage: React.FC = () => {
   return (
     <div className={styles.orderManagementContainer}>
       <ToastContainer
-        position="top-right"
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="light"
-        toastClassName={styles.customToast}
-        bodyClassName={styles.customToastBody}
-      />
+  position="top-right"
+  autoClose={3000}
+  hideProgressBar={false}
+  newestOnTop={false}
+  closeOnClick
+  rtl={false}
+  pauseOnFocusLoss
+  draggable
+  pauseOnHover
+  theme="light"
+  toastClassName={`${styles.customToast} ${styles.customToastBody}`}
+/>
+
 
       <div className={styles.titleContainer}>
         <h1>QUẢN LÝ TIN TỨC</h1>

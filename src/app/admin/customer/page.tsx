@@ -306,7 +306,7 @@ export default function Customer() {
         />
       )}
       <div className={styles.titleContainer}>
-        <h1>{roleFilter === "user" ? "QUẢN LÝ KHÁCH HÀNG" : "QUẢN LÝ QUẢN TRỊ VIÊN"}</h1>
+        <h1>{roleFilter === "user" ? "QUẢN LÝ TÀi KHOẢN KHÁCH HÀNG" : "QUẢN LÝ TÀi KHOẢN QUẢN TRỊ VIÊN"}</h1>
         <div className={styles.filterContainer}>
           <input
             type="text"

@@ -15,7 +15,8 @@ const ERROR_IMAGE_URL = "https://png.pngtree.com/png-vector/20210227/ourlarge/pn
 const TIMEOUT_DURATION = 10000;
 const MIN_COMMENT_LENGTH = 3;
 const TOAST_DURATION = 3000;
-const REVIEW_WINDOW_DAYS = 7; // Thời gian cho phép đánh giá (ngày)
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png"];
 
 // Hàm tiện ích: Định dạng giá tiền
 const formatPrice = (price: number): string => {
@@ -69,7 +70,7 @@ const useUserInfo = () => {
       if (decoded) {
         const userIdFromToken = decoded.id || decoded._id;
         const usernameFromToken = decoded.username || "Người dùng";
-        const roleFromToken = decoded.role || null;
+        const roleFromToken = decoded.role || "user";
         if (userIdFromToken) {
           setUserId(userIdFromToken);
           setUsername(usernameFromToken);
@@ -102,8 +103,7 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
   const url = `${API_BASE_URL}${endpoint}`;
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
-  const defaultHeaders = {
-    "Content-Type": "application/json",
+  const defaultHeaders: HeadersInit = {
     ...(token && { Authorization: `Bearer ${token}` }),
   };
 
@@ -128,7 +128,7 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `Lỗi HTTP: ${response.status}`);
+      throw new Error(errorData.error || `Lỗi HTTP: ${response.status} - ${response.statusText}`);
     }
 
     return await response.json();
@@ -156,15 +156,18 @@ export default function DetailPage() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
   const [submittingComment, setSubmittingComment] = useState(false);
+  const [submittingAdminReply, setSubmittingAdminReply] = useState(false);
   const [selectedOptionIndex, setSelectedOptionIndex] = useState(0);
   const [favoriteProducts, setFavoriteProducts] = useState<string[]>([]);
   const [isFavorite, setIsFavorite] = useState<boolean>(false);
   const [rating, setRating] = useState<number>(0);
-  const [replyContent, setReplyContent] = useState<string>("");
-  const [replyingTo, setReplyingTo] = useState<string | null>(null);
-  const [userReplyContent, setUserReplyContent] = useState<string>("");
-  const [replyingToReplyIndex, setReplyingToReplyIndex] = useState<number | null>(null);
+  const [images, setImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [canReview, setCanReview] = useState<boolean>(false);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [adminReplyContent, setAdminReplyContent] = useState<string>("");
+  const [showReplyForm, setShowReplyForm] = useState<string | null>(null); // Quản lý form trả lời
+  const [showAdminReply, setShowAdminReply] = useState<{ [key: string]: boolean }>({}); // Quản lý toggle adminReply
 
   const { userId, username, role, loading: userLoading } = useUserInfo();
   const { message: cartMessage, showToast: showCartToast, hideToast: hideCartToast } = useToast();
@@ -180,7 +183,82 @@ export default function DetailPage() {
     setQuantity(1);
   }, [selectedOptionIndex]);
 
-  // Kiểm tra điều kiện đánh giá
+  // Xử lý chọn hình ảnh
+  const handleImageChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    const newImages: File[] = [];
+    const newPreviews: string[] = [];
+
+    Array.from(files).forEach((file) => {
+      if (newImages.length >= 5) return;
+      if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+        showCommentToast("error", "Chỉ hỗ trợ định dạng JPEG hoặc PNG!");
+        return;
+      }
+      if (file.size > MAX_IMAGE_SIZE) {
+        showCommentToast("error", "Hình ảnh không được vượt quá 5MB!");
+        return;
+      }
+      newImages.push(file);
+      newPreviews.push(URL.createObjectURL(file));
+    });
+
+    setImages(newImages);
+    setImagePreviews(newPreviews);
+  }, [showCommentToast]);
+
+  // Dọn dẹp URL preview khi component unmount hoặc hình ảnh thay đổi
+  useEffect(() => {
+    return () => {
+      imagePreviews.forEach((preview) => URL.revokeObjectURL(preview));
+    };
+  }, [imagePreviews]);
+
+  // Kiểm tra điều kiện để hiển thị nút "VIẾT ĐÁNH GIÁ"
+  useEffect(() => {
+    const checkReviewEligibility = async () => {
+      if (!userId || !product?._id || userLoading) {
+        setCanReview(false);
+        return;
+      }
+
+      try {
+        const orders = await apiRequest(`/api/orders/user/${userId}`);
+        if (!Array.isArray(orders) || orders.length === 0) {
+          console.log("No orders found for user:", userId);
+          setCanReview(false);
+          return;
+        }
+
+        const existingComments = await apiRequest(`/api/comments/product/${product._id}`);
+        const hasCommented = existingComments.some((comment: Comment) => comment.user?._id === userId);
+        if (hasCommented) {
+          console.log("User has already commented on this product:", product._id);
+          setCanReview(false);
+          return;
+        }
+
+        const eligibleOrder = orders.find((order: any) => {
+          console.log("Checking order:", order);
+          return (
+            order.paymentStatus === "completed" &&
+            order.shippingStatus === "delivered" &&
+            order.items.some((item: any) => item.product?._id === product._id)
+          );
+        });
+
+        setCanReview(!!eligibleOrder);
+        console.log("canReview set to:", !!eligibleOrder);
+      } catch (error) {
+        console.error("Error checking review eligibility:", error);
+        setCanReview(false);
+      }
+    };
+
+    checkReviewEligibility();
+  }, [userId, product?._id, userLoading]);
 
   // Lấy thông tin sản phẩm và danh sách yêu thích
   useEffect(() => {
@@ -195,6 +273,7 @@ export default function DetailPage() {
       try {
         setLoading(true);
         const data = await apiRequest(`/api/products/${identifier}`);
+        console.log("Fetched product data:", data);
         setProduct(data);
       } catch (error) {
         console.error("Lỗi khi lấy sản phẩm:", error);
@@ -250,11 +329,9 @@ export default function DetailPage() {
   useEffect(() => {
     const fetchComments = async () => {
       if (!product?._id) {
-        console.log("Product ID is undefined or null");
         setComments([]);
         return;
       }
-      console.log("Fetching comments for productId:", product._id);
       try {
         const data = await apiRequest(`/api/comments/product/${product._id}`);
         setComments(Array.isArray(data) ? data : []);
@@ -398,52 +475,43 @@ export default function DetailPage() {
 
     setSubmittingComment(true);
     try {
-      // Lấy danh sách đơn hàng của người dùng
+      const productData = await apiRequest(`/api/products/${product._id}`);
+      if (productData.id_brand && productData.id_brand.status === "hidden") {
+        throw new Error("Không thể đánh giá vì thương hiệu của sản phẩm đang bị ẩn!");
+      }
+
       const orders = await apiRequest(`/api/orders/user/${userId}`);
       if (!Array.isArray(orders) || orders.length === 0) {
         throw new Error("Bạn chưa có đơn hàng nào!");
       }
 
-      // Lấy danh sách bình luận của sản phẩm
       const existingComments = await apiRequest(`/api/comments/product/${product._id}`);
-      const commentedOrderIds = existingComments
-        .filter((comment: Comment) => comment.userId === userId && comment.orderId)
-        .map((comment: Comment) => comment.orderId);
-
-      // Kiểm tra đơn hàng hợp lệ chưa được bình luận
-      const currentDate = new Date();
-      const eligibleOrder = orders.find((order: any) => {
-        if (
-          order.paymentStatus !== "completed" ||
-          order.shippingStatus !== "delivered" ||
-          commentedOrderIds.includes(order._id)
-        ) {
-          return false;
-        }
-
-        const orderDate = new Date(order.createdAt);
-        const daysDiff = (currentDate.getTime() - orderDate.getTime()) / (1000 * 60 * 60 * 24);
-        if (daysDiff > REVIEW_WINDOW_DAYS) {
-          return false;
-        }
-
-        return order.items.some((item: any) => item.product._id === product._id);
-      });
-
-      if (!eligibleOrder) {
-        throw new Error("Bạn chỉ có thể đánh giá sản phẩm sau khi mua, thanh toán và nhận hàng trong vòng 7 ngày!");
+      const hasCommented = existingComments.some((comment: Comment) => comment.user?._id === userId);
+      if (hasCommented) {
+        throw new Error("Bạn đã đánh giá sản phẩm này!");
       }
 
-      // Gửi bình luận với orderId
-      const response = await apiRequest("/api/comments", {
+      const eligibleOrder = orders.find((order: any) =>
+        order.paymentStatus === "completed" &&
+        order.shippingStatus === "delivered" &&
+        order.items.some((item: any) => item.product?._id === product._id)
+      );
+
+      if (!eligibleOrder) {
+        throw new Error("Bạn chỉ có thể đánh giá sản phẩm sau khi mua và nhận hàng thành công!");
+      }
+
+      const formData = new FormData();
+      formData.append("userId", userId);
+      formData.append("productId", product._id);
+      formData.append("content", newComment.trim());
+      formData.append("rating", rating.toString());
+      images.forEach((image) => formData.append("images", image));
+
+      await apiRequest("/api/comments", {
         method: "POST",
-        body: JSON.stringify({
-          userId,
-          productId: product._id,
-          orderId: eligibleOrder._id,
-          content: newComment.trim(),
-          rating,
-        }),
+        body: formData,
+        headers: {}, // Không set Content-Type, để browser tự xử lý
       });
 
       const updatedComments = await apiRequest(`/api/comments/product/${product._id}`);
@@ -451,100 +519,126 @@ export default function DetailPage() {
 
       setNewComment("");
       setRating(0);
+      setImages([]);
+      setImagePreviews([]);
       showCommentToast("success", "Đánh giá đã được gửi!");
-      setCanReview(false); // Ẩn nút sau khi gửi bình luận
+      setCanReview(false);
     } catch (error) {
       console.error("Lỗi khi gửi bình luận:", error);
       showCommentToast("error", error instanceof Error ? error.message : "Lỗi khi gửi đánh giá!");
     } finally {
       setSubmittingComment(false);
     }
-  }, [product?._id, newComment, rating, userId, userLoading, showCommentToast, router]);
+  }, [product?._id, newComment, rating, userId, userLoading, images, showCommentToast, router]);
 
-  // Gửi phản hồi từ admin
-  const submitReply = useCallback(async (commentId: string) => {
-    if (!commentId || !replyContent.trim() || !userId || role !== "admin") {
-      showCommentToast("error", "Bạn không có quyền hoặc nội dung phản hồi trống!");
+  // Chỉnh sửa bình luận
+  const editComment = useCallback(async (commentId: string) => {
+    if (!newComment.trim() || newComment.length < MIN_COMMENT_LENGTH || rating === 0) {
+      showCommentToast("error", "Vui lòng nhập nội dung và chọn số sao!");
       return;
     }
 
     setSubmittingComment(true);
     try {
-      const response = await apiRequest(`/api/comments/${commentId}/reply`, {
-        method: "POST",
-        body: JSON.stringify({ content: replyContent.trim() }),
+      const formData = new FormData();
+      formData.append("userId", userId!);
+      formData.append("content", newComment.trim());
+      formData.append("rating", rating.toString());
+      images.forEach((image) => formData.append("images", image));
+
+      await apiRequest(`/api/comments/${commentId}`, {
+        method: "PUT",
+        body: formData,
+        headers: {}, // Không set Content-Type, để browser tự xử lý
       });
 
       const updatedComments = await apiRequest(`/api/comments/product/${product?._id}`);
       setComments(Array.isArray(updatedComments) ? updatedComments : []);
 
-      setReplyContent("");
-      setReplyingTo(null);
+      setNewComment("");
+      setRating(0);
+      setImages([]);
+      setImagePreviews([]);
+      setEditingCommentId(null);
+      showCommentToast("success", "Cập nhật bình luận thành công!");
+    } catch (error) {
+      console.error("Lỗi khi chỉnh sửa bình luận:", error);
+      showCommentToast("error", error instanceof Error ? error.message : "Lỗi khi chỉnh sửa bình luận!");
+    } finally {
+      setSubmittingComment(false);
+    }
+  }, [newComment, rating, userId, product?._id, images, showCommentToast]);
+
+  // Xóa bình luận
+  const deleteComment = useCallback(async (commentId: string) => {
+    if (!confirm("Bạn có chắc muốn xóa bình luận này?")) return;
+
+    setSubmittingComment(true);
+    try {
+      await apiRequest(`/api/comments/${commentId}?userId=${userId}`, {
+        method: "DELETE",
+      });
+
+      const updatedComments = await apiRequest(`/api/comments/product/${product?._id}`);
+      setComments(Array.isArray(updatedComments) ? updatedComments : []);
+
+      setCanReview(true); // Cho phép đánh giá lại sau khi xóa
+      showCommentToast("success", "Xóa bình luận thành công!");
+    } catch (error) {
+      console.error("Lỗi khi xóa bình luận:", error);
+      showCommentToast("error", error instanceof Error ? error.message : "Lỗi khi xóa bình luận!");
+    } finally {
+      setSubmittingComment(false);
+    }
+  }, [userId, product?._id, showCommentToast]);
+
+  // Gửi phản hồi admin
+  const submitAdminReply = useCallback(async (commentId: string) => {
+    if (!adminReplyContent.trim()) {
+      showCommentToast("error", "Vui lòng nhập nội dung phản hồi!");
+      return;
+    }
+    if (!userId || role !== "admin") {
+      showCommentToast("error", "Bạn không có quyền gửi phản hồi admin!");
+      return;
+    }
+
+    setSubmittingAdminReply(true);
+    try {
+      await apiRequest(`/api/comments/${commentId}/reply`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ content: adminReplyContent.trim() }),
+      });
+
+      const updatedComments = await apiRequest(`/api/comments/product/${product?._id}`);
+      setComments(Array.isArray(updatedComments) ? updatedComments : []);
+      setAdminReplyContent("");
+      setShowReplyForm(null); // Ẩn form sau khi gửi
       showCommentToast("success", "Phản hồi đã được gửi!");
     } catch (error) {
-      console.error("Lỗi khi gửi phản hồi:", error);
-      showCommentToast("error", `Lỗi khi gửi phản hồi: ${error instanceof Error ? error.message : "Không xác định"}`);
+      console.error("Lỗi khi gửi phản hồi admin:", error);
+      showCommentToast("error", error instanceof Error ? error.message : "Lỗi khi gửi phản hồi admin!");
     } finally {
-      setSubmittingComment(false);
+      setSubmittingAdminReply(false);
     }
-  }, [replyContent, userId, role, product?._id, showCommentToast]);
+  }, [adminReplyContent, product?._id, userId, role, showCommentToast]);
 
-  // Gửi phản hồi từ user (phản hồi lại admin)
-  const submitUserReply = useCallback(async (commentId: string, replyIndex: number) => {
-    if (!commentId || !userReplyContent.trim() || !userId || replyIndex === null || replyIndex < 0) {
-      showCommentToast("error", "Thông tin không hợp lệ hoặc nội dung phản hồi trống!");
-      return;
-    }
+  // Toggle hiển thị form trả lời
+  const toggleReplyForm = useCallback((commentId: string) => {
+    setShowReplyForm((prev) => (prev === commentId ? null : commentId));
+    setAdminReplyContent(""); // Reset nội dung khi mở/đóng form
+  }, []);
 
-    const comment = comments.find((c) => c._id === commentId);
-    if (!comment || !comment.replies || replyIndex >= comment.replies.length) {
-      showCommentToast("error", "Phản hồi không tồn tại hoặc chỉ số không hợp lệ!");
-      return;
-    }
-
-    if (comment.user?._id !== userId) {
-      showCommentToast("error", "Chỉ người tạo bình luận gốc được phép trả lời!");
-      return;
-    }
-
-    setSubmittingComment(true);
-    try {
-      console.log("Submitting reply-to-reply with payload:", {
-        content: userReplyContent.trim(),
-        replyIndex,
-        userId,
-        commentId,
-      });
-
-      const response = await apiRequest(`/api/comments/${commentId}/reply-to-reply`, {
-        method: "POST",
-        body: JSON.stringify({
-          content: userReplyContent.trim(),
-          replyIndex,
-        }),
-      });
-
-      const updatedComments = await apiRequest(`/api/comments/product/${product?._id}`);
-      setComments(Array.isArray(updatedComments) ? updatedComments : []);
-
-      setUserReplyContent("");
-      showCommentToast("success", "Phản hồi của bạn đã được gửi!");
-    } catch (error) {
-      console.error("Lỗi khi gửi phản hồi từ user:", error);
-      let errorMessage = "Không xác định";
-      if (error instanceof Error) {
-        try {
-          const errorData = JSON.parse(error.message);
-          errorMessage = errorData.error || error.message;
-        } catch {
-          errorMessage = error.message;
-        }
-      }
-      showCommentToast("error", `Lỗi khi gửi phản hồi: ${errorMessage}`);
-    } finally {
-      setSubmittingComment(false);
-    }
-  }, [userReplyContent, userId, replyingToReplyIndex, product?._id, comments, showCommentToast]);
+  // Toggle hiển thị phản hồi admin
+  const toggleAdminReply = useCallback((commentId: string) => {
+    setShowAdminReply((prev) => ({
+      ...prev,
+      [commentId]: !prev[commentId],
+    }));
+  }, []);
 
   const averageRating = useMemo(() => {
     if (comments.length === 0) return 0;
@@ -552,7 +646,6 @@ export default function DetailPage() {
     return Number((total / comments.length).toFixed(1));
   }, [comments]);
 
-  // Tính số lượng đánh giá cho mỗi mức sao
   const ratingCounts = useMemo(() => {
     return [5, 4, 3, 2, 1].reduce((acc, star) => {
       acc[star] = comments.filter((c) => c.rating === star).length;
@@ -560,25 +653,37 @@ export default function DetailPage() {
     }, {} as Record<number, number>);
   }, [comments]);
 
-  // Lọc bình luận theo trạng thái và quyền người dùng
   const filteredComments = useMemo(() => {
     return comments
-      .filter((comment) => role === "admin" || comment.status === "show")
+      .filter((comment) => comment.status === "show")
       .filter((comment) => filterRating === "all" || comment.rating === filterRating);
-  }, [comments, filterRating, role]);
+  }, [comments, filterRating]);
 
   // Logic cuộn khi load trang với hash
   useEffect(() => {
     if (window.location.hash === "#writeReviewForm") {
       const form = document.getElementById("writeReviewForm");
       if (form) {
-        form.classList.add(styles.active); // Mở form
-        form.scrollIntoView({ behavior: "smooth", block: "start" }); // Cuộn mượt đến đầu form
+        form.classList.add(styles.active);
+        form.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     }
   }, []);
 
-  // Trạng thái loading và lỗi
+  // Hàm bắt đầu chỉnh sửa bình luận
+  const startEditingComment = (comment: Comment) => {
+    setEditingCommentId(comment._id);
+    setNewComment(comment.content);
+    setRating(comment.rating || 0);
+    setImages([]);
+    setImagePreviews(comment.images?.map((img) => getImageUrl(img)) || []);
+    const form = document.getElementById("writeReviewForm");
+    if (form) {
+      form.classList.add(styles.active);
+      form.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
   if (loading) return <p className="text-center py-10">Đang tải chi tiết sản phẩm...</p>;
   if (!product) return <p className="text-center py-10">Không tìm thấy sản phẩm.</p>;
 
@@ -588,8 +693,8 @@ export default function DetailPage() {
   return (
     <>
       <div className={styles.container}>
-        <section className={styles["product-section"]}>
-          <div className={styles["product-thumbnails"]}>
+        <section className={styles['product-section']}>
+          <div className={styles['product-thumbnails']}>
             {product.images?.map((image, index) => (
               <div
                 key={`thumbnail-${index}`}
@@ -612,8 +717,8 @@ export default function DetailPage() {
             ))}
           </div>
 
-          <div className={styles["product-image-container"]}>
-            <div className={styles["product-main-image"]}>
+          <div className={styles['product-image-container']}>
+            <div className={styles['product-main-image']}>
               <Image
                 src={
                   product.images?.[currentImageIndex]
@@ -621,17 +726,17 @@ export default function DetailPage() {
                     : ERROR_IMAGE_URL
                 }
                 alt={product.name}
-                width={300}
-                height={200}
+                width={480}
+                height={530}
                 quality={100}
-                className={styles["mainImg"]}
+                className={styles['mainImg']}
                 onError={(e) => {
                   console.log(`Main image for ${product.name} load failed, switched to 404 fallback`);
                   (e.target as HTMLImageElement).src = ERROR_IMAGE_URL;
                 }}
               />
             </div>
-            <div className={styles["product-dots"]}>
+            <div className={styles['product-dots']}>
               {product.images?.map((_, index) => (
                 <div
                   key={`dot-${index}`}
@@ -642,28 +747,27 @@ export default function DetailPage() {
             </div>
           </div>
 
-          <div className={styles["product-info"]}>
-            <h1 className={styles["product-title"]}>{product.name}</h1>
+          <div className={styles['product-info']}>
+            <h1 className={styles['product-title']}>{product.name}</h1>
 
             {selectedOption && (
-              <p className={styles["product-price"]}>
-                {selectedOption.discount_price ? (
+              <p className={styles['product-price']}>
+                {selectedOption.discount_price && (
                   <>
-                    <span className={styles["discount-price"]}>
+                    <span className={styles['discount-price']}>
                       {formatPrice(selectedOption.discount_price)}
                     </span>
-                    <span className={styles["original-price"]}>
+                    <span className={styles['original-price']}>
                       {formatPrice(selectedOption.price)}
                     </span>
-                    <span className={styles["discount-percent"]}>
+                    <span className={styles['discount-percent']}>
                       {`-${Math.round(
                         ((selectedOption.price - selectedOption.discount_price) / selectedOption.price) * 100
                       )}%`}
                     </span>
                   </>
-                ) : (
-                  <>{formatPrice(selectedOption.price)}</>
                 )}
+                {!selectedOption.discount_price && <>{formatPrice(selectedOption.price)}</>}
               </p>
             )}
 
@@ -675,7 +779,7 @@ export default function DetailPage() {
                     <button
                       key={opt._id}
                       type="button"
-                      className={idx === selectedOptionIndex ? styles["option-button-selected"] : styles["option-button"]}
+                      className={idx === selectedOptionIndex ? styles['option-button-selected'] : styles['option-button']}
                       onClick={() => setSelectedOptionIndex(idx)}
                       disabled={!opt.stock}
                     >
@@ -687,14 +791,14 @@ export default function DetailPage() {
             )}
 
             <p
-              className={styles["product-description"]}
+              className={styles['product-description']}
               dangerouslySetInnerHTML={{ __html: product.short_description }}
             />
 
-            <div className={styles["quantity-controls"]}>
-              <div className={styles["quantity-wrapper"]}>
+            <div className={styles['quantity-controls']}>
+              <div className={styles['quantity-wrapper']}>
                 <button
-                  className={`${styles["quantity-btn"]} ${styles.decrease}`}
+                  className={`${styles['quantity-btn']} ${styles.decrease}`}
                   onClick={decreaseQty}
                   aria-label="Giảm số lượng"
                 >
@@ -702,14 +806,14 @@ export default function DetailPage() {
                 </button>
                 <input
                   type="number"
-                  className={styles["quantity-input"]}
+                  className={styles['quantity-input']}
                   value={quantity}
                   onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
                   min="1"
                   aria-label="Số lượng sản phẩm"
                 />
                 <button
-                  className={`${styles["quantity-btn"]} ${styles.increase}`}
+                  className={`${styles['quantity-btn']} ${styles.increase}`}
                   onClick={increaseQty}
                   aria-label="Tăng số lượng"
                 >
@@ -717,7 +821,7 @@ export default function DetailPage() {
                 </button>
               </div>
               <button
-                className={styles["add-to-cart"]}
+                className={styles['add-to-cart']}
                 onClick={addToCart}
                 disabled={addingToCart || isOutOfStock}
                 aria-label="Thêm sản phẩm vào giỏ hàng"
@@ -732,7 +836,7 @@ export default function DetailPage() {
 
             <div style={{ marginTop: "10px" }}>
               <button
-                className={styles["wishlist-button"]}
+                className={styles['wishlist-button']}
                 onClick={addToWishlist}
                 disabled={addingToCart}
                 aria-label={isFavorite ? "Đã nằm trong danh sách yêu thích" : "Thêm vào danh sách yêu thích của bạn"}
@@ -757,82 +861,85 @@ export default function DetailPage() {
           </div>
         </section>
 
-        <div className={styles["product-info"]}>
-          <h2 className={styles["product-info-title"]}>Thông tin sản phẩm:</h2>
-          <div dangerouslySetInnerHTML={{ __html: product.description }} />
+        <div className={styles['product-info']}>
+          <h2 className={styles['product-info-title']}>Thông tin sản phẩm:</h2>
+          <div dangerouslySetInnerHTML={{ __html: product.description || '' }} />
         </div>
       </div>
 
-      <div id="reviewForm" className={styles.cr}>
-        <div className={styles["customer-review"]}>
-          <h1 className={styles["review-main-title"]}>ĐÁNH GIÁ TỪ KHÁCH HÀNG ĐÃ MUA</h1>
+      <div id="reviewForm" className={styles['cr']}>
+        <div className={styles['customer-review']}>
+          <h1 className={styles['review-main-title']}>ĐÁNH GIÁ TỪ KHÁCH HÀNG ĐÃ MUA</h1>
 
-          <div className={styles["rating-overview"]}>
-            <div className={styles["rating-summary"]}>
-              <div className={styles["average-rating"]}>{averageRating}</div>
-              <div className={styles["stars-display"]}>
+          <div className={styles['rating-overview']}>
+            <div className={styles['rating-summary']}>
+              <div className={styles['average-rating']}>{averageRating}</div>
+              <div className={styles['stars-display']}>
                 {Array(5)
                   .fill(0)
                   .map((_, i) => (
                     <span
                       key={i}
-                      className={`${styles["star-display"]} ${i < Math.floor(averageRating) ? styles["star-filled"] : i < averageRating ? styles["star-half"] : styles["star-empty"]}`}
+                      className={`${styles['star-display']} ${i < Math.floor(averageRating) ? styles['star-filled'] : i < averageRating ? styles['star-half'] : styles['star-empty']}`}
                     >
                       ★
                     </span>
                   ))}
               </div>
-              <div className={styles["rating-text"]}>Theo {filteredComments.length} đánh giá</div>
+              <div className={styles['rating-text']}>Theo {filteredComments.length} đánh giá</div>
             </div>
 
-            <div className={styles["rating-breakdown"]}>
+            <div className={styles['rating-breakdown']}>
               {[5, 4, 3, 2, 1].map((star) => (
-                <div key={star} className={styles["rating-row"]}>
-                  <div className={styles["star-count"]}>
+                <div key={star} className={styles['rating-row']}>
+                  <div className={styles['star-count']}>
                     {Array(5)
                       .fill(0)
                       .map((_, i) => (
-                        <span key={i} className={styles["star-icon"]}>{i < star ? "★" : "☆"}</span>
+                        <span key={i} className={styles['star-icon']}>{i < star ? '★' : '☆'}</span>
                       ))}
                   </div>
-                  <div className={styles["rating-bar-container"]}>
+                  <div className={styles['rating-bar-container']}>
                     <div
-                      className={styles["rating-bar"]}
+                      className={styles['rating-bar']}
                       style={{ width: `${(ratingCounts[star] / comments.length) * 100 || 0}%` }}
                     ></div>
                   </div>
-                  <div className={styles["rating-count"]}>{`(${ratingCounts[star]})`}</div>
+                  <div className={styles['rating-count']}>{`(${ratingCounts[star]})`}</div>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className={styles["filter-section"]}>
-            <span className={styles["filter-label"]}>Lọc đánh giá:</span>
-            {["all", 5, 4, 3, 2, 1].map((rating) => (
+          <div className={styles['filter-section']}>
+            <span className={styles['filter-label']}>Lọc đánh giá:</span>
+            {['all', 5, 4, 3, 2, 1].map((rating) => (
               <button
-                key={rating === "all" ? "all" : rating}
-                className={`${styles["filter-button"]} ${
-                  filterRating === rating ? styles.active : ""
+                key={rating}
+                className={`${styles['filter-button']} ${
+                  filterRating === rating ? styles.active : ''
                 }`}
-                onClick={() => {
-                  console.log(`Filtering by rating: ${rating}`);
-                  setFilterRating(rating);
-                }}
+                onClick={() => setFilterRating(rating)}
               >
-                {rating === "all" ? "Tất cả" : `${rating} ★`}
+                {rating === 'all' ? 'Tất cả' : `${rating} ★`}
               </button>
             ))}
           </div>
 
-          <div className={styles["write-review-container"]}>
+          <div className={styles['write-review-container']}>
             {canReview && (
               <button
-                className={styles["write-review"]}
+                className={styles['write-review']}
                 onClick={() => {
-                  const form = document.getElementById("writeReviewForm");
+                  setEditingCommentId(null);
+                  setNewComment('');
+                  setRating(0);
+                  setImages([]);
+                  setImagePreviews([]);
+                  const form = document.getElementById('writeReviewForm');
                   if (form) {
-                    form.classList.add(styles.active); // Mở form khi nhấp
+                    form.classList.add(styles.active);
+                    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
                   }
                 }}
               >
@@ -840,11 +947,20 @@ export default function DetailPage() {
                 VIẾT ĐÁNH GIÁ
               </button>
             )}
+            {!canReview && (
+              <p className={styles['review-eligibility-note']}>
+                {userId
+                  ? 'Bạn đã đánh giá sản phẩm này hoặc chưa mua và nhận hàng thành công.'
+                  : 'Vui lòng đăng nhập và mua hàng để đánh giá.'}
+              </p>
+            )}
           </div>
 
-          <div className={styles["write-review-section"]} id="writeReviewForm">
-            <h2 className={styles["review-form-title"]}>Viết đánh giá của bạn</h2>
-            <div className={styles["star-rating"]}>
+          <div className={styles['write-review-section']} id="writeReviewForm">
+            <h2 className={styles['review-form-title']}>
+              {editingCommentId ? 'Chỉnh sửa đánh giá' : 'Viết đánh giá của bạn'}
+            </h2>
+            <div className={styles['star-rating']}>
               {Array(5)
                 .fill(0)
                 .map((_, index) => {
@@ -852,13 +968,9 @@ export default function DetailPage() {
                   return (
                     <span
                       key={starValue}
-                      className={`${styles.star} ${starValue <= rating ? styles["star-filled"] : ""}`}
-                      style={{ color: starValue <= rating ? "#ffa500" : "#ccc", cursor: "pointer", userSelect: "none" }}
-                      onClick={() => {
-                        console.log(`Clicked star ${starValue}, current rating: ${rating}`);
-                        setRating(starValue);
-                      }}
-                      onMouseEnter={() => console.log(`Hovering star ${starValue}`)}
+                      className={`${styles.star} ${starValue <= rating ? styles['star-filled'] : ''}`}
+                      style={{ color: starValue <= rating ? '#ffa500' : '#ccc', cursor: 'pointer', userSelect: 'none' }}
+                      onClick={() => setRating(starValue)}
                     >
                       ★
                     </span>
@@ -866,7 +978,7 @@ export default function DetailPage() {
                 })}
             </div>
             <textarea
-              className={styles["comment-input"]}
+              className={styles['comment-input']}
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               placeholder="Nhập đánh giá của bạn..."
@@ -874,6 +986,45 @@ export default function DetailPage() {
               maxLength={500}
               disabled={submittingComment}
             />
+            <div className={styles['image-upload']}>
+              <label htmlFor="image-upload" className={styles['image-upload-label']}>
+                Tải lên hình ảnh (tối đa 5, JPEG/PNG, &lt;5MB):
+              </label>
+              <input
+                id="image-upload"
+                type="file"
+                accept="image/jpeg,image/png"
+                multiple
+                onChange={handleImageChange}
+                disabled={submittingComment}
+                className={styles['image-upload-input']}
+              />
+              {imagePreviews.length > 0 && (
+                <div className={styles['image-preview-container']}>
+                  {imagePreviews.map((preview, index) => (
+                    <div key={index} className={styles['image-preview']}>
+                      <Image
+                        src={preview}
+                        alt={`Preview ${index + 1}`}
+                        width={100}
+                        height={100}
+                        className={styles['preview-img']}
+                      />
+                      <button
+                        className={styles['remove-image']}
+                        onClick={() => {
+                          setImages((prev) => prev.filter((_, i) => i !== index));
+                          setImagePreviews((prev) => prev.filter((_, i) => i !== index));
+                        }}
+                        disabled={submittingComment}
+                      >
+                        X
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
             {commentMessage && (
               <ToastNotification
                 message={commentMessage.text}
@@ -881,170 +1032,161 @@ export default function DetailPage() {
                 onClose={hideCommentToast}
               />
             )}
-            <div className={styles["form-buttons"]}>
+            <div className={styles['form-buttons']}>
               <button
-                className={styles["submit-comment"]}
-                onClick={submitComment}
+                className={styles['submit-comment']}
+                onClick={() => (editingCommentId ? editComment(editingCommentId) : submitComment())}
                 disabled={submittingComment || !newComment.trim() || userLoading || rating === 0}
               >
-                {submittingComment ? "Đang gửi..." : "Gửi đánh giá"}
+                {submittingComment ? 'Đang gửi...' : editingCommentId ? 'Lưu chỉnh sửa' : 'Gửi đánh giá'}
               </button>
               <button
-                className={styles["cancel-comment"]}
+                className={styles['cancel-comment']}
                 onClick={() => {
-                  const form = document.getElementById("writeReviewForm");
+                  const form = document.getElementById('writeReviewForm');
                   if (form) {
                     form.classList.remove(styles.active);
                   }
-                  setNewComment("");
+                  setNewComment('');
                   setRating(0);
+                  setImages([]);
+                  setImagePreviews([]);
+                  setEditingCommentId(null);
                 }}
+                disabled={submittingComment}
               >
                 Hủy
               </button>
             </div>
           </div>
 
-          <div className={styles["reviews-container"]}>
+          <div className={styles['reviews-container']}>
+            {submittingComment && <p className="text-center py-4">Đang tải...</p>}
             {filteredComments.length > 0 ? (
               filteredComments.map((comment, index) => (
                 <div key={comment._id || `comment-${index}`} className={styles.review}>
-          
-<div className={styles["review-item"]}>
-  <div className={styles["reviewer-info"]}>
-    <div className={styles["reviewer-avatar"]}>
-      <span className={styles["avatar-letter"]}>
-        {(comment.user?.username || "Ẩn danh").charAt(0).toUpperCase()}
-      </span>
-    </div>
-    <div className={styles["reviewer-details"]}>
-      <h3 className={styles["review-title"]}>
-        {comment.user?.username || "Ẩn danh"}
-      </h3>
-      <div className={styles["rating-container"]}>
-        <div className={styles["star-rating"]}>
-          {Array(5)
-            .fill(0)
-            .map((_, i) => (
-              <span
-                key={i}
-                className={`${styles.star} ${i < (comment.rating || 0) ? styles["star-filled"] : ""}`}
-              >
-                ★
-              </span>
-            ))}
-        </div>
-  
-      </div>
-      <p className={styles.comment}>{comment.content}</p>
-      <time className={styles["review-date"]}>
-        Đánh giá đã đăng vào {new Date(comment.createdAt).toLocaleDateString("vi-VN", {
-          year: 'numeric',
-          month: 'long'
-        })} 
-      </time>
-    </div>
-  </div>
-</div>
-
-                  {comment.replies && comment.replies.length > 0 && (
-                    <div className={styles.replies}>
-                      {comment.replies.map((reply, idx) => (
-                        <div key={idx} className={styles.reply}>
-                          <h4>
-                            <strong>
-                              {reply.user?.username || 
-                               (userId && reply.user?._id === userId ? "Bạn" : 
-                                reply.user?.role === "admin" ? "Admin" : "Khách hàng")}:
-                            </strong>{" "}
-                            {reply.content}
-                          </h4>
-                          <time>
-                            {new Date(reply.createdAt).toLocaleDateString("vi-VN")}{" "}
-                            {new Date(reply.createdAt).toLocaleTimeString("vi-VN")}
-                          </time>
-                          {reply.user?.role === "admin" && 
-                           comment.user?._id === userId && 
-                           idx === comment.replies.length - 1 && (
-                            <div className={styles.replyForm}>
-                              <textarea
-                                value={replyingToReplyIndex === idx ? userReplyContent : ""}
-                                onChange={(e) => {
-                                  console.log("Textarea change:", { idx, value: e.target.value, submittingComment });
-                                  setReplyingToReplyIndex(idx);
-                                  setUserReplyContent(e.target.value);
-                                }}
-                                placeholder="Nhập phản hồi của bạn..."
-                                rows={2}
-                                maxLength={500}
-                                disabled={submittingComment}
-                              />
-                              <div className={styles["form-buttons"]}>
-                                <button
-                                  onClick={() => {
-                                    console.log("Submitting user reply:", { commentId: comment._id, replyIndex: idx, userReplyContent });
-                                    submitUserReply(comment._id, idx);
-                                  }}
-                                  disabled={submittingComment || !userReplyContent.trim()}
-                                >
-                                  {submittingComment && replyingToReplyIndex === idx ? "Đang gửi..." : "Gửi phản hồi"}
-                                </button>
-                                <button
-                                  className={styles["cancel-comment"]}
-                                  onClick={() => {
-                                    console.log("Cancel reply form:", { idx });
-                                    setUserReplyContent("");
-                                    setReplyingToReplyIndex(null);
-                                  }}
-                                  disabled={submittingComment}
-                                >
-                                  Hủy
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
+                  <div className={styles['review-header']}>
+                    <h3 className={styles['review-title']}>
+                      {comment.user?.username || 'Ẩn danh'}
+                      {comment.user?._id === userId && (
+                        <>
+                          <button
+                            className={styles['delete-button']}
+                            onClick={() => deleteComment(comment._id)}
+                            disabled={submittingComment || submittingAdminReply}
+                          >
+                            Xóa
+                          </button>
+                          <button
+                            className={styles['edit-button']}
+                            onClick={() => startEditingComment(comment)}
+                            disabled={submittingComment || submittingAdminReply}
+                          >
+                            Chỉnh sửa
+                          </button>
+                        </>
+                      )}
+                    </h3>
+                  </div>
+                  <div className={styles['star-rating']}>
+                    {Array(5)
+                      .fill(0)
+                      .map((_, i) => (
+                        <span
+                          key={i}
+                          className={`${styles.star} ${i < (comment.rating || 0) ? styles['star-filled'] : ''}`}
+                        >
+                          ★
+                        </span>
+                      ))}
+                  </div>
+                  <time className={styles['review-date']}>
+                    Ngày: {new Date(comment.createdAt).toLocaleDateString('vi-VN')}
+                  </time>
+                  <p className={styles.comment}>{comment.content}</p>
+                  {comment.images && comment.images.length > 0 && (
+                    <div className={styles['comment-images']}>
+                      {comment.images.map((image, imgIndex) => (
+                        <Image
+                          key={`comment-img-${imgIndex}`}
+                          src={`${getImageUrl(image)}?${cacheBuster}`}
+                          alt={`Comment image ${imgIndex + 1}`}
+                          width={100}
+                          height={100}
+                          className={styles['comment-img']}
+                          onError={(e) => {
+                            console.log(`Comment image ${imgIndex + 1} load failed, switched to 404 fallback`);
+                            (e.target as HTMLImageElement).src = ERROR_IMAGE_URL;
+                          }}
+                        />
                       ))}
                     </div>
                   )}
-
-                  {role === "admin" && (
-                    <div className={styles.replyForm}>
-                      <textarea
-                        value={replyingTo === comment._id ? replyContent : ""}
-                        onChange={(e) => {
-                          setReplyingTo(comment._id);
-                          setReplyContent(e.target.value);
-                        }}
-                        placeholder="Nhập phản hồi..."
-                        rows={2}
-                        maxLength={500}
-                        disabled={submittingComment}
-                      />
-                      <div className={styles["form-buttons"]}>
-                        <button
-                          onClick={() => submitReply(comment._id)}
-                          disabled={submittingComment || !replyContent.trim()}
-                        >
-                          {submittingComment && replyingTo === comment._id ? "Đang gửi..." : "Gửi phản hồi"}
-                        </button>
-                        <button
-                          className={styles["cancel-comment"]}
-                          onClick={() => {
-                            setReplyContent("");
-                            setReplyingTo(null);
-                          }}
-                          disabled={submittingComment}
-                        >
-                          Hủy
-                        </button>
-                      </div>
-                    </div>
+                  {role === 'admin' && !comment.adminReply && (
+                    <>
+                      <button
+                        className={styles['reply-button']}
+                        onClick={() => toggleReplyForm(comment._id)}
+                        disabled={submittingAdminReply}
+                      >
+                        Trả lời
+                      </button>
+                      {showReplyForm === comment._id && (
+                        <div className={styles['admin-reply-form']}>
+                          <textarea
+                            value={adminReplyContent}
+                            onChange={(e) => setAdminReplyContent(e.target.value)}
+                            placeholder="Nhập phản hồi của bạn..."
+                            rows={2}
+                            maxLength={500}
+                            disabled={submittingAdminReply}
+                            className={styles['admin-reply-input']}
+                          />
+                          <div className={styles['form-buttons']}>
+                            <button
+                              onClick={() => submitAdminReply(comment._id)}
+                              disabled={submittingAdminReply || !adminReplyContent.trim()}
+                              className={styles['submit-comment']}
+                            >
+                              {submittingAdminReply ? 'Đang gửi...' : 'Gửi phản hồi'}
+                            </button>
+                            <button
+                              className={styles['cancel-comment']}
+                              onClick={() => toggleReplyForm(comment._id)}
+                              disabled={submittingAdminReply}
+                            >
+                              Hủy
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                  {comment.adminReply && (
+                    <>
+                      <button
+                        className={styles['toggle-reply-button']}
+                        onClick={() => toggleAdminReply(comment._id)}
+                      >
+                        {showAdminReply[comment._id] ? 'Ẩn phản hồi' : 'Xem phản hồi'}
+                      </button>
+                      {showAdminReply[comment._id] && (
+                        <div className={styles['admin-reply']}>
+                          <p>
+                            <strong>Admin:</strong> {comment.adminReply.content}
+                          </p>
+                          <time>
+                            {new Date(comment.adminReply.createdAt).toLocaleDateString('vi-VN')}{' '}
+                            {new Date(comment.adminReply.createdAt).toLocaleTimeString('vi-VN')}
+                          </time>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               ))
             ) : (
-              <div className={styles["no-reviews"]}>
+              <div className={styles['no-reviews']}>
                 Chưa có đánh giá nào cho sản phẩm này.
               </div>
             )}
@@ -1052,11 +1194,11 @@ export default function DetailPage() {
         </div>
       </div>
 
-      <section className={styles["product-contact-section"]}>
-        <h2 className={styles["contact-section-title"]}>
+      <section className={styles['product-contact-section']}>
+        <h2 className={styles['contact-section-title']}>
           Không tìm thấy được dòng sản phẩm mà bạn cần<br />hoặc thích hợp với da của bạn?
         </h2>
-        <button className={styles["contact-button"]}>
+        <button className={styles['contact-button']}>
           Liên hệ với chúng tôi
         </button>
       </section>
@@ -1077,4 +1219,4 @@ export default function DetailPage() {
       )}
     </>
   );
-} 
+}

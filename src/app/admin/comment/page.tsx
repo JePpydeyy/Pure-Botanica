@@ -11,6 +11,7 @@ interface User {
   _id: string;
   username: string;
   email: string;
+  role?: string;
 }
 
 interface Product {
@@ -25,6 +26,7 @@ interface Reply {
   content: string;
   createdAt: string;
   user: User | null;
+  parentReplyIndex?: number;
 }
 
 interface Comment {
@@ -32,8 +34,8 @@ interface Comment {
   content: string;
   createdAt: string;
   updatedAt: string;
-  user: User | null | undefined;
-  product: Product | null | undefined;
+  user: User | null;
+  product: Product | null;
   rating: number;
   replies?: Reply[];
 }
@@ -47,6 +49,8 @@ const CommentPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [replyContent, setReplyContent] = useState<{ [key: string]: string }>({});
+  const [replyToReplyContent, setReplyToReplyContent] = useState<{ [key: string]: string }>({});
+  const [replyingTo, setReplyingTo] = useState<{ commentId: string; replyIndex: number } | null>(null);
   const commentsPerPage = 9;
   const router = useRouter();
   const [notification, setNotification] = useState<{
@@ -80,7 +84,7 @@ const CommentPage: React.FC = () => {
     });
   };
 
-  const renderStars = (rating: number | undefined) => {
+  const renderStars = (rating: number | undefined): JSX.Element => {
     const stars = rating ? Math.min(Math.max(rating, 0), 5) : 0;
     return (
       <>
@@ -134,16 +138,24 @@ const CommentPage: React.FC = () => {
       }
 
       const data: Comment[] = await res.json();
+      console.log("Dữ liệu thô từ API:", data);
+
       if (!Array.isArray(data)) {
         throw new Error("Dữ liệu bình luận không hợp lệ");
       }
 
-      // Sanitize data to ensure user and product are null if undefined
-      const sanitizedData = data.map((comment) => ({
-        ...comment,
-        user: comment.user ?? null,
-        product: comment.product ?? null,
-      }));
+      const sanitizedData = data
+        .filter((comment) => comment.user && comment.product)
+        .map((comment) => ({
+          ...comment,
+          user: comment.user ?? null,
+          product: comment.product ?? null,
+          replies: comment.replies?.map((reply) => ({
+            ...reply,
+            user: reply.user ?? null,
+            parentReplyIndex: reply.parentReplyIndex ?? undefined,
+          })) ?? [],
+        }));
 
       setComments(sanitizedData);
       setFilteredComments(sanitizedData);
@@ -163,11 +175,11 @@ const CommentPage: React.FC = () => {
   useEffect(() => {
     const filtered = comments.filter((comment) => {
       const matchesSearch =
-        comment.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (comment.user && comment.user.username
+        (comment.content || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (comment.user?.username
           ? comment.user.username.toLowerCase().includes(searchQuery.toLowerCase())
           : false) ||
-        (comment.product && comment.product.name
+        (comment.product?.name
           ? comment.product.name.toLowerCase().includes(searchQuery.toLowerCase())
           : false);
       return matchesSearch;
@@ -178,10 +190,16 @@ const CommentPage: React.FC = () => {
 
   const handleToggleDetails = (commentId: string) => {
     setSelectedCommentId(selectedCommentId === commentId ? null : commentId);
+    setReplyingTo(null);
   };
 
   const handleReplyChange = (commentId: string, value: string) => {
     setReplyContent((prev) => ({ ...prev, [commentId]: value }));
+  };
+
+  const handleReplyToReplyChange = (commentId: string, replyIndex: number, value: string) => {
+    const key = `${commentId}-${replyIndex}`;
+    setReplyToReplyContent((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleReplySubmit = async (commentId: string) => {
@@ -221,29 +239,97 @@ const CommentPage: React.FC = () => {
       const data = await res.json();
       showNotification(data.message || "Phản hồi đã được gửi thành công!", "success");
 
-      // Optional: Update client-side state for immediate feedback
       setComments((prevComments) =>
         prevComments.map((comment) =>
           comment._id === commentId
-            ? { ...comment, replies: [...(comment.replies || []), data.reply] }
+            ? { ...comment, replies: [...(comment.replies || []), data.comment.replies[data.comment.replies.length - 1]] }
             : comment
         )
       );
       setFilteredComments((prevFiltered) =>
         prevFiltered.map((comment) =>
           comment._id === commentId
-            ? { ...comment, replies: [...(comment.replies || []), data.reply] }
+            ? { ...comment, replies: [...(comment.replies || []), data.comment.replies[data.comment.replies.length - 1]] }
             : comment
         )
       );
       setReplyContent((prev) => ({ ...prev, [commentId]: "" }));
 
-      // Reload comments from API to ensure data consistency
       await fetchComments();
     } catch (error: any) {
       const errorMessage = error.message || "Không thể gửi phản hồi.";
       showNotification(errorMessage, "error");
     }
+  };
+
+  const handleReplyToReplySubmit = async (commentId: string, replyIndex: number) => {
+    const key = `${commentId}-${replyIndex}`;
+    const content = replyToReplyContent[key]?.trim();
+    if (!content) {
+      showNotification("Nội dung phản hồi không được để trống.", "error");
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Không tìm thấy token. Vui lòng đăng nhập lại.");
+      }
+
+      const res = await fetch(`https://api-zeal.onrender.com/api/comments/${commentId}/reply-to-reply`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ content, replyIndex }),
+      });
+
+      if (res.status === 401 || res.status === 403) {
+        showNotification("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!", "error");
+        localStorage.removeItem("token");
+        localStorage.removeItem("role");
+        router.push("/user/login");
+        return;
+      }
+
+      if (!res.ok) {
+        throw new Error(`Lỗi khi gửi phản hồi: ${res.status}`);
+      }
+
+      const data = await res.json();
+      showNotification(data.message || "Phản hồi đã được gửi thành công!", "success");
+
+      setComments((prevComments) =>
+        prevComments.map((comment) =>
+          comment._id === commentId
+            ? { ...comment, replies: [...(comment.replies || []), data.comment.replies[data.comment.replies.length - 1]] }
+            : comment
+        )
+      );
+      setFilteredComments((prevFiltered) =>
+        prevFiltered.map((comment) =>
+          comment._id === commentId
+            ? { ...comment, replies: [...(comment.replies || []), data.comment.replies[data.comment.replies.length - 1]] }
+            : comment
+        )
+      );
+      setReplyToReplyContent((prev) => ({ ...prev, [key]: "" }));
+      setReplyingTo(null);
+
+      await fetchComments();
+    } catch (error: any) {
+      const errorMessage = error.message || "Không thể gửi phản hồi.";
+      showNotification(errorMessage, "error");
+    }
+  };
+
+  const handleToggleReplyForm = (commentId: string, replyIndex: number) => {
+    setReplyingTo(
+      replyingTo?.commentId === commentId && replyingTo?.replyIndex === replyIndex
+        ? null
+        : { commentId, replyIndex }
+    );
   };
 
   const totalPages = Math.ceil(filteredComments.length / commentsPerPage);
@@ -255,6 +341,7 @@ const CommentPage: React.FC = () => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
       setSelectedCommentId(null);
+      setReplyingTo(null);
     }
   };
 
@@ -353,7 +440,7 @@ const CommentPage: React.FC = () => {
               <th>Sản phẩm</th>
               <th>Nội dung</th>
               <th>Số sao</th>
-              <th>Ngày bình luận</th>
+              <th>Ngày đánh giá</th>
             </tr>
           </thead>
           <tbody>
@@ -370,11 +457,11 @@ const CommentPage: React.FC = () => {
                     <td>
                       <img
                         src={
-                          comment.product && comment.product.images && comment.product.images.length > 0
+                          comment.product?.images?.length
                             ? normalizeImageUrl(comment.product.images[0])
                             : "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg"
                         }
-                        alt={comment.product && comment.product.name ? comment.product.name : "Sản phẩm"}
+                        alt={comment.product?.name || "Sản phẩm"}
                         width={48}
                         height={48}
                         className={styles.commentTableImage}
@@ -385,11 +472,11 @@ const CommentPage: React.FC = () => {
                       />
                     </td>
                     <td>
-                      {comment.user && comment.user.username && comment.user.email
+                      {comment.user?.username && comment.user?.email
                         ? `${comment.user.username} (${comment.user.email})`
                         : "Người dùng không tồn tại"}
                     </td>
-                    <td>{comment.product && comment.product.name ? comment.product.name : "Sản phẩm không tồn tại"}</td>
+                    <td>{comment.product?.name || "Sản phẩm không tồn tại"}</td>
                     <td>{comment.content}</td>
                     <td>{renderStars(comment.rating)}</td>
                     <td>{formatDate(comment.createdAt)}</td>
@@ -405,11 +492,11 @@ const CommentPage: React.FC = () => {
                               <div className={styles.detailsGrid}>
                                 <p>
                                   <strong>Tên người dùng:</strong>{" "}
-                                  {comment.user && comment.user.username ? comment.user.username : "Không có"}
+                                  {comment.user?.username || "Không có"}
                                 </p>
                                 <p>
                                   <strong>Email:</strong>{" "}
-                                  {comment.user && comment.user.email ? comment.user.email : "Không có"}
+                                  {comment.user?.email || "Không có"}
                                 </p>
                               </div>
                             </div>
@@ -426,38 +513,60 @@ const CommentPage: React.FC = () => {
                               <div className={styles.detailsGrid}>
                                 <p>
                                   <strong>Tên sản phẩm:</strong>{" "}
-                                  {comment.product && comment.product.name ? comment.product.name : "Không có"}
-                                </p>
-                                <p>
-                                  <strong>Giá:</strong>{" "}
-                                  {comment.product && comment.product.price
-                                    ? comment.product.price.toLocaleString() + "₫"
-                                    : "Không có"}
+                                  {comment.product?.name || "Không có"}
                                 </p>
                               </div>
                             </div>
                             <div className={styles.detailsSection}>
-                              <h4>Ngày bình luận</h4>
+                              <h4>Ngày đánh giá</h4>
                               <p>{formatDate(comment.createdAt)}</p>
                             </div>
                             <div className={styles.detailsSection}>
                               <h4>Phản hồi</h4>
                               {comment.replies && comment.replies.length > 0 ? (
                                 <div className={styles.repliesContainer}>
-                                  {comment.replies.map((reply) => (
+                                  {comment.replies.map((reply, index) => (
                                     <div key={reply._id} className={styles.replyItem}>
                                       <p>
                                         <strong>
-                                          {reply.user && reply.user.username
-                                            ? reply.user.username
-                                            : "Admin"}
-                                          :
+                                          {reply.user?.username || "Admin"}:
                                         </strong>{" "}
                                         {reply.content}
                                       </p>
                                       <p className={styles.replyDate}>
                                         {formatDate(reply.createdAt)}
                                       </p>
+                                      {reply.user?.role === "admin" && (
+                                        <button
+                                          onClick={() => handleToggleReplyForm(comment._id, index)}
+                                          className={styles.replyButton}
+                                          title="Trả lời phản hồi"
+                                        >
+                                          <FontAwesomeIcon icon={faReply} /> Trả lời
+                                        </button>
+                                      )}
+                                      {replyingTo?.commentId === comment._id &&
+                                        replyingTo?.replyIndex === index && (
+                                          <div className={styles.replyInputContainer}>
+                                            <textarea
+                                              value={replyToReplyContent[`${comment._id}-${index}`] || ""}
+                                              onChange={(e) =>
+                                                handleReplyToReplyChange(comment._id, index, e.target.value)
+                                              }
+                                              placeholder="Nhập phản hồi của bạn..."
+                                              className={styles.replyInput}
+                                              aria-label="Nhập phản hồi cho phản hồi"
+                                            />
+                                            <button
+                                              onClick={() => handleReplyToReplySubmit(comment._id, index)}
+                                              className={styles.replyButton}
+                                              title="Gửi phản hồi"
+                                              disabled={loading || !replyToReplyContent[`${comment._id}-${index}`]?.trim()}
+                                            >
+                                              <FontAwesomeIcon icon={faReply} /> Gửi
+                                            </button>
+                                          </div>
+                                        )}
                                     </div>
                                   ))}
                                 </div>

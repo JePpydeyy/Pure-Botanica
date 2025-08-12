@@ -14,6 +14,13 @@ interface Contact {
   phone: string | null;
   message: string | null;
   status: "Chưa xử lý" | "Đã xử lý";
+  assignedAdmin?: string | null;
+}
+
+interface Admin {
+  _id: string;
+  username: string; // Changed from fullName to match backend schema
+  role: string;
 }
 
 const API_BASE_URL = "https://api-zeal.onrender.com";
@@ -21,6 +28,7 @@ const API_BASE_URL = "https://api-zeal.onrender.com";
 export default function ContactAdmin() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [filteredContacts, setFilteredContacts] = useState<Contact[]>([]);
+  const [admins, setAdmins] = useState<Admin[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showDetailsPopup, setShowDetailsPopup] = useState(false);
@@ -65,25 +73,61 @@ export default function ContactAdmin() {
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 15000);
-        const res = await fetch(`${API_BASE_URL}/api/contacts`, {
+
+        // Fetch contacts
+        const resContacts = await fetch(`${API_BASE_URL}/api/contacts`, {
           headers: { Authorization: `Bearer ${token}` },
           signal: controller.signal,
           cache: "no-store",
         });
         clearTimeout(timeoutId);
-        if (!res.ok) {
-          const errorText = await res.text();
-          throw new Error(`Lỗi khi tải danh sách liên hệ: ${res.status} ${errorText}`);
+        if (!resContacts.ok) {
+          const errorText = await resContacts.text();
+          throw new Error(`Lỗi khi tải danh sách liên hệ: ${resContacts.status} ${errorText}`);
         }
-        const data = await res.json();
-        if (!data.contacts || !Array.isArray(data.contacts)) {
-          throw new Error("Dữ liệu trả về không hợp lệ từ API.");
+        const dataContacts = await resContacts.json();
+        if (!dataContacts.contacts || !Array.isArray(dataContacts.contacts)) {
+          throw new Error("Dữ liệu liên hệ trả về không hợp lệ từ API.");
         }
-        const validContacts = data.contacts.filter(
+        const validContacts = dataContacts.contacts.filter(
           (contact: Contact) => contact._id && contact.fullName && contact.email
         );
         setContacts(validContacts);
         setFilteredContacts(validContacts);
+
+        // Fetch users and filter for admins
+        const resUsers = await fetch(`${API_BASE_URL}/api/users`, {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal,
+          cache: "no-store",
+        });
+        if (!resUsers.ok) {
+          const errorText = await resUsers.text();
+          throw new Error(`Lỗi khi tải danh sách người dùng: ${resUsers.status} ${errorText}`);
+        }
+        const dataUsers = await resUsers.json();
+        console.log("API /api/users response:", JSON.stringify(dataUsers, null, 2)); // Debug log
+
+        // Handle different response structures
+        let usersArray: Admin[] = [];
+        if (Array.isArray(dataUsers)) {
+          usersArray = dataUsers; // Direct array response
+        } else if (dataUsers.users && Array.isArray(dataUsers.users)) {
+          usersArray = dataUsers.users; // Response with "users" key
+        } else if (dataUsers.data && Array.isArray(dataUsers.data)) {
+          usersArray = dataUsers.data; // Response with "data" key
+        } else {
+          throw new Error("Dữ liệu người dùng trả về không hợp lệ từ API: Không tìm thấy mảng người dùng.");
+        }
+
+        const adminUsers = usersArray.filter(
+          (user: Admin) => user.role === "admin" && user._id && user.username
+        );
+        if (adminUsers.length === 0) {
+          console.warn("No admin users found in the response.");
+          showNotification("Không tìm thấy người dùng có vai trò admin.", "error");
+        }
+        setAdmins(adminUsers);
       } catch (error: any) {
         console.error("Fetch error:", error.message);
         setError(error.message || "Không thể tải dữ liệu.");
@@ -134,6 +178,43 @@ export default function ContactAdmin() {
   const handleStatusChange = (id: string, newStatus: "Chưa xử lý" | "Đã xử lý") => {
     if (newStatus === "Đã xử lý") {
       setShowConfirmPopup({ show: true, contactId: id });
+    }
+  };
+
+  const handleAdminChange = async (contactId: string, adminId: string | null) => {
+    if (!token) {
+      showNotification("Không tìm thấy token.", "error");
+      router.push("/user/login");
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/contacts/${contactId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ assignedAdmin: adminId }),
+      });
+      if (res.status === 401 || res.status === 403) {
+        showNotification("Phiên đăng nhập hết hạn.", "error");
+        localStorage.clear();
+        router.push("/user/login");
+        return;
+      }
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Gán admin thất bại: ${errorText}`);
+      }
+      setContacts((prev) =>
+        prev.map((c) => (c._id === contactId ? { ...c, assignedAdmin: adminId } : c))
+      );
+      setFilteredContacts((prev) =>
+        prev.map((c) => (c._id === contactId ? { ...c, assignedAdmin: adminId } : c))
+      );
+      showNotification("Đã gán admin thành công!", "success");
+    } catch (error: any) {
+      showNotification(`Lỗi khi gán admin: ${error.message}`, "error");
     }
   };
 
@@ -274,13 +355,14 @@ export default function ContactAdmin() {
               <th>Số Điện Thoại</th>
               <th>Thông Điệp</th>
               <th>Trạng Thái</th>
+              <th>Admin Phụ Trách</th>
               <th>Hành Động</th>
             </tr>
           </thead>
           <tbody>
             {filteredContacts.length === 0 ? (
               <tr>
-                <td colSpan={7} className={styles.emptyState}>
+                <td colSpan={8} className={styles.emptyState}>
                   <h3>
                     {searchName || statusFilter !== "all"
                       ? "Không tìm thấy liên hệ"
@@ -317,6 +399,24 @@ export default function ContactAdmin() {
                       >
                         {statusMapping[contact.status] || contact.status}
                       </span>
+                    </td>
+                    <td onClick={(e) => e.stopPropagation()}>
+                      <select
+                        value={contact.assignedAdmin || ""}
+                        onChange={(e) =>
+                          handleAdminChange(contact._id, e.target.value || null)
+                        }
+                        className={styles.actionSelect}
+                        disabled={contact.status === "Đã xử lý"}
+                        aria-label={`Chọn admin phụ trách cho ${contact.fullName}`}
+                      >
+                        <option value="">Chưa gán</option>
+                        {admins.map((admin) => (
+                          <option key={admin._id} value={admin._id}>
+                            {admin.username}
+                          </option>
+                        ))}
+                      </select>
                     </td>
                     <td onClick={(e) => e.stopPropagation()}>
                       <select
@@ -465,6 +565,15 @@ export default function ContactAdmin() {
                   >
                     {statusMapping[selectedContact.status] || selectedContact.status}
                   </span>
+                </dd>
+              </div>
+              <div className={styles.detailItem}>
+                <dt>Admin Phụ Trách</dt>
+                <dd>
+                  {selectedContact.assignedAdmin
+                    ? admins.find((admin) => admin._id === selectedContact.assignedAdmin)
+                        ?.username || "N/A"
+                    : "Chưa gán"}
                 </dd>
               </div>
             </dl>

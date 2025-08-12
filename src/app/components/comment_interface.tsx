@@ -1,4 +1,7 @@
 export interface Comment {
+  rating: number;
+  replies: any;
+  orderId: any;
   _id: string;
   user: {
     _id: string;

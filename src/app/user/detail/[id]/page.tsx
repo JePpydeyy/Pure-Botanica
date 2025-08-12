@@ -909,25 +909,43 @@ export default function DetailPage() {
             {filteredComments.length > 0 ? (
               filteredComments.map((comment, index) => (
                 <div key={comment._id || `comment-${index}`} className={styles.review}>
-                  <h3 className={styles["review-title"]}>
-                    {comment.user?.username || "Ẩn danh"}
-                  </h3>
-                  <div className={styles["star-rating"]}>
-                    {Array(5)
-                      .fill(0)
-                      .map((_, i) => (
-                        <span
-                          key={i}
-                          className={`${styles.star} ${i < (comment.rating || 0) ? styles["star-filled"] : ""}`}
-                        >
-                          ★
-                        </span>
-                      ))}
-                  </div>
-                  <time className={styles["review-date"]}>
-                    Ngày: {new Date(comment.createdAt).toLocaleDateString("vi-VN")}
-                  </time>
-                  <p className={styles.comment}>{comment.content}</p>
+          
+<div className={styles["review-item"]}>
+  <div className={styles["reviewer-info"]}>
+    <div className={styles["reviewer-avatar"]}>
+      <span className={styles["avatar-letter"]}>
+        {(comment.user?.username || "Ẩn danh").charAt(0).toUpperCase()}
+      </span>
+    </div>
+    <div className={styles["reviewer-details"]}>
+      <h3 className={styles["review-title"]}>
+        {comment.user?.username || "Ẩn danh"}
+      </h3>
+      <div className={styles["rating-container"]}>
+        <div className={styles["star-rating"]}>
+          {Array(5)
+            .fill(0)
+            .map((_, i) => (
+              <span
+                key={i}
+                className={`${styles.star} ${i < (comment.rating || 0) ? styles["star-filled"] : ""}`}
+              >
+                ★
+              </span>
+            ))}
+        </div>
+  
+      </div>
+      <p className={styles.comment}>{comment.content}</p>
+      <time className={styles["review-date"]}>
+        Đánh giá đã đăng vào {new Date(comment.createdAt).toLocaleDateString("vi-VN", {
+          year: 'numeric',
+          month: 'long'
+        })} 
+      </time>
+    </div>
+  </div>
+</div>
 
                   {comment.replies && comment.replies.length > 0 && (
                     <div className={styles.replies}>

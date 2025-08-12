@@ -821,3 +821,208 @@
   border-color: #999;
   color: #333;
 }
+.edit-button, .delete-button, .status-select, .reply-button, .cancel-comment {
+  margin-left: 10px;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.edit-button {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.edit-button:hover {
+  background-color: #45a049;
+}
+
+.delete-button {
+  background-color: #f44336;
+  color: white;
+}
+
+.delete-button:hover {
+  background-color: #da190b;
+}
+
+.status-select {
+  padding: 5px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.status-select:focus {
+  outline: none;
+  border-color: #007bff;
+}
+
+.reply-button {
+  background-color: #007bff;
+  color: white;
+}
+
+.reply-button:hover {
+  background-color: #0056b3;
+}
+
+.cancel-comment {
+  background-color: #6c757d;
+  color: white;
+}
+
+.cancel-comment:hover {
+  background-color: #5a6268;
+}
+
+.replyForm {
+  margin-top: 10px;
+  padding-left: 20px;
+}
+
+.child-reply {
+  margin-left: 20px;
+}
+
+.form-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+.status-dropdown {
+  padding: 5px 10px;
+  margin-left: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.status-dropdown:disabled {
+  background-color: #f0f0f0;
+  cursor: not-allowed;
+}
+.admin-reply-form {
+  margin-top: 10px;
+  padding: 10px;
+  background-color: #fff;
+  border-radius: 5px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+.admin-reply-input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 14px;
+  color: #555;
+  resize: vertical;
+  min-height: 60px;
+  margin-bottom: 10px;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.admin-reply-input:focus {
+  border-color: #6B8E23;
+}
+
+.form-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.submit-comment {
+  background-color: #6B8E23;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.submit-comment:hover {
+  background-color: #5a7a1e;
+}
+
+.submit-comment:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.cancel-comment {
+  background-color: #f0f0f0;
+  color: #333;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.cancel-comment:hover {
+  background-color: #e0e0e0;
+}
+
+.cancel-comment:disabled {
+  background-color: #f0f0f0;
+  cursor: not-allowed;
+}
+/* Nút "Trả lời" cho admin */
+.reply-button {
+  background: none;
+  border: none;
+  color: #007bff;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 5px 10px;
+  margin-top: 5px;
+  display: inline-block;
+}
+
+.reply-button:hover {
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.reply-button:disabled {
+  color: #ccc;
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
+.toggle-reply-button {
+  background: none;
+  border: none;
+  color: #555;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 5px 10px;
+  margin-top: 5px;
+  display: inline-block;
+}
+
+.toggle-reply-button:hover {
+  color: #333;
+  text-decoration: underline;
+}
+
+/* Phản hồi admin */
+.admin-reply {
+  margin-left: 20px;
+  padding-left: 12px;
+  border-left: 2px solid #ccc;
+  margin-top: 8px;
+  font-size: 13px;
+  color: #666;
+}
+
+.admin-reply p {
+  margin: 0 0 5px;
+}
+
+.admin-reply time {
+  font-size: 12px;
+  color: #888;
+}

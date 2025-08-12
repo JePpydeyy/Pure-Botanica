@@ -7,7 +7,7 @@ import Image from "next/image";
 import styles from "./Userinfo.module.css";
 import { User } from "@/app/components/user_interface";
 
-const API_BASE_URL = "http://localhost:10000";
+const API_BASE_URL = "https://api-zeal.onrender.com";
 const ERROR_IMAGE_URL = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
 
 interface Order {

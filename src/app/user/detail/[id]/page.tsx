@@ -988,7 +988,7 @@ export default function DetailPage() {
             />
             <div className={styles['image-upload']}>
               <label htmlFor="image-upload" className={styles['image-upload-label']}>
-                Tải lên hình ảnh (tối đa 5):
+                Tải lên hình ảnh (tối đa 5, JPEG/PNG, &lt;5MB):
               </label>
               <input
                 id="image-upload"

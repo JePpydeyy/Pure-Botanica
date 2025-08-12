@@ -352,13 +352,23 @@ export default function DetailPage() {
 
   // Thêm sản phẩm vào giỏ hàng
   const addToCart = useCallback(async () => {
-    if (!product || !product.option.length || !product.option[selectedOptionIndex]) return;
-
-    const selectedOption = product.option[selectedOptionIndex];
-    if (selectedOption.stock < quantity) {
-      showCartToast("error", "Số lượng vượt quá tồn kho!");
-      return;
-    }
+  if (!product) {
+    showCartToast("error", "Không tìm thấy sản phẩm!");
+    return;
+  }
+  if (!product.option.length || !product.option[selectedOptionIndex]) {
+    showCartToast("error", "Vui lòng chọn một tùy chọn hợp lệ!");
+    return;
+  }
+  const selectedOption = product.option[selectedOptionIndex];
+  if (selectedOption.stock === undefined || selectedOption.stock === null) {
+    showCartToast("error", "Không thể xác định số lượng tồn kho!");
+    return;
+  }
+  if (selectedOption.stock < quantity) {
+    showCartToast("error", "Số lượng vượt quá tồn kho!");
+    return;
+  }
 
     if (!userId) {
       try {

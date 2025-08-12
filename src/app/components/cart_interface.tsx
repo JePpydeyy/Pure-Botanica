@@ -1,10 +1,15 @@
 import { Product } from "./product_interface";
- export interface CartItem {
-  optionId: any;
+
+export interface CartItem {
+  optionId: string; 
   product: Product;
   option: {
-    stock: number; _id: string; value: string; price: number; discount_price?: number 
-};
+    stock: number;
+    _id: string;
+    value: string;
+    price: number;
+    discount_price?: number;
+  };
   quantity: number;
 }
 

@@ -46,7 +46,7 @@ interface Order {
   items: { product: Product | null; optionId: string; quantity: number; images: string[] }[];
 }
 
-const API_BASE_URL = "http://localhost:10000";
+const API_BASE_URL = "https://api-zeal.onrender.com";
 const FALLBACK_IMAGE_URL = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
 
 const normalizeImageUrl = (url: string): string => {

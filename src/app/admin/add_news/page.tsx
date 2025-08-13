@@ -26,19 +26,14 @@ config.autoAddCss = false;
 const API_DOMAIN = "https://api-zeal.onrender.com";
 const FALLBACK_IMAGE = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
 
+// Match backend slug generation
 const generateSlug = (title: string): string => {
-  console.log("Tiêu đề đầu vào:", title);
   const slug = title
     .toLowerCase()
-    .replace(/đ/g, "d") // Thay "đ" thành "d"
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/['",]/g, "")
     .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
     .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .trim();
-  console.log("Slug đầu ra:", slug);
+    .replace(/-+/g, "-");
   return slug || "untitled";
 };
 
@@ -50,14 +45,7 @@ const AddBlog = () => {
 
   const getCurrentTime = () => {
     const now = new Date();
-    return now.toLocaleString("en-US", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    }).replace(/,/, "").replace(/(\d+)\/(\d+)\/(\d+)/, "$2-$1-$3");
+    return now.toISOString(); // Match backend expected date format
   };
 
   const [formData, setFormData] = useState({
@@ -65,8 +53,9 @@ const AddBlog = () => {
     slug: "",
     content: "",
     thumbnailFile: null as File | null,
+    thumbnailCaption: "",
     status: "show" as "show" | "hidden",
-    publishDate: getCurrentTime(),
+    publishedAt: getCurrentTime(),
     contentImages: [] as File[],
   });
   const [notification, setNotification] = useState({
@@ -93,21 +82,23 @@ const AddBlog = () => {
   const fileToDataURL = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
+      reader.onload = () => {
+        if (typeof reader.result === "string") {
+          resolve(reader.result);
+        } else {
+          reject(new Error("Không thể đọc file ảnh"));
+        }
+      };
+      reader.onerror = () => reject(new Error("Lỗi đọc file ảnh"));
       reader.readAsDataURL(file);
     });
   };
 
   const cleanHtmlContent = (html: string): string => {
-    const unescapedHtml = html
-      .replace(/\u003C/g, "<")
-      .replace(/\u003E/g, ">")
-      .replace(/\u0022/g, '"');
     const parser = new DOMParser();
-    const doc = parser.parseFromString(unescapedHtml, "text/html");
+    const doc = parser.parseFromString(html, "text/html");
     if (doc.querySelector("parsererror")) {
-      console.error("Nội dung HTML không hợp lệ:", unescapedHtml);
+      console.error("Nội dung HTML không hợp lệ:", html);
       return "<p>Nội dung không hợp lệ. Vui lòng chỉnh sửa lại.</p>";
     }
     return doc.body.innerHTML;
@@ -158,20 +149,24 @@ const AddBlog = () => {
 
   const showNotification = (message: string, type: "success" | "error") => {
     let displayMessage = message;
-    if (message.includes("Trùng lặp slug") || message.includes("duplicate key")) {
-      displayMessage = "Slug đã tồn tại. Đã tạo slug mới.";
+    if (message.includes("Trùng lặp slug")) {
+      displayMessage = "Slug đã tồn tại. Vui lòng chọn slug khác.";
     } else if (message.includes("Invalid file type")) {
-      displayMessage = "Loại file không hợp lệ. Chỉ chấp nhận JPG, PNG, GIF, WebP, SVG.";
-    } else if (message.includes("File too large")) {
-      displayMessage = "Kích thước file quá lớn. Tối đa 20MB.";
+      displayMessage = "Chỉ chấp nhận JPG, PNG, GIF, WebP.";
+    } else if (message.includes("Kích thước file")) {
+      displayMessage = "Kích thước file quá lớn (tối đa 20MB).";
     } else if (message.includes("Unauthorized") || message.includes("Forbidden")) {
       displayMessage = "Bạn không có quyền thực hiện thao tác này.";
       router.push("/user/login");
+    } else if (message.includes("Nội dung HTML không hợp lệ")) {
+      displayMessage = "Nội dung HTML không hợp lệ. Vui lòng kiểm tra lại.";
+    } else if (message.includes("Lỗi upload ảnh")) {
+      displayMessage = "Lỗi khi upload ảnh. Vui lòng thử lại.";
     }
     setNotification({ show: true, message: displayMessage, type });
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => {
       const newFormData = { ...prev, [name]: value };
@@ -182,27 +177,32 @@ const AddBlog = () => {
     });
   };
 
-  const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleThumbnailChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.length) {
       const file = e.target.files[0];
-      const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "image/gif", "image/webp", "image/svg+xml"];
+      const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
       if (!allowedTypes.includes(file.type)) {
-        showNotification("Chỉ chấp nhận file ảnh (JPG, PNG, GIF, WebP, SVG)", "error");
+        showNotification("Chỉ chấp nhận file ảnh (JPG, PNG, GIF, WebP)", "error");
         return;
       }
       if (file.size > 20 * 1024 * 1024) {
         showNotification("Kích thước file không được vượt quá 20MB", "error");
         return;
       }
-      setFormData((prev) => ({ ...prev, thumbnailFile: file }));
-      setPreviewThumbnail(URL.createObjectURL(file));
+      try {
+        const previewUrl = await fileToDataURL(file);
+        setFormData((prev) => ({ ...prev, thumbnailFile: file }));
+        setPreviewThumbnail(previewUrl);
+      } catch (error) {
+        showNotification("Lỗi khi xử lý ảnh thumbnail", "error");
+      }
     }
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.length && editorRef.current) {
       const files = Array.from(e.target.files);
-      const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "image/gif", "image/webp", "image/svg+xml"];
+      const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
       const validFiles = files.filter((file) => allowedTypes.includes(file.type) && file.size <= 20 * 1024 * 1024);
 
       if (validFiles.length !== files.length) {
@@ -219,12 +219,13 @@ const AddBlog = () => {
       const range = selection.getRangeAt(0);
       range.deleteContents();
 
+      const uploadedImages: File[] = [];
       for (const file of validFiles) {
         try {
           const dataUrl = await fileToDataURL(file);
           const img = document.createElement("img");
           img.src = dataUrl;
-          img.alt = "Image";
+          img.alt = file.name;
           img.style.maxWidth = "100%";
           img.style.height = "auto";
 
@@ -233,16 +234,17 @@ const AddBlog = () => {
           range.collapse(false);
           selection.removeAllRanges();
           selection.addRange(range);
+
+          uploadedImages.push(file);
         } catch (error) {
-          console.error("Error inserting image:", error);
-          showNotification("Lỗi khi chèn ảnh.", "error");
+          showNotification("Lỗi khi chèn ảnh: " + (error as Error).message, "error");
         }
       }
 
       setFormData((prev) => ({
         ...prev,
         content: editorRef.current!.innerHTML,
-        contentImages: [...prev.contentImages, ...validFiles],
+        contentImages: [...prev.contentImages, ...uploadedImages],
       }));
     }
   };
@@ -268,9 +270,8 @@ const AddBlog = () => {
     const selection = window.getSelection();
     if (selection && selection.toString().trim()) {
       const url = prompt("Nhập URL liên kết:", "https://");
-      if (url) {
-        const validUrl = url.startsWith("http") ? url : `https://${url}`;
-        execCommand("createLink", validUrl);
+      if (url && validator.isURL(url, { require_protocol: true })) {
+        execCommand("createLink", url);
       } else {
         showNotification("URL không hợp lệ.", "error");
       }
@@ -447,9 +448,6 @@ const AddBlog = () => {
     setShowConfirmPopup(false);
     setIsSubmitting(true);
 
-    const currentTime = getCurrentTime();
-    setFormData((prev) => ({ ...prev, publishDate: currentTime }));
-
     try {
       const token = localStorage.getItem("token");
       if (!token) {
@@ -463,13 +461,13 @@ const AddBlog = () => {
       formDataToSend.append("slug", formData.slug);
       formDataToSend.append("content", formData.content);
       formDataToSend.append("thumbnail", formData.thumbnailFile!);
+      formDataToSend.append("thumbnailCaption", formData.thumbnailCaption || formData.title);
+      formDataToSend.append("publishedAt", formData.publishedAt);
       formDataToSend.append("status", formData.status);
-      formDataToSend.append("publishDate", currentTime);
+      formDataToSend.append("views", "0");
       formData.contentImages.forEach((file) => {
         formDataToSend.append("contentImages", file);
       });
-
-      console.log("Payload gửi đi:", Object.fromEntries(formDataToSend));
 
       const response = await fetch(`${API_DOMAIN}/api/news`, {
         method: "POST",
@@ -481,23 +479,12 @@ const AddBlog = () => {
 
       const result = await response.json();
       if (!response.ok) {
-        if (result.error.includes("duplicate key")) {
-          const newSlug = `${formData.slug}-${Date.now()}`;
-          showNotification(`Slug '${formData.slug}' đã tồn tại. Đã tạo slug mới: ${newSlug}`, "success");
-          formDataToSend.set("slug", newSlug);
-          const retryResponse = await fetch(`${API_DOMAIN}/api/news`, {
-            method: "POST",
-            headers: { Authorization: `Bearer ${token}` },
-            body: formDataToSend,
-          });
-          if (!retryResponse.ok) {
-            showNotification("Lỗi khi đăng bài viết", "error");
-            return;
-          }
-        } else {
-          showNotification(result.error || "Lỗi khi đăng bài viết", "error");
+        if (result.error.includes("Trùng lặp slug")) {
+          showNotification("Slug đã tồn tại. Vui lòng chọn slug khác.", "error");
           return;
         }
+        showNotification(result.error || "Lỗi khi đăng bài viết", "error");
+        return;
       }
 
       showNotification("Đăng bài viết thành công!", "success");
@@ -538,6 +525,16 @@ const AddBlog = () => {
                 placeholder="Nhập tiêu đề bài viết"
                 maxLength={100}
               />
+              <label className={styles.formLabel}>Mô tả hình đại diện</label>
+              <input
+                type="text"
+                name="thumbnailCaption"
+                value={formData.thumbnailCaption}
+                onChange={handleInputChange}
+                className={styles.titleInput}
+                placeholder="Nhập mô tả cho hình đại diện"
+                maxLength={200}
+              />
             </div>
             <div className={styles.editorMain}>
               <label className={styles.formLabel}>Nội dung bài viết</label>
@@ -552,7 +549,7 @@ const AddBlog = () => {
                 />
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/gif,image/webp"
                   ref={fileInputRef}
                   onChange={handleFileChange}
                   style={{ display: "none" }}
@@ -573,8 +570,8 @@ const AddBlog = () => {
               <label className={styles.formLabel}>Thời gian đăng</label>
               <input
                 type="text"
-                name="publishDate"
-                value={formData.publishDate}
+                name="publishedAt"
+                value={new Date(formData.publishedAt).toLocaleString("vi-VN")}
                 className={styles.formInput}
                 readOnly
               />
@@ -602,10 +599,10 @@ const AddBlog = () => {
                   <div className={styles.uploadedImage}>
                     <img
                       src={previewThumbnail}
-                      alt="Thumbnail Preview"
-                      onError={handleImageError}
-                    />
-                  </div>
+                      alt="Thumbnail–
+
+System: * Today's date and time is 07:10 PM +07 on Wednesday, August 13, 2025. Preview" />
+                    </div>
                 ) : (
                   <>
                     <FontAwesomeIcon icon={faCloudUploadAlt} className={styles.uploadIcon} />
@@ -615,7 +612,7 @@ const AddBlog = () => {
                 )}
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/gif,image/webp"
                   onChange={handleThumbnailChange}
                   ref={thumbnailInputRef}
                   style={{ display: "none" }}

@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCart } from "../context/CartContext";
 import ToastNotification from "../ToastNotification/ToastNotification";
-import { Cart, CartItem } from "@/app/components/cart_interface";
+import { Cart, CartItem } from "../../components/cart_interface";
 
 // Environment variables
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api-zeal.onrender.com";
@@ -156,7 +156,7 @@ export default function CartPage() {
               item.option && // Ensure option exists
               item.option._id // Ensure option has an _id
           )
-          .map((item) => ({
+          .map((item: { option: { _id: any; }; }) => ({
             ...item,
             optionId: item.option._id, // Explicitly set optionId from option._id
           }));
@@ -381,9 +381,12 @@ export default function CartPage() {
         // Merge new cart data with original to preserve option
         if (data.cart && data.cart.items) {
           const updatedItems = data.cart.items.map((newItem: CartItem) => {
-            const originalItem = originalCart?.items.find(
-              (i) => i.product._id === newItem.product._id && i.optionId === newItem.optionId
+           const originalItem = originalCart?.items?.find(
+              (i) =>
+                i.product._id === newItem.product._id &&
+                i.optionId === newItem.optionId
             );
+
             return {
               ...newItem,
               option: newItem.option || originalItem?.option, // Preserve original option if missing
@@ -394,14 +397,22 @@ export default function CartPage() {
         setCartMessage({ type: "success", text: data.message });
       } else {
         setDiscount(0); // Reset discount on failure
-        setCart(originalCart); // Revert to original cart on failure
+        setCart({
+          _id: originalCart?._id ?? "",
+          items: originalCart?.items ?? [],
+          ...originalCart,
+        }); // Revert to original cart on failure
         setCartMessage({ type: "error", text: data.error || "Lỗi khi áp dụng mã giảm giá" });
       }
       setTimeout(() => setCartMessage(null), 3000);
     } catch (err) {
       setCartMessage({ type: "error", text: (err as Error).message || "Lỗi không xác định khi áp dụng mã giảm giá" });
       setDiscount(0);
-      setCart(originalCart); // Revert to original cart on error
+      setCart({
+        _id: originalCart?._id ?? "",
+        items: originalCart?.items ?? [],
+        ...originalCart,
+      }); // Revert to original cart on error
       setTimeout(() => setCartMessage(null), 3000);
     }
   };
@@ -429,8 +440,9 @@ export default function CartPage() {
     const finalTotal = total || subtotal;
 
     const checkoutData = {
+      order: {}, // Add an empty object or populate as needed
       cart: { ...cart, items: validItems },
-      userId,
+      userId: userId ?? "", // Ensure userId is a string
       couponCode,
       subtotal,
       discount,

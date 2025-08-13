@@ -6,6 +6,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faCalendarDays, faArrowRight } from "@fortawesome/free-solid-svg-icons";
 import styles from "./new.module.css";
 import ScrollInView from "../../components/ScrollInView";
+export const dynamic = "force-dynamic";
 
 
 interface NewsItem {

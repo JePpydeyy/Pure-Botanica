@@ -5,7 +5,11 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import styles from "./Userinfo.module.css";
-import { User } from "@/app/components/user_interface";
+import { User as ImportedUser } from "@/app/components/user_interface";
+
+interface User extends ImportedUser {
+  id: string;
+}
 
 const API_BASE_URL = "https://api-zeal.onrender.com";
 const ERROR_IMAGE_URL = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
@@ -936,7 +940,7 @@ const renderOrderStatus = (order: Order) => (
                 </div>
                 <p>Ngày đặt: {new Date(order.createdAt).toLocaleDateString()}</p>
                 <p>Tổng tiền: {formatPrice(order.total)}</p>
-              <p>Thanh toán: {translatePaymentMethod(order.paymentMethod)}</p>
+              <p>Thanh toán: {translatePaymentMethod(order.paymentMethod ?? "")}</p>
                 {order.couponCode && <p>Mã giảm giá: {order.couponCode}</p>}
                 <button
                   className={styles.detailButton}

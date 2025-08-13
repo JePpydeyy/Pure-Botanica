@@ -61,10 +61,10 @@ const isCategory = (id_category: Category | string | null | undefined): id_categ
 
 // Di chuyển useToast lên trước ProductPage
 const useToast = () => {
-  const [message, setMessage] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
+  const [message, setMessage] = useState<{ type: "success" | "error" | "warning"; text: string } | null>(null);
   const TOAST_DURATION: number = 3000;
 
-  const showToast = useCallback((type: "success" | "error" | "info", text: string): void => {
+  const showToast = useCallback((type: "success" | "error" | "warning", text: string): void => {
     setMessage({ type, text });
     setTimeout(() => setMessage(null), TOAST_DURATION);
   }, []);
@@ -338,7 +338,7 @@ export default function ProductPage() {
         if (typeof product.id_category === "string") {
           return product.id_category === foundCategory._id;
         }
-        return isCategory(product.id_category) && product.id_category._id === foundCategory._id;
+        return isCategory(product.id_category) && (product.id_category as Category)._id === foundCategory._id;
       });
       setActiveCategory(decodedCategory);
       setFilteredProducts(filtered);
@@ -363,7 +363,7 @@ export default function ProductPage() {
           if (typeof product.id_category === "string") {
             return product.id_category === foundCategory._id;
           }
-          return isCategory(product.id_category) && product.id_category._id === foundCategory._id;
+          return isCategory(product.id_category) && (product.id_category as Category)._id === foundCategory._id;
         });
       }
     }
@@ -400,7 +400,7 @@ export default function ProductPage() {
           if (typeof product.id_category === "string") {
             return product.id_category === foundCategory._id;
           }
-          return isCategory(product.id_category) && product.id_category._id === foundCategory._id;
+          return isCategory(product.id_category) && (product.id_category as Category)._id === foundCategory._id;
         });
         setFilteredProducts(filtered);
         setActiveCategory(categoryName);

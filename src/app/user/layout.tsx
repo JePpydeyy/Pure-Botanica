@@ -11,6 +11,7 @@ import SearchBar from "../components/Searchbar";
 import ImageWithFallback from "../components/ImageWithFallback";
 import ScrollToTop from "../components/ScrollToTop";
 import '@fortawesome/fontawesome-free/css/all.min.css';
+export const dynamic = "force-dynamic";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -206,6 +207,7 @@ async function getCategories(url: string): Promise<Category[]> {
       status: category.status,
       createdAt: category.createdAt,
       __v: category.__v,
+      productCount: category.productCount ?? 0,
     }));
   } catch (error) {
     console.error(`Error fetching categories at ${new Date().toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" })}:`, error);

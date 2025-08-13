@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useState, useCallback, useMemo } from "react";
@@ -45,9 +46,7 @@ interface Order {
   items: { product: Product | null; optionId: string; quantity: number; images: string[] }[];
 }
 
-type SortOrder = "asc" | "desc";
-
-const API_BASE_URL = "https://api-zeal.onrender.com";
+const API_BASE_URL = "http://localhost:10000";
 const FALLBACK_IMAGE_URL = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
 
 const normalizeImageUrl = (url: string): string => {
@@ -72,7 +71,6 @@ const OrderPage: React.FC = () => {
   const [selectedCancelReason, setSelectedCancelReason] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [shippingStatusFilter, setShippingStatusFilter] = useState<string>("all");
-  const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [notification, setNotification] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const ordersPerPage = 9;
@@ -121,7 +119,7 @@ const OrderPage: React.FC = () => {
   };
 
   const statusProgression: { [key: string]: string[] } = {
-    pending: ["in_transit"],
+    pending: ["in_transit", "cancelled"],
     in_transit: ["delivered"],
     delivered: [],
     returned: [],
@@ -134,6 +132,7 @@ const OrderPage: React.FC = () => {
     { value: "in_transit", label: "Đang vận chuyển" },
     { value: "delivered", label: "Đã giao hàng" },
     { value: "returned", label: "Hoàn hàng" },
+    { value: "cancelled", label: "Hủy đơn hàng" },
   ];
 
   const returnStatuses = [
@@ -150,6 +149,7 @@ const OrderPage: React.FC = () => {
     setNotification({ message, type });
   };
 
+  // Check admin access
   useEffect(() => {
     const token = localStorage.getItem("token");
     const role = localStorage.getItem("role");
@@ -159,6 +159,7 @@ const OrderPage: React.FC = () => {
     }
   }, [router]);
 
+  // Fetch orders
   useEffect(() => {
     const fetchOrders = async () => {
       try {
@@ -188,6 +189,7 @@ const OrderPage: React.FC = () => {
           throw new Error("Dữ liệu đơn hàng không hợp lệ");
         }
 
+        // Normalize orders with invalid shippingStatus or returnStatus
         const normalizedOrders = data.map((order) => ({
           ...order,
           shippingStatus: ["pending", "in_transit", "delivered", "returned", "cancelled"].includes(order.shippingStatus)
@@ -224,8 +226,8 @@ const OrderPage: React.FC = () => {
   };
 
   const filterOrders = useCallback(
-    (query: string, shippingStatus: string, sort: SortOrder) => {
-      let filtered = orders.filter((order) => {
+    (query: string, shippingStatus: string) => {
+      const filtered = orders.filter((order) => {
         const searchLower = query.toLowerCase();
         const username = order.user?.username?.toLowerCase() || "";
         const orderId = order._id.toLowerCase();
@@ -237,13 +239,6 @@ const OrderPage: React.FC = () => {
         const matchesShippingStatus = shippingStatus === "all" || order.shippingStatus === shippingStatus;
         return matchesSearch && matchesShippingStatus;
       });
-
-      filtered = filtered.sort((a, b) => {
-        const dateA = new Date(a.createdAt).getTime();
-        const dateB = new Date(b.createdAt).getTime();
-        return sort === "asc" ? dateA - dateB : dateB - dateA;
-      });
-
       setFilteredOrders(filtered);
       setCurrentPage(1);
     },
@@ -251,15 +246,15 @@ const OrderPage: React.FC = () => {
   );
 
   const debouncedFilter = useMemo(
-    () => debounce((query: string, shippingStatus: string, sort: SortOrder) => {
-      filterOrders(query, shippingStatus, sort);
+    () => debounce((query: string, shippingStatus: string) => {
+      filterOrders(query, shippingStatus);
     }, 300),
     [filterOrders]
   );
 
   useEffect(() => {
-    debouncedFilter(searchQuery, shippingStatusFilter, sortOrder);
-  }, [searchQuery, shippingStatusFilter, sortOrder, debouncedFilter]);
+    debouncedFilter(searchQuery, shippingStatusFilter);
+  }, [searchQuery, shippingStatusFilter, debouncedFilter]);
 
   const formatDate = (dateString: string | number | Date) => {
     const date = new Date(dateString);
@@ -418,7 +413,10 @@ const OrderPage: React.FC = () => {
       setSelectedCancelReason("");
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
-      showNotification(`Không thể cập nhật trạng thái: ${errorMessage}`, "error");
+      showNotification(
+        `Không thể cập nhật trạng thái: ${errorMessage}`,
+        "error"
+      );
     } finally {
       setShowConfirm(null);
       setLoading(false);
@@ -505,6 +503,7 @@ const OrderPage: React.FC = () => {
           onClick={() => {
             setLoading(true);
             setError(null);
+            // Trigger re-fetch
             const fetchOrders = async () => {
               try {
                 setLoading(true);
@@ -601,15 +600,6 @@ const OrderPage: React.FC = () => {
                 {status.label}
               </option>
             ))}
-          </select>
-          <select
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value as SortOrder)}
-            className={styles.categorySelect}
-            aria-label="Sắp xếp theo ngày"
-          >
-            <option value="desc">Mới nhất trước</option>
-            <option value="asc">Cũ nhất trước</option>
           </select>
         </div>
       </div>

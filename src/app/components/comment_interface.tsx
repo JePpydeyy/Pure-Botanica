@@ -1,4 +1,7 @@
 export interface Comment {
+  adminReply: any;
+  images: any;
+  status: string;
   rating: number;
   replies: any;
   orderId: any;
@@ -16,4 +19,5 @@ export interface Comment {
   } | null; // product có thể là null nếu không có sản phẩm
   content: string;
   createdAt: string;
+  
 }

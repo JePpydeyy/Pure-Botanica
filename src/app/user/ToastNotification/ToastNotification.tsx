@@ -4,7 +4,7 @@ import styles from './ToastNotification.module.css';
 // Định nghĩa kiểu cho props
 interface ToastNotificationProps {
   message: string;
-  type: 'error' | 'success' | 'warning' | null; 
+  type: 'error' | 'success' | 'warning' | null;
   onClose: () => void;
 }
 
@@ -20,7 +20,7 @@ const ToastNotification = ({ message, type, onClose }: ToastNotificationProps) =
   }, [onClose]);
 
   return (
-    <div className={`${styles.toast} ${styles[type]} ${isVisible ? styles.show : styles.hide}`}>
+    <div className={`${styles.toast} ${type ? styles[type] : ''} ${isVisible ? styles.show : styles.hide}`}>
       {message}
     </div>
   );

@@ -223,7 +223,15 @@ export default function EditUser({ params }: { params: Promise<{ id: string }> }
         throw new Error("Ngày sinh không hợp lệ.");
       }
 
-      const formattedData = {
+      // Extend formattedData type to allow status for admin
+      const formattedData: {
+        username: string;
+        email: string;
+        phone: string;
+        address: string;
+        birthday: string | null;
+        status?: string;
+      } = {
         username: formData.username || "",
         email: formData.email || "",
         phone: formData.phone || "",

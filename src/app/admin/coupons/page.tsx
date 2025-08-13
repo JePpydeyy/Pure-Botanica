@@ -1,8 +1,8 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import styles from "./coupon.module.css";
 import type { Coupon } from "@/app/components/coupon_interface";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -30,7 +30,12 @@ interface Notification {
   type: "success" | "error";
 }
 
-export default function CouponPage() {
+// Component client-side sử dụng useSearchParams (nếu có)
+function CouponsContent() {
+  const searchParams = useSearchParams();
+  const searchQueryFromUrl = searchParams.get("search") || ""; // Ví dụ: lấy tham số search từ URL
+  const statusFilterFromUrl = (searchParams.get("status") as "all" | "active" | "inactive") || "all";
+
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [filteredCoupons, setFilteredCoupons] = useState<Coupon[]>([]);
   const [isAuthorized, setIsAuthorized] = useState(false);
@@ -42,8 +47,8 @@ export default function CouponPage() {
     total: 0,
     totalPages: 1,
   });
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+  const [searchQuery, setSearchQuery] = useState(searchQueryFromUrl);
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">(statusFilterFromUrl);
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteCouponId, setDeleteCouponId] = useState<string | null>(null);
@@ -101,7 +106,7 @@ export default function CouponPage() {
             headers: {
               Authorization: `Bearer ${token}`,
             },
-            cache: "no-store",
+            next: { revalidate: 3600 }, // Sửa từ cache: "no-store" sang ISR
           }
         );
 
@@ -191,13 +196,13 @@ export default function CouponPage() {
             expiryDate: formData.expiryDate || undefined,
             usageLimit: formData.usageLimit || null,
             isActive: formData.isActive,
-            usedCount: formData.usedCount ?? 0, // Preserve usedCount
+            usedCount: formData.usedCount ?? 0,
           }
         : {
             ...formData,
             expiryDate: formData.expiryDate || undefined,
             usageLimit: formData.usageLimit || null,
-            usedCount: 0, // Default for new coupons
+            usedCount: 0,
           };
 
       const response = await fetch(url, {
@@ -207,6 +212,7 @@ export default function CouponPage() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(bodyData),
+        cache: "no-store", // Giữ no-store vì đây là thao tác tạo/cập nhật
       });
 
       if (!response.ok) {
@@ -261,7 +267,7 @@ export default function CouponPage() {
         : "",
       usageLimit: coupon.usageLimit,
       isActive: coupon.isActive,
-      usedCount: coupon.usedCount ?? 0, // Default to 0 if undefined
+      usedCount: coupon.usedCount ?? 0,
     });
     setShowModal(true);
   };
@@ -287,6 +293,7 @@ export default function CouponPage() {
         headers: {
           Authorization: `Bearer ${token}`,
         },
+        cache: "no-store", // Giữ no-store vì đây là thao tác xóa
       });
 
       if (!response.ok) {
@@ -761,5 +768,14 @@ export default function CouponPage() {
         </div>
       )}
     </div>
+  );
+}
+
+// Component chính bọc trong Suspense
+export default function CouponPage() {
+  return (
+    <Suspense fallback={<div className="loading">Đang tải...</div>}>
+      <CouponsContent />
+    </Suspense>
   );
 }

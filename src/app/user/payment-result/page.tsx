@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import styles from "../checkout/checkout.module.css";
+export const dynamic = "force-dynamic";
 
 export default function PaymentResultPage() {
   const router = useRouter();

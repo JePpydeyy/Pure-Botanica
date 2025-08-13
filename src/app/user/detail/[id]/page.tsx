@@ -104,6 +104,7 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
   const defaultHeaders: HeadersInit = {
+    "Content-Type": "application/json",
     ...(token && { Authorization: `Bearer ${token}` }),
   };
 
@@ -165,7 +166,7 @@ export default function DetailPage() {
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [canReview, setCanReview] = useState<boolean>(false);
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
-  const [adminReplyContent, setAdminReplyContent] = useState<string>("");
+  const [adminReplyContent, setAdminReplyContent] = useState<string>(" Angelina");
   const [showReplyForm, setShowReplyForm] = useState<string | null>(null); // Quản lý form trả lời
   const [showAdminReply, setShowAdminReply] = useState<{ [key: string]: boolean }>({}); // Quản lý toggle adminReply
 
@@ -352,23 +353,13 @@ export default function DetailPage() {
 
   // Thêm sản phẩm vào giỏ hàng
   const addToCart = useCallback(async () => {
-  if (!product) {
-    showCartToast("error", "Không tìm thấy sản phẩm!");
-    return;
-  }
-  if (!product.option.length || !product.option[selectedOptionIndex]) {
-    showCartToast("error", "Vui lòng chọn một tùy chọn hợp lệ!");
-    return;
-  }
-  const selectedOption = product.option[selectedOptionIndex];
-  if (selectedOption.stock === undefined || selectedOption.stock === null) {
-    showCartToast("error", "Không thể xác định số lượng tồn kho!");
-    return;
-  }
-  if (selectedOption.stock < quantity) {
-    showCartToast("error", "Số lượng vượt quá tồn kho!");
-    return;
-  }
+    if (!product || !product.option.length || !product.option[selectedOptionIndex]) return;
+
+    const selectedOption = product.option[selectedOptionIndex];
+    if (selectedOption.stock < quantity) {
+      showCartToast("error", "Số lượng vượt quá tồn kho!");
+      return;
+    }
 
     if (!userId) {
       try {
@@ -541,6 +532,9 @@ export default function DetailPage() {
     }
   }, [product?._id, newComment, rating, userId, userLoading, images, showCommentToast, router]);
 
+  const ratings: (number | "all")[] = ['all', 5, 4, 3, 2, 1]; // Khai báo kiểu rõ ràng
+
+
   // Chỉnh sửa bình luận
   const editComment = useCallback(async (commentId: string) => {
     if (!newComment.trim() || newComment.length < MIN_COMMENT_LENGTH || rating === 0) {
@@ -686,7 +680,7 @@ export default function DetailPage() {
     setNewComment(comment.content);
     setRating(comment.rating || 0);
     setImages([]);
-    setImagePreviews(comment.images?.map((img) => getImageUrl(img)) || []);
+    setImagePreviews(comment.images?.map((img: string) => getImageUrl(img)) || []);
     const form = document.getElementById("writeReviewForm");
     if (form) {
       form.classList.add(styles.active);
@@ -921,20 +915,21 @@ export default function DetailPage() {
             </div>
           </div>
 
-          <div className={styles['filter-section']}>
-            <span className={styles['filter-label']}>Lọc đánh giá:</span>
-            {['all', 5, 4, 3, 2, 1].map((rating) => (
-              <button
-                key={rating}
-                className={`${styles['filter-button']} ${
-                  filterRating === rating ? styles.active : ''
-                }`}
-                onClick={() => setFilterRating(rating)}
-              >
-                {rating === 'all' ? 'Tất cả' : `${rating} ★`}
-              </button>
-            ))}
-          </div>
+
+        <div className={styles['filter-section']}>
+          <span className={styles['filter-label']}>Lọc đánh giá:</span>
+          {ratings.map((rating) => (
+            <button
+              key={rating}
+              className={`${styles['filter-button']} ${
+                filterRating === rating ? styles.active : ''
+              }`}
+              onClick={() => setFilterRating(rating)}
+            >
+              {rating === 'all' ? 'Tất cả' : `${rating} ★`}
+            </button>
+          ))}
+        </div>
 
           <div className={styles['write-review-container']}>
             {canReview && (
@@ -1116,7 +1111,7 @@ export default function DetailPage() {
                   <p className={styles.comment}>{comment.content}</p>
                   {comment.images && comment.images.length > 0 && (
                     <div className={styles['comment-images']}>
-                      {comment.images.map((image, imgIndex) => (
+                      {comment.images.map((image: string, imgIndex: number) => (
                         <Image
                           key={`comment-img-${imgIndex}`}
                           src={`${getImageUrl(image)}?${cacheBuster}`}

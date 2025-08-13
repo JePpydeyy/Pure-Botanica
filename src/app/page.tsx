@@ -1,24 +1,21 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function RedirectPage() {
+export const dynamic = "force-dynamic";
+
+function RedirectContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   useEffect(() => {
     const refresh = searchParams.get("refresh");
-    // Chuyển hướng đến /user với tham số refresh nếu có
     router.push(`/user${refresh === "true" ? "?refresh=true" : ""}`);
-
-    // Không cần setTimeout vì router.push hoạt động ngay lập tức
   }, [router, searchParams]);
 
   return (
-    <html lang="vi">
-      <body>
-         <div
+    <div
       style={{
         height: "100vh",
         display: "flex",
@@ -30,8 +27,13 @@ export default function RedirectPage() {
     >
       <p>Đang chuyển trang, vui lòng chờ...</p>
     </div>
-      </body>
-    </html>
-  
+  );
+}
+
+export default function RedirectPage() {
+  return (
+    <Suspense fallback={<div>Đang tải...</div>}>
+      <RedirectContent />
+    </Suspense>
   );
 }

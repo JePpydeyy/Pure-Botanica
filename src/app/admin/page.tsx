@@ -1,4 +1,5 @@
 "use client";
+
 import styles from "./page.module.css";
 import {
   Chart as ChartJS,
@@ -681,7 +682,7 @@ const AD_Home: React.FC = () => {
         </div>
         <div className={styles.statBox}>
           <h3>{loading ? "..." : stats.newComments}</h3>
-          <p>Đánh mới</p>
+          <p>Bình luận mới</p>
         </div>
       </section>
 

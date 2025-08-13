@@ -23,10 +23,10 @@ interface Product {
 
 // Hook toast message
 const useToast = () => {
-  const [message, setMessage] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
+  const [message, setMessage] = useState<{ type: "success" | "error" | "warning"; text: string } | null>(null);
   const TOAST_DURATION = 3000;
 
-  const showToast = useCallback((type: "success" | "error" | "info", text: string) => {
+  const showToast = useCallback((type: "success" | "error" | "warning", text: string) => {
     setMessage({ type, text });
     setTimeout(() => setMessage(null), TOAST_DURATION);
   }, []);

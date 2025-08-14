@@ -76,7 +76,7 @@ export default function Category() {
         const categoriesData: Category[] = await categoryRes.json();
 
         // Fetch all products
-        const productRes = await fetch("https://api-zeal.onrender.com/api/products?status=hidden", {
+        const productRes = await fetch("https://api-zeal.onrender.com/api/products", {
           headers: {
             "Content-Type": "application/json",
             ...(storedToken && { Authorization: `Bearer ${storedToken}` }),
@@ -114,7 +114,7 @@ export default function Category() {
       return false;
     }
     try {
-      const res = await fetch(`https://api-zeal.onrender.com/api/products?id_category=${categoryId}&status=hidden`, {
+      const res = await fetch(`https://api-zeal.onrender.com/api/products?id_category=${categoryId}`, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -183,6 +183,7 @@ export default function Category() {
       }
       setCategories((prev) => prev.map((cat) => (cat._id === id ? result.category : cat)));
       toast.success(`Danh mục "${name}" đã được ${result.category.status === "show" ? "hiển thị" : "ẩn"} thành công!`);
+      window.location.reload();
     } catch (error: any) {
       toast.error(error.message || `Không thể ${action} danh mục "${name}"`);
     } finally {
@@ -504,4 +505,8 @@ export default function Category() {
       )}
     </div>
   );
+}
+
+function fetchCategoriesAndProducts() {
+  throw new Error("Function not implemented.");
 }

@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./customer.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEdit, faTrash, faCheck, faTimes } from "@fortawesome/free-solid-svg-icons";
+import { faEdit, faCheck, faTimes } from "@fortawesome/free-solid-svg-icons";
 import ToastNotification from "../../user/ToastNotification/ToastNotification";
 
 interface Customer {
@@ -32,8 +32,6 @@ export default function Customer() {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmUpdateModalOpen, setIsConfirmUpdateModalOpen] = useState(false);
-  const [isConfirmDeleteModalOpen, setIsConfirmDeleteModalOpen] = useState(false);
-  const [deleteCustomerId, setDeleteCustomerId] = useState<string | null>(null);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState<Notification>({ show: false, message: "", type: "success" });
@@ -285,65 +283,6 @@ export default function Customer() {
     }
   };
 
-  // Confirm delete
-  const confirmDelete = (id: string) => {
-    setDeleteCustomerId(id);
-    setIsConfirmDeleteModalOpen(true);
-  };
-
-  // Delete customer
-  const deleteCustomer = async () => {
-    if (!deleteCustomerId) return;
-
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        throw new Error("No token found");
-      }
-
-      const res = await fetch(`https://api-zeal.onrender.com/api/users/${deleteCustomerId}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (res.status === 401 || res.status === 403) {
-        throw new Error("Phiên đăng nhập hết hạn");
-      }
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || "Xóa thất bại");
-      }
-
-      setCustomers((prev) => prev.filter((c) => c._id !== deleteCustomerId));
-      setFilteredCustomers((prev) => prev.filter((c) => c._id !== deleteCustomerId));
-      setIsConfirmDeleteModalOpen(false);
-      setDeleteCustomerId(null);
-      setNotification({
-        show: true,
-        message: "Xóa khách hàng/quản trị viên thành công!",
-        type: "success",
-      });
-      setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
-      setCurrentPage(1);
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error
-          ? err.message === "Phiên đăng nhập hết hạn"
-            ? "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!"
-            : err.message || "Có lỗi xảy ra khi xóa!"
-          : "Đã xảy ra lỗi không xác định";
-      setNotification({ show: true, message: errorMessage, type: "error" });
-      setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
-      if (err instanceof Error && err.message === "Phiên đăng nhập hết hạn") {
-        localStorage.clear();
-        setTimeout(() => router.push("/user/login"), 3000);
-      }
-    }
-  };
-
   if (loading) {
     return (
       <div className={styles.productManagementContainer}>
@@ -441,15 +380,6 @@ export default function Customer() {
                         aria-label={`Sửa thông tin ${customer.username}`}
                       >
                         <FontAwesomeIcon icon={faEdit} />
-                      </button>
-                      <button
-                        type="button"
-                        className={styles.cancelBtn}
-                        onClick={() => confirmDelete(customer._id)}
-                        title="Xóa khách hàng"
-                        aria-label={`Xóa ${customer.username}`}
-                      >
-                        <FontAwesomeIcon icon={faTrash} />
                       </button>
                     </div>
                   </td>
@@ -641,51 +571,6 @@ export default function Customer() {
                   }}
                   title="Hủy"
                   aria-label="Hủy cập nhật"
-                >
-                  <FontAwesomeIcon icon={faTimes} />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {isConfirmDeleteModalOpen && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modalContent}>
-            <button
-              className={styles.closePopupBtn}
-              onClick={() => {
-                setIsConfirmDeleteModalOpen(false);
-                setDeleteCustomerId(null);
-              }}
-              title="Đóng"
-              aria-label="Đóng xác nhận xóa"
-            >
-              <FontAwesomeIcon icon={faTimes} />
-            </button>
-            <h2 className={styles.modalContentTitle}>Xác Nhận Xóa</h2>
-            <div className={styles.popupDetails}>
-              <p>Bạn có chắc muốn xóa {roleFilter === "user" ? "khách hàng" : "quản trị viên"} này?</p>
-              <div className={styles.modalActions}>
-                <button
-                  type="button"
-                  className={styles.confirmBtn}
-                  onClick={deleteCustomer}
-                  title="Xác nhận xóa"
-                  aria-label="Xác nhận xóa khách hàng"
-                >
-                  <FontAwesomeIcon icon={faCheck} />
-                </button>
-                <button
-                  type="button"
-                  className={styles.cancelBtn}
-                  onClick={() => {
-                    setIsConfirmDeleteModalOpen(false);
-                    setDeleteCustomerId(null);
-                  }}
-                  title="Hủy"
-                  aria-label="Hủy xóa khách hàng"
                 >
                   <FontAwesomeIcon icon={faTimes} />
                 </button>

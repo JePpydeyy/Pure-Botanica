@@ -5,8 +5,16 @@ import type { Category } from "@/app/components/category_interface";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEdit, faEye, faEyeSlash, faCheck, faTimes, faPlus, faRedo } from "@fortawesome/free-solid-svg-icons";
-import { toast } from "react-toastify";
+import {
+  faEdit,
+  faEye,
+  faEyeSlash,
+  faCheck,
+  faTimes,
+  faPlus,
+  faRedo,
+} from "@fortawesome/free-solid-svg-icons";
+import ToastNotification from "../../user/ToastNotification/ToastNotification";
 
 interface Product {
   products: string;
@@ -16,10 +24,7 @@ interface Product {
   status: string;
   view: number;
   id_brand: string;
-  id_category: {
-    _id: string;
-    status: string;
-  };
+  id_category: string | { _id: string; status: string };
   images: string[];
   short_description: string;
   description: string;
@@ -41,32 +46,58 @@ export default function Category() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [updateError, setUpdateError] = useState(""); // New state for update errors
   const [token, setToken] = useState<string | null>(null);
-  const [showConfirmPopup, setShowConfirmPopup] = useState<{ id: string; name: string; action: "ẩn" | "hiển thị" } | null>(null);
+  const [showConfirmPopup, setShowConfirmPopup] = useState<
+    { id: string; name: string; action: "ẩn" | "hiển thị" } | null
+  >(null);
   const [showStockWarning, setShowStockWarning] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<"all" | "show" | "hidden">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "show" | "hidden">(
+    "all"
+  );
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [itemsPerPage] = useState<number>(9);
+  const [showAddPopup, setShowAddPopup] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [addLoading, setAddLoading] = useState(false);
+  const [addError, setAddError] = useState("");
   const router = useRouter();
+  const [notification, setNotification] = useState({
+    show: false,
+    message: "",
+    type: "success" as "success" | "error",
+  });
 
-  useEffect(() => {
-    const storedToken = localStorage.getItem("token");
-    setToken(storedToken);
+  const showNotification = (message: string, type: "success" | "error") => {
+    setNotification({ show: true, message, type });
+  };
 
-    const fetchCategoriesAndProducts = async () => {
+  // Hàm fetch danh mục và sản phẩm, đếm số sản phẩm cho từng danh mục
+  const fetchCategoriesAndProducts = useCallback(
+    async (
+      setCategories: (cats: Category[]) => void,
+      setLoading: (loading: boolean) => void,
+      router: any,
+      showNotification: (message: string, type: "success" | "error") => void,
+      token: string | null
+    ) => {
+      setLoading(true);
       try {
         // Fetch categories
-        const categoryRes = await fetch("https://api-zeal.onrender.com/api/categories", {
-          headers: {
-            "Content-Type": "application/json",
-            ...(storedToken && { Authorization: `Bearer ${storedToken}` }),
-          },
-          cache: "no-store",
-        });
+        const categoryRes = await fetch(
+          "https://api-zeal.onrender.com/api/categories",
+          {
+            headers: {
+              "Content-Type": "application/json",
+              ...(token && { Authorization: `Bearer ${token}` }),
+            },
+            cache: "no-store",
+          }
+        );
         if (!categoryRes.ok) {
           if (categoryRes.status === 401) {
-            toast.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+            showNotification("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", "error");
             localStorage.removeItem("token");
             router.push("/login");
             return;
@@ -75,176 +106,309 @@ export default function Category() {
         }
         const categoriesData: Category[] = await categoryRes.json();
 
-        // Fetch all products
-        const productRes = await fetch("https://api-zeal.onrender.com/api/products", {
-          headers: {
-            "Content-Type": "application/json",
-            ...(storedToken && { Authorization: `Bearer ${storedToken}` }),
-          },
-          cache: "no-store",
+        // Filter out invalid categories and log issues
+        const validCategories = categoriesData.filter((cat) => {
+          if (!cat.name || typeof cat.name !== "string") {
+            console.warn(`Invalid category detected: _id=${cat._id}, name=${cat.name}`);
+            return false;
+          }
+          return true;
         });
+
+        // Fetch all products
+        const productRes = await fetch(
+          "https://api-zeal.onrender.com/api/products",
+          {
+            headers: {
+              "Content-Type": "application/json",
+              ...(token && { Authorization: `Bearer ${token}` }),
+            },
+            cache: "no-store",
+          }
+        );
         if (!productRes.ok) {
           throw new Error(`Không thể tải sản phẩm: ${productRes.status}`);
         }
         const products: Product[] = await productRes.json();
 
-        // Count products per category
-        const updatedCategories = categoriesData.map((category) => {
-          const productCount = products.filter(
-            (product) => product.id_category?._id === category._id
-          ).length;
+        // Đếm số sản phẩm cho từng danh mục
+        const updatedCategories = validCategories.map((category) => {
+          const productCount = products.filter((product) => {
+            let prodCatId = "";
+            if (typeof product.id_category === "object" && product.id_category !== null) {
+              prodCatId = product.id_category._id;
+            } else {
+              prodCatId = product.id_category as string;
+            }
+            return String(prodCatId) === String(category._id);
+          }).length;
           return { ...category, productCount };
         });
 
         setCategories(updatedCategories);
+        if (validCategories.length < categoriesData.length) {
+          showNotification(
+            "Một số danh mục không hợp lệ đã bị lọc bỏ do thiếu tên.",
+            "error"
+          );
+        }
       } catch (error: any) {
-        toast.error(error.message || "Đã xảy ra lỗi khi tải danh sách danh mục hoặc sản phẩm.");
+        showNotification(
+          error.message || "Đã xảy ra lỗi khi tải danh sách danh mục hoặc sản phẩm.",
+          "error"
+        );
       } finally {
         setLoading(false);
       }
-    };
+    },
+    []
+  );
 
-    fetchCategoriesAndProducts();
-  }, [router]);
+  useEffect(() => {
+    const storedToken = localStorage.getItem("token");
+    setToken(storedToken);
+    fetchCategoriesAndProducts(setCategories, setLoading, router, showNotification, storedToken);
+  }, [router, fetchCategoriesAndProducts]);
 
-  const checkCategoryCanHide = useCallback(async (categoryId: string): Promise<boolean> => {
-    if (!token) {
-      toast.error("Vui lòng đăng nhập lại!");
-      router.push("/login");
-      return false;
-    }
-    try {
-      const res = await fetch(`https://api-zeal.onrender.com/api/products?id_category=${categoryId}`, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+  const checkCategoryCanHide = useCallback(
+    async (categoryId: string): Promise<boolean> => {
+      if (!token) {
+        showNotification("Vui lòng đăng nhập lại!", "error");
+        router.push("/login");
+        return false;
+      }
+      try {
+        const res = await fetch(
+          `https://api-zeal.onrender.com/api/products?id_category=${categoryId}`,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        if (!res.ok) throw new Error("Không thể kiểm tra sản phẩm của danh mục");
+        const products: Product[] = await res.json();
+
+        if (!products || products.length === 0) return true;
+
+        const allStockZero = products.every(
+          (product) =>
+            Array.isArray(product.option) &&
+            product.option.every((opt) => Number(opt.stock) === 0)
+        );
+        if (allStockZero) return true;
+
+        showNotification("Không thể ẩn danh mục vì vẫn còn sản phẩm có tồn kho!", "error");
+        return false;
+      } catch (error: any) {
+        showNotification(error.message || "Lỗi khi kiểm tra danh mục.", "error");
+        return false;
+      }
+    },
+    [token, router]
+  );
+
+  const handleToggleVisibility = useCallback(
+    async (id: string) => {
+      if (!token) {
+        showNotification("Vui lòng đăng nhập để thực hiện thao tác này!", "error");
+        router.push("/login");
+        return;
+      }
+      const category = categories.find((cat) => cat._id === id);
+      if (!category) {
+        showNotification("Không tìm thấy danh mục!", "error");
+        return;
+      }
+
+      setShowConfirmPopup({
+        id,
+        name: category.name,
+        action: category.status === "show" ? "ẩn" : "hiển thị",
       });
-      if (!res.ok) throw new Error("Không thể kiểm tra sản phẩm của danh mục");
-      const products: Product[] = await res.json();
+    },
+    [categories, token]
+  );
 
-      if (!products || products.length === 0) return true;
+  const confirmToggleVisibility = useCallback(
+    async () => {
+      if (!showConfirmPopup || !token) return;
+      const { id, name, action } = showConfirmPopup;
+      try {
+        const res = await fetch(
+          `https://api-zeal.onrender.com/api/categories/${id}/toggle-visibility`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        const result = await res.json();
+        if (!res.ok) {
+          if (res.status === 400) {
+            setShowStockWarning(name);
+          } else {
+            showNotification(result.message || `Không thể ${action} danh mục "${name}"`, "error");
+          }
+          return;
+        }
+        // Update the categories state directly
+        setCategories((prev) =>
+          prev.map((cat) =>
+            cat._id === id ? { ...cat, status: result.category.status } : cat
+          )
+        );
+        showNotification(
+          `Danh mục "${name}" đã được ${
+            result.category.status === "show" ? "hiển thị" : "ẩn"
+          } thành công!`,
+          "success"
+        );
+      } catch (error: any) {
+        showNotification(error.message || `Không thể ${action} danh mục "${name}"`, "error");
+      } finally {
+        setShowConfirmPopup(null);
+      }
+    },
+    [showConfirmPopup, token]
+  );
 
-      const allStockZero = products.every(
-        (product) =>
-          Array.isArray(product.option) && product.option.every((opt) => Number(opt.stock) === 0)
-      );
-      if (allStockZero) return true;
+  const handleEdit = useCallback(
+    (id: string) => {
+      const category = categories.find((cat) => cat._id === id);
+      if (category) {
+        setEditingCategory(category);
+        setUpdateError(""); // Reset update error when starting edit
+      }
+    },
+    [categories]
+  );
 
-      toast.error("Không thể ẩn danh mục vì vẫn còn sản phẩm có tồn kho!");
-      return false;
-    } catch (error: any) {
-      toast.error(error.message || "Lỗi khi kiểm tra danh mục.");
-      return false;
-    }
-  }, [token, router]);
-
-  const handleToggleVisibility = useCallback(async (id: string) => {
-    if (!token) {
-      toast.error("Vui lòng đăng nhập để thực hiện thao tác này!");
-      router.push("/login");
-      return;
-    }
-    const category = categories.find((cat) => cat._id === id);
-    if (!category) {
-      toast.error("Không tìm thấy danh mục!");
-      return;
-    }
-
-    setShowConfirmPopup({
-      id,
-      name: category.name,
-      action: category.status === "show" ? "ẩn" : "hiển thị",
-    });
-  }, [categories, token]);
-
-  const confirmToggleVisibility = useCallback(async () => {
-    if (!showConfirmPopup || !token) return;
-    const { id, name, action } = showConfirmPopup;
-    try {
-      const res = await fetch(
-        `https://api-zeal.onrender.com/api/categories/${id}/toggle-visibility`,
-        {
+  const handleUpdate = useCallback(
+    async (id: string, updatedName: string) => {
+      if (!token) {
+        showNotification("Vui lòng đăng nhập để thực hiện thao tác này!", "error");
+        router.push("/login");
+        return;
+      }
+      if (!updatedName.trim()) {
+        showNotification("Tên danh mục không được để trống!", "error");
+        setUpdateError("Tên danh mục không được để trống!");
+        return;
+      }
+      try {
+        const res = await fetch(`https://api-zeal.onrender.com/api/categories/${id}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
+          body: JSON.stringify({ name: updatedName }),
+        });
+        if (res.status === 401) {
+          showNotification("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", "error");
+          localStorage.removeItem("token");
+          setToken(null);
+          router.push("/login");
+          return;
         }
-      );
-      const result = await res.json();
-      if (!res.ok) {
-        if (res.status === 400) {
-          setShowStockWarning(name);
-        } else {
-          toast.error(result.message || `Không thể ${action} danh mục "${name}"`);
+        if (!res.ok) {
+          const errorData = await res.json();
+          if (errorData.code === 11000) {
+            setUpdateError("Đã có một danh mục trùng tên!");
+            throw new Error("Đã có một danh mục trùng tên!");
+          }
+          throw new Error(errorData.message || "Cập nhật thất bại");
         }
-        return;
+        const { category } = await res.json();
+        setCategories((prev) =>
+          prev.map((cat) => (cat._id === id ? category : cat))
+        );
+        setEditingCategory(null);
+        setUpdateError("");
+        showNotification("Cập nhật danh mục thành công!", "success");
+      } catch (error: any) {
+        showNotification(`Cập nhật thất bại: ${error.message}`, "error");
+        setUpdateError(error.message || "Cập nhật thất bại");
       }
-      setCategories((prev) => prev.map((cat) => (cat._id === id ? result.category : cat)));
-      toast.success(`Danh mục "${name}" đã được ${result.category.status === "show" ? "hiển thị" : "ẩn"} thành công!`);
-      window.location.reload();
-    } catch (error: any) {
-      toast.error(error.message || `Không thể ${action} danh mục "${name}"`);
-    } finally {
-      setShowConfirmPopup(null);
-    }
-  }, [showConfirmPopup, token, router]);
+    },
+    [token, router]
+  );
 
-  const handleEdit = useCallback((id: string) => {
-    const category = categories.find((cat) => cat._id === id);
-    if (category) {
-      setEditingCategory(category);
-    }
-  }, [categories]);
-
-  const handleUpdate = useCallback(async (id: string, updatedName: string) => {
-    if (!token) {
-      toast.error("Vui lòng đăng nhập để thực hiện thao tác này!");
-      router.push("/login");
-      return;
-    }
-    if (!updatedName.trim()) {
-      toast.error("Tên danh mục không được để trống!");
-      return;
-    }
-    try {
-      const res = await fetch(`https://api-zeal.onrender.com/api/categories/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ name: updatedName }),
-      });
-      if (res.status === 401) {
-        toast.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
-        localStorage.removeItem("token");
-        setToken(null);
+  const handleAddCategory = useCallback(
+    async () => {
+      if (!token) {
+        showNotification("Vui lòng đăng nhập để thực hiện thao tác này!", "error");
         router.push("/login");
         return;
       }
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || "Cập nhật thất bại");
+      if (!newCategoryName.trim()) {
+        showNotification("Tên danh mục không được để trống!", "error");
+        setAddError("Tên danh mục không được để trống!");
+        return;
       }
-      const { category } = await res.json();
-      setCategories((prev) => prev.map((cat) => (cat._id === id ? category : cat)));
-      setEditingCategory(null);
-      toast.success("Cập nhật danh mục thành công!");
-    } catch (error: any) {
-      toast.error(`Cập nhật thất bại: ${error.message}`);
-    }
-  }, [token, router]);
+      setAddLoading(true);
+      setAddError("");
+      try {
+        const res = await fetch("https://api-zeal.onrender.com/api/categories", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ name: newCategoryName }),
+        });
+        if (res.status === 401) {
+          showNotification("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", "error");
+          localStorage.removeItem("token");
+          setToken(null);
+          router.push("/login");
+          return;
+        }
+        if (!res.ok) {
+          const errorData = await res.json();
+          if (errorData.code === 11000) {
+            throw new Error("Đã có một danh mục trùng tên!");
+          }
+          throw new Error(errorData.message || "Thêm danh mục thất bại");
+        }
+        const newCategory = await res.json();
+        setCategories((prev) => [...prev, { ...newCategory, productCount: 0 }]);
+        setNewCategoryName("");
+        setShowAddPopup(false);
+        showNotification("Thêm danh mục thành công!", "success");
+        // Reload danh mục để cập nhật productCount chính xác
+        fetchCategoriesAndProducts(setCategories, setLoading, router, showNotification, token);
+      } catch (error: any) {
+        setAddError(error.message || "Đã xảy ra lỗi khi thêm danh mục.");
+        showNotification(error.message || "Thêm danh mục thất bại", "error");
+      } finally {
+        setAddLoading(false);
+      }
+    },
+    [token, router, newCategoryName, fetchCategoriesAndProducts]
+  );
 
   const filteredCategories = categories
-    .filter((cat) => statusFilter === "all" ? true : cat.status === statusFilter)
-    .filter((cat) => cat.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    .filter((cat) => (statusFilter === "all" ? true : cat.status === statusFilter))
+    .filter((cat) => {
+      if (!cat.name || typeof cat.name !== "string") {
+        console.warn(`Skipping category with invalid name: _id=${cat._id}, name=${cat.name}`);
+        return false;
+      }
+      return cat.name.toLowerCase().includes(searchTerm.toLowerCase());
+    });
 
   const totalPages = Math.ceil(filteredCategories.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentCategories = filteredCategories.slice(indexOfFirstItem, indexOfLastItem);
+  const currentCategories = filteredCategories.slice(
+    indexOfFirstItem,
+    indexOfLastItem
+  );
 
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) {
@@ -291,6 +455,13 @@ export default function Category() {
 
   return (
     <div className={styles.productManagementContainer}>
+      {notification.show && (
+        <ToastNotification
+          message={notification.message}
+          type={notification.type}
+          onClose={() => setNotification({ show: false, message: "", type: "success" })}
+        />
+      )}
       <div className={styles.titleContainer}>
         <h1>Quản Lý Danh Mục</h1>
         <div className={styles.filterContainer}>
@@ -318,9 +489,14 @@ export default function Category() {
             <option value="show">Hiển thị</option>
             <option value="hidden">Ẩn</option>
           </select>
-          <Link href="/admin/add_category" className={styles.addProductBtn}>
+          <button
+            className={styles.addProductBtn}
+            onClick={() => setShowAddPopup(true)}
+            title="Thêm danh mục"
+            aria-label="Thêm danh mục"
+          >
             <FontAwesomeIcon icon={faPlus} />
-          </Link>
+          </button>
         </div>
       </div>
       <div className={styles.tableContainer}>
@@ -346,17 +522,20 @@ export default function Category() {
                 <tr key={category._id} className={styles.productRow}>
                   <td>
                     {editingCategory?._id === category._id ? (
-                      <input
-                        type="text"
-                        value={editingCategory.name}
-                        onChange={(e) =>
-                          setEditingCategory({ ...editingCategory, name: e.target.value })
-                        }
-                        className={styles.searchInput}
-                        aria-label="Chỉnh sửa tên danh mục"
-                      />
+                      <div className={styles.formGroup}>
+                        <input
+                          type="text"
+                          value={editingCategory.name}
+                          onChange={(e) =>
+                            setEditingCategory({ ...editingCategory, name: e.target.value })
+                          }
+                          className={styles.searchInput}
+                          aria-label="Chỉnh sửa tên danh mục"
+                        />
+                        {updateError && <div className={styles.errorMessage}>{updateError}</div>}
+                      </div>
                     ) : (
-                      category.name
+                      category.name || "Không có tên"
                     )}
                   </td>
                   <td>{category.productCount ?? 0}</td>
@@ -374,7 +553,10 @@ export default function Category() {
                         </button>
                         <button
                           className={styles.toggleStatusBtn}
-                          onClick={() => setEditingCategory(null)}
+                          onClick={() => {
+                            setEditingCategory(null);
+                            setUpdateError("");
+                          }}
                           title="Hủy"
                           aria-label="Hủy chỉnh sửa danh mục"
                         >
@@ -421,22 +603,30 @@ export default function Category() {
                       onClick={() => handlePageChange(1)}
                       disabled={loading}
                       title="Trang đầu tiên"
-                    >1</button>
+                    >
+                      1
+                    </button>
                     <div
                       className={styles.ellipsis}
                       onClick={() => handlePageChange(Math.max(1, currentPage - 3))}
                       title="Trang trước đó"
-                    >...</div>
+                    >
+                      ...
+                    </div>
                   </>
                 )}
                 {visiblePages.map((page) => (
                   <button
                     key={page}
-                    className={`${styles.pageLink} ${currentPage === page ? styles.pageLinkActive : ""}`}
+                    className={`${styles.pageLink} ${
+                      currentPage === page ? styles.pageLinkActive : ""
+                    }`}
                     onClick={() => handlePageChange(page)}
                     disabled={loading}
                     title={`Trang ${page}`}
-                  >{page}</button>
+                  >
+                    {page}
+                  </button>
                 ))}
                 {showNextEllipsis && (
                   <>
@@ -444,13 +634,17 @@ export default function Category() {
                       className={styles.ellipsis}
                       onClick={() => handlePageChange(Math.min(totalPages, currentPage + 3))}
                       title="Trang tiếp theo"
-                    >...</div>
+                    >
+                      ...
+                    </div>
                     <button
                       className={`${styles.pageLink} ${styles.firstLastPage}`}
                       onClick={() => handlePageChange(totalPages)}
                       disabled={loading}
                       title="Trang cuối cùng"
-                    >{totalPages}</button>
+                    >
+                      {totalPages}
+                    </button>
                   </>
                 )}
               </>
@@ -463,7 +657,8 @@ export default function Category() {
           <div className={styles.modalContent}>
             <h2>Xác nhận</h2>
             <p>
-              Bạn có chắc chắn muốn {showConfirmPopup.action} danh mục "{showConfirmPopup.name}" không?
+              Bạn có chắc chắn muốn {showConfirmPopup.action} danh mục "
+              {showConfirmPopup.name}" không?
             </p>
             <div className={styles.modalActions}>
               <button
@@ -489,7 +684,8 @@ export default function Category() {
           <div className={styles.modalContent}>
             <h2>Cảnh báo</h2>
             <p>
-              Không thể ẩn danh mục "<b>{showStockWarning}</b>" vì vẫn còn sản phẩm có tồn kho!
+              Không thể ẩn danh mục "<b>{showStockWarning}</b>" vì vẫn còn sản phẩm có
+              tồn kho!
             </p>
             <div className={styles.modalActions}>
               <button
@@ -503,10 +699,56 @@ export default function Category() {
           </div>
         </div>
       )}
+      {showAddPopup && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <h2>Thêm danh mục mới</h2>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleAddCategory();
+              }}
+              className={styles.addCategoryForm}
+            >
+              <div className={styles.formGroup}>
+                <label htmlFor="newCategoryName">Tên danh mục</label>
+                <input
+                  id="newCategoryName"
+                  className={styles.newInput}
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  disabled={addLoading}
+                  placeholder="Nhập tên danh mục mới"
+                  autoFocus
+                />
+              </div>
+              {addError && <div className={styles.errorMessage}>{addError}</div>}
+              <div className={styles.formButtons}>
+                <button
+                  type="submit"
+                  className={styles.btnAdd}
+                  disabled={addLoading}
+                  aria-label="Thêm"
+                >
+                  <FontAwesomeIcon icon={faCheck} />
+                </button>
+                <button
+                  type="button"
+                  className={styles.btnCancel}
+                  onClick={() => {
+                    setShowAddPopup(false);
+                    setNewCategoryName("");
+                    setAddError("");
+                  }}
+                  aria-label="Hủy"
+                >
+                  <FontAwesomeIcon icon={faTimes} />
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
-}
-
-function fetchCategoriesAndProducts() {
-  throw new Error("Function not implemented.");
 }

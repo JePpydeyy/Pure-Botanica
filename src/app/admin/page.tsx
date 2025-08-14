@@ -179,7 +179,7 @@ const AD_Home: React.FC = () => {
     currentStatus: string;
   } | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const ordersPerPage = 10;
+  const ordersPerPage = 8;
 
   const years = useMemo(() => {
     const currentYear = new Date().getFullYear();
@@ -778,13 +778,7 @@ const AD_Home: React.FC = () => {
         </div>
         {totalPages > 1 && (
           <div className={styles.pagination}>
-            <button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              className={styles.paginationButton}
-            >
-              Trước
-            </button>
+           
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
               <button
                 key={page}
@@ -794,13 +788,7 @@ const AD_Home: React.FC = () => {
                 {page}
               </button>
             ))}
-            <button
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className={styles.paginationButton}
-            >
-              Sau
-            </button>
+           
           </div>
         )}
       </section>

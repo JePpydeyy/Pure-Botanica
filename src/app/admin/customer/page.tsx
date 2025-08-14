@@ -67,68 +67,68 @@ export default function Customer() {
     }
   }, [router]);
 
-  // Fetch customers
+  // Đưa fetchCustomers ra ngoài useEffect
+  const fetchCustomers = useCallback(async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No token found");
+      }
+
+      const res = await fetch("https://api-zeal.onrender.com/api/users", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        cache: "no-store",
+      });
+
+      if (res.status === 401 || res.status === 403) {
+        throw new Error("Phiên đăng nhập hết hạn");
+      }
+
+      if (!res.ok) {
+        throw new Error("Lỗi khi tải dữ liệu khách hàng");
+      }
+
+      const data = await res.json();
+      setCustomers(data);
+      setFilteredCustomers(
+        data.filter(
+          (customer: Customer) =>
+            customer.role === roleFilter &&
+            (statusFilter === "all" || customer.status === statusFilter) &&
+            (customer.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              customer.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              customer.phone.includes(searchQuery) ||
+              customer.status.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              customer.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              new Date(customer.createdAt).toLocaleDateString("vi-VN").includes(searchQuery.toLowerCase()))
+        )
+      );
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error
+          ? err.message === "Phiên đăng nhập hết hạn"
+            ? "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!"
+            : err.message || "Lỗi khi tải dữ liệu khách hàng!"
+          : "Đã xảy ra lỗi không xác định";
+      setNotification({ show: true, message: errorMessage, type: "error" });
+      setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
+      if (err instanceof Error && err.message === "Phiên đăng nhập hết hạn") {
+        localStorage.clear();
+        setTimeout(() => router.push("/user/login"), 3000);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [roleFilter, statusFilter, searchQuery, router]);
+
+  // Sử dụng fetchCustomers trong useEffect
   useEffect(() => {
     if (!isAuthorized) return;
-
-    const fetchCustomers = async () => {
-      try {
-        setLoading(true);
-        const token = localStorage.getItem("token");
-        if (!token) {
-          throw new Error("No token found");
-        }
-
-        const res = await fetch("https://api-zeal.onrender.com/api/users", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          cache: "no-store",
-        });
-
-        if (res.status === 401 || res.status === 403) {
-          throw new Error("Phiên đăng nhập hết hạn");
-        }
-
-        if (!res.ok) {
-          throw new Error("Lỗi khi tải dữ liệu khách hàng");
-        }
-
-        const data = await res.json();
-        setCustomers(data);
-        setFilteredCustomers(
-          data.filter(
-            (customer: Customer) =>
-              customer.role === roleFilter &&
-              (statusFilter === "all" || customer.status === statusFilter) &&
-              (customer.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                customer.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                customer.phone.includes(searchQuery) ||
-                customer.status.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                customer.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                new Date(customer.createdAt).toLocaleDateString("vi-VN").includes(searchQuery.toLowerCase()))
-          )
-        );
-      } catch (err) {
-        const errorMessage =
-          err instanceof Error
-            ? err.message === "Phiên đăng nhập hết hạn"
-              ? "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!"
-              : err.message || "Lỗi khi tải dữ liệu khách hàng!"
-            : "Đã xảy ra lỗi không xác định";
-        setNotification({ show: true, message: errorMessage, type: "error" });
-        setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
-        if (err instanceof Error && err.message === "Phiên đăng nhập hết hạn") {
-          localStorage.clear();
-          setTimeout(() => router.push("/user/login"), 3000);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchCustomers();
-  }, [isAuthorized, router]);
+  }, [isAuthorized, fetchCustomers]);
 
   // Handle search, role, and status filter
   const filterCustomers = useCallback(
@@ -252,13 +252,26 @@ export default function Customer() {
         throw new Error(errorData.message || "Cập nhật thất bại");
       }
 
-      const updatedCustomer = await res.json();
+      // Lấy lại thông tin khách hàng vừa cập nhật
+      const updatedRes = await fetch(
+        `https://api-zeal.onrender.com/api/users/${selectedCustomer._id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          cache: "no-store",
+        }
+      );
+      const updatedCustomer = await updatedRes.json();
+
+      // Cập nhật lại state chỉ với khách hàng vừa sửa
       setCustomers((prev) =>
         prev.map((c) => (c._id === updatedCustomer._id ? updatedCustomer : c))
       );
       setFilteredCustomers((prev) =>
         prev.map((c) => (c._id === updatedCustomer._id ? updatedCustomer : c))
       );
+
       setIsConfirmUpdateModalOpen(false);
       setSelectedCustomer(null);
       setNotification({

@@ -9,11 +9,32 @@ import { faEdit, faEye, faEyeSlash, faCheck, faTimes, faPlus, faRedo } from "@fo
 import { toast } from "react-toastify";
 
 interface Product {
+  products: string;
   _id: string;
   name: string;
+  slug: string;
   status: string;
-  active: boolean;
-  option?: { value: string; stock: number }[];
+  view: number;
+  id_brand: string;
+  id_category: {
+    _id: string;
+    status: string;
+  };
+  images: string[];
+  short_description: string;
+  description: string;
+  option: {
+    stock: number;
+    value: string;
+    price: number;
+    discount_price?: number;
+    _id: string;
+  }[];
+  createdAt: string;
+  updatedAt: string;
+  stock?: number;
+  price?: number;
+  brandName?: string;
 }
 
 export default function Category() {
@@ -33,34 +54,57 @@ export default function Category() {
     const storedToken = localStorage.getItem("token");
     setToken(storedToken);
 
-    const fetchCategories = async () => {
+    const fetchCategoriesAndProducts = async () => {
       try {
-        const res = await fetch("https://api-zeal.onrender.com/api/categories", {
+        // Fetch categories
+        const categoryRes = await fetch("https://api-zeal.onrender.com/api/categories", {
           headers: {
             "Content-Type": "application/json",
             ...(storedToken && { Authorization: `Bearer ${storedToken}` }),
           },
           cache: "no-store",
         });
-        if (!res.ok) {
-          if (res.status === 401) {
+        if (!categoryRes.ok) {
+          if (categoryRes.status === 401) {
             toast.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
             localStorage.removeItem("token");
             router.push("/login");
             return;
           }
-          throw new Error(`Không thể tải danh mục: ${res.status}`);
+          throw new Error(`Không thể tải danh mục: ${categoryRes.status}`);
         }
-        const data: Category[] = await res.json();
-        setCategories(data);
+        const categoriesData: Category[] = await categoryRes.json();
+
+        // Fetch all products
+        const productRes = await fetch("https://api-zeal.onrender.com/api/products?status=hidden", {
+          headers: {
+            "Content-Type": "application/json",
+            ...(storedToken && { Authorization: `Bearer ${storedToken}` }),
+          },
+          cache: "no-store",
+        });
+        if (!productRes.ok) {
+          throw new Error(`Không thể tải sản phẩm: ${productRes.status}`);
+        }
+        const products: Product[] = await productRes.json();
+
+        // Count products per category
+        const updatedCategories = categoriesData.map((category) => {
+          const productCount = products.filter(
+            (product) => product.id_category?._id === category._id
+          ).length;
+          return { ...category, productCount };
+        });
+
+        setCategories(updatedCategories);
       } catch (error: any) {
-        toast.error(error.message || "Đã xảy ra lỗi khi tải danh sách danh mục.");
+        toast.error(error.message || "Đã xảy ra lỗi khi tải danh sách danh mục hoặc sản phẩm.");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchCategories();
+    fetchCategoriesAndProducts();
   }, [router]);
 
   const checkCategoryCanHide = useCallback(async (categoryId: string): Promise<boolean> => {
@@ -70,7 +114,7 @@ export default function Category() {
       return false;
     }
     try {
-      const res = await fetch(`https://api-zeal.onrender.com/api/products?id_category=${categoryId}`, {
+      const res = await fetch(`https://api-zeal.onrender.com/api/products?id_category=${categoryId}&status=hidden`, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -279,35 +323,89 @@ export default function Category() {
         </div>
       </div>
       <div className={styles.tableContainer}>
-        <table className={styles.productTable}><thead className={styles.productTableThead}><tr><th>Tên Danh Mục</th><th>Trạng Thái</th><th>Hành Động</th></tr></thead><tbody>{currentCategories.length === 0 ? (<tr><td colSpan={4} className={styles.emptyState}><h3>Không có danh mục</h3><p>Vui lòng thêm danh mục mới hoặc điều chỉnh bộ lọc/tìm kiếm.</p></td></tr>) : (currentCategories.map((category) => (<tr key={category._id} className={styles.productRow}><td>{editingCategory?._id === category._id ? (<input
-                  type="text"
-                  value={editingCategory.name}
-                  onChange={(e) =>
-                    setEditingCategory({ ...editingCategory, name: e.target.value })
-                  }
-                  className={styles.searchInput}
-                  aria-label="Chỉnh sửa tên danh mục"
-                />) : (category.name)}</td><td>{category.status === "show" ? "Hiển thị" : "Ẩn"}</td><td className={styles.actionButtons}>{editingCategory?._id === category._id ? (<><button
-                    className={styles.editBtn}
-                    onClick={() => handleUpdate(category._id, editingCategory.name)}
-                    title="Lưu"
-                    aria-label="Lưu thay đổi danh mục"
-                  ><FontAwesomeIcon icon={faCheck} /></button><button
-                    className={styles.toggleStatusBtn}
-                    onClick={() => setEditingCategory(null)}
-                    title="Hủy"
-                    aria-label="Hủy chỉnh sửa danh mục"
-                  ><FontAwesomeIcon icon={faTimes} /></button></>) : (<><button
-                    className={styles.editBtn}
-                    onClick={() => handleEdit(category._id)}
-                    title="Chỉnh sửa"
-                    aria-label="Chỉnh sửa danh mục"
-                  ><FontAwesomeIcon icon={faEdit} /></button><button
-                    className={styles.toggleStatusBtn}
-                    onClick={() => handleToggleVisibility(category._id)}
-                    title={category.status === "show" ? "Ẩn danh mục" : "Hiển thị danh mục"}
-                    aria-label={category.status === "show" ? "Ẩn danh mục" : "Hiển thị danh mục"}
-                  ><FontAwesomeIcon icon={category.status === "show" ? faEyeSlash : faEye} /></button></>)}</td></tr>)))}</tbody></table>
+        <table className={styles.productTable}>
+          <thead className={styles.productTableThead}>
+            <tr>
+              <th>Tên Danh Mục</th>
+              <th>Số Sản Phẩm</th>
+              <th>Trạng Thái</th>
+              <th>Hành Động</th>
+            </tr>
+          </thead>
+          <tbody>
+            {currentCategories.length === 0 ? (
+              <tr>
+                <td colSpan={4} className={styles.emptyState}>
+                  <h3>Không có danh mục</h3>
+                  <p>Vui lòng thêm danh mục mới hoặc điều chỉnh bộ lọc/tìm kiếm.</p>
+                </td>
+              </tr>
+            ) : (
+              currentCategories.map((category) => (
+                <tr key={category._id} className={styles.productRow}>
+                  <td>
+                    {editingCategory?._id === category._id ? (
+                      <input
+                        type="text"
+                        value={editingCategory.name}
+                        onChange={(e) =>
+                          setEditingCategory({ ...editingCategory, name: e.target.value })
+                        }
+                        className={styles.searchInput}
+                        aria-label="Chỉnh sửa tên danh mục"
+                      />
+                    ) : (
+                      category.name
+                    )}
+                  </td>
+                  <td>{category.productCount ?? 0}</td>
+                  <td>{category.status === "show" ? "Hiển thị" : "Ẩn"}</td>
+                  <td className={styles.actionButtons}>
+                    {editingCategory?._id === category._id ? (
+                      <>
+                        <button
+                          className={styles.editBtn}
+                          onClick={() => handleUpdate(category._id, editingCategory.name)}
+                          title="Lưu"
+                          aria-label="Lưu thay đổi danh mục"
+                        >
+                          <FontAwesomeIcon icon={faCheck} />
+                        </button>
+                        <button
+                          className={styles.toggleStatusBtn}
+                          onClick={() => setEditingCategory(null)}
+                          title="Hủy"
+                          aria-label="Hủy chỉnh sửa danh mục"
+                        >
+                          <FontAwesomeIcon icon={faTimes} />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          className={styles.editBtn}
+                          onClick={() => handleEdit(category._id)}
+                          title="Chỉnh sửa"
+                          aria-label="Chỉnh sửa danh mục"
+                        >
+                          <FontAwesomeIcon icon={faEdit} />
+                        </button>
+                        <button
+                          className={styles.toggleStatusBtn}
+                          onClick={() => handleToggleVisibility(category._id)}
+                          title={category.status === "show" ? "Ẩn danh mục" : "Hiển thị danh mục"}
+                          aria-label={category.status === "show" ? "Ẩn danh mục" : "Hiển thị danh mục"}
+                        >
+                          <FontAwesomeIcon icon={category.status === "show" ? faEyeSlash : faEye} />
+                        </button>
+                      </>
+                    )}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
       {totalPages > 1 && (
         <div className={styles.pagination}>

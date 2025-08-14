@@ -795,15 +795,13 @@ const AD_Home: React.FC = () => {
                 <th>Trạng Thái Thanh Toán</th>
                 <th>Trạng Thái Vận Chuyển</th>
                 <th>Phương Thức Thanh Toán</th>
-                <th>Hành Động</th> {/* Thêm cột hành động */}
+
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={8} style={{ textAlign: "center" }}>
-                    Đang tải...
-                  </td>
+                  <td colSpan={8} style={{ textAlign: "center" }}>Đang tải...</td>
                 </tr>
               ) : paginatedOrders.length > 0 ? (
                 paginatedOrders.map((order, index) => (
@@ -848,21 +846,6 @@ const AD_Home: React.FC = () => {
                         : order.paymentMethod === "bank"
                         ? "Chuyển khoản"
                         : order.paymentMethod || "Không xác định"}
-                    </td>
-                    <td>
-                      {order.shippingStatus === "pending" && (
-                        <button
-                          className={styles.cancelBtn}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleCancelOrder(order._id, order.shippingStatus);
-                          }}
-                          disabled={loading}
-                          title="Hủy đơn hàng"
-                        >
-                          Hủy
-                        </button>
-                      )}
                     </td>
                   </tr>
                 ))

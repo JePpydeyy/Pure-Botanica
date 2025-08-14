@@ -1005,8 +1005,9 @@ const renderOrderStatus = (order: Order) => (
                     href={`/user/detail/${item.product.slug || item.product._id}#writeReviewForm`}
                     className={styles.reviewLink}
                     style={{
+                      width: "105px",
                       display: "inline-block",
-                      background: "#2d8cf0",
+                      background: "#357E38",
                       color: "#fff",
                       padding: "6px 12px",
                       borderRadius: 4,
@@ -1248,7 +1249,7 @@ const renderOrderStatus = (order: Order) => (
           <button
             className={styles.returnButton}
             style={{
-              background: "#f39c12",
+              background: "#8B4513",
               color: "#fff",
               padding: "8px 20px",
               borderRadius: 6,

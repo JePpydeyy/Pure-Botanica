@@ -126,7 +126,6 @@
 
 .productTable td {
   padding: 14px 16px;
-  border-bottom: 1px solid #e2e8f0;
   font-size: 14px;
   color: #334155;
 }
@@ -561,6 +560,16 @@
   }
 }
 .newInput {
+  flex: 1;
+  min-width: 280px;
+  padding: 12px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #334155;
+  background-size: 18px;
+}
+.editInput{
   flex: 1;
   min-width: 280px;
   padding: 12px 16px;

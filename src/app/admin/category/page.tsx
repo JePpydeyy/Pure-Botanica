@@ -529,7 +529,7 @@ export default function Category() {
                           onChange={(e) =>
                             setEditingCategory({ ...editingCategory, name: e.target.value })
                           }
-                          className={styles.searchInput}
+                          className={styles.editInput}
                           aria-label="Chỉnh sửa tên danh mục"
                         />
                         {updateError && <div className={styles.errorMessage}>{updateError}</div>}

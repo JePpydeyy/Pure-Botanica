@@ -30,10 +30,9 @@ interface Notification {
   type: "success" | "error";
 }
 
-// Component client-side sử dụng useSearchParams (nếu có)
 function CouponsContent() {
   const searchParams = useSearchParams();
-  const searchQueryFromUrl = searchParams.get("search") || ""; // Ví dụ: lấy tham số search từ URL
+  const searchQueryFromUrl = searchParams.get("search") || "";
   const statusFilterFromUrl = (searchParams.get("status") as "all" | "active" | "inactive") || "all";
 
   const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -64,7 +63,6 @@ function CouponsContent() {
   });
   const router = useRouter();
 
-  // Check authorization
   useEffect(() => {
     const token = localStorage.getItem("token");
     const role = localStorage.getItem("role");
@@ -81,7 +79,6 @@ function CouponsContent() {
     }
   }, [router]);
 
-  // Fetch coupons
   useEffect(() => {
     if (!isAuthorized) return;
 
@@ -106,7 +103,7 @@ function CouponsContent() {
             headers: {
               Authorization: `Bearer ${token}`,
             },
-            next: { revalidate: 3600 }, // Sửa từ cache: "no-store" sang ISR
+            next: { revalidate: 3600 },
           }
         );
 
@@ -119,7 +116,6 @@ function CouponsContent() {
 
         const data = await response.json();
         console.log("API Response:", data);
-        // Log coupons with missing usedCount
         data.coupons.forEach((coupon: Coupon, index: number) => {
           if (coupon.usedCount === null || coupon.usedCount === undefined) {
             console.warn(`Coupon ${coupon.code} (index ${index}) has missing or undefined usedCount`);
@@ -149,7 +145,6 @@ function CouponsContent() {
     fetchCoupons();
   }, [isAuthorized, pagination.page, pagination.limit, searchQuery, statusFilter]);
 
-  // Handle client-side filtering
   useEffect(() => {
     let filtered = coupons;
 
@@ -174,7 +169,6 @@ function CouponsContent() {
     }));
   }, [coupons, searchQuery, statusFilter]);
 
-  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -212,7 +206,7 @@ function CouponsContent() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(bodyData),
-        cache: "no-store", // Giữ no-store vì đây là thao tác tạo/cập nhật
+        cache: "no-store",
       });
 
       if (!response.ok) {
@@ -236,8 +230,10 @@ function CouponsContent() {
         message: formData._id ? "Cập nhật mã giảm giá thành công!" : "Thêm mã giảm giá thành công!",
         type: "success",
       });
-      setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
-      setPagination((prev) => ({ ...prev, page: 1 }));
+      setTimeout(() => {
+        setNotification({ show: false, message: "", type: "success" });
+        window.location.reload(); // Reload page after successful action
+      }, 2000); // Reduced timeout to 2s for faster UX
     } catch (err) {
       const errorMessage =
         err instanceof Error
@@ -254,7 +250,6 @@ function CouponsContent() {
     }
   };
 
-  // Edit coupon
   const handleEdit = (coupon: Coupon) => {
     setFormData({
       _id: coupon._id,
@@ -272,13 +267,11 @@ function CouponsContent() {
     setShowModal(true);
   };
 
-  // Confirm delete coupon
   const confirmDelete = (id: string) => {
     setDeleteCouponId(id);
     setShowDeleteModal(true);
   };
 
-  // Handle delete coupon
   const handleDelete = async () => {
     if (!deleteCouponId) return;
 
@@ -293,7 +286,7 @@ function CouponsContent() {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-        cache: "no-store", // Giữ no-store vì đây là thao tác xóa
+        cache: "no-store",
       });
 
       if (!response.ok) {
@@ -304,8 +297,10 @@ function CouponsContent() {
       setShowDeleteModal(false);
       setDeleteCouponId(null);
       setNotification({ show: true, message: "Xóa mã giảm giá thành công!", type: "success" });
-      setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
-      setPagination((prev) => ({ ...prev, page: 1 }));
+      setTimeout(() => {
+        setNotification({ show: false, message: "", type: "success" });
+        window.location.reload(); // Reload page after successful deletion
+      }, 2000); // Reduced timeout to 2s for faster UX
     } catch (err) {
       const errorMessage =
         err instanceof Error
@@ -322,14 +317,12 @@ function CouponsContent() {
     }
   };
 
-  // Handle page change
   const handlePageChange = (newPage: number) => {
     if (newPage > 0 && newPage <= pagination.totalPages) {
       setPagination((prev) => ({ ...prev, page: newPage }));
     }
   };
 
-  // Pagination info
   const getPaginationInfo = () => {
     const visiblePages: number[] = [];
     let showPrevEllipsis = false;
@@ -763,7 +756,6 @@ function CouponsContent() {
   );
 }
 
-// Component chính bọc trong Suspense
 export default function CouponPage() {
   return (
     <Suspense fallback={<div className="loading">Đang tải...</div>}>

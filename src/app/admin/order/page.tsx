@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useEffect, useState, useCallback, useMemo } from "react";
@@ -297,11 +296,21 @@ const OrderPage: React.FC = () => {
     if (type === "shipping") {
       const englishStatus =
         reverseShippingStatusMapping[newStatus as keyof typeof reverseShippingStatusMapping] || newStatus;
-      if (!statusProgression[currentStatus]?.includes(englishStatus)) {
+      if (englishStatus === "cancelled") {
+        // Redirect to cancel flow for "Hủy đơn hàng"
+        if (currentStatus !== "pending") {
+          showNotification("Chỉ có thể hủy đơn hàng khi trạng thái là Chờ xử lý", "error");
+          return;
+        }
+        setShowConfirm({ orderId, newStatus, currentStatus, type: "cancel", cancelReason: "" });
+        setSelectedCancelReason("");
+        setCancelReasonInput("");
+      } else if (!statusProgression[currentStatus]?.includes(englishStatus)) {
         showNotification("Trạng thái không hợp lệ hoặc không thể chuyển về trạng thái trước đó", "error");
         return;
+      } else {
+        setShowConfirm({ orderId, newStatus, currentStatus, type });
       }
-      setShowConfirm({ orderId, newStatus, currentStatus, type });
     } else if (type === "return" && currentStatus !== "requested") {
       showNotification("Chỉ có thể thay đổi trạng thái hoàn hàng khi trạng thái là Đã yêu cầu", "error");
       return;
@@ -413,10 +422,7 @@ const OrderPage: React.FC = () => {
       setSelectedCancelReason("");
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
-      showNotification(
-        `Không thể cập nhật trạng thái: ${errorMessage}`,
-        "error"
-      );
+      showNotification(`Không thể cập nhật trạng thái: ${errorMessage}`, "error");
     } finally {
       setShowConfirm(null);
       setLoading(false);
@@ -503,7 +509,6 @@ const OrderPage: React.FC = () => {
           onClick={() => {
             setLoading(true);
             setError(null);
-            // Trigger re-fetch
             const fetchOrders = async () => {
               try {
                 setLoading(true);
@@ -653,7 +658,7 @@ const OrderPage: React.FC = () => {
                         }
                         className={styles.categorySelect}
                         onClick={(e) => e.stopPropagation()}
-                        disabled={["returned", "cancelled"].includes(order.shippingStatus) || loading}
+                        disabled={loading}
                         aria-label={`Thay đổi trạng thái vận chuyển cho đơn hàng ${order._id}`}
                       >
                         {allStatuses
@@ -665,11 +670,13 @@ const OrderPage: React.FC = () => {
                                 key={status.value}
                                 value={status.label}
                                 disabled={
-                                  ["returned", "cancelled"].includes(order.shippingStatus) ||
-                                  (isValidStatus
-                                    ? !statusProgression[order.shippingStatus].includes(status.value) &&
-                                      status.value !== order.shippingStatus
-                                    : true)
+                                  status.value === "cancelled"
+                                    ? order.shippingStatus !== "pending"
+                                    : ["returned", "cancelled"].includes(order.shippingStatus) ||
+                                      (isValidStatus
+                                        ? !statusProgression[order.shippingStatus].includes(status.value) &&
+                                          status.value !== order.shippingStatus
+                                        : true)
                                 }
                               >
                                 {status.label}

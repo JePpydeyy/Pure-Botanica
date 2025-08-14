@@ -20,6 +20,12 @@ interface Product {
   images: string[];
 }
 
+interface AdminReply {
+  user: User | null;
+  content: string;
+  createdAt: string;
+}
+
 interface Comment {
   _id: string;
   content: string;
@@ -28,6 +34,7 @@ interface Comment {
   user: User | null;
   product: Product | null;
   rating: number;
+  adminReply: AdminReply | null;
 }
 
 const CommentPage: React.FC = () => {
@@ -38,6 +45,7 @@ const CommentPage: React.FC = () => {
   const [selectedCommentId, setSelectedCommentId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [replyContent, setReplyContent] = useState<{ [key: string]: string }>({});
   const commentsPerPage = 9;
   const router = useRouter();
   const [notification, setNotification] = useState({
@@ -146,7 +154,9 @@ const CommentPage: React.FC = () => {
         (comment.user?.username &&
           comment.user.username.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (comment.product?.name &&
-          comment.product.name.toLowerCase().includes(searchQuery.toLowerCase()));
+          comment.product.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (comment.adminReply?.content &&
+          comment.adminReply.content.toLowerCase().includes(searchQuery.toLowerCase()));
       return matchesSearch;
     });
     setFilteredComments(filtered);
@@ -155,6 +165,59 @@ const CommentPage: React.FC = () => {
 
   const handleToggleDetails = (commentId: string) => {
     setSelectedCommentId(selectedCommentId === commentId ? null : commentId);
+  };
+
+  const handleReplySubmit = async (commentId: string) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Không tìm thấy token. Vui lòng đăng nhập lại.");
+      }
+
+      const content = replyContent[commentId]?.trim();
+      if (!content) {
+        showNotification("Nội dung phản hồi không được để trống.", "error");
+        return;
+      }
+
+      const res = await fetch(`https://api-zeal.onrender.com/api/comments/${commentId}/reply`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ content }),
+      });
+
+      if (res.status === 401 || res.status === 403) {
+        showNotification("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!", "error");
+        localStorage.removeItem("token");
+        localStorage.removeItem("role");
+        router.push("/user/login");
+        return;
+      }
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Lỗi khi gửi phản hồi.");
+      }
+
+      const updatedComment = await res.json();
+      setComments((prevComments) =>
+        prevComments.map((c) =>
+          c._id === commentId ? updatedComment.comment : c
+        )
+      );
+      setFilteredComments((prevComments) =>
+        prevComments.map((c) =>
+          c._id === commentId ? updatedComment.comment : c
+        )
+      );
+      setReplyContent((prev) => ({ ...prev, [commentId]: "" }));
+      showNotification("Phản hồi đã được gửi thành công!", "success");
+    } catch (error: any) {
+      showNotification(error.message || "Lỗi khi gửi phản hồi.", "error");
+    }
   };
 
   const totalPages = Math.ceil(filteredComments.length / commentsPerPage);
@@ -289,7 +352,7 @@ const CommentPage: React.FC = () => {
         <div className={styles.filterContainer}>
           <input
             type="text"
-            placeholder="Tìm kiếm theo nội dung, người dùng, sản phẩm..."
+            placeholder="Tìm kiếm theo nội dung, người dùng, sản phẩm, phản hồi..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className={styles.searchInput}
@@ -391,6 +454,47 @@ const CommentPage: React.FC = () => {
                             <div className={styles.detailsSection}>
                               <h4>Ngày bình luận</h4>
                               <p>{formatDate(comment.createdAt)}</p>
+                            </div>
+                            <div className={styles.detailsSection}>
+                              <h4>Phản hồi từ admin</h4>
+                              {comment.adminReply ? (
+                                <div className={styles.detailsGrid}>
+                                  <p>
+                                    <strong>Người phản hồi:</strong>{" "}
+                                    {comment.adminReply.user?.username || "Không có"}
+                                  </p>
+                                  <p>
+                                    <strong>Nội dung:</strong> {comment.adminReply.content}
+                                  </p>
+                                  <p>
+                                    <strong>Ngày phản hồi:</strong>{" "}
+                                    {formatDate(comment.adminReply.createdAt)}
+                                  </p>
+                                </div>
+                              ) : (
+                                <div>
+                                  <p>Chưa có phản hồi</p>
+                                  <textarea
+                                    value={replyContent[comment._id] || ""}
+                                    onChange={(e) =>
+                                      setReplyContent({
+                                        ...replyContent,
+                                        [comment._id]: e.target.value,
+                                      })
+                                    }
+                                    placeholder="Nhập phản hồi của bạn..."
+                                    className={styles.replyInput}
+                                    aria-label="Phản hồi từ admin"
+                                  />
+                                  <button
+                                    onClick={() => handleReplySubmit(comment._id)}
+                                    className={styles.replyButton}
+                                    disabled={!replyContent[comment._id]?.trim()}
+                                  >
+                                    Gửi phản hồi
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>

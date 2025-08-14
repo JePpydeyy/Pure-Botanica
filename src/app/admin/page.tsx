@@ -129,6 +129,7 @@ const allStatuses = [
   { value: "in_transit", label: "Đang vận chuyển" },
   { value: "delivered", label: "Đã giao hàng" },
   { value: "returned", label: "Đã hoàn" },
+  { value: "cancelled", label: "Hủy đơn hàng" }, // Thêm dòng này
 ];
 
 const getVietnamesePaymentStatus = (paymentStatus: string): string => {
@@ -179,7 +180,15 @@ const AD_Home: React.FC = () => {
     currentStatus: string;
   } | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const ordersPerPage = 10;
+  const ordersPerPage = 8;
+
+  // Thêm state cho modal hủy và lý do hủy
+  const [showCancelModal, setShowCancelModal] = useState<{
+    orderId: string;
+    currentStatus: string;
+  } | null>(null);
+  const [selectedCancelReason, setSelectedCancelReason] = useState<string>("");
+  const [cancelReasonInput, setCancelReasonInput] = useState<string>("");
 
   const years = useMemo(() => {
     const currentYear = new Date().getFullYear();
@@ -251,6 +260,12 @@ const AD_Home: React.FC = () => {
   const handleShippingStatusChange = async (orderId: string, newStatus: string, currentStatus: string) => {
     if (currentStatus === "returned") {
       showNotification("Không thể thay đổi trạng thái đơn hàng Đã hoàn", "error");
+      return;
+    }
+
+    if (newStatus === "Hủy đơn hàng") {
+      // Mở modal hủy thay vì đổi trạng thái ngay
+      handleCancelOrder(orderId, currentStatus);
       return;
     }
 
@@ -599,6 +614,72 @@ const AD_Home: React.FC = () => {
     }
   };
 
+  // Lý do hủy đơn hàng
+  const cancelReasons = [
+    { value: "customer_request", label: "Khách hàng yêu cầu hủy" },
+    { value: "out_of_stock", label: "Hết hàng" },
+    { value: "invalid_info", label: "Thông tin đơn hàng không hợp lệ" },
+    { value: "other", label: "Khác" },
+  ];
+
+  // Hàm mở modal hủy
+  const handleCancelOrder = (orderId: string, currentStatus: string) => {
+    if (currentStatus !== "pending") {
+      showNotification("Chỉ có thể hủy đơn hàng khi trạng thái là Chờ xử lý", "error");
+      return;
+    }
+    setShowCancelModal({ orderId, currentStatus });
+    setSelectedCancelReason("");
+    setCancelReasonInput("");
+  };
+
+  // Hàm xác nhận hủy
+  const confirmCancelOrder = async () => {
+    if (!showCancelModal) return;
+    const { orderId } = showCancelModal;
+    const finalCancelReason = selectedCancelReason === "other" ? cancelReasonInput : selectedCancelReason;
+    if (!finalCancelReason || finalCancelReason.trim() === "") {
+      showNotification("Vui lòng chọn hoặc nhập lý do hủy đơn hàng", "error");
+      return;
+    }
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`https://api-zeal.onrender.com/api/orders/update/${orderId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          shippingStatus: "cancelled",
+          paymentStatus: "cancelled",
+          cancelReason: finalCancelReason,
+        }),
+      });
+      if (response.status === 401 || response.status === 403) {
+        showNotification("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!", "error");
+        localStorage.removeItem("token");
+        localStorage.removeItem("role");
+        localStorage.removeItem("email");
+        router.push("/user/login");
+        return;
+      }
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Lỗi API: ${response.status} ${errorText}`);
+      }
+      // Cập nhật lại danh sách đơn hàng
+      setPendingOrders((prev) => prev.filter((o) => o._id !== orderId));
+      showNotification("Hủy đơn hàng thành công", "success");
+    } catch (error) {
+      showNotification("Không thể hủy đơn hàng", "error");
+    } finally {
+      setShowCancelModal(null);
+      setSelectedCancelReason("");
+      setCancelReasonInput("");
+    }
+  };
+
   return (
     <div className={styles.mainContent}>
       {notification.show && (
@@ -714,14 +795,13 @@ const AD_Home: React.FC = () => {
                 <th>Trạng Thái Thanh Toán</th>
                 <th>Trạng Thái Vận Chuyển</th>
                 <th>Phương Thức Thanh Toán</th>
+
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: "center" }}>
-                    Đang tải...
-                  </td>
+                  <td colSpan={8} style={{ textAlign: "center" }}>Đang tải...</td>
                 </tr>
               ) : paginatedOrders.length > 0 ? (
                 paginatedOrders.map((order, index) => (
@@ -747,8 +827,12 @@ const AD_Home: React.FC = () => {
                             value={status.label}
                             disabled={
                               order.shippingStatus === "returned" ||
-                              (!statusProgression[order.shippingStatus].includes(status.value) &&
-                                status.value !== order.shippingStatus)
+                              (
+                                status.value !== "cancelled" && // Cho phép chọn "Hủy đơn hàng" bất cứ lúc nào khi pending
+                                !statusProgression[order.shippingStatus].includes(status.value) &&
+                                status.value !== order.shippingStatus
+                              ) ||
+                              (status.value === "cancelled" && order.shippingStatus !== "pending") // Chỉ cho phép hủy khi đang pending
                             }
                           >
                             {status.label}
@@ -767,7 +851,7 @@ const AD_Home: React.FC = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={7} className={styles.emptyState}>
+                  <td colSpan={8} className={styles.emptyState}>
                     <h3>Chưa có đơn hàng đang chờ xử lý</h3>
                     <p>Hiện tại không có đơn hàng nào đang chờ xử lý.</p>
                   </td>
@@ -778,13 +862,6 @@ const AD_Home: React.FC = () => {
         </div>
         {totalPages > 1 && (
           <div className={styles.pagination}>
-            <button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              className={styles.paginationButton}
-            >
-              Trước
-            </button>
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
               <button
                 key={page}
@@ -794,17 +871,69 @@ const AD_Home: React.FC = () => {
                 {page}
               </button>
             ))}
-            <button
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className={styles.paginationButton}
-            >
-              Sau
-            </button>
           </div>
         )}
       </section>
 
+      {/* Modal xác nhận hủy đơn hàng */}
+      {showCancelModal && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalhuy}>
+            <h2>Xác nhận hủy đơn hàng</h2>
+            <p>Vui lòng chọn hoặc nhập lý do hủy đơn hàng:</p>
+            <select
+              value={selectedCancelReason}
+              onChange={(e) => setSelectedCancelReason(e.target.value)}
+              className={styles.categorySelect}
+              aria-label="Chọn lý do hủy đơn hàng"
+            >
+              <option value="" disabled>
+                Chọn lý do
+              </option>
+              {cancelReasons.map((reason) => (
+                <option key={reason.value} value={reason.value}>
+                  {reason.label}
+                </option>
+              ))}
+            </select>
+            {selectedCancelReason === "other" && (
+              <input
+                type="text"
+                placeholder="Nhập lý do hủy đơn"
+                value={cancelReasonInput}
+                onChange={(e) => setCancelReasonInput(e.target.value)}
+                className={styles.cancelReasonInput}
+                style={{ marginTop: "10px" }}
+                aria-label="Nhập lý do hủy đơn hàng tùy chỉnh"
+              />
+            )}
+            <div className={styles.modalActions}>
+              <button
+                className={styles.confirmBtn}
+                onClick={confirmCancelOrder}
+                disabled={
+                  !selectedCancelReason ||
+                  (selectedCancelReason === "other" && !cancelReasonInput.trim())
+                }
+                title="Xác nhận"
+                aria-label="Xác nhận hủy đơn hàng"
+              >
+                <FontAwesomeIcon icon={faCheck} />
+              </button>
+              <button
+                className={styles.cancelBtn}
+                onClick={() => setShowCancelModal(null)}
+                title="Hủy"
+                aria-label="Hủy thay đổi trạng thái"
+              >
+                <FontAwesomeIcon icon={faTimes} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal xác nhận thay đổi trạng thái */}
       {showConfirm && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>

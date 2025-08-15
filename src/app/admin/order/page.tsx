@@ -347,7 +347,7 @@ const OrderPage: React.FC = () => {
         showNotification("Vui lòng chọn hoặc nhập lý do hủy đơn hàng", "error");
         return;
       }
-      updatePayload = { shippingStatus: englishStatus, paymentStatus: "cancelled", cancelReason: finalCancelReason };
+      updatePayload = { shippingStatus: englishStatus, cancelReason: finalCancelReason };
     } else {
       englishStatus = reverseReturnStatusMapping[newStatus as keyof typeof reverseReturnStatusMapping] || newStatus;
       updatePayload = { returnStatus: englishStatus };
@@ -840,7 +840,7 @@ const OrderPage: React.FC = () => {
                   />
                 )}
                 <p style={{ marginTop: "10px" }}>
-                  Trạng thái thanh toán sẽ được cập nhật thành <strong>Chưa thanh toán</strong>.
+                  Trạng thái thanh toán sẽ giữ nguyên.
                 </p>
               </>
             ) : (
@@ -895,11 +895,9 @@ const OrderPage: React.FC = () => {
         </div>
       )}
       {selectedOrder && (
-        
         <div className={styles.modalOverlay} onClick={handleOverlayClick}>
-          
           <div className={styles.modaldetail} style={{ maxHeight: "80vh", overflowY: "auto" }}>
-               <div className={styles.modalActions} style={{ justifyContent: "flex-end" }}>
+            <div className={styles.modalActions} style={{ justifyContent: "flex-end" }}>
               <button
                 className={styles.cancelBtn}
                 onClick={handleCloseDetails}
@@ -912,7 +910,6 @@ const OrderPage: React.FC = () => {
             </div>
             <h2>Chi tiết đơn hàng</h2>
             <div className={styles.orderDetails}>
-              
               <div className={styles.detailsContainer}>
                 <div className={styles.detailsSection}>
                   <h4>Thông tin khách hàng</h4>
@@ -1005,7 +1002,6 @@ const OrderPage: React.FC = () => {
                         <th>Hình ảnh</th>
                         <th>Tên sản phẩm</th>
                         <th>Số lượng</th>
-                        <th>Giá</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1026,7 +1022,6 @@ const OrderPage: React.FC = () => {
                             </td>
                             <td>{item.product?.name || "Không xác định"}</td>
                             <td>{item.quantity}</td>
-                            <td>{getProductPrice(item.product, item.optionId).toLocaleString()}₫</td>
                           </tr>
                         ))
                       ) : (
@@ -1045,7 +1040,6 @@ const OrderPage: React.FC = () => {
                 </div>
               </div>
             </div>
-         
           </div>
         </div>
       )}

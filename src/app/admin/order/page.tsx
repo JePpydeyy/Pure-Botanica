@@ -104,6 +104,13 @@ const OrderPage: React.FC = () => {
     rejected: "Đã từ chối",
   };
 
+  const cancelReasonMapping = {
+    out_of_stock: "Hết hàng",
+    customer_cancelled: "Khách hủy",
+    system_error: "Lỗi hệ thống",
+    other: "Khác",
+  };
+
   const reverseShippingStatusMapping = {
     "Chờ xử lý": "pending",
     "Đang vận chuyển": "in_transit",
@@ -146,6 +153,11 @@ const OrderPage: React.FC = () => {
 
   const showNotification = (message: string, type: "success" | "error") => {
     setNotification({ message, type });
+  };
+
+  const getVietnameseCancelReason = (cancelReason: string | undefined) => {
+    if (!cancelReason) return "Không có lý do";
+    return cancelReasonMapping[cancelReason as keyof typeof cancelReasonMapping] || cancelReason;
   };
 
   // Check admin access
@@ -949,7 +961,7 @@ const OrderPage: React.FC = () => {
                     </p>
                     {selectedOrder.cancelReason && (
                       <p>
-                        <strong>Lý do hủy đơn:</strong> {selectedOrder.cancelReason}
+                        <strong>Lý do hủy đơn:</strong> {getVietnameseCancelReason(selectedOrder.cancelReason)}
                       </p>
                     )}
                   </div>

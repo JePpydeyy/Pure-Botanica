@@ -26,25 +26,11 @@ const ALLOWED_MEDIA_TYPES = [
   "video/webm"
 ];
 
-const formatPrice = (price: number | string): string => {
-  let numericPrice: number;
-  if (typeof price === "string") {
-    const cleanedPrice = price
-      .replace(/[^0-9.]/g, "")
-      .replace(/^0+/, "")
-      .replace(/\.+$/, "");
-    numericPrice = parseFloat(cleanedPrice) || 0;
-  } else {
-    numericPrice = price;
-  }
-  if (isNaN(numericPrice)) {
-    console.warn("Giá trị không hợp lệ, sử dụng 0 làm mặc định:", price);
+const formatPrice = (price: number | undefined | null): string => {
+  if (price === undefined || price === null || isNaN(price)) {
     return "0đ";
   }
-  const formattedPrice = Math.round(numericPrice)
-    .toString()
-    .replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  return `${formattedPrice}đ`;
+  return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "đ";
 };
 
 // Hàm tiện ích: Lấy URL hình ảnh
@@ -124,6 +110,7 @@ const useToast = () => {
 
 // Hàm API: Gửi yêu cầu đến API với xử lý timeout động
 const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
+  
   const url = `${API_BASE_URL}${endpoint}`;
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
@@ -381,17 +368,13 @@ useEffect(() => {
     try {
       setLoading(true);
       const data = await apiRequest(`/api/products/${identifier}`);
-      console.log("Raw data from API:", data); // Log để kiểm tra giá trị thô
+      console.log("Raw data from API:", data);
+      console.log("Raw price:", data.option[0]?.price);
+      console.log("Raw discount_price:", data.option[0]?.discount_price);
       const normalizedProduct = {
         ...data,
         option: data.option.map((opt: any) => ({
           ...opt,
-          price: typeof opt.price === "string"
-            ? parseFloat(opt.price.replace(/[^0-9.]/g, "").replace(/^0+/, "") || "0")
-            : opt.price,
-          discount_price: typeof opt.discount_price === "string"
-            ? parseFloat(opt.discount_price.replace(/[^0-9.]/g, "").replace(/^0+/, "") || "0")
-            : opt.discount_price,
         })),
       };
       setProduct(normalizedProduct);
@@ -443,6 +426,14 @@ useEffect(() => {
 
   fetchData();
 }, [identifier, userId, userLoading, showCartToast]);
+
+const getProductPrice = (product: Product): number => {
+  if (product.option && product.option.length > 0) {
+    const opt = product.option[0];
+    return Number(opt.discount_price) || Number(opt.price) || 0;
+  }
+  return 0;
+};
 
   useEffect(() => {
     const fetchComments = async () => {
@@ -927,24 +918,28 @@ useEffect(() => {
           <div className={styles['product-info']}>
             <h1 className={styles['product-title']}>{product.name}</h1>
 
-            {selectedOption && (
-             <p className={styles['product-price']}>
-              {selectedOption.discount_price && (
-                <>
-                  <span className={styles['discount-price']}>
-                    {formatPrice(Number(selectedOption.discount_price))}
-                  </span>
-                  <span className={styles['original-price']}>
-                    {formatPrice(Number(selectedOption.price))}
-                  </span>
-                  <span className={styles['discount-percent']}>
-                    {`-${Math.round(((selectedOption.price - selectedOption.discount_price) / selectedOption.price) * 100)}%`}
-                  </span>
-                </>
-              )}
-              {!selectedOption.discount_price && <>{formatPrice(Number(selectedOption.price))}</>}
-            </p>
-            )}
+         {selectedOption && (
+        <p className={styles['product-price']}>
+          {(selectedOption.discount_price ?? 0) > 0 && (selectedOption.discount_price ?? 0) < (selectedOption.price ?? 0) && (
+            <>
+              <span className={styles['discount-price']}>
+                {formatPrice(selectedOption.discount_price)}
+              </span>
+              <span className={styles['original-price']}>
+                {formatPrice(selectedOption.price)}
+              </span>
+              <span className={styles['discount-percent']}>
+                {`-${Math.round((((selectedOption.price ?? 0) - (selectedOption.discount_price ?? 0)) / (selectedOption.price ?? 1)) * 100)}%`}
+              </span>
+            </>
+          )}
+          {((selectedOption.discount_price ?? 0) === 0 || !selectedOption.discount_price) && (
+            <>
+              {formatPrice(selectedOption.price)}
+            </>
+          )}
+        </p>
+      )}
 
             {product.option.length > 0 && (
               <div style={{ margin: "16px 0" }}>

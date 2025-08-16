@@ -104,6 +104,13 @@ const OrderPage: React.FC = () => {
     rejected: "Đã từ chối",
   };
 
+  const cancelReasonMapping = {
+    out_of_stock: "Hết hàng",
+    customer_cancelled: "Khách hủy",
+    system_error: "Lỗi hệ thống",
+    other: "Khác",
+  };
+
   const reverseShippingStatusMapping = {
     "Chờ xử lý": "pending",
     "Đang vận chuyển": "in_transit",
@@ -146,6 +153,11 @@ const OrderPage: React.FC = () => {
 
   const showNotification = (message: string, type: "success" | "error") => {
     setNotification({ message, type });
+  };
+
+  const getVietnameseCancelReason = (cancelReason: string | undefined) => {
+    if (!cancelReason) return "Không có lý do";
+    return cancelReasonMapping[cancelReason as keyof typeof cancelReasonMapping] || cancelReason;
   };
 
   // Check admin access
@@ -347,7 +359,7 @@ const OrderPage: React.FC = () => {
         showNotification("Vui lòng chọn hoặc nhập lý do hủy đơn hàng", "error");
         return;
       }
-      updatePayload = { shippingStatus: englishStatus, paymentStatus: "cancelled", cancelReason: finalCancelReason };
+      updatePayload = { shippingStatus: englishStatus, cancelReason: finalCancelReason };
     } else {
       englishStatus = reverseReturnStatusMapping[newStatus as keyof typeof reverseReturnStatusMapping] || newStatus;
       updatePayload = { returnStatus: englishStatus };
@@ -840,7 +852,7 @@ const OrderPage: React.FC = () => {
                   />
                 )}
                 <p style={{ marginTop: "10px" }}>
-                  Trạng thái thanh toán sẽ được cập nhật thành <strong>Chưa thanh toán</strong>.
+                  Trạng thái thanh toán sẽ giữ nguyên.
                 </p>
               </>
             ) : (
@@ -895,11 +907,9 @@ const OrderPage: React.FC = () => {
         </div>
       )}
       {selectedOrder && (
-        
         <div className={styles.modalOverlay} onClick={handleOverlayClick}>
-          
           <div className={styles.modaldetail} style={{ maxHeight: "80vh", overflowY: "auto" }}>
-               <div className={styles.modalActions} style={{ justifyContent: "flex-end" }}>
+            <div className={styles.modalActions} style={{ justifyContent: "flex-end" }}>
               <button
                 className={styles.cancelBtn}
                 onClick={handleCloseDetails}
@@ -912,7 +922,6 @@ const OrderPage: React.FC = () => {
             </div>
             <h2>Chi tiết đơn hàng</h2>
             <div className={styles.orderDetails}>
-              
               <div className={styles.detailsContainer}>
                 <div className={styles.detailsSection}>
                   <h4>Thông tin khách hàng</h4>
@@ -952,7 +961,7 @@ const OrderPage: React.FC = () => {
                     </p>
                     {selectedOrder.cancelReason && (
                       <p>
-                        <strong>Lý do hủy đơn:</strong> {selectedOrder.cancelReason}
+                        <strong>Lý do hủy đơn:</strong> {getVietnameseCancelReason(selectedOrder.cancelReason)}
                       </p>
                     )}
                   </div>
@@ -1005,7 +1014,6 @@ const OrderPage: React.FC = () => {
                         <th>Hình ảnh</th>
                         <th>Tên sản phẩm</th>
                         <th>Số lượng</th>
-                        <th>Giá</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1026,7 +1034,6 @@ const OrderPage: React.FC = () => {
                             </td>
                             <td>{item.product?.name || "Không xác định"}</td>
                             <td>{item.quantity}</td>
-                            <td>{getProductPrice(item.product, item.optionId).toLocaleString()}₫</td>
                           </tr>
                         ))
                       ) : (
@@ -1045,7 +1052,6 @@ const OrderPage: React.FC = () => {
                 </div>
               </div>
             </div>
-         
           </div>
         </div>
       )}

@@ -1497,12 +1497,7 @@ const AD_Home: React.FC = () => {
                             <p>
                               <strong>Tên sản phẩm:</strong> {comment.product?.name || "Không có"}
                             </p>
-                            <p>
-                              <strong>Giá:</strong>{" "}
-                              {comment.product?.price
-                                ? comment.product.price.toLocaleString() + "₫"
-                                : "Không có"}
-                            </p>
+                          
                           </div>
                         </div>
                         <div className={styles.detailsSection}>

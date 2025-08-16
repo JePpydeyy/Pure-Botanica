@@ -184,7 +184,7 @@ export default async function RootLayout({
             data-language="vi"
             async
             defer
-            data-preny-bot-id="688b301f028789fb73444172"
+            data-preny-bot-id="68a0315b620b2571ccdd98a4"
           />
         </div>
       </CartProvider>

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
@@ -5,13 +6,12 @@ import Link from "next/link";
 import Image from "next/image";
 import styles from "./Userinfo.module.css";
 import { User as ImportedUser } from "@/app/components/user_interface";
+import ToastNotification from "@/app/user/ToastNotification/ToastNotification";
+import ConfirmPopup from "@/app/user/ConfirmPopup/ConfirmPopup";
 
 interface User extends ImportedUser {
   id: string;
 }
-
-const API_BASE_URL = "https://api-zeal.onrender.com";
-const ERROR_IMAGE_URL = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
 
 interface Order {
   _id: string;
@@ -78,6 +78,9 @@ interface Coupon {
   createdAt: string;
   updatedAt: string;
 }
+
+const API_BASE_URL = "https://api-zeal.onrender.com";
+const ERROR_IMAGE_URL = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
 
 const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
   const token = localStorage.getItem("token");
@@ -169,18 +172,6 @@ const formatDate = (date: string): string => {
   });
 };
 
-const useToast = () => {
-  const [message, setMessage] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
-  const TOAST_DURATION = 3000;
-
-  const showToast = (type: "success" | "error" | "info", text: string) => {
-    setMessage({ type, text });
-    setTimeout(() => setMessage(null), TOAST_DURATION);
-  };
-
-  return { message, showToast, hideToast: () => setMessage(null) };
-};
-
 export default function UserProfile() {
   const [user, setUser] = useState<User | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -210,8 +201,55 @@ export default function UserProfile() {
   const [newPassword, setNewPassword] = useState<string>("");
   const [confirmNewPassword, setConfirmNewPassword] = useState<string>("");
   const [passwordError, setPasswordError] = useState<string | null>(null);
-  const { message, showToast, hideToast } = useToast();
-  const REVIEW_WINDOW_DAYS = 7;
+  const [message, setMessage] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
+  const [showConfirmPopup, setShowConfirmPopup] = useState<boolean>(false);
+  const [confirmAction, setConfirmAction] = useState<"cancel" | "return" | null>(null);
+  const [confirmOrderId, setConfirmOrderId] = useState<string | null>(null);
+
+  const hideToast = () => {
+    setMessage(null);
+  };
+
+  const handleOpenConfirmPopup = (action: "cancel" | "return", orderId: string) => {
+    setConfirmAction(action);
+    setConfirmOrderId(orderId);
+    setShowConfirmPopup(true);
+  };
+
+  const handleConfirmAction = () => {
+    if (confirmAction === "cancel" && confirmOrderId) {
+      if (!cancelReason) {
+        setMessage({ type: "error", text: "Vui lòng chọn lý do hủy đơn hàng" });
+        setShowConfirmPopup(false);
+        return;
+      }
+      cancelOrder(confirmOrderId);
+    } else if (confirmAction === "return" && confirmOrderId) {
+      if (!returnReason.trim()) {
+        setMessage({ type: "error", text: "Vui lòng nhập lý do hoàn hàng" });
+        setShowConfirmPopup(false);
+        return;
+      }
+      requestOrderReturn(confirmOrderId, returnReason);
+    }
+    setShowConfirmPopup(false);
+    setConfirmAction(null);
+    setConfirmOrderId(null);
+  };
+
+  const handleCancelConfirm = () => {
+    setShowConfirmPopup(false);
+    setConfirmAction(null);
+    setConfirmOrderId(null);
+    if (confirmAction === "cancel") {
+      setShowCancelForm(false);
+      setCancelReason("");
+      setCancelNote("");
+    } else if (confirmAction === "return") {
+      setShowReturnForm(false);
+      setReturnReason("");
+    }
+  };
 
   useEffect(() => {
     setCacheBuster(`t=${Date.now()}`);
@@ -318,7 +356,7 @@ export default function UserProfile() {
         }
         const orderDate = new Date(order.createdAt);
         const daysDiff = (currentDate.getTime() - orderDate.getTime()) / (1000 * 60 * 60 * 24);
-        if (daysDiff > REVIEW_WINDOW_DAYS) {
+        if (daysDiff > 7) {
           continue;
         }
         for (const item of order.items) {
@@ -365,6 +403,7 @@ export default function UserProfile() {
       }
     } catch (err: any) {
       setOrdersError(err.message || "Lỗi khi tải danh sách đơn hàng.");
+      setMessage({ type: "error", text: err.message || "Lỗi khi tải danh sách đơn hàng." });
     } finally {
       setOrdersLoading(false);
     }
@@ -374,7 +413,7 @@ export default function UserProfile() {
     const token = localStorage.getItem("token");
     if (!token) {
       setWishlistError("Vui lòng đăng nhập để xem danh sách yêu thích.");
-      showToast("error", "Vui lòng đăng nhập để xem danh sách yêu thích!");
+      setMessage({ type: "error", text: "Vui lòng đăng nhập để xem danh sách yêu thích!" });
       setWishlistLoading(false);
       window.location.href = "/user/login";
       return;
@@ -422,7 +461,7 @@ export default function UserProfile() {
       setProducts(processedProducts);
     } catch (err: any) {
       setWishlistError(err.message || "Không thể tải danh sách yêu thích.");
-      showToast("error", err.message || "Không thể tải danh sách yêu thích!");
+      setMessage({ type: "error", text: err.message || "Không thể tải danh sách yêu thích!" });
     } finally {
       setWishlistLoading(false);
     }
@@ -456,7 +495,7 @@ export default function UserProfile() {
       }
     } catch (err: any) {
       setCouponsError(err.message || "Lỗi khi tải danh sách mã giảm giá.");
-      showToast("error", err.message || "Lỗi khi tải danh sách mã giảm giá!");
+      setMessage({ type: "error", text: err.message || "Lỗi khi tải danh sách mã giảm giá!" });
     } finally {
       setCouponsLoading(false);
     }
@@ -485,7 +524,7 @@ export default function UserProfile() {
       }
     } catch (err: any) {
       setError(err.message || "Lỗi khi tải chi tiết mã giảm giá.");
-      showToast("error", err.message || "Lỗi khi tải chi tiết mã giảm giá!");
+      setMessage({ type: "error", text: err.message || "Lỗi khi tải chi tiết mã giảm giá!" });
     } finally {
       setLoading(false);
     }
@@ -494,7 +533,7 @@ export default function UserProfile() {
   const removeFromWishlist = useCallback(async (productId: string) => {
     const token = localStorage.getItem("token");
     if (!token) {
-      showToast("error", "Vui lòng đăng nhập để xóa sản phẩm!");
+      setMessage({ type: "error", text: "Vui lòng đăng nhập để xóa sản phẩm!" });
       return;
     }
     try {
@@ -504,27 +543,27 @@ export default function UserProfile() {
       if (!res.ok) {
         if (res.status === 401) {
           localStorage.removeItem("token");
-          showToast("error", "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!");
+          setMessage({ type: "error", text: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!" });
           return;
         } else if (res.status === 400) {
-          showToast("error", "ProductId không hợp lệ!");
+          setMessage({ type: "error", text: "ProductId không hợp lệ!" });
           return;
         } else if (res.status === 404) {
-          showToast("error", "Không tìm thấy người dùng!");
+          setMessage({ type: "error", text: "Không tìm thấy người dùng!" });
           return;
         } else if (res.status === 500) {
-          showToast("error", "Lỗi server. Vui lòng thử lại sau!");
+          setMessage({ type: "error", text: "Lỗi server. Vui lòng thử lại sau!" });
           return;
         }
         throw new Error("Không thể xóa sản phẩm khỏi danh sách yêu thích.");
       }
       setProducts((prev) => prev.filter((p) => p._id !== productId));
-      showToast("success", "Đã xóa sản phẩm khỏi danh sách yêu thích!");
+      setMessage({ type: "success", text: "Đã xóa sản phẩm khỏi danh sách yêu thích!" });
     } catch (err: any) {
-      showToast("error", err.message || "Không thể xóa sản phẩm khỏi danh sách yêu thích!");
+      setMessage({ type: "error", text: err.message || "Không thể xóa sản phẩm khỏi danh sách yêu thích!" });
       console.error("Lỗi xóa sản phẩm:", err);
     }
-  }, [showToast]);
+  }, []);
 
   const fetchOrderById = async (orderId: string) => {
     try {
@@ -572,7 +611,7 @@ export default function UserProfile() {
         const orderDate = new Date(processedOrder.createdAt);
         const currentDate = new Date();
         const daysDiff = (currentDate.getTime() - orderDate.getTime()) / (1000 * 60 * 60 * 24);
-        if (daysDiff <= REVIEW_WINDOW_DAYS) {
+        if (daysDiff <= 7) {
           for (const item of processedOrder.items) {
             if (!item.product?._id) continue;
             try {
@@ -597,6 +636,7 @@ export default function UserProfile() {
       setSelectedOrder(processedOrder);
     } catch (err: any) {
       setError(err.message || "Lỗi khi tải chi tiết đơn hàng.");
+      setMessage({ type: "error", text: err.message || "Lỗi khi tải chi tiết đơn hàng!" });
     } finally {
       setLoading(false);
     }
@@ -618,7 +658,7 @@ export default function UserProfile() {
       }
 
       const data = await res.json();
-      showToast("success", "Đã hủy đơn hàng thành công!");
+      setMessage({ type: "success", text: "Đã hủy đơn hàng thành công!" });
 
       setOrders(prev => 
         prev.map(order => 
@@ -643,7 +683,7 @@ export default function UserProfile() {
         await fetchOrders(userId);
       }
     } catch (err: any) {
-      showToast("error", err.message || "Lỗi khi hủy đơn hàng");
+      setMessage({ type: "error", text: err.message || "Lỗi khi hủy đơn hàng" });
     }
   };
 
@@ -658,7 +698,7 @@ export default function UserProfile() {
         throw new Error(errorData.error || "Lỗi khi yêu cầu hoàn hàng.");
       }
       const data = await res.json();
-      showToast("success", data.message || "Yêu cầu hoàn hàng đã được gửi!");
+      setMessage({ type: "success", text: data.message || "Yêu cầu hoàn hàng đã được gửi!" });
       setOrders((prev) =>
         prev.map((order) =>
           order._id === orderId
@@ -672,28 +712,31 @@ export default function UserProfile() {
       setShowReturnForm(false);
       setReturnReason("");
     } catch (err: any) {
-      showToast("error", err.message || "Lỗi khi yêu cầu hoàn hàng.");
+      setMessage({ type: "error", text: err.message || "Lỗi khi yêu cầu hoàn hàng." });
     }
   };
 
   const handleChangePassword = async () => {
     if (!oldPassword || !newPassword || !confirmNewPassword) {
       setPasswordError("Vui lòng điền đầy đủ các trường mật khẩu.");
+      setMessage({ type: "error", text: "Vui lòng điền đầy đủ các trường mật khẩu." });
       return;
     }
     if (newPassword !== confirmNewPassword) {
       setPasswordError("Mật khẩu mới và xác nhận mật khẩu không khớp.");
+      setMessage({ type: "error", text: "Mật khẩu mới và xác nhận mật khẩu không khớp." });
       return;
     }
     if (newPassword.length < 8) {
       setPasswordError("Mật khẩu mới phải có ít nhất 8 ký tự.");
+      setMessage({ type: "error", text: "Mật khẩu mới phải có ít nhất 8 ký tự." });
       return;
     }
 
     try {
       const userId = localStorage.getItem("userId");
       if (!userId) {
-        showToast("error", "Không tìm thấy userId. Vui lòng đăng nhập lại.");
+        setMessage({ type: "error", text: "Không tìm thấy userId. Vui lòng đăng nhập lại." });
         return;
       }
 
@@ -711,7 +754,7 @@ export default function UserProfile() {
       }
 
       const data = await res.json();
-      showToast("success", data.message || "Đổi mật khẩu thành công!");
+      setMessage({ type: "success", text: data.message || "Đổi mật khẩu thành công!" });
       setShowPasswordForm(false);
       setOldPassword("");
       setNewPassword("");
@@ -719,7 +762,7 @@ export default function UserProfile() {
       setPasswordError(null);
     } catch (err: any) {
       setPasswordError(err.message || "Lỗi khi đổi mật khẩu.");
-      showToast("error", err.message || "Lỗi khi đổi mật khẩu!");
+      setMessage({ type: "error", text: err.message || "Lỗi khi đổi mật khẩu!" });
     }
   };
 
@@ -834,11 +877,13 @@ export default function UserProfile() {
         const userId = localStorage.getItem("userId");
         if (!token) {
           setError("Không có token. Vui lòng đăng nhập.");
+          setMessage({ type: "error", text: "Không có token. Vui lòng đăng nhập." });
           setLoading(false);
           return;
         }
         if (!userId || userId === "undefined" || !userId.match(/^[0-9a-fA-F]{24}$/)) {
           setError("Không tìm thấy hoặc userId không hợp lệ. Vui lòng đăng nhập lại.");
+          setMessage({ type: "error", text: "Không tìm thấy hoặc userId không hợp lệ. Vui lòng đăng nhập lại." });
           setLoading(false);
           return;
         }
@@ -848,6 +893,7 @@ export default function UserProfile() {
         await fetchCoupons();
       } catch (err: any) {
         setError(err.message || "Lỗi khi tải dữ liệu.");
+        setMessage({ type: "error", text: err.message || "Lỗi khi tải dữ liệu." });
       } finally {
         setLoading(false);
       }
@@ -929,7 +975,6 @@ export default function UserProfile() {
               <p className={styles.infoRow}>
                 <strong>Địa chỉ:</strong> {formatAddress(user.address)}
               </p>
-          
               <p className={styles.infoRow}>
                 <strong>Ngày sinh:</strong>{" "}
                 {user.birthday ? new Date(user.birthday).toLocaleDateString() : "Chưa cập nhật"}
@@ -941,7 +986,7 @@ export default function UserProfile() {
               </Link>
               <button
                 className={styles.editButton}
-                style={{ marginLeft: "10px", background: "#2d8cf0" }}
+                style={{ marginLeft: "10px", background: "#357E38" }}
                 onClick={() => setShowPasswordForm(true)}
               >
                 Đổi mật khẩu
@@ -1338,13 +1383,7 @@ export default function UserProfile() {
                               cursor: "pointer",
                               marginRight: "12px",
                             }}
-                            onClick={() => {
-                              if (!cancelReason) {
-                                showToast("error", "Vui lòng chọn lý do hủy đơn hàng");
-                                return;
-                              }
-                              cancelOrder(selectedOrder._id);
-                            }}
+                            onClick={() => handleOpenConfirmPopup("cancel", selectedOrder._id)}
                             disabled={!cancelReason}
                           >
                             Xác nhận hủy
@@ -1420,7 +1459,7 @@ export default function UserProfile() {
                           cursor: "pointer",
                           marginRight: "12px",
                         }}
-                        onClick={() => requestOrderReturn(selectedOrder._id, returnReason)}
+                        onClick={() => handleOpenConfirmPopup("return", selectedOrder._id)}
                         disabled={!returnReason.trim()}
                       >
                         Gửi yêu cầu
@@ -1616,10 +1655,24 @@ export default function UserProfile() {
         )}
 
         {message && (
-          <div className={styles.toastNotification}>
-            <p className={`${styles[message.type]}`}>{message.text}</p>
-          </div>
+          <ToastNotification
+            message={message.text}
+            type={message.type}
+            onClose={hideToast}
+          />
         )}
+
+        <ConfirmPopup
+          isOpen={showConfirmPopup}
+          title={confirmAction === "cancel" ? "Xác nhận hủy đơn hàng" : "Xác nhận yêu cầu hoàn hàng"}
+          message={
+            confirmAction === "cancel"
+              ? "Bạn có chắc chắn muốn hủy đơn hàng này? Hành động này không thể hoàn tác."
+              : "Bạn có chắc chắn muốn gửi yêu cầu hoàn hàng? Yêu cầu sẽ được xem xét bởi quản trị viên."
+          }
+          onConfirm={handleConfirmAction}
+          onCancel={handleCancelConfirm}
+        />
       </div>
     </div>
   );

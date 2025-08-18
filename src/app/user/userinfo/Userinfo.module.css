@@ -105,7 +105,7 @@
 }
 
 .editButton:hover {
-  background-color: #2980b9;
+  background-color: #8D5524;
 }
 
 .orderCards {
@@ -310,7 +310,7 @@
 
 .editButton {
   padding: 8px 20px;
-  background: #2d8cf0;
+  background: #357E38;
   color: #fff;
   border: none;
   border-radius: 6px;

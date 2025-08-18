@@ -6,6 +6,7 @@
 }
 
 .success-card {
+ 
     max-width: 500px;
     background-color: white;
     border-radius: 16px;
@@ -17,7 +18,7 @@
     transform: translateY(20px);
     opacity: 0;
     animation: fadeInUp 0.8s ease-out forwards;
-    margin: 0 auto;
+    margin:100px auto;
 }
 
 @keyframes fadeInUp {

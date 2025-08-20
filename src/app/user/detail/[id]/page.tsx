@@ -895,6 +895,28 @@ const getProductPrice = (product: Product): number => {
               ))}
             </div>
           </div>
+          <div className={styles['product-thumbnails-mobile']}>
+            {product.images?.map((image, index) => (
+              <div
+                key={`thumbnail-${index}`}
+                className={`${styles.thumbnail} ${index === currentImageIndex ? styles.active : ""}`}
+                onClick={() => setCurrentImageIndex(index)}
+              >
+                <Image
+                  src={`${getImageUrl(image)}?${cacheBuster}`}
+                  alt={`${product.name} thumbnail ${index + 1}`}
+                  width={100}
+                  height={100}
+                  quality={100}
+                  className={styles.thumbnailImg}
+                  onError={(e) => {
+                    console.log(`Thumbnail ${index + 1} for ${product.name} load failed, switched to 404 fallback`);
+                    (e.target as HTMLImageElement).src = ERROR_IMAGE_URL;
+                  }}
+                />
+              </div>
+            ))}
+          </div>
 
           <div className={styles['product-info']}>
             <h1 className={styles['product-title']}>{product.name}</h1>

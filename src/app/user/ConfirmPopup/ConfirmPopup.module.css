@@ -67,3 +67,53 @@
 .cancelButton:hover {
   background-color: #7f8c8d;
 }
+/* Tablet Responsive */
+@media (max-width: 1024px) {
+  .popup {
+    width: 98%;
+    max-width: 340px;
+    padding: 16px;
+  }
+  .title {
+    font-size: 1.2rem;
+    margin-bottom: 8px;
+  }
+  .message {
+    font-size: 0.95rem;
+    margin-bottom: 16px;
+  }
+  .confirmButton,
+  .cancelButton {
+    font-size: 0.95rem;
+    padding: 7px 16px;
+  }
+}
+
+/* Mobile Responsive */
+@media (max-width: 600px) {
+  .popup {
+    width: 100vw;
+    max-width: 98vw;
+    padding: 8px;
+    border-radius: 6px;
+  }
+  .title {
+    font-size: 1rem;
+    margin-bottom: 6px;
+  }
+  .message {
+    font-size: 0.85rem;
+    margin-bottom: 10px;
+  }
+  .buttonGroup {
+    gap: 6px;
+  }
+  .confirmButton,
+  .cancelButton {
+    font-size: 0.85rem;
+    padding: 6px 10px;
+    border-radius: 3px;
+  }
+}
+
+/* ...existing code...

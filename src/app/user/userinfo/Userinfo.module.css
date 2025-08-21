@@ -468,3 +468,203 @@
   gap: 10px;
   margin-top: 20px;
 }
+/* Tablet Responsive */
+@media (max-width: 1024px) {
+  .container {
+    width: 98vw;
+    padding: 12px;
+    flex-direction: column;
+  }
+  .sidebar {
+    width: 100%;
+    padding: 12px;
+    border-right: none;
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 18px;
+  }
+  .content {
+    padding: 12px;
+  }
+  .greeting,
+  .title {
+    font-size: 1.2rem;
+    margin-bottom: 14px;
+  }
+  .orderCard,
+  .orderDetails {
+    padding: 10px;
+  }
+  .cartItemImage {
+    width: 70px;
+    height: 70px;
+  }
+  .cartItemName,
+  .productPrice {
+    font-size: 1rem;
+  }
+  .addressSection h3 {
+    font-size: 1rem;
+    margin-bottom: 8px;
+  }
+  .summaryRow {
+    font-size: 0.95rem;
+    margin: 8px 0;
+  }
+  .wishlistCard {
+    padding: 8px;
+  }
+  .wishlistInfo h3 {
+    font-size: 0.95rem;
+  }
+  .wishlistInfo p {
+    font-size: 0.85rem;
+  }
+  .removeIcon {
+    font-size: 18px;
+  }
+  .toastNotification {
+    bottom: 12px;
+    right: 12px;
+    padding: 8px 14px;
+    font-size: 0.85rem;
+  }
+  .reviewLink {
+    font-size: 13px;
+    padding: 5px 10px;
+  }
+  .passwordForm {
+    padding: 12px;
+    margin-top: 12px;
+  }
+  .input {
+    font-size: 13px;
+    padding: 7px;
+  }
+  .formActions,
+  .buttonGroup {
+    gap: 7px;
+    margin-top: 14px;
+  }
+}
+
+/* Mobile Responsive */
+@media (max-width: 600px) {
+  .container {
+    width: 100vw;
+    padding: 4px;
+    flex-direction: column;
+  }
+  .sidebar {
+    width: 100vw;
+    padding: 6px;
+    border-right: none;
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 10px;
+  }
+  .greeting,
+  .title {
+    font-size: 1rem;
+    margin-bottom: 8px;
+    text-align: center;
+  }
+  .menuItem {
+    font-size: 0.9rem;
+    padding: 7px;
+  }
+  .content {
+    padding: 6px;
+  }
+  .orderCard,
+  .orderDetails {
+    padding: 6px;
+    font-size: 0.95rem;
+  }
+  .cartItemImage {
+    width: 40px;
+    height: 40px;
+  }
+  .cartItemName,
+  .productPrice {
+    font-size: 0.9rem;
+  }
+  .cartItemDesc {
+    font-size: 0.85rem;
+  }
+  .productItem {
+    gap: 8px;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+  }
+  .addressSection {
+    margin-top: 10px;
+    padding-top: 8px;
+  }
+  .addressSection h3 {
+    font-size: 0.9rem;
+    margin-bottom: 6px;
+  }
+  .cartSummary {
+    margin-top: 10px;
+    padding-top: 8px;
+  }
+  .summaryRow {
+    font-size: 0.85rem;
+    margin: 6px 0;
+  }
+  .summaryNote {
+    font-size: 0.8rem;
+    margin-top: 6px;
+  }
+  .backButton {
+    font-size: 0.9rem;
+    margin-top: 8px;
+  }
+  .wishlistCards {
+    gap: 10px;
+    padding: 10px 0;
+  }
+  .wishlistCard {
+    padding: 5px;
+  }
+  .wishlistInfo h3 {
+    font-size: 0.85rem;
+  }
+  .wishlistInfo p {
+    font-size: 0.75rem;
+  }
+  .removeIcon {
+    font-size: 15px;
+  }
+  .toastNotification {
+    bottom: 6px;
+    right: 6px;
+    padding: 6px 8px;
+    font-size: 0.75rem;
+  }
+  .reviewLink {
+    font-size: 11px;
+    padding: 4px 7px;
+  }
+  .passwordForm {
+    padding: 6px;
+    margin-top: 6px;
+  }
+  .formGroup {
+    margin-bottom: 8px;
+  }
+  .formGroup label {
+    font-size: 0.9rem;
+    margin-bottom: 3px;
+  }
+  .input {
+    font-size: 0.8rem;
+    padding: 5px;
+  }
+  .formActions,
+  .buttonGroup {
+    gap: 5px;
+    margin-top: 8px;
+  }
+}
+
+/*

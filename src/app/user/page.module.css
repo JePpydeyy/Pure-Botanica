@@ -737,6 +737,7 @@
   
   .brandsGrid {
     gap: 20px;
+    flex-direction: column;
   }
   
   .buyNowButton {

@@ -227,6 +227,7 @@ header {
   padding: 20px;
   display: flex;
   flex-direction: column;
+  height: 100vh;
   gap: 20px;
 }
 
@@ -273,6 +274,7 @@ header {
 
 .mobile-menu .category-itemm {
   padding: 5px 10px;
+  height: 5vh;
 }
 
 .mobile-menu .category-itemm h2 {

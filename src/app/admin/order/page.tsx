@@ -825,8 +825,8 @@ const OrderPage: React.FC = () => {
         </div>
       )}
       {showConfirm && (
-        <div className={styles.modalOverlay} onClick={handleOverlayClick}>
-          <div className={styles.modalContent}>
+        <div className={styles.confirmModalOverlay} onClick={handleOverlayClick}>
+          <div className={styles.confirmModalContent}>
             <h2>
               {showConfirm.type === "cancel" ? "Xác nhận hủy đơn hàng" : "Xác nhận thay đổi trạng thái"}
             </h2>
@@ -916,8 +916,8 @@ const OrderPage: React.FC = () => {
         </div>
       )}
       {selectedOrder && (
-        <div className={styles.modalOverlay} onClick={handleOverlayClick}>
-          <div className={styles.modaldetail} style={{ maxHeight: "80vh", overflowY: "auto" }}>
+        <div className={styles.detailModalOverlay} onClick={handleOverlayClick}>
+          <div className={styles.detailModalContent} style={{ maxHeight: "80vh", overflowY: "auto" }}>
             <div className={styles.modalActions} style={{ justifyContent: "flex-end" }}>
               <button
                 className={styles.cancelBtn}
@@ -1047,7 +1047,7 @@ const OrderPage: React.FC = () => {
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={4} className="text-center">
+                          <td colSpan={3} className="text-center">
                             Không có sản phẩm trong đơn hàng
                           </td>
                         </tr>

@@ -8,6 +8,7 @@ import type { Coupon, User } from "@/app/components/coupon_interface";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEdit, faTrash, faPlus, faTimes, faCheck, faUsers } from "@fortawesome/free-solid-svg-icons";
 import ToastNotification from "../../user/ToastNotification/ToastNotification";
+import CouponForm from "../../components/CouponForm";
 
 interface Pagination {
   page: number;

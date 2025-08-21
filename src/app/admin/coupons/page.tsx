@@ -481,47 +481,6 @@ function CouponsContent() {
     }
   };
 
-  // Kiểm tra mã giảm giá
-  const handleCheckCoupon = async () => {
-    if (!checkCouponCode.trim()) {
-      setNotification({
-        show: true,
-        message: "Vui lòng nhập mã giảm giá để kiểm tra!",
-        type: "error",
-      });
-      setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
-      return;
-    }
-    if (checkLoading) return;
-    setCheckLoading(true);
-    try {
-      const response = await fetchWithToken(
-        `https://api-zeal.onrender.com/api/coupons/check/${encodeURIComponent(checkCouponCode)}`,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            userId: checkUserId || null,
-            orderValue: 0,
-          }),
-          cache: "no-store",
-        }
-      );
-
-      const data = await response.json();
-      setNotification({
-        show: true,
-        message: data.message || "Mã giảm giá hợp lệ!",
-        type: "success",
-      });
-      setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
-      setCheckCouponCode("");
-      setCheckUserId("");
-    } catch (err) {
-      handleError(err, "Lỗi khi kiểm tra mã giảm giá!");
-    } finally {
-      setCheckLoading(false);
-    }
-  };
 
   // Sửa mã giảm giá
   const handleEdit = useCallback((coupon: Coupon) => {
@@ -643,39 +602,6 @@ function CouponsContent() {
             <option value="active">Hoạt động</option>
             <option value="inactive">Không hoạt động</option>
           </select>
-          <div className={styles.checkCouponContainer}>
-            <input
-              type="text"
-              placeholder="Nhập mã để kiểm tra..."
-              value={checkCouponCode}
-              onChange={(e) => setCheckCouponCode(e.target.value)}
-              className={styles.searchInput}
-              disabled={checkLoading}
-              aria-label="Kiểm tra mã giảm giá"
-            />
-            <select
-              value={checkUserId}
-              onChange={(e) => setCheckUserId(e.target.value)}
-              className={styles.categorySelect}
-              disabled={checkLoading}
-              aria-label="Chọn người dùng để kiểm tra mã"
-            >
-              <option value="">Không chọn người dùng</option>
-              {users.map((user) => (
-                <option key={user._id} value={user._id}>
-                  {user.username} ({user.email})
-                </option>
-              ))}
-            </select>
-            <button
-              className={styles.addProductBtn}
-              onClick={handleCheckCoupon}
-              disabled={checkLoading}
-              aria-label="Kiểm tra mã giảm giá"
-            >
-              {checkLoading ? "Đang kiểm tra..." : "Kiểm tra mã"}
-            </button>
-          </div>
           {isAdmin && (
             <>
               <button

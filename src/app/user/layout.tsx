@@ -140,10 +140,10 @@ export default async function RootLayout({
                 <div className="footer-column">
                   <h4>CHÍNH SÁCH</h4>
                   <ul>
-                    <li><Link href="#">Chính sách bảo mật</Link></li>
-                    <li><Link href="#">Chính sách đổi trả</Link></li>
-                    <li><Link href="#">Chính sách giao hàng</Link></li>
-                    <li><Link href="#">Chính sách bảo mật thông tin</Link></li>
+                    <li><Link href="/user/policy">Chính sách bảo mật</Link></li>
+                    <li><Link href="/user/policy">Chính sách đổi trả</Link></li>
+                    <li><Link href="/user/policy">Chính sách giao hàng</Link></li>
+                    <li><Link href="/user/policy">Chính sách bảo mật thông tin</Link></li>
                   </ul>
                 </div>
               </div>

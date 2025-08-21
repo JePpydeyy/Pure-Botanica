@@ -1,3 +1,5 @@
+// app/admin/page.tsx (or pages/admin.tsx depending on your router)
+// Assuming App Router for Next.js 13+, but adjust if using Pages Router
 "use client";
 
 import styles from "./page.module.css";
@@ -18,7 +20,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { jwtDecode } from "jwt-decode";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCheck, faTimes, faRedo, faEdit }  from '@fortawesome/free-solid-svg-icons';
+import { faCheck, faTimes, faRedo, faEdit } from "@fortawesome/free-solid-svg-icons";
 
 ChartJS.register(CategoryScale, LinearScale, LineElement, PointElement, Title, Tooltip, Legend);
 
@@ -135,21 +137,21 @@ const paymentStatusMapping = {
   completed: "Đã thanh toán",
   failed: "Thất bại",
   cancelled: "Đã hoàn",
-};
+} as const;
 
 const shippingStatusMapping = {
   pending: "Chờ xử lý",
   in_transit: "Đang vận chuyển",
   delivered: "Đã giao hàng",
   returned: "Đã hoàn",
-};
+} as const;
 
 const reverseShippingStatusMapping = {
   "Chờ xử lý": "pending",
   "Đang vận chuyển": "in_transit",
   "Đã giao hàng": "delivered",
   "Đã hoàn": "returned",
-};
+} as const;
 
 const statusProgression: { [key: string]: string[] } = {
   pending: ["in_transit"],
@@ -762,7 +764,7 @@ const AD_Home: React.FC = () => {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
-      router.push("/user/login");
+      router.replace("/user/login");
       return;
     }
 
@@ -771,11 +773,13 @@ const AD_Home: React.FC = () => {
       decoded = jwtDecode<DecodedToken>(token);
       if (decoded.role !== "admin") {
         setError("Bạn không có quyền truy cập trang này.");
+        router.replace("/user/login");
         return;
       }
     } catch (err) {
       console.error("Lỗi khi giải mã token:", err);
       setError("Token không hợp lệ.");
+      router.replace("/user/login");
       return;
     }
 

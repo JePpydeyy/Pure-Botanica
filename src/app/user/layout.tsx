@@ -41,7 +41,6 @@ const fetchImage = async (type: "favicon" | "logo-shop"): Promise<string> => {
   }
 };
 
-// Dynamically generate metadata for favicon
 export async function generateMetadata(): Promise<Metadata> {
   const faviconPath = await fetchImage("favicon");
   console.log("Resolved faviconPath:", faviconPath);
@@ -91,10 +90,9 @@ export default async function RootLayout({
                 <Link href="/user/about">Về chúng tôi</Link>
                 <Link href="/user/contact">Liên hệ</Link>
                 <Link href="/user/new">Tin tức</Link>
-               
               </nav>
               <div className="icons">
-                 <div className="desktop-search">
+                <div className="desktop-search">
                   <SearchBar />
                 </div>
                 <Link href="/user/wishlist" title="Danh sách yêu thích">
@@ -104,7 +102,6 @@ export default async function RootLayout({
                   <i className="fa-solid fa-cart-shopping"></i>
                 </Link>
                 <UserMenu />
-                
                 <MobileMenuToggle categories={showCategories} />
               </div>
             </div>
@@ -140,10 +137,10 @@ export default async function RootLayout({
                 <div className="footer-column">
                   <h4>CHÍNH SÁCH</h4>
                   <ul>
-                    <li><Link href="/user/policy">Chính sách bảo mật</Link></li>
-                    <li><Link href="/user/policy">Chính sách đổi trả</Link></li>
-                    <li><Link href="/user/policy">Chính sách giao hàng</Link></li>
-                    <li><Link href="/user/policy">Chính sách bảo mật thông tin</Link></li>
+                    <li><Link href="/user/policy#privacy-policy">Chính sách bảo mật</Link></li>
+                    <li><Link href="/user/policy#return-policy">Chính sách đổi trả</Link></li>
+                    <li><Link href="/user/policy#delivery-policy">Chính sách giao hàng</Link></li>
+                    <li><Link href="/user/policy#information-policy">Chính sách bảo mật thông tin</Link></li>
                   </ul>
                 </div>
               </div>
@@ -192,7 +189,6 @@ export default async function RootLayout({
   );
 }
 
-// Hàm lấy danh mục
 async function getCategories(url: string): Promise<Category[]> {
   try {
     const res = await fetch(url, { cache: "no-store" });

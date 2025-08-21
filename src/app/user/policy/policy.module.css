@@ -60,6 +60,24 @@
   margin: 0;
 }
 
+.backButton {
+  display: inline-block;
+  padding: 8px 16px;
+  background-color: #1c6e1f;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  margin-bottom: 12px;
+}
+
+.backButton:hover {
+  background-color: #145714;
+}
+
 /* ===== Navbar ===== */
 .navBar {
   width: 350px; /* Chiều rộng cố định cho nav */
@@ -172,6 +190,7 @@
   margin: 10px 0;
   font-weight: 600;
 }
+
 /* Tablet Responsive */
 @media (max-width: 1024px) {
   .container {
@@ -192,9 +211,6 @@
     flex-direction:column;
     gap: 12px;
     overflow-x: auto;
-    /* position: sticky;
-    top: 80px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); */
   }
   .navList {
     flex-direction: column;
@@ -231,6 +247,10 @@
   .section li {
     font-size: 0.95rem;
   }
+  .backButton {
+    padding: 6px 12px;
+    font-size: 0.95rem;
+  }
 }
 
 /* Mobile Responsive */
@@ -253,9 +273,6 @@
     flex-direction:column;
     gap: 12px;
     overflow-x: auto;
-    /* position: sticky;
-    top: 80px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); */
   }
   .navList {
     flex-direction: column;
@@ -297,5 +314,9 @@
   }
   .divider {
     margin: 8px 0;
+  }
+  .backButton {
+    padding: 6px 10px;
+    font-size: 0.9rem;
   }
 }

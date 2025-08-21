@@ -223,7 +223,7 @@ export default function RegisterPage() {
             <div className={styles.policy}>
               <label className={styles.policyLabel}>
                 <input type="checkbox" required className={styles.policyCheckbox} />
-                Tôi đồng ý với <a href="/policy" className={styles.policyLink}>chính sách</a>
+                Tôi đồng ý với <a href="/user/policy" className={styles.policyLink}>chính sách</a>
               </label>
             </div>
 

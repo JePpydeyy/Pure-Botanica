@@ -50,6 +50,10 @@ const PolicyPage = () => {
     }
   };
 
+  const handleBack = () => {
+    window.history.back();
+  };
+
   return (
     <div className={styles.container}>
       {logoLoading && (
@@ -80,6 +84,9 @@ const PolicyPage = () => {
             <li><a href="#delivery-policy" className={styles.navLink} onClick={(e) => { e.preventDefault(); handleScroll("delivery-policy"); }}>Chính Sách Giao Hàng</a></li>
             <li><a href="#information-policy" className={styles.navLink} onClick={(e) => { e.preventDefault(); handleScroll("information-policy"); }}>Chính Sách Bảo Mật Thông Tin</a></li>
           </ul>
+          <button className={styles.backButton} onClick={handleBack}>
+            Quay Lại trang trước
+          </button>
         </nav>
 
         <section className={styles.content}>

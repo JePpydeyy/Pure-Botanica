@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTimes, faCheck } from "@fortawesome/free-solid-svg-icons";
-import styles from "./coupon.module.css";
+import styles from "../admin/coupons/coupon.module.css";
 import type { User } from "@/app/components/coupon_interface";
 
 interface FormData {

@@ -4,8 +4,6 @@
   margin: 0 auto;
   padding: 20px;
   font-family: "Inter", Arial, sans-serif;
-  background-color: #f9fafb;
-  color: #374151;
 }
 
 /* ===== Loader ===== */
@@ -60,7 +58,7 @@
 .navBar {
   position: sticky;
   top: 80px; /* cách trên 80px */
-  background-color: #e6f3ff;
+  background-color: #ffffffff;
   padding: 12px 20px;
   border-bottom: 1px solid #d1d5db;
   z-index: 1000;

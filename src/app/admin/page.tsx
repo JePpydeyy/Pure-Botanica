@@ -18,7 +18,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { jwtDecode } from "jwt-decode";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCheck, faTimes, faRedo, faEdit } from "@fortawesome/free-solid-svg-icons";
+import { faCheck, faTimes, faRedo, faEdit }  from '@fortawesome/free-solid-svg-icons';
 
 ChartJS.register(CategoryScale, LinearScale, LineElement, PointElement, Title, Tooltip, Legend);
 
@@ -249,6 +249,7 @@ const AD_Home: React.FC = () => {
   const [searchQueryComments, setSearchQueryComments] = useState<string>("");
   const [replyContent, setReplyContent] = useState<{ [key: string]: string }>({});
   const [isEditingReply, setIsEditingReply] = useState<{ [key: string]: boolean }>({});
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null); // State for zoomed image
   const ordersPerPage = 8;
   const commentsPerPage = 9;
 
@@ -576,7 +577,6 @@ const AD_Home: React.FC = () => {
         return;
       }
 
-      console.log(`Sending PUT request to /api/comments/reply/${commentId}`);
       const res = await fetch(`https://api-zeal.onrender.com/api/comments/reply/${commentId}`, {
         method: "PUT",
         headers: {
@@ -606,14 +606,10 @@ const AD_Home: React.FC = () => {
 
       const updatedComment = await res.json();
       setComments((prevComments) =>
-        prevComments.map((c) =>
-          c._id === commentId ? updatedComment.comment : c
-        )
+        prevComments.map((c) => (c._id === commentId ? updatedComment.comment : c))
       );
       setFilteredComments((prevComments) =>
-        prevComments.map((c) =>
-          c._id === commentId ? updatedComment.comment : c
-        )
+        prevComments.map((c) => (c._id === commentId ? updatedComment.comment : c))
       );
       setReplyContent((prev) => ({ ...prev, [commentId]: "" }));
       setIsEditingReply((prev) => ({ ...prev, [commentId]: false }));
@@ -628,6 +624,14 @@ const AD_Home: React.FC = () => {
   const handleCancelEdit = (commentId: string) => {
     setIsEditingReply((prev) => ({ ...prev, [commentId]: false }));
     setReplyContent((prev) => ({ ...prev, [commentId]: "" }));
+  };
+
+  const handleImageClick = (imageUrl: string) => {
+    setZoomedImage(imageUrl);
+  };
+
+  const closeZoomedImage = () => {
+    setZoomedImage(null);
   };
 
   const chartOptions = useMemo<ChartOptions<"line">>(
@@ -1497,7 +1501,6 @@ const AD_Home: React.FC = () => {
                             <p>
                               <strong>Tên sản phẩm:</strong> {comment.product?.name || "Không có"}
                             </p>
-                          
                           </div>
                         </div>
                         <div className={styles.detailsSection}>
@@ -1514,6 +1517,8 @@ const AD_Home: React.FC = () => {
                                     src={normalizeImageUrl(image.url)}
                                     alt={`Hình ảnh ${image.public_id}`}
                                     className={styles.commentImage}
+                                    onClick={() => handleImageClick(normalizeImageUrl(image.url))}
+                                    style={{ cursor: "pointer" }}
                                     onError={(e) => {
                                       (e.target as HTMLImageElement).src =
                                         "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
@@ -1746,6 +1751,26 @@ const AD_Home: React.FC = () => {
                 <FontAwesomeIcon icon={faTimes} />
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {zoomedImage && (
+        <div className={styles.zoomedImageOverlay} onClick={closeZoomedImage}>
+          <div className={styles.zoomedImageContainer} onClick={(e) => e.stopPropagation()}>
+            <img
+              src={zoomedImage}
+              alt="Hình ảnh phóng to"
+              className={styles.zoomedImage}
+            />
+            <button
+              className={styles.closeZoomButton}
+              onClick={closeZoomedImage}
+              aria-label="Đóng hình ảnh phóng to"
+              title="Đóng"
+            >
+              <FontAwesomeIcon icon={faTimes} />
+            </button>
           </div>
         </div>
       )}

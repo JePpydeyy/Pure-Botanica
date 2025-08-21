@@ -1,6 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;700&display=swap'); 
+/* General Reset */
 * {
- font-family: 'Roboto Slab', serif;
+  font-family: 'Roboto Slab', serif;
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -8,6 +8,7 @@
 
 body {
   margin: 80px 0 0;
+  font-family: 'Roboto Slab', serif;
 }
 
 main {
@@ -36,6 +37,9 @@ header {
   margin: 0 auto;
   padding: 0 15px;
 }
+
+
+
 
 .logo img {
   height: 75px;
@@ -282,6 +286,7 @@ header {
 .footer {
   border-top: 1px solid #868686;
   padding: 20px 0;
+  font-family: Arial, sans-serif;
 }
 
 .footer-container {
@@ -404,6 +409,7 @@ header {
   justify-content: space-between;
   font-size: 14px;
   color: #777;
+  
 }
 
 /* Search Results */
@@ -560,17 +566,18 @@ header {
 
 /* Mobile (≤430px) */
 @media (max-width: 430px) {
-  header {
+  header{
     height: 60px;
   }
-  .icons .search-icon {
-    display: none;
-  }
+   .icons .search-icon{
+    display : none;
+   }
   .header-container {
-    margin-top: 5px;
-    justify-content: space-between;
-    align-items: center;
-    max-width: 430px;
+          margin-top: 5px;
+        justify-content: space-between;
+        align-items: center;
+        max-width: 430px;
+       
   }
 
   .logo img {
@@ -615,21 +622,24 @@ header {
     max-width: 430px;
     padding: 0 10px;
     flex-direction: column;
+   
+   
   }
 
   .footer-logo {
-    display: flex;
+    display:flex;
     max-width: 180px;
   }
 
   .footer-links {
-    margin: 0 auto;
+    margin:0 auto;
     flex-direction: row;
     gap: 44px;
   }
 
   .footer-newsletter {
     margin: 0 auto;
+
     max-width: 90%;
   }
 

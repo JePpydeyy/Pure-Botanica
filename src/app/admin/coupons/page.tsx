@@ -191,7 +191,7 @@ function CouponsContent() {
   // Làm mới token
   const refreshToken = async () => {
     try {
-      const response = await fetch("http://localhost:10000/api/auth/refresh", {
+      const response = await fetch("https://api-zeal.onrender.com/api/auth/refresh", {
         method: "POST",
         credentials: "include",
       });
@@ -283,7 +283,7 @@ function CouponsContent() {
   // Lấy danh sách người dùng
   const fetchUsers = useCallback(async () => {
     try {
-      const response = await fetchWithToken("http://localhost:10000/api/users", {
+      const response = await fetchWithToken("https://api-zeal.onrender.com/api/users", {
         cache: "no-store",
       });
       const data = await response.json();
@@ -305,7 +305,7 @@ function CouponsContent() {
         ...(statusFilter !== "all" && { isActive: statusFilter === "active" ? "true" : "false" }),
       });
 
-      const response = await fetchWithToken(`http://localhost:10000/api/coupons?${queryParams}`, {
+      const response = await fetchWithToken(`https://api-zeal.onrender.com/api/coupons?${queryParams}`, {
         cache: "no-store",
       });
       const data = await response.json();
@@ -354,8 +354,8 @@ function CouponsContent() {
     setActionLoading(true);
     try {
       const url = formData._id
-        ? `http://localhost:10000/api/coupons/${formData._id}`
-        : `http://localhost:10000/api/coupons`;
+        ? `https://api-zeal.onrender.com/api/coupons/${formData._id}`
+        : `https://api-zeal.onrender.com/api/coupons`;
       const method = formData._id ? "PUT" : "POST";
 
       const bodyData = {
@@ -407,7 +407,7 @@ function CouponsContent() {
 
     setActionLoading(true);
     try {
-      const response = await fetchWithToken("http://localhost:10000/api/coupons/single", {
+      const response = await fetchWithToken("https://api-zeal.onrender.com/api/coupons/single", {
         method: "POST",
         body: JSON.stringify(singleCouponFormData),
         cache: "no-store",
@@ -457,7 +457,7 @@ function CouponsContent() {
 
       console.log("Sending bulk coupon data:", bodyData); // Debug
 
-      const response = await fetchWithToken("http://localhost:10000/api/coupons/bulk", {
+      const response = await fetchWithToken("https://api-zeal.onrender.com/api/coupons/bulk", {
         method: "POST",
         body: JSON.stringify(bodyData),
         cache: "no-store",
@@ -496,7 +496,7 @@ function CouponsContent() {
     setCheckLoading(true);
     try {
       const response = await fetchWithToken(
-        `http://localhost:10000/api/coupons/check/${encodeURIComponent(checkCouponCode)}`,
+        `https://api-zeal.onrender.com/api/coupons/check/${encodeURIComponent(checkCouponCode)}`,
         {
           method: "POST",
           body: JSON.stringify({
@@ -551,7 +551,7 @@ function CouponsContent() {
     if (!deleteCouponId || actionLoading) return;
     setActionLoading(true);
     try {
-      const response = await fetchWithToken(`http://localhost:10000/api/coupons/${deleteCouponId}`, {
+      const response = await fetchWithToken(`https://api-zeal.onrender.com/api/coupons/${deleteCouponId}`, {
         method: "DELETE",
         cache: "no-store",
       });

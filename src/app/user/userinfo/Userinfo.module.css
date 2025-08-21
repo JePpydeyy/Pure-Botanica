@@ -143,29 +143,20 @@
 }
 
 .pending {
-  background-color: #f39c12; /* Cam nhạt: Đang chờ xử lý */
+  background-color: #f39c12;
   color: #fff;
 }
 
-.intransit {
-  background-color: #2980b9; /* Xanh dương đậm: Đang giao */
-  color: #fff;
-}
-
-.delivered {
-  background-color: #27ae60; /* Xanh lá: Đã giao */
+.completed {
+  background-color: #27ae60;
   color: #fff;
 }
 
 .cancelled {
-  background-color: #e74c3c; /* Đỏ: Hủy hàng */
+  background-color: #e74c3c;
   color: #fff;
 }
 
-.returned {
-  background-color: #8e44ad; /* Tím: Hoàn hàng */
-  color: #fff;
-}
 .failed {
   background-color: #3498db;
   color: #fff;

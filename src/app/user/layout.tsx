@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Category } from "../components/category_interface";
 import { AuthProvider } from "./context/AuthContext";
@@ -12,6 +13,16 @@ import ScrollToTop from "../components/ScrollToTop";
 import MobileMenuToggle from "../components/menumobile";
 import '@fortawesome/fontawesome-free/css/all.min.css';
 export const dynamic = "force-dynamic";
+
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
 
 const fetchImage = async (type: "favicon" | "logo-shop"): Promise<string> => {
   console.log(`Fetching ${type}... at ${new Date().toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" })}`);
@@ -58,7 +69,7 @@ export default async function RootLayout({
   return (
     <AuthProvider>
       <CartProvider>
-        <div>
+        <div className={`${geistSans.variable} ${geistMono.variable}`}>
           <header>
             <div className="container header-container">
               <div className="logo">
@@ -80,9 +91,10 @@ export default async function RootLayout({
                 <Link href="/user/about">Về chúng tôi</Link>
                 <Link href="/user/contact">Liên hệ</Link>
                 <Link href="/user/new">Tin tức</Link>
+               
               </nav>
               <div className="icons">
-                <div className="desktop-search">
+                 <div className="desktop-search">
                   <SearchBar />
                 </div>
                 <Link href="/user/wishlist" title="Danh sách yêu thích">
@@ -92,6 +104,7 @@ export default async function RootLayout({
                   <i className="fa-solid fa-cart-shopping"></i>
                 </Link>
                 <UserMenu />
+                
                 <MobileMenuToggle categories={showCategories} />
               </div>
             </div>
@@ -205,4 +218,3 @@ async function getCategories(url: string): Promise<Category[]> {
     return [];
   }
 }
-

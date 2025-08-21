@@ -576,8 +576,8 @@
 }
 
 .buyNowButton {
-  height:60px;
-  width: 250px;
+  height: 80px;
+  width: 300px;
   color: #fff;
   cursor: pointer;
   background-color: #8D5524;

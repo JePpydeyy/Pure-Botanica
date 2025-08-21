@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Category } from "../components/category_interface";
 import { AuthProvider } from "./context/AuthContext";
@@ -13,16 +12,6 @@ import ScrollToTop from "../components/ScrollToTop";
 import MobileMenuToggle from "../components/menumobile";
 import '@fortawesome/fontawesome-free/css/all.min.css';
 export const dynamic = "force-dynamic";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 const fetchImage = async (type: "favicon" | "logo-shop"): Promise<string> => {
   console.log(`Fetching ${type}... at ${new Date().toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" })}`);
@@ -41,6 +30,7 @@ const fetchImage = async (type: "favicon" | "logo-shop"): Promise<string> => {
   }
 };
 
+// Dynamically generate metadata for favicon
 export async function generateMetadata(): Promise<Metadata> {
   const faviconPath = await fetchImage("favicon");
   console.log("Resolved faviconPath:", faviconPath);
@@ -68,7 +58,7 @@ export default async function RootLayout({
   return (
     <AuthProvider>
       <CartProvider>
-        <div className={`${geistSans.variable} ${geistMono.variable}`}>
+        <div>
           <header>
             <div className="container header-container">
               <div className="logo">
@@ -137,10 +127,10 @@ export default async function RootLayout({
                 <div className="footer-column">
                   <h4>CHÍNH SÁCH</h4>
                   <ul>
-                    <li><Link href="/user/policy#privacy-policy">Chính sách bảo mật</Link></li>
-                    <li><Link href="/user/policy#return-policy">Chính sách đổi trả</Link></li>
-                    <li><Link href="/user/policy#delivery-policy">Chính sách giao hàng</Link></li>
-                    <li><Link href="/user/policy#information-policy">Chính sách bảo mật thông tin</Link></li>
+                    <li><Link href="#">Chính sách bảo mật</Link></li>
+                    <li><Link href="#">Chính sách đổi trả</Link></li>
+                    <li><Link href="#">Chính sách giao hàng</Link></li>
+                    <li><Link href="#">Chính sách bảo mật thông tin</Link></li>
                   </ul>
                 </div>
               </div>
@@ -189,6 +179,7 @@ export default async function RootLayout({
   );
 }
 
+// Hàm lấy danh mục
 async function getCategories(url: string): Promise<Category[]> {
   try {
     const res = await fetch(url, { cache: "no-store" });
@@ -214,3 +205,4 @@ async function getCategories(url: string): Promise<Category[]> {
     return [];
   }
 }
+

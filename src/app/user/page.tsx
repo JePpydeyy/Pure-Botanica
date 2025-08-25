@@ -259,17 +259,6 @@ export default function Home() {
         console.log("Main Banner image load failed, switched to 404 fallback");
       }}
     />
-    <img
-      src={imagevippro}
-      alt="VIP Pro Overlay"
-      loading="eager"
-      className={styles.bannerOverlayImage}
-      onLoad={() => handleImageLoad(imagevippro)}
-      onError={(e) => {
-        (e.target as HTMLImageElement).src = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
-        console.log("VIP Pro image load failed, switched to 404 fallback");
-      }}
-    />
   </div>
 </ScrollInView>
 

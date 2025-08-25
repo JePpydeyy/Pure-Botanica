@@ -272,21 +272,23 @@ const AD_Home: React.FC = () => {
       window.location.reload();
     }
 
-    // Track navigation away from /admin
-    const handleRouteChange = (url: string) => {
-      if (url !== "/admin" && url !== "/admin?reload=true") {
+    // Track navigation away from /admin using browser navigation events
+    const handlePopState = () => {
+      if (
+        window.location.pathname !== "/admin" &&
+        window.location.pathname !== "/admin?reload=true"
+      ) {
         sessionStorage.removeItem("lastAdminLoad"); // Reset timestamp when leaving /admin
       }
     };
 
-    // Subscribe to Next.js router events
-    router.events?.on("routeChangeStart", handleRouteChange);
+    window.addEventListener("popstate", handlePopState);
 
     // Cleanup
     return () => {
-      router.events?.off("routeChangeStart", handleRouteChange);
+      window.removeEventListener("popstate", handlePopState);
     };
-  }, [router, searchParams]);
+  }, [searchParams]);
 
   const years = useMemo(() => {
     const currentYear = new Date().getFullYear();

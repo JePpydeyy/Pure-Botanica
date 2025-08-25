@@ -89,7 +89,7 @@ const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
     throw new Error("Không có token. Vui lòng đăng nhập.");
   }
 
-  const headers = { ...options.headers };
+  const headers: Record<string, string> = { ...options.headers } as Record<string, string>;
   if (!(options.body instanceof FormData)) {
     headers["Content-Type"] = "application/json";
   }

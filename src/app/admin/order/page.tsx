@@ -1110,79 +1110,32 @@ const OrderPage: React.FC = () => {
                     {selectedOrder.returnReason && (
                       <p>Lý do hoàn hàng: {selectedOrder.returnReason}</p>
                     )}
-                  {selectedOrder.returnStatus !== "none" && (
-  <div className={styles.noteSection}>
-    <h3>Trạng thái hoàn hàng</h3>
-    <p>
-      <strong>Trạng thái:</strong>{" "}
-      {selectedOrder.returnStatus === "requested"
-        ? "Đã yêu cầu hoàn hàng"
-        : selectedOrder.returnStatus === "approved"
-        ? "Hoàn hàng được chấp nhận"
-        : "Hoàn hàng bị từ chối"}
-    </p>
-    {selectedOrder.returnReason && (
-      <p><strong>Lý do hoàn hàng:</strong> {selectedOrder.returnReason}</p>
-    )}
-    {selectedOrder.returnRequestDate && (
-      <p><strong>Ngày yêu cầu:</strong> {formatDate(selectedOrder.returnRequestDate)}</p>
-    )}
-    {/* Hiển thị ảnh hoàn hàng */}
-    {selectedOrder.returnImages && selectedOrder.returnImages.length > 0 && (
-      <div className={styles.returnMedia}>
-        <h4>Ảnh hoàn hàng:</h4>
-        <div className={styles.imageGrid}>
-          {selectedOrder.returnImages.map((imageUrl, index) => (
-            <div key={index} className={styles.returnImage}>
-              <Image
-                src={imageUrl || ERROR_IMAGE_URL}
-                alt={`Ảnh hoàn hàng ${index + 1}`}
-                width={100}
-                height={100}
-                quality={100}
-                onError={e => {
-                  console.error(`Image load failed for return image ${index + 1}: ${imageUrl}`);
-                  (e.target as HTMLImageElement).src = ERROR_IMAGE_URL;
-                }}
-                style={{
-                  objectFit: "cover",
-                  borderRadius: "4px",
-                  margin: "4px",
-                }}
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-    )}
-    {/* Hiển thị video hoàn hàng */}
-    {selectedOrder.orderVideo && (
-      <div className={styles.returnMedia}>
-        <h4>Video hoàn hàng:</h4>
-        <video
-          src={selectedOrder.orderVideo}
-          controls
-          width="300"
-          height="auto"
-          style={{
-            borderRadius: "4px",
-            marginTop: "8px",
-          }}
-          onError={e => {
-            console.error(`Video load failed: ${selectedOrder.orderVideo}`);
-            setMessage({ type: "error", text: "Không thể tải video hoàn hàng." });
-          }}
-        >
-          Trình duyệt của bạn không hỗ trợ thẻ video.
-        </video>
-      </div>
-    )}
-    {(!selectedOrder.returnImages || selectedOrder.returnImages.length === 0) &&
-      !selectedOrder.orderVideo && (
-        <p>Không có ảnh hoặc video hoàn hàng.</p>
-      )}
-  </div>
-)}
+                    {selectedOrder.returnStatus === "requested" && (
+                      <div className={styles.returnAction}>
+                        <select
+                          value=""
+                          onChange={(e) =>
+                            handleStatusChange(
+                              selectedOrder._id,
+                              e.target.value,
+                              selectedOrder.returnStatus,
+                              "return"
+                            )
+                          }
+                          className={styles.categorySelect}
+                          aria-label={`Thay đổi trạng thái hoàn hàng cho đơn hàng ${selectedOrder._id}`}
+                        >
+                          <option value="" disabled>
+                            Chọn hành động
+                          </option>
+                          {returnStatuses.map((status) => (
+                            <option key={status.value} value={status.label}>
+                              {status.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className={styles.detailsSection}>

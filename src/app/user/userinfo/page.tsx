@@ -80,7 +80,7 @@ interface Coupon {
   updatedAt: string;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:10000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api-zeal.onrender.com";
 const FALLBACK_IMAGE_URL = "/images/fallback-image.jpg";
 
 const fetchWithAuth = async (url: string, options: RequestInit = {}) => {

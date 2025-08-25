@@ -133,7 +133,27 @@
 .orderHeader span {
   font-weight: bold;
 }
+.returnMedia {
+  margin-top: 16px;
+}
 
+.returnMedia h4 {
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.imageGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.returnImage {
+  width: 100px;
+  height: 100px;
+  overflow: hidden;
+}
 .statusButton {
   padding: 5px 10px;
   border: none;

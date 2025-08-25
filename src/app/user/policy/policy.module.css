@@ -121,6 +121,11 @@
   background-color: #1c6e1f;
 }
 
+.navLink.active {
+  color: #fff; /* White text for contrast */
+  background-color: #8B4513; /* Brown background for active link */
+}
+
 /* ===== Content ===== */
 .content {
   flex: 1; /* Chiếm phần còn lại của không gian */
@@ -208,7 +213,7 @@
     position: static;
     top: unset;
     margin-bottom: 18px;
-    flex-direction:column;
+    flex-direction: column;
     gap: 12px;
     overflow-x: auto;
   }
@@ -222,6 +227,10 @@
     padding: 8px 10px;
     margin-bottom: 0;
     white-space: nowrap;
+  }
+  .navLink.active {
+    color: #fff;
+    background-color: #8B4513; /* Maintain brown background for active link */
   }
   .navTitle {
     font-size: 1rem;
@@ -270,7 +279,7 @@
     position: static;
     top: unset;
     margin-bottom: 18px;
-    flex-direction:column;
+    flex-direction: column;
     gap: 12px;
     overflow-x: auto;
   }
@@ -284,6 +293,10 @@
     padding: 8px 10px;
     margin-bottom: 0;
     white-space: nowrap;
+  }
+  .navLink.active {
+    color: #fff;
+    background-color: #8B4513; /* Maintain brown background for active link */
   }
   .navTitle {
     font-size: 1rem;

@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
+import { useSearchParams } from "next/navigation"; // Import useSearchParams
 import styles from "./policy.module.css";
 import ScrollInView from "../../components/ScrollInView";
 
@@ -9,6 +10,15 @@ const PolicyPage = () => {
   const [logoError, setLogoError] = useState<string | null>(null);
   const [cacheBuster, setCacheBuster] = useState<string>("");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [activeSection, setActiveSection] = useState<string | null>(null);
+  const [isScrolling, setIsScrolling] = useState<boolean>(false);
+  const sectionRefs = useRef<{ [key: string]: HTMLElement | null }>({
+    "privacy-policy": null,
+    "return-policy": null,
+    "delivery-policy": null,
+    "information-policy": null,
+  });
+  const searchParams = useSearchParams(); // Get query parameters
 
   useEffect(() => {
     setCacheBuster(`_t=${Date.now()}`);
@@ -40,19 +50,64 @@ const PolicyPage = () => {
     fetchLogo();
   }, []);
 
-  const handleScroll = (sectionId: string) => {
-    const section = document.getElementById(sectionId);
-    const heading = section?.querySelector("h2");
-    if (heading) {
-      const navHeight = document.querySelector(`.${styles.navBar}`)?.getBoundingClientRect().height || 50;
-      const offsetTop = heading.getBoundingClientRect().top + window.scrollY - navHeight;
-      window.scrollTo({ top: offsetTop, behavior: "smooth" });
+  // Handle initial scroll based on query parameter
+  useEffect(() => {
+    const type = searchParams.get("type");
+    const sectionMap: { [key: string]: { id: string; targetPx: number } } = {
+      privacy: { id: "privacy-policy", targetPx: 0 },
+      return: { id: "return-policy", targetPx: 790 },
+      shipping: { id: "delivery-policy", targetPx: 1240 },
+      information: { id: "information-policy", targetPx: 1800 },
+    };
+
+    if (type && sectionMap[type]) {
+      const { id, targetPx } = sectionMap[type];
+      setIsScrolling(true);
+      setActiveSection(id);
+      window.scrollTo({ top: targetPx, behavior: "smooth" });
+      setTimeout(() => setIsScrolling(false), 1000);
     }
+  }, [searchParams]);
+
+  const handleScroll = (sectionId: string, targetPx: number) => {
+    setIsScrolling(true);
+    setActiveSection(sectionId);
+    window.scrollTo({ top: targetPx, behavior: "smooth" });
+    setTimeout(() => setIsScrolling(false), 1000);
   };
 
   const handleBack = () => {
     window.history.back();
   };
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (isScrolling) return;
+        let closestSection = null;
+        let closestDistance = Infinity;
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const distance = Math.abs(entry.boundingClientRect.top);
+            if (distance < closestDistance) {
+              closestDistance = distance;
+              closestSection = entry.target.id;
+            }
+          }
+        });
+        if (closestSection) {
+          setActiveSection(closestSection);
+        }
+      },
+      { threshold: [0.1, 0.25, 0.5, 0.75], rootMargin: "-10% 0% -10% 0%" }
+    );
+
+    Object.values(sectionRefs.current).forEach((ref) => {
+      if (ref) observer.observe(ref);
+    });
+
+    return () => observer.disconnect();
+  }, [isScrolling]);
 
   return (
     <div className={styles.container}>
@@ -79,10 +134,54 @@ const PolicyPage = () => {
             <hr className={styles.divider} />
           </div>
           <ul className={styles.navList}>
-            <li><a href="#privacy-policy" className={styles.navLink} onClick={(e) => { e.preventDefault(); handleScroll("privacy-policy"); }}>Chính Sách Bảo Mật</a></li>
-            <li><a href="#return-policy" className={styles.navLink} onClick={(e) => { e.preventDefault(); handleScroll("return-policy"); }}>Chính Sách Đổi Trả</a></li>
-            <li><a href="#delivery-policy" className={styles.navLink} onClick={(e) => { e.preventDefault(); handleScroll("delivery-policy"); }}>Chính Sách Giao Hàng</a></li>
-            <li><a href="#information-policy" className={styles.navLink} onClick={(e) => { e.preventDefault(); handleScroll("information-policy"); }}>Chính Sách Bảo Mật Thông Tin</a></li>
+            <li>
+              <a
+                href="#privacy-policy"
+                className={`${styles.navLink} ${activeSection === "privacy-policy" ? styles.active : ""}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleScroll("privacy-policy", 0);
+                }}
+              >
+                Chính Sách Bảo Mật
+              </a>
+            </li>
+            <li>
+              <a
+                href="#return-policy"
+                className={`${styles.navLink} ${activeSection === "return-policy" ? styles.active : ""}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleScroll("return-policy", 790);
+                }}
+              >
+                Chính Sách Đổi Trả
+              </a>
+            </li>
+            <li>
+              <a
+                href="#delivery-policy"
+                className={`${styles.navLink} ${activeSection === "delivery-policy" ? styles.active : ""}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleScroll("delivery-policy", 1240);
+                }}
+              >
+                Chính Sách Giao Hàng
+              </a>
+            </li>
+            <li>
+              <a
+                href="#information-policy"
+                className={`${styles.navLink} ${activeSection === "information-policy" ? styles.active : ""}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleScroll("information-policy", 1800);
+                }}
+              >
+                Chính Sách Bảo Mật Thông Tin
+              </a>
+            </li>
           </ul>
           <button className={styles.backButton} onClick={handleBack}>
             Quay Lại trang trước
@@ -91,7 +190,13 @@ const PolicyPage = () => {
 
         <section className={styles.content}>
           <ScrollInView>
-            <section id="privacy-policy" className={styles.section}>
+            <section
+              id="privacy-policy"
+              className={styles.section}
+              ref={(el) => {
+                sectionRefs.current["privacy-policy"] = el;
+              }}
+            >
               <h2 className={styles.sectionHeading}>Chính Sách Bảo Mật</h2>
               <h3 className={styles.sectionTitle}>Cam Kết Bảo Vệ Thông Tin Khách Hàng</h3>
               <hr className={styles.divider} />
@@ -111,7 +216,13 @@ const PolicyPage = () => {
           </ScrollInView>
 
           <ScrollInView>
-            <section id="return-policy" className={styles.section}>
+            <section
+              id="return-policy"
+              className={styles.section}
+              ref={(el) => {
+                sectionRefs.current["return-policy"] = el;
+              }}
+            >
               <h2 className={styles.sectionHeading}>Chính Sách Đổi Trả</h2>
               <h3 className={styles.sectionTitle}>Hỗ Trợ Đổi Trả Linh Hoạt</h3>
               <hr className={styles.divider} />
@@ -130,7 +241,13 @@ const PolicyPage = () => {
           </ScrollInView>
 
           <ScrollInView>
-            <section id="delivery-policy" className={styles.section}>
+            <section
+              id="delivery-policy"
+              className={styles.section}
+              ref={(el) => {
+                sectionRefs.current["delivery-policy"] = el;
+              }}
+            >
               <h2 className={styles.sectionHeading}>Chính Sách Giao Hàng</h2>
               <h3 className={styles.sectionTitle}>Giao Hàng Nhanh Chóng và Đảm Bảo</h3>
               <hr className={styles.divider} />
@@ -149,7 +266,13 @@ const PolicyPage = () => {
           </ScrollInView>
 
           <ScrollInView>
-            <section id="information-policy" className={styles.section}>
+            <section
+              id="information-policy"
+              className={styles.section}
+              ref={(el) => {
+                sectionRefs.current["information-policy"] = el;
+              }}
+            >
               <h2 className={styles.sectionHeading}>Chính Sách Bảo Mật Thông Tin</h2>
               <h3 className={styles.sectionTitle}>Đảm Bảo An Toàn Dữ Liệu Khách Hàng</h3>
               <hr className={styles.divider} />

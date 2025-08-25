@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
@@ -23,6 +22,8 @@ interface Order {
   returnStatus: "none" | "requested" | "approved" | "rejected";
   returnReason?: string;
   returnRequestDate?: string;
+  returnImages?: string[]; // Array of image URLs for return
+  returnVideo?: string | null; // Video URL for return
   paymentMethod?: string;
   couponCode?: string;
   discount?: number;
@@ -79,7 +80,7 @@ interface Coupon {
   updatedAt: string;
 }
 
-const API_BASE_URL = "https://api-zeal.onrender.com";
+const API_BASE_URL = "http://localhost:10000";
 const ERROR_IMAGE_URL = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
 
 const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
@@ -87,30 +88,33 @@ const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
   if (!token) {
     throw new Error("Không có token. Vui lòng đăng nhập.");
   }
+
+  const headers = { ...options.headers };
+  if (!(options.body instanceof FormData)) {
+    headers["Content-Type"] = "application/json";
+  }
+  headers["Authorization"] = `Bearer ${token}`;
+
   return fetch(url, {
     ...options,
-    headers: {
-      ...options.headers,
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
+    headers,
   });
 };
 
 const translateCancelReason = (reason: string): string => {
   const reasonMap: { [key: string]: string } = {
-    "out_of_stock": "Hết hàng",
-    "customer_cancelled": "Khách hàng hủy",
-    "system_error": "Lỗi hệ thống",
-    "other": "Lý do khác"
+    out_of_stock: "Hết hàng",
+    customer_cancelled: "Khách hàng hủy",
+    system_error: "Lỗi hệ thống",
+    other: "Lý do khác",
   };
   return reasonMap[reason] || reason;
 };
 
 const translatePaymentMethod = (method: string): string => {
   const paymentMethods: { [key: string]: string } = {
-    "bank": "Chuyển khoản ngân hàng",
-    "cod": "Thanh toán khi nhận hàng"
+    bank: "Chuyển khoản ngân hàng",
+    cod: "Thanh toán khi nhận hàng",
   };
   return paymentMethods[method?.toLowerCase()] || "Thanh toán khi nhận hàng";
 };
@@ -193,6 +197,8 @@ export default function UserProfile() {
   const [canReviewMap, setCanReviewMap] = useState<Record<string, boolean>>({});
   const [showReturnForm, setShowReturnForm] = useState<boolean>(false);
   const [returnReason, setReturnReason] = useState<string>("");
+  const [returnImages, setReturnImages] = useState<File[]>([]);
+  const [orderVideo, setOrderVideo] = useState<File | null>(null);
   const [showCancelForm, setShowCancelForm] = useState<boolean>(false);
   const [cancelReason, setCancelReason] = useState<string>("");
   const [cancelNote, setCancelNote] = useState<string>("");
@@ -230,6 +236,16 @@ export default function UserProfile() {
         setShowConfirmPopup(false);
         return;
       }
+      if (returnImages.length > 5) {
+        setMessage({ type: "error", text: "Tối đa 5 ảnh được phép tải lên" });
+        setShowConfirmPopup(false);
+        return;
+      }
+      if (orderVideo && !["video/mp4", "video/mpeg", "video/quicktime", "video/webm"].includes(orderVideo.type)) {
+        setMessage({ type: "error", text: "Định dạng video không hợp lệ. Chỉ hỗ trợ mp4, mpeg, mov, webm" });
+        setShowConfirmPopup(false);
+        return;
+      }
       requestOrderReturn(confirmOrderId, returnReason);
     }
     setShowConfirmPopup(false);
@@ -248,6 +264,8 @@ export default function UserProfile() {
     } else if (confirmAction === "return") {
       setShowReturnForm(false);
       setReturnReason("");
+      setReturnImages([]);
+      setOrderVideo(null);
     }
   };
 
@@ -369,7 +387,7 @@ export default function UserProfile() {
             }
             const existingComments: Comment[] = await commentsRes.json();
             const hasCommented = existingComments.some(
-              (comment) => comment.userId === userId && comment.orderId === order._id
+              comment => comment.userId === userId && comment.orderId === order._id
             );
             reviewMap[`${item.product._id}-${order._id}`] = !hasCommented;
           } catch (err) {
@@ -486,7 +504,7 @@ export default function UserProfile() {
       const data = await res.json();
       if (data.message === "Lấy danh sách mã giảm giá thành công" && Array.isArray(data.coupons)) {
         const currentDate = new Date();
-        const validCoupons = data.coupons.filter((coupon: Coupon) => 
+        const validCoupons = data.coupons.filter((coupon: Coupon) =>
           coupon.isActive && new Date(coupon.expiryDate) > currentDate
         );
         setCoupons(validCoupons);
@@ -557,7 +575,7 @@ export default function UserProfile() {
         }
         throw new Error("Không thể xóa sản phẩm khỏi danh sách yêu thích.");
       }
-      setProducts((prev) => prev.filter((p) => p._id !== productId));
+      setProducts(prev => prev.filter(p => p._id !== productId));
       setMessage({ type: "success", text: "Đã xóa sản phẩm khỏi danh sách yêu thích!" });
     } catch (err: any) {
       setMessage({ type: "error", text: err.message || "Không thể xóa sản phẩm khỏi danh sách yêu thích!" });
@@ -605,6 +623,8 @@ export default function UserProfile() {
             : null,
         })),
         paymentCode: paymentMap[data._id],
+        returnImages: data.returnImages || [], // Ensure returnImages is included
+        returnVideo: data.returnVideo || null, // Ensure returnVideo is included
       };
       const reviewMap: Record<string, boolean> = { ...canReviewMap };
       if (processedOrder.paymentStatus === "completed" && processedOrder.shippingStatus === "delivered") {
@@ -622,7 +642,7 @@ export default function UserProfile() {
               }
               const existingComments: Comment[] = await commentsRes.json();
               const hasCommented = existingComments.some(
-                (comment) => comment.userId === user?.id && comment.orderId === processedOrder._id
+                comment => comment.userId === user?.id && comment.orderId === processedOrder._id
               );
               reviewMap[`${item.product._id}-${processedOrder._id}`] = !hasCommented;
             } catch (err) {
@@ -648,8 +668,8 @@ export default function UserProfile() {
         method: "DELETE",
         body: JSON.stringify({
           cancelReason: cancelReason,
-          cancelNote: cancelNote
-        })
+          cancelNote: cancelNote,
+        }),
       });
 
       if (!res.ok) {
@@ -660,16 +680,16 @@ export default function UserProfile() {
       const data = await res.json();
       setMessage({ type: "success", text: "Đã hủy đơn hàng thành công!" });
 
-      setOrders(prev => 
-        prev.map(order => 
-          order._id === orderId 
+      setOrders(prev =>
+        prev.map(order =>
+          order._id === orderId
             ? { ...order, paymentStatus: "cancelled", shippingStatus: "cancelled" }
             : order
         )
       );
 
       if (selectedOrder?._id === orderId) {
-        setSelectedOrder(prev => 
+        setSelectedOrder(prev =>
           prev ? { ...prev, paymentStatus: "cancelled", shippingStatus: "cancelled" } : null
         );
       }
@@ -689,28 +709,64 @@ export default function UserProfile() {
 
   const requestOrderReturn = async (orderId: string, reason: string) => {
     try {
+      const formData = new FormData();
+      formData.append("returnReason", reason);
+
+      // Add images to FormData
+      returnImages.forEach(file => {
+        formData.append("returnImages", file);
+      });
+
+      // Add video to FormData
+      if (orderVideo) {
+        formData.append("orderVideo", orderVideo);
+      }
+
       const res = await fetchWithAuth(`${API_BASE_URL}/api/orders/return/${orderId}`, {
         method: "POST",
-        body: JSON.stringify({ returnReason: reason }),
+        body: formData,
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
       });
+
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.error || "Lỗi khi yêu cầu hoàn hàng.");
       }
+
       const data = await res.json();
       setMessage({ type: "success", text: data.message || "Yêu cầu hoàn hàng đã được gửi!" });
-      setOrders((prev) =>
-        prev.map((order) =>
+
+      // Update orders state with returnImages and returnVideo from response
+      setOrders(prev =>
+        prev.map(order =>
           order._id === orderId
-            ? { ...order, returnStatus: "requested", returnReason: reason }
+            ? {
+                ...order,
+                returnStatus: "requested",
+                returnReason: reason,
+                returnImages: data.returnImages || [], // Expect array of image URLs from backend
+                returnVideo: data.returnVideo || null, // Expect video URL or null from backend
+              }
             : order
         )
       );
+
       if (selectedOrder && selectedOrder._id === orderId) {
-        setSelectedOrder({ ...selectedOrder, returnStatus: "requested", returnReason: reason });
+        setSelectedOrder({
+          ...selectedOrder,
+          returnStatus: "requested",
+          returnReason: reason,
+          returnImages: data.returnImages || [],
+          returnVideo: data.returnVideo || null,
+        });
       }
+
       setShowReturnForm(false);
       setReturnReason("");
+      setReturnImages([]);
+      setOrderVideo(null);
     } catch (err: any) {
       setMessage({ type: "error", text: err.message || "Lỗi khi yêu cầu hoàn hàng." });
     }
@@ -891,8 +947,9 @@ export default function UserProfile() {
         await fetchOrders(userId);
         await fetchWishlist();
         await fetchCoupons();
+    
       } catch (err: any) {
-        setError(err.message || "Lỗi khi tải dữ liệu.");
+               setError(err.message || "Lỗi khi tải dữ liệu.");
         setMessage({ type: "error", text: err.message || "Lỗi khi tải dữ liệu." });
       } finally {
         setLoading(false);
@@ -1002,7 +1059,7 @@ export default function UserProfile() {
                     type="password"
                     id="oldPassword"
                     value={oldPassword}
-                    onChange={(e) => setOldPassword(e.target.value)}
+                    onChange={e => setOldPassword(e.target.value)}
                     placeholder="Nhập mật khẩu cũ"
                     className={styles.input}
                   />
@@ -1013,7 +1070,7 @@ export default function UserProfile() {
                     type="password"
                     id="newPassword"
                     value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
+                    onChange={e => setNewPassword(e.target.value)}
                     placeholder="Nhập mật khẩu mới"
                     className={styles.input}
                   />
@@ -1024,7 +1081,7 @@ export default function UserProfile() {
                     type="password"
                     id="confirmNewPassword"
                     value={confirmNewPassword}
-                    onChange={(e) => setConfirmNewPassword(e.target.value)}
+                    onChange={e => setConfirmNewPassword(e.target.value)}
                     placeholder="Xác nhận mật khẩu mới"
                     className={styles.input}
                   />
@@ -1089,7 +1146,7 @@ export default function UserProfile() {
                   <p className={styles.infoRow}>Chưa có đơn hàng</p>
                 ) : (
                   <div className={styles.orderCards}>
-                    {orders.map((order) => (
+                    {orders.map(order => (
                       <div key={order._id} className={styles.orderCard}>
                         <div className={styles.orderHeader}>
                           <span>Mã đơn hàng: {order._id}</span>
@@ -1098,7 +1155,7 @@ export default function UserProfile() {
                               order.shippingStatus === "pending"
                                 ? styles.pending
                                 : order.shippingStatus === "in_transit"
-                                ? styles.intransit  
+                                ? styles.intransit
                                 : order.shippingStatus === "delivered"
                                 ? styles.delivered
                                 : order.shippingStatus === "cancelled"
@@ -1110,7 +1167,7 @@ export default function UserProfile() {
                               ? "Đang chờ xử lý"
                               : order.shippingStatus === "in_transit"
                               ? "Đang giao"
-                              : order.shippingStatus === "delivered" 
+                              : order.shippingStatus === "delivered"
                               ? "Đã giao"
                               : order.shippingStatus === "cancelled"
                               ? "Hủy hàng"
@@ -1167,7 +1224,7 @@ export default function UserProfile() {
                           width={100}
                           height={100}
                           quality={100}
-                          onError={(e) => {
+                          onError={e => {
                             console.error(`Image load failed for product "${item.product?.name || "Unknown"}"`);
                             (e.target as HTMLImageElement).src = ERROR_IMAGE_URL;
                           }}
@@ -1267,6 +1324,45 @@ export default function UserProfile() {
                     {selectedOrder.returnReason && (
                       <p><strong>Lý do hoàn hàng:</strong> {selectedOrder.returnReason}</p>
                     )}
+                    {selectedOrder.returnImages && selectedOrder.returnImages.length > 0 && (
+                      <div className={styles.returnMedia}>
+                        <h4>Ảnh hoàn hàng:</h4>
+                        <div className={styles.mediaGrid}>
+                          {selectedOrder.returnImages.map((imageUrl, index) => (
+                            <div key={index} className={styles.mediaItem}>
+                              <Image
+                                src={imageUrl}
+                                alt={`Ảnh hoàn hàng ${index + 1}`}
+                                width={150}
+                                height={150}
+                                quality={100}
+                                onError={e => {
+                                  console.error(`Image load failed for return image ${index + 1}`);
+                                  (e.target as HTMLImageElement).src = ERROR_IMAGE_URL;
+                                }}
+                                style={{ objectFit: "cover", borderRadius: "4px" }}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {selectedOrder.returnVideo && (
+                      <div className={styles.returnMedia}>
+                        <h4>Video hoàn hàng:</h4>
+                        <video
+                          src={selectedOrder.returnVideo}
+                          controls
+                          width="300"
+                          style={{ borderRadius: "4px" }}
+                          onError={e => {
+                            console.error(`Video load failed for return video`);
+                          }}
+                        >
+                          Trình duyệt của bạn không hỗ trợ thẻ video.
+                        </video>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1300,11 +1396,7 @@ export default function UserProfile() {
                   <p><strong>SĐT:</strong> {selectedOrder.sdt || user.phone}</p>
                   <p>
                     <strong>Địa chỉ:</strong>{" "}
-                    {selectedOrder.address ? (
-                      formatAddress(selectedOrder.address)
-                    ) : (
-                      formatAddress(user.address)
-                    )}
+                    {selectedOrder.address ? formatAddress(selectedOrder.address) : formatAddress(user.address)}
                   </p>
                   <p><strong>Giao hàng:</strong> Giao Hàng Nhanh</p>
                 </div>
@@ -1332,7 +1424,7 @@ export default function UserProfile() {
                         <h3>Lý do hủy đơn hàng</h3>
                         <select
                           value={cancelReason}
-                          onChange={(e) => setCancelReason(e.target.value)}
+                          onChange={e => setCancelReason(e.target.value)}
                           style={{
                             width: "100%",
                             padding: "8px",
@@ -1355,7 +1447,7 @@ export default function UserProfile() {
                         )}
                         <textarea
                           value={cancelNote}
-                          onChange={(e) => setCancelNote(e.target.value)}
+                          onChange={e => setCancelNote(e.target.value)}
                           placeholder="Nhập thêm ghi chú (nếu có)"
                           style={{
                             width: "100%",
@@ -1436,7 +1528,7 @@ export default function UserProfile() {
                     <h3>Lý do yêu cầu hoàn hàng</h3>
                     <textarea
                       value={returnReason}
-                      onChange={(e) => setReturnReason(e.target.value)}
+                      onChange={e => setReturnReason(e.target.value)}
                       placeholder="Vui lòng nhập lý do hoàn hàng"
                       style={{
                         width: "100%",
@@ -1447,6 +1539,90 @@ export default function UserProfile() {
                         border: "1px solid #ccc",
                       }}
                     />
+                    <div className={styles.formGroup}>
+                      <label htmlFor="returnImages">
+                        Tải lên ảnh (tối đa 5 ảnh, định dạng: jpg, jpeg, png, gif, webp, svg):
+                      </label>
+                      <input
+                        type="file"
+                        id="returnImages"
+                        name="returnImages"
+                        accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml"
+                        multiple
+                        onChange={e => {
+                          const files = Array.from(e.target.files || []).slice(0, 5 - returnImages.length);
+                          setReturnImages(prev => [...prev, ...files].slice(0, 5));
+                        }}
+                        disabled={returnImages.length >= 5} // Disable input if 5 images are selected
+                        style={{
+                          width: "100%",
+                          padding: "8px",
+                          marginBottom: "12px",
+                          borderRadius: "4px",
+                          border: "1px solid #ccc",
+                        }}
+                      />
+                      {returnImages.length > 0 && (
+                        <div className={styles.selectedFiles}>
+                          <p>
+                            <strong>Ảnh đã chọn ({returnImages.length}/5):</strong>
+                          </p>
+                          <ul>
+                            {returnImages.map((file, index) => (
+                              <li key={index}>
+                                {file.name}{" "}
+                                <span
+                                  style={{ color: "#e74c3c", cursor: "pointer" }}
+                                  onClick={() => setReturnImages(prev => prev.filter((_, i) => i !== index))}
+                                >
+                                  ×
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {returnImages.length >= 5 && (
+                        <p style={{ color: "#e74c3c", marginTop: "8px" }}>
+                          Đã đạt giới hạn 5 ảnh.
+                        </p>
+                      )}
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label htmlFor="orderVideo">
+                        Tải lên video (tối đa 1 video, định dạng: mp4, mpeg, mov, webm):
+                      </label>
+                      <input
+                        type="file"
+                        id="orderVideo"
+                        name="orderVideo"
+                        accept="video/mp4,video/mpeg,video/quicktime,video/webm"
+                        onChange={e => {
+                          const file = e.target.files?.[0] || null;
+                          setOrderVideo(file);
+                        }}
+                        style={{
+                          width: "100%",
+                          padding: "8px",
+                          marginBottom: "12px",
+                          borderRadius: "4px",
+                          border: "1px solid #ccc",
+                        }}
+                      />
+                      {orderVideo && (
+                        <div className={styles.selectedFiles}>
+                          <p>
+                            <strong>Video đã chọn:</strong> {orderVideo.name}{" "}
+                            <span
+                              style={{ color: "#e74c3c", cursor: "pointer" }}
+                              onClick={() => setOrderVideo(null)}
+                            >
+                              ×
+                            </span>
+                          </p>
+                        </div>
+                      )}
+                    </div>
                     <div>
                       <button
                         className={styles.submitReturnButton}
@@ -1477,6 +1653,8 @@ export default function UserProfile() {
                         onClick={() => {
                           setShowReturnForm(false);
                           setReturnReason("");
+                          setReturnImages([]);
+                          setOrderVideo(null);
                         }}
                       >
                         Hủy
@@ -1491,6 +1669,8 @@ export default function UserProfile() {
                     setSelectedOrder(null);
                     setShowReturnForm(false);
                     setReturnReason("");
+                    setReturnImages([]);
+                    setOrderVideo(null);
                   }}
                 >
                   Trở lại
@@ -1518,7 +1698,7 @@ export default function UserProfile() {
                   <p className={styles.infoRow}>Chưa có sản phẩm yêu thích</p>
                 ) : (
                   <div className={styles.wishlistCards}>
-                    {products.map((product) => (
+                    {products.map(product => (
                       <Link
                         href={`/user/detail/${product.slug || product._id}`}
                         key={product._id}
@@ -1531,7 +1711,7 @@ export default function UserProfile() {
                           width={100}
                           height={100}
                           quality={100}
-                          onError={(e) => {
+                          onError={e => {
                             console.error(`Image load failed for product "${product.name}"`);
                             (e.target as HTMLImageElement).src = ERROR_IMAGE_URL;
                           }}
@@ -1541,7 +1721,7 @@ export default function UserProfile() {
                           <p>{formatPrice(product.price)}</p>
                           <span
                             className={styles.removeIcon}
-                            onClick={(e) => {
+                            onClick={e => {
                               e.preventDefault();
                               removeFromWishlist(product._id);
                             }}
@@ -1577,14 +1757,12 @@ export default function UserProfile() {
                   <p className={styles.infoRow}>Chưa có mã giảm giá hợp lệ</p>
                 ) : (
                   <div className={styles.orderCards}>
-                    {coupons.map((coupon) => (
+                    {coupons.map(coupon => (
                       <div key={coupon._id} className={styles.orderCard}>
                         <div className={styles.orderHeader}>
                           <span>Mã: {coupon.code}</span>
                           <span
-                            className={`${styles.statusButton} ${
-                              coupon.isActive ? styles.completed : styles.cancelled
-                            }`}
+                            className={`${styles.statusButton} ${coupon.isActive ? styles.completed : styles.cancelled}`}
                           >
                             {coupon.isActive ? "Đang hoạt động" : "Không hoạt động"}
                           </span>
@@ -1632,7 +1810,7 @@ export default function UserProfile() {
                   <strong>Hạn sử dụng:</strong> {formatDate(selectedCoupon.expiryDate)}
                 </p>
                 <p className={styles.infoRow}>
-                  <strong>Giới hạn sử dụng:</strong> {selectedCoupon.usageLimit} 
+                  <strong>Giới hạn sử dụng:</strong> {selectedCoupon.usageLimit}
                 </p>
                 <p className={styles.infoRow}>
                   <strong>Trạng thái:</strong> {selectedCoupon.isActive ? "Đang hoạt động" : "Không hoạt động"}

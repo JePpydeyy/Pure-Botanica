@@ -1,5 +1,3 @@
-// app/admin/page.tsx (or pages/admin.tsx depending on your router)
-// Assuming App Router for Next.js 13+, but adjust if using Pages Router
 "use client";
 
 import styles from "./page.module.css";
@@ -17,7 +15,7 @@ import {
 } from "chart.js";
 import { Line } from "react-chartjs-2";
 import { useState, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { jwtDecode } from "jwt-decode";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck, faTimes, faRedo, faEdit } from "@fortawesome/free-solid-svg-icons";
@@ -198,6 +196,7 @@ const renderStars = (rating: number | undefined) => {
 
 const AD_Home: React.FC = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const currentDate = new Date();
   const [timePeriod, setTimePeriod] = useState<"week" | "month" | "year">("week");
   const [selectedMonth, setSelectedMonth] = useState<number>(currentDate.getMonth());
@@ -251,9 +250,43 @@ const AD_Home: React.FC = () => {
   const [searchQueryComments, setSearchQueryComments] = useState<string>("");
   const [replyContent, setReplyContent] = useState<{ [key: string]: string }>({});
   const [isEditingReply, setIsEditingReply] = useState<{ [key: string]: boolean }>({});
-  const [zoomedImage, setZoomedImage] = useState<string | null>(null); // State for zoomed image
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const ordersPerPage = 8;
   const commentsPerPage = 9;
+
+  // Reload logic
+  useEffect(() => {
+    const now = Date.now();
+    const lastLoad = sessionStorage.getItem("lastAdminLoad");
+    const reloadRequested = searchParams.get("reload") === "true";
+    const timeSinceLastLoad = lastLoad ? now - parseInt(lastLoad, 10) : Infinity;
+
+    // Trigger reload if:
+    // 1. reload=true query parameter is present, OR
+    // 2. No previous load timestamp exists, OR
+    // 3. More than 1 second has passed since the last reload (to prevent rapid reloads)
+    if (reloadRequested || !lastLoad || timeSinceLastLoad > 1000) {
+      // Update timestamp and clear query parameter
+      sessionStorage.setItem("lastAdminLoad", now.toString());
+      window.history.replaceState({}, "", "/admin"); // Remove ?reload=true
+      window.location.reload();
+    }
+
+    // Track navigation away from /admin
+    const handleRouteChange = (url: string) => {
+      if (url !== "/admin" && url !== "/admin?reload=true") {
+        sessionStorage.removeItem("lastAdminLoad"); // Reset timestamp when leaving /admin
+      }
+    };
+
+    // Subscribe to Next.js router events
+    router.events?.on("routeChangeStart", handleRouteChange);
+
+    // Cleanup
+    return () => {
+      router.events?.off("routeChangeStart", handleRouteChange);
+    };
+  }, [router, searchParams]);
 
   const years = useMemo(() => {
     const currentYear = new Date().getFullYear();
@@ -537,6 +570,7 @@ const AD_Home: React.FC = () => {
         showNotification("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!", "error");
         localStorage.removeItem("token");
         localStorage.removeItem("role");
+        localStorage.removeItem("email");
         router.push("/user/login");
         return;
       }
@@ -592,6 +626,7 @@ const AD_Home: React.FC = () => {
         showNotification("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!", "error");
         localStorage.removeItem("token");
         localStorage.removeItem("role");
+        localStorage.removeItem("email");
         router.push("/user/login");
         return;
       }
@@ -1073,7 +1108,7 @@ const AD_Home: React.FC = () => {
         </div>
         <div className={styles.statBox}>
           <h3>{loading ? "..." : stats.newComments}</h3>
-          <p>Bình luận mới</p>
+          <p>Đánh giá mới</p>
         </div>
       </section>
 

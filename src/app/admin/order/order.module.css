@@ -531,3 +531,40 @@
     display: none;
   }
 }
+
+.returnMedia {
+  margin-top: 16px;
+  padding: 12px;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.returnMedia h4 {
+  color: #000000;
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.imageGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.returnImage {
+  display: inline-block;
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+.returnImage img,
+.returnMedia video {
+  transition: transform 0.2s ease;
+}
+
+.returnImage img:hover,
+.returnMedia video:hover {
+  transform: scale(1.05);
+}

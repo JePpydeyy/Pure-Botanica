@@ -1,10 +1,10 @@
-
 "use client";
 
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import styles from "./order.module.css";
 import { useRouter } from "next/navigation";
 import Head from "next/head";
+import Image from "next/image";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck, faTimes, faRedo } from "@fortawesome/free-solid-svg-icons";
 import ToastNotification from "../../user/ToastNotification/ToastNotification";
@@ -40,8 +40,11 @@ interface Order {
   shippingStatus: "pending" | "in_transit" | "delivered" | "returned" | "cancelled" | "failed";
   returnStatus: "none" | "requested" | "approved" | "rejected";
   returnReason?: string;
+  returnRequestDate?: string;
+  returnImages?: { url: string; public_id: string }[];
+  returnVideos?: { url: string; public_id: string }[];
   cancelReason?: string;
-  failReason?: string; // Added failReason
+  failReason?: string;
   address: Address;
   total: number;
   items: { product: Product | null; optionId: string; quantity: number; images: string[] }[];
@@ -75,7 +78,7 @@ const OrderPage: React.FC = () => {
   const [selectedFailReason, setSelectedFailReason] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [shippingStatusFilter, setShippingStatusFilter] = useState<string>("all");
-  const [showFailedOrders, setShowFailedOrders] = useState<boolean>(false); // Added for failed orders tab
+  const [showFailedOrders, setShowFailedOrders] = useState<boolean>(false);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [notification, setNotification] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const ordersPerPage = 9;
@@ -709,17 +712,6 @@ const OrderPage: React.FC = () => {
                 </option>
               ))}
             </select>
-            <button
-              className={styles.toggleFailedOrdersBtn}
-              onClick={() => {
-                setShowFailedOrders(!showFailedOrders);
-                setCurrentPage(1);
-                setShippingStatusFilter("all");
-              }}
-              aria-label={showFailedOrders ? "Xem tất cả đơn hàng" : "Xem đơn hàng thất bại"}
-            >
-              {showFailedOrders ? "Xem tất cả đơn hàng" : "Xem đơn hàng thất bại"}
-            </button>
           </div>
         </div>
       </div>
@@ -840,7 +832,7 @@ const OrderPage: React.FC = () => {
                     )}
                     {order.shippingStatus === "in_transit" && (
                       <button
-                        className={styles.failBtn}
+                        className={styles.cancelBtn}
                         onClick={(e) => {
                           e.stopPropagation();
                           handleStatusChange(
@@ -1106,35 +1098,83 @@ const OrderPage: React.FC = () => {
                 <div className={styles.detailsSection}>
                   <h4>Trạng thái hoàn hàng</h4>
                   <div className={styles.detailsGrid}>
-                    <p>Trạng thái: {getVietnameseReturnStatus(selectedOrder.returnStatus)}</p>
-                    {selectedOrder.returnReason && (
-                      <p>Lý do hoàn hàng: {selectedOrder.returnReason}</p>
-                    )}
-                    {selectedOrder.returnStatus === "requested" && (
-                      <div className={styles.returnAction}>
-                        <select
-                          value=""
-                          onChange={(e) =>
-                            handleStatusChange(
-                              selectedOrder._id,
-                              e.target.value,
-                              selectedOrder.returnStatus,
-                              "return"
-                            )
-                          }
-                          className={styles.categorySelect}
-                          aria-label={`Thay đổi trạng thái hoàn hàng cho đơn hàng ${selectedOrder._id}`}
-                        >
-                          <option value="" disabled>
-                            Chọn hành động
-                          </option>
-                          {returnStatuses.map((status) => (
-                            <option key={status.value} value={status.label}>
-                              {status.label}
-                            </option>
-                          ))}
-                        </select>
+                    {selectedOrder.returnStatus !== "none" ? (
+                      <div className={styles.noteSection}>
+                        <h3>Trạng thái hoàn hàng</h3>
+                        <p>
+                          <strong>Trạng thái:</strong>{" "}
+                          {selectedOrder.returnStatus === "requested"
+                            ? "Đã yêu cầu hoàn hàng"
+                            : selectedOrder.returnStatus === "approved"
+                            ? "Hoàn hàng được chấp nhận"
+                            : "Hoàn hàng bị từ chối"}
+                        </p>
+                        {selectedOrder.returnReason && (
+                          <p><strong>Lý do hoàn hàng:</strong> {selectedOrder.returnReason}</p>
+                        )}
+                        {selectedOrder.returnRequestDate && (
+                          <p><strong>Ngày yêu cầu:</strong> {formatDate(selectedOrder.returnRequestDate)}</p>
+                        )}
+                        {/* Hiển thị ảnh hoàn hàng */}
+                        {selectedOrder.returnImages && selectedOrder.returnImages.length > 0 && (
+                          <div className={styles.returnMedia}>
+                            <h4>Ảnh hoàn hàng:</h4>
+                            <div className={styles.imageGrid}>
+                              {selectedOrder.returnImages.map((image, index) => (
+                                <div key={index} className={styles.returnImage}>
+                                  <Image
+                                    src={normalizeImageUrl(image.url) || FALLBACK_IMAGE_URL}
+                                    alt={`Ảnh hoàn hàng ${index + 1}`}
+                                    width={100}
+                                    height={100}
+                                    quality={100}
+                                    onError={(e) => {
+                                      console.error(`Image load failed for return image ${index + 1}: ${image.url}`);
+                                      (e.target as HTMLImageElement).src = FALLBACK_IMAGE_URL;
+                                    }}
+                                    style={{
+                                      objectFit: "cover",
+                                      borderRadius: "4px",
+                                      margin: "4px",
+                                    }}
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {/* Hiển thị video hoàn hàng */}
+                        {selectedOrder.returnVideos && selectedOrder.returnVideos.length > 0 && (
+                          <div className={styles.returnMedia}>
+                            <h4>Video hoàn hàng:</h4>
+                            {selectedOrder.returnVideos.map((video, index) => (
+                              <video
+                                key={index}
+                                src={normalizeImageUrl(video.url)}
+                                controls
+                                width="300"
+                                height="auto"
+                                style={{
+                                  borderRadius: "4px",
+                                  marginTop: "8px",
+                                }}
+                                onError={(e) => {
+                                  console.error(`Video load failed: ${video.url}`);
+                                  setNotification({ message: "Không thể tải video hoàn hàng.", type: "error" });
+                                }}
+                              >
+                                Trình duyệt của bạn không hỗ trợ thẻ video.
+                              </video>
+                            ))}
+                          </div>
+                        )}
+                        {(!selectedOrder.returnImages || selectedOrder.returnImages.length === 0) &&
+                          (!selectedOrder.returnVideos || selectedOrder.returnVideos.length === 0) && (
+                            <p>Không có ảnh hoặc video hoàn hàng.</p>
+                          )}
                       </div>
+                    ) : (
+                      <p>Không có yêu cầu hoàn hàng.</p>
                     )}
                   </div>
                 </div>

@@ -22,8 +22,8 @@ interface Order {
   returnStatus: "none" | "requested" | "approved" | "rejected";
   returnReason?: string;
   returnRequestDate?: string;
-  returnImages?: string[]; // Array of image URLs for return
-  returnVideo?: string | null; // Video URL for return
+  returnImages?: { url: string; public_id: string }[];
+  returnVideos?: { url: string; public_id: string }[];
   paymentMethod?: string;
   couponCode?: string;
   discount?: number;
@@ -80,8 +80,8 @@ interface Coupon {
   updatedAt: string;
 }
 
-const API_BASE_URL = "http://localhost:10000";
-const ERROR_IMAGE_URL = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:10000";
+const FALLBACK_IMAGE_URL = "/images/fallback-image.jpg";
 
 const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
   const token = localStorage.getItem("token");
@@ -119,21 +119,21 @@ const translatePaymentMethod = (method: string): string => {
   return paymentMethods[method?.toLowerCase()] || "Thanh toán khi nhận hàng";
 };
 
-const getImageUrl = (image: string, productName: string, cacheBuster: string): string => {
+const getImageUrl = (image: string | null | undefined, productName: string, cacheBuster: string): string => {
   if (!image || typeof image !== "string" || image.trim() === "") {
-    console.warn(`Invalid image URL for product "${productName}", using fallback: ${ERROR_IMAGE_URL}`);
-    return ERROR_IMAGE_URL;
+    console.warn(`Invalid or empty image URL for "${productName}", using fallback: ${FALLBACK_IMAGE_URL}`);
+    return FALLBACK_IMAGE_URL;
   }
   try {
-    if (image.startsWith("http://") || image.startsWith("https://")) {
-      return `${image}${image.includes("?") ? "&" : "?"}${cacheBuster}`;
-    }
-    const url = `${API_BASE_URL}/${image}?${cacheBuster}`;
-    console.log(`Generated image URL for product "${productName}": ${url}`);
-    return url;
+    const baseUrl = image.startsWith("http://") || image.startsWith("https://")
+      ? image
+      : `${API_BASE_URL}/${image.replace(/^\/+/, "")}`;
+    const url = new URL(`${baseUrl}${baseUrl.includes("?") ? "&" : "?"}${cacheBuster}`);
+    console.log(`Generated image URL for "${productName}": ${url}`);
+    return url.toString();
   } catch (e) {
-    console.warn(`Invalid URL format for product "${productName}": ${image}, using fallback: ${ERROR_IMAGE_URL}`, e);
-    return ERROR_IMAGE_URL;
+    console.warn(`Failed to generate URL for "${productName}": ${image}, using fallback: ${FALLBACK_IMAGE_URL}`, e);
+    return FALLBACK_IMAGE_URL;
   }
 };
 
@@ -359,7 +359,9 @@ export default function UserProfile() {
             ? {
                 ...item.product,
                 ...productsData.find(p => p._id === item.product?._id),
-                images: (item.product.images || []).filter(img => typeof img === "string" && img.trim() !== "").map(img => getImageUrl(img, item.product?.name || "Unknown", cacheBuster)),
+                images: (item.product.images || [])
+                  .filter(img => typeof img === "string" && img.trim() !== "" && img !== "null")
+                  .map(img => getImageUrl(img, item.product?.name || "Unknown", cacheBuster)),
                 price: getProductPrice(productsData.find(p => p._id === item.product?._id) || item.product, item.product?.name || "Unknown"),
               }
             : null,
@@ -472,7 +474,9 @@ export default function UserProfile() {
         const fullProduct = productsData.find(p => p._id === favProduct._id) || favProduct;
         return {
           ...favProduct,
-          images: (fullProduct.images || []).filter((img: string) => typeof img === "string" && img.trim() !== "").map((img: string) => getImageUrl(img, fullProduct.name || "Unknown", cacheBuster)),
+          images: (fullProduct.images || [])
+            .filter((img: string) => typeof img === "string" && img.trim() !== "")
+            .map((img: string) => getImageUrl(img, fullProduct.name || "Unknown", cacheBuster)),
           price: getProductPrice(fullProduct, fullProduct.name || "Unknown"),
         };
       });
@@ -617,14 +621,22 @@ export default function UserProfile() {
             ? {
                 ...item.product,
                 ...productsData.find(p => p._id === item.product?._id),
-                images: (item.product.images || []).filter((img: string) => typeof img === "string" && img.trim() !== "").map((img: string) => getImageUrl(img, item.product?.name || "Unknown", cacheBuster)),
+                images: (item.product.images || [])
+                  .filter((img: string) => typeof img === "string" && img.trim() !== "")
+                  .map((img: string) => getImageUrl(img, item.product?.name || "Unknown", cacheBuster)),
                 price: getProductPrice(productsData.find(p => p._id === item.product?._id) || item.product, item.product?.name || "Unknown"),
               }
             : null,
         })),
         paymentCode: paymentMap[data._id],
-        returnImages: data.returnImages || [], // Ensure returnImages is included
-        returnVideo: data.returnVideo || null, // Ensure returnVideo is included
+        returnImages: (data.returnImages || []).map((img: any) => ({
+          url: typeof img === "string" ? img : img.url || "",
+          public_id: typeof img === "string" ? "" : img.public_id || "",
+        })).filter((img: any) => img.url && img.url.trim() !== ""),
+        returnVideos: (data.returnVideos || []).map((vid: any) => ({
+          url: typeof vid === "string" ? vid : vid.url || "",
+          public_id: typeof vid === "string" ? "" : vid.public_id || "",
+        })).filter((vid: any) => vid.url && vid.url.trim() !== ""),
       };
       const reviewMap: Record<string, boolean> = { ...canReviewMap };
       if (processedOrder.paymentStatus === "completed" && processedOrder.shippingStatus === "delivered") {
@@ -712,12 +724,10 @@ export default function UserProfile() {
       const formData = new FormData();
       formData.append("returnReason", reason);
 
-      // Add images to FormData
       returnImages.forEach(file => {
         formData.append("returnImages", file);
       });
 
-      // Add video to FormData
       if (orderVideo) {
         formData.append("orderVideo", orderVideo);
       }
@@ -736,9 +746,9 @@ export default function UserProfile() {
       }
 
       const data = await res.json();
+      console.log("API response in requestOrderReturn:", data);
       setMessage({ type: "success", text: data.message || "Yêu cầu hoàn hàng đã được gửi!" });
 
-      // Update orders state with returnImages and returnVideo from response
       setOrders(prev =>
         prev.map(order =>
           order._id === orderId
@@ -746,8 +756,14 @@ export default function UserProfile() {
                 ...order,
                 returnStatus: "requested",
                 returnReason: reason,
-                returnImages: data.returnImages || [], // Expect array of image URLs from backend
-                returnVideo: data.returnVideo || null, // Expect video URL or null from backend
+                returnImages: (data.returnImages || []).map((img: any) => ({
+                  url: img.url || "",
+                  public_id: img.public_id || "",
+                })),
+                returnVideos: (data.returnVideos || []).map((vid: any) => ({
+                  url: vid.url || "",
+                  public_id: vid.public_id || "",
+                })),
               }
             : order
         )
@@ -758,8 +774,14 @@ export default function UserProfile() {
           ...selectedOrder,
           returnStatus: "requested",
           returnReason: reason,
-          returnImages: data.returnImages || [],
-          returnVideo: data.returnVideo || null,
+          returnImages: (data.returnImages || []).map((img: any) => ({
+            url: img.url || "",
+            public_id: img.public_id || "",
+          })),
+          returnVideos: (data.returnVideos || []).map((vid: any) => ({
+            url: vid.url || "",
+            public_id: vid.public_id || "",
+          })),
         });
       }
 
@@ -947,9 +969,8 @@ export default function UserProfile() {
         await fetchOrders(userId);
         await fetchWishlist();
         await fetchCoupons();
-    
       } catch (err: any) {
-               setError(err.message || "Lỗi khi tải dữ liệu.");
+        setError(err.message || "Lỗi khi tải dữ liệu.");
         setMessage({ type: "error", text: err.message || "Lỗi khi tải dữ liệu." });
       } finally {
         setLoading(false);
@@ -1214,21 +1235,32 @@ export default function UserProfile() {
                   return (
                     <div key={index} className={styles.productItem}>
                       <div className={styles.cartItemImage}>
-                        <Image
-                          src={
-                            item.product && item.product.images && item.product.images.length > 0
-                              ? item.product.images[0]
-                              : ERROR_IMAGE_URL
-                          }
-                          alt={item.product?.name || "Sản phẩm"}
-                          width={100}
-                          height={100}
-                          quality={100}
-                          onError={e => {
-                            console.error(`Image load failed for product "${item.product?.name || "Unknown"}"`);
-                            (e.target as HTMLImageElement).src = ERROR_IMAGE_URL;
-                          }}
-                        />
+                        {item.product && item.product.images && item.product.images.length > 0 && item.product.images[0].trim() !== "" ? (
+                          <Image
+                            src={item.product.images[0]}
+                            alt={item.product.name || "Sản phẩm"}
+                            width={100}
+                            height={100}
+                            quality={100}
+                            sizes="(max-width: 768px) 100vw, 100px"
+                            placeholder="blur"
+                            blurDataURL="/images/placeholder.png"
+                            style={{ objectFit: "cover" }}
+                            onError={e => {
+                              console.error(`Image load failed for product "${item.product?.name || "Unknown"}"`);
+                              (e.target as HTMLImageElement).src = FALLBACK_IMAGE_URL;
+                            }}
+                          />
+                        ) : (
+                          <Image
+                            src={FALLBACK_IMAGE_URL}
+                            alt="Sản phẩm không xác định"
+                            width={100}
+                            height={100}
+                            quality={100}
+                            style={{ objectFit: "cover" }}
+                          />
+                        )}
                       </div>
                       <div className={styles.productInfo}>
                         <div className={styles.cartItemName}>
@@ -1324,44 +1356,72 @@ export default function UserProfile() {
                     {selectedOrder.returnReason && (
                       <p><strong>Lý do hoàn hàng:</strong> {selectedOrder.returnReason}</p>
                     )}
-                    {selectedOrder.returnImages && selectedOrder.returnImages.length > 0 && (
+                    {selectedOrder.returnRequestDate && (
+                      <p><strong>Ngày yêu cầu:</strong> {formatDate(selectedOrder.returnRequestDate)}</p>
+                    )}
+                    {selectedOrder.returnImages && selectedOrder.returnImages.length > 0 ? (
                       <div className={styles.returnMedia}>
                         <h4>Ảnh hoàn hàng:</h4>
-                        <div className={styles.mediaGrid}>
-                          {selectedOrder.returnImages.map((imageUrl, index) => (
-                            <div key={index} className={styles.mediaItem}>
-                              <Image
-                                src={imageUrl}
-                                alt={`Ảnh hoàn hàng ${index + 1}`}
-                                width={150}
-                                height={150}
-                                quality={100}
-                                onError={e => {
-                                  console.error(`Image load failed for return image ${index + 1}`);
-                                  (e.target as HTMLImageElement).src = ERROR_IMAGE_URL;
-                                }}
-                                style={{ objectFit: "cover", borderRadius: "4px" }}
-                              />
+                        <div className={styles.mediaGrid} style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginTop: "10px" }}>
+                          {selectedOrder.returnImages.map((image, index) => (
+                            <div key={index} className={styles.mediaItem} style={{ maxWidth: "100px" }}>
+                              {image.url && image.url.trim() !== "" ? (
+                                <Image
+                                  src={getImageUrl(image.url, `Return image ${index + 1}`, cacheBuster)}
+                                  alt={`Ảnh hoàn hàng ${index + 1}`}
+                                  width={100}
+                                  height={100}
+                                  quality={100}
+                                  sizes="(max-width: 768px) 100vw, 100px"
+                                  placeholder="blur"
+                                  blurDataURL="/images/placeholder.png"
+                                  style={{ objectFit: "cover", borderRadius: "4px" }}
+                                  onError={(e) => {
+                                    console.error(`Image load failed for return image ${index + 1}: ${image.url}`);
+                                    setMessage({ type: "error", text: `Không thể tải ảnh hoàn hàng ${index + 1}.` });
+                                    (e.target as HTMLImageElement).src = FALLBACK_IMAGE_URL;
+                                  }}
+                                />
+                              ) : (
+                                <Image
+                                  src={FALLBACK_IMAGE_URL}
+                                  alt={`Ảnh hoàn hàng ${index + 1}`}
+                                  width={100}
+                                  height={100}
+                                  quality={100}
+                                  style={{ objectFit: "cover", borderRadius: "4px" }}
+                                />
+                              )}
                             </div>
                           ))}
                         </div>
                       </div>
+                    ) : (
+                      <p>Không có ảnh hoàn hàng.</p>
                     )}
-                    {selectedOrder.returnVideo && (
+                    {selectedOrder.returnVideos && selectedOrder.returnVideos.length > 0 ? (
                       <div className={styles.returnMedia}>
                         <h4>Video hoàn hàng:</h4>
-                        <video
-                          src={selectedOrder.returnVideo}
-                          controls
-                          width="300"
-                          style={{ borderRadius: "4px" }}
-                          onError={e => {
-                            console.error(`Video load failed for return video`);
-                          }}
-                        >
-                          Trình duyệt của bạn không hỗ trợ thẻ video.
-                        </video>
+                        <div className={styles.previewVideo} style={{ marginTop: "10px" }}>
+                          {selectedOrder.returnVideos.map((video, index) => (
+                            <video
+                              key={index}
+                              src={getImageUrl(video.url, `Return video ${index + 1}`, cacheBuster)}
+                              controls
+                              width="300"
+                              style={{ borderRadius: "4px" }}
+                              onError={(e) => {
+                                console.error(`Video load failed for return video ${index + 1}: ${video.url}`);
+                                setMessage({ type: "error", text: `Không thể tải video hoàn hàng ${index + 1}.` });
+                              }}
+                            >
+                              Trình duyệt của bạn không hỗ trợ thẻ video.
+                            </video>
+                          ))}
+                        </div>
                       </div>
+                    ) : (
+                      <p>Không có video hoàn hàng.</p>
                     )}
                   </div>
                 )}
@@ -1522,13 +1582,12 @@ export default function UserProfile() {
                     Yêu cầu hoàn hàng
                   </button>
                 )}
-
                 {showReturnForm && (
                   <div className={styles.returnForm}>
                     <h3>Lý do yêu cầu hoàn hàng</h3>
                     <textarea
                       value={returnReason}
-                      onChange={e => setReturnReason(e.target.value)}
+                      onChange={(e) => setReturnReason(e.target.value)}
                       placeholder="Vui lòng nhập lý do hoàn hàng"
                       style={{
                         width: "100%",
@@ -1549,11 +1608,11 @@ export default function UserProfile() {
                         name="returnImages"
                         accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml"
                         multiple
-                        onChange={e => {
+                        onChange={(e) => {
                           const files = Array.from(e.target.files || []).slice(0, 5 - returnImages.length);
-                          setReturnImages(prev => [...prev, ...files].slice(0, 5));
+                          setReturnImages((prev) => [...prev, ...files].slice(0, 5));
                         }}
-                        disabled={returnImages.length >= 5} // Disable input if 5 images are selected
+                        disabled={returnImages.length >= 5}
                         style={{
                           width: "100%",
                           padding: "8px",
@@ -1567,19 +1626,40 @@ export default function UserProfile() {
                           <p>
                             <strong>Ảnh đã chọn ({returnImages.length}/5):</strong>
                           </p>
-                          <ul>
+                          <div className={styles.previewGrid} style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginTop: "10px" }}>
                             {returnImages.map((file, index) => (
-                              <li key={index}>
-                                {file.name}{" "}
+                              <div key={index} className={styles.previewItem} style={{ position: "relative" }}>
+                                <Image
+                                  src={URL.createObjectURL(file)}
+                                  alt={`Ảnh xem trước ${index + 1}`}
+                                  width={100}
+                                  height={100}
+                                  style={{ objectFit: "cover", borderRadius: "4px" }}
+                                  onError={(e) => {
+                                    console.error(`Preview image load failed for ${file.name}`);
+                                    (e.target as HTMLImageElement).src = FALLBACK_IMAGE_URL;
+                                  }}
+                                />
                                 <span
-                                  style={{ color: "#e74c3c", cursor: "pointer" }}
-                                  onClick={() => setReturnImages(prev => prev.filter((_, i) => i !== index))}
+                                  style={{
+                                    position: "absolute",
+                                    top: "5px",
+                                    right: "5px",
+                                    color: "#e74c3c",
+                                    cursor: "pointer",
+                                    fontSize: "18px",
+                                    background: "#fff",
+                                    borderRadius: "50%",
+                                    padding: "2px 6px",
+                                  }}
+                                  onClick={() => setReturnImages((prev) => prev.filter((_, i) => i !== index))}
                                 >
                                   ×
                                 </span>
-                              </li>
+                                <p style={{ fontSize: "12px", textAlign: "center", marginTop: "5px" }}>{file.name}</p>
+                              </div>
                             ))}
-                          </ul>
+                          </div>
                         </div>
                       )}
                       {returnImages.length >= 5 && (
@@ -1597,7 +1677,7 @@ export default function UserProfile() {
                         id="orderVideo"
                         name="orderVideo"
                         accept="video/mp4,video/mpeg,video/quicktime,video/webm"
-                        onChange={e => {
+                        onChange={(e) => {
                           const file = e.target.files?.[0] || null;
                           setOrderVideo(file);
                         }}
@@ -1620,6 +1700,19 @@ export default function UserProfile() {
                               ×
                             </span>
                           </p>
+                          <div className={styles.previewVideo} style={{ marginTop: "10px" }}>
+                            <video
+                              src={URL.createObjectURL(orderVideo)}
+                              controls
+                              width="300"
+                              style={{ borderRadius: "4px" }}
+                              onError={(e) => {
+                                console.error(`Preview video load failed for ${orderVideo.name}`);
+                              }}
+                            >
+                              Trình duyệt của bạn không hỗ trợ thẻ video.
+                            </video>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -1706,14 +1799,18 @@ export default function UserProfile() {
                         style={{ textDecoration: "none" }}
                       >
                         <Image
-                          src={product.images && product.images.length > 0 ? product.images[0] : ERROR_IMAGE_URL}
+                          src={product.images && product.images.length > 0 && product.images[0].trim() !== "" ? product.images[0] : FALLBACK_IMAGE_URL}
                           alt={product.name}
                           width={100}
                           height={100}
                           quality={100}
+                          sizes="(max-width: 768px) 100vw, 100px"
+                          placeholder="blur"
+                          blurDataURL="/images/placeholder.png"
+                          style={{ objectFit: "cover" }}
                           onError={e => {
                             console.error(`Image load failed for product "${product.name}"`);
-                            (e.target as HTMLImageElement).src = ERROR_IMAGE_URL;
+                            (e.target as HTMLImageElement).src = FALLBACK_IMAGE_URL;
                           }}
                         />
                         <div className={styles.wishlistInfo}>

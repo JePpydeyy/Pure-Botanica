@@ -425,7 +425,7 @@ function CouponsContent() {
       });
 
       const response = await fetchWithToken(
-        `https://api-zeal.onrender.com/api/coupons?${queryParams}`,
+        `https://api-zeal.onrender.com/api/coupons/all?${queryParams}`,
         { cache: "no-store" }
       );
       const data = await response.json();

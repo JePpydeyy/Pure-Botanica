@@ -103,6 +103,7 @@ export default function CartPage() {
   const router = useRouter();
   const { setCheckoutData } = useCart();
   const [cacheBuster, setCacheBuster] = useState("");
+  const [showCouponPopup, setShowCouponPopup] = useState(false);
 
   // Generate cacheBuster after hydration
   useEffect(() => {
@@ -157,17 +158,7 @@ export default function CartPage() {
       const couponsArray = Array.isArray(couponData) ? couponData : (couponData.coupons || []);
       
       if (couponsArray.length > 0) {
-        const validCoupons = couponsArray
-          .filter((coupon: Coupon) => {
-            const isActive = coupon.isActive !== false; // Default to true if missing or undefined
-            const expiryDate = coupon.expiryDate ? new Date(coupon.expiryDate) : null;
-            const isNotExpired = !expiryDate || expiryDate > new Date(); // Current date: 2025-08-26 14:15 +07
-            const isWithinUsageLimit = coupon.usageLimit === null || coupon.usedCount < coupon.usageLimit;
-            console.log(`Filtering coupon ${coupon.code}: active=${isActive}, notExpired=${isNotExpired}, withinLimit=${isWithinUsageLimit}`); // Debug filter
-            return isActive && isNotExpired && isWithinUsageLimit;
-          });
-        console.log("Valid coupons after filter:", validCoupons); // Debug valid coupons
-        setCoupons(validCoupons);
+        setCoupons(couponsArray); // Set all coupons, not just valid ones
       } else {
         setCoupons([]);
         console.warn("No coupons found in API response:", couponData);
@@ -409,6 +400,7 @@ export default function CartPage() {
 
   // Apply coupon code
   const updatePrice = async () => {
+    console.log("Coupon code before API call:", couponCode); // Debug
     if (!userId || !couponCode.trim()) {
       setCartMessage({ type: "error", text: "Vui lòng chọn mã giảm giá" });
       setTimeout(() => setCartMessage(null), 3000);
@@ -467,7 +459,11 @@ export default function CartPage() {
   };
 
   const handleApplyCoupon = () => {
-    updatePrice();
+    if (!couponCode.trim()) {
+      setShowCouponPopup(true); // Mở popup nếu chưa có mã
+      return;
+    }
+    updatePrice(); // Gọi API để áp mã
   };
 
   // Handle checkout
@@ -609,30 +605,21 @@ export default function CartPage() {
         </div>
         <div className={styles["cart-right"]}>
           <div className={styles.discount}>
-            <select
-              className={styles["discount-select"]}
-              value={couponCode}
-              onChange={(e) => setCouponCode(e.target.value)}
-            >
-              <option value="">Chọn mã giảm giá</option>
-              {coupons.length === 0 ? (
-                <option disabled>Không có mã giảm giá khả dụng</option>
-              ) : (
-                coupons.map((coupon) => {
-                  const discountDisplay = coupon.discountType === "percentage" 
-                    ? `${coupon.discountValue}%` 
-                    : formatPrice(coupon.discountValue);
-                  return (
-                    <option key={coupon._id} value={coupon.code}>
-                      {`${coupon.code} - ${coupon.description || "không có mô tả"} (${discountDisplay})`}
-                    </option>
-                  );
-                })
-              )}
-            </select>
-            <button className={`${styles["discount-btn"]} ${styles.apply}`} onClick={handleApplyCoupon}>
-              Sử dụng
+            <button className={`${styles["discount-btn"]} ${styles.select}`} onClick={() => setShowCouponPopup(true)}>
+              Chọn mã giảm giá
             </button>
+            <div className={styles["discount-row"]}>
+              <input
+                type="text"
+                className={styles["discount-input"]}
+                value={couponCode}
+                onChange={(e) => setCouponCode(e.target.value)}
+                placeholder="Nhập mã giảm giá"
+              />
+              <button className={`${styles["discount-btn"]} ${styles.apply}`} onClick={handleApplyCoupon}>
+                Sử dụng
+              </button>
+            </div>
           </div>
           <div className={styles.summary}>
             <p className={styles["summary-item"]}>
@@ -659,6 +646,75 @@ export default function CartPage() {
       {cartMessage && (
         <ToastNotification message={cartMessage.text} type={cartMessage.type} onClose={() => setCartMessage(null)} />
       )}
+    {showCouponPopup && (
+  <div className={styles["popup-overlay"]} onClick={() => setShowCouponPopup(false)}>
+    <div className={styles["popup-content"]} onClick={(e) => e.stopPropagation()}>
+      <h3>Chọn mã giảm giá</h3>
+      <div className={styles["coupon-list"]}>
+        {coupons.map((coupon) => {
+          const isActive = coupon.isActive !== false;
+          const expiryDate = coupon.expiryDate ? new Date(coupon.expiryDate) : null;
+          const isNotExpired = !expiryDate || expiryDate > new Date();
+          const isWithinUsageLimit = coupon.usageLimit === null || coupon.usedCount < coupon.usageLimit;
+          const subtotal = calculateSubtotal();
+          const meetsMinOrderValue = subtotal >= coupon.minOrderValue;
+          const isUsable = isActive && isNotExpired && isWithinUsageLimit && meetsMinOrderValue;
+          
+          const discountDisplay = coupon.discountType === "percentage" 
+            ? `${coupon.discountValue}%` 
+            : formatPrice(coupon.discountValue);
+          
+          // Format expiry date to show only day/month/year
+          const formatExpiryDate = (date) => {
+            if (!date) return "Không giới hạn";
+            const expiry = new Date(date);
+            return expiry.toLocaleDateString('vi-VN', {
+              day: '2-digit',
+              month: '2-digit', 
+              year: 'numeric'
+            });
+          };
+
+          return (
+            <div
+              key={coupon._id}
+              className={`${styles["coupon-item"]} ${!isUsable ? styles["disabled"] : ""}`}
+              onClick={() => {
+                if (isUsable) {
+                  setCouponCode(coupon.code);
+                  setShowCouponPopup(false);
+                }
+              }}
+            >
+              {/* Left block - 20% - Discount display */}
+              <div className={styles["coupon-discount"]}>
+                <span className={styles["discount-value"]}>{discountDisplay}</span>
+              </div>
+              
+              {/* Right block - 80% - Details */}
+              <div className={styles["coupon-info"]}>
+                <div className={styles["coupon-description"]}>
+                  {coupon.description || "Không có mô tả"}
+                  {!meetsMinOrderValue && (
+                    <span className={styles["min-order-warning"]}>
+                      (Yêu cầu tối thiểu {formatPrice(coupon.minOrderValue)})
+                    </span>
+                  )}
+                </div>
+                <div className={styles["coupon-expiry"]}>
+                  HSD: {formatExpiryDate(coupon.expiryDate)}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <button className={styles["popup-close"]} onClick={() => setShowCouponPopup(false)}>
+        Đóng
+      </button>
+    </div>
+  </div>
+)}
     </div>
   );
 }

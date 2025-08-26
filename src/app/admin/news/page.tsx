@@ -464,17 +464,6 @@ const AdminNewsPage: React.FC = () => {
               <p><strong>Trạng thái:</strong> {selectedNews.status === "show" ? "Hiển thị" : "Ẩn"}</p>
               <p><strong>Lượt xem:</strong> {selectedNews.views}</p>
               <p><strong>Ngày đăng:</strong> {new Date(selectedNews.publishedAt).toLocaleDateString("vi-VN")}</p>
-              {selectedNews.thumbnailUrl && (
-                <div className={styles.popupThumbnail}>
-                  <img
-                    src={selectedNews.thumbnailUrl}
-                    alt={selectedNews.thumbnailCaption || selectedNews.title}
-                    onError={() => setImageError("Không thể tải hình ảnh thumbnail.")}
-                    className={styles.orderTableImage}
-                  />
-                  {selectedNews.thumbnailCaption && <p>{selectedNews.thumbnailCaption}</p>}
-                </div>
-              )}
               <div
                 className={styles.popupContentBody}
                 dangerouslySetInnerHTML={{

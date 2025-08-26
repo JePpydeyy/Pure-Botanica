@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback, useMemo } from "react";
 import styles from "./order.module.css";
 import { useRouter } from "next/navigation";
 import Head from "next/head";
+import Image from "next/image";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck, faTimes, faRedo } from "@fortawesome/free-solid-svg-icons";
 import ToastNotification from "../../user/ToastNotification/ToastNotification";
@@ -39,7 +40,11 @@ interface Order {
   shippingStatus: "pending" | "in_transit" | "delivered" | "returned" | "cancelled" | "failed";
   returnStatus: "none" | "requested" | "approved" | "rejected";
   returnReason?: string;
+  returnRequestDate?: string;
+  returnImages?: { url: string; public_id: string }[];
+  returnVideos?: { url: string; public_id: string }[];
   cancelReason?: string;
+  failReason?: string;
   address: Address;
   total: number;
   items: { product: Product | null; optionId: string; quantity: number; images: string[] }[];
@@ -63,13 +68,17 @@ const OrderPage: React.FC = () => {
     orderId: string;
     newStatus: string;
     currentStatus: string;
-    type: "shipping" | "return" | "cancel";
+    type: "shipping" | "return" | "cancel" | "fail";
     cancelReason?: string;
+    failReason?: string;
   } | null>(null);
   const [cancelReasonInput, setCancelReasonInput] = useState<string>("");
   const [selectedCancelReason, setSelectedCancelReason] = useState<string>("");
+  const [failReasonInput, setFailReasonInput] = useState<string>("");
+  const [selectedFailReason, setSelectedFailReason] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [shippingStatusFilter, setShippingStatusFilter] = useState<string>("all");
+  const [showFailedOrders, setShowFailedOrders] = useState<boolean>(false);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [notification, setNotification] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const ordersPerPage = 9;
@@ -79,6 +88,13 @@ const OrderPage: React.FC = () => {
     { value: "out_of_stock", label: "Hết hàng" },
     { value: "customer_cancelled", label: "Khách hủy" },
     { value: "system_error", label: "Lỗi hệ thống" },
+    { value: "other", label: "Khác" },
+  ];
+
+  const failReasons = [
+    { value: "delivery_error", label: "Lỗi vận chuyển" },
+    { value: "address_issue", label: "Sai địa chỉ" },
+    { value: "timeout", label: "Quá thời gian giao hàng" },
     { value: "other", label: "Khác" },
   ];
 
@@ -112,6 +128,13 @@ const OrderPage: React.FC = () => {
     other: "Khác",
   };
 
+  const failReasonMapping: { [key: string]: string } = {
+    delivery_error: "Lỗi vận chuyển",
+    address_issue: "Sai địa chỉ",
+    timeout: "Quá thời gian giao hàng",
+    other: "Khác",
+  };
+
   const reverseShippingStatusMapping: { [key: string]: string } = {
     "Chờ xử lý": "pending",
     "Đang vận chuyển": "in_transit",
@@ -128,18 +151,18 @@ const OrderPage: React.FC = () => {
 
   const statusProgression: { [key: string]: string[] } = {
     pending: ["in_transit", "cancelled"],
-    in_transit: ["delivered", "failed"], // Updated to allow "failed"
+    in_transit: ["delivered", "failed"],
     delivered: [],
     returned: [],
     cancelled: [],
-    failed: [], // No further transitions from "failed"
+    failed: [],
   };
 
   const allStatuses = [
     { value: "all", label: "Tất cả trạng thái" },
     { value: "pending", label: "Chờ xử lý" },
     { value: "in_transit", label: "Đang vận chuyển" },
-    { value: "failed", label: "Giao hàng thất bại" }, 
+    { value: "failed", label: "Giao hàng thất bại" },
     { value: "delivered", label: "Đã giao hàng" },
     { value: "returned", label: "Hoàn hàng" },
     { value: "cancelled", label: "Hủy đơn hàng" },
@@ -164,6 +187,11 @@ const OrderPage: React.FC = () => {
     return cancelReasonMapping[cancelReason] || cancelReason;
   };
 
+  const getVietnameseFailReason = (failReason: string | undefined): string => {
+    if (!failReason) return "Không có lý do";
+    return failReasonMapping[failReason] || failReason;
+  };
+
   useEffect(() => {
     const token = localStorage.getItem("token");
     const role = localStorage.getItem("role");
@@ -182,7 +210,8 @@ const OrderPage: React.FC = () => {
         if (!token) {
           throw new Error("Không tìm thấy token. Vui lòng đăng nhập lại.");
         }
-        const res = await fetch(`${API_BASE_URL}/api/orders/admin/all`, {
+        const endpoint = showFailedOrders ? `${API_BASE_URL}/api/orders/admin/failed` : `${API_BASE_URL}/api/orders/admin/all`;
+        const res = await fetch(endpoint, {
           headers: { Authorization: `Bearer ${token}` },
           cache: "no-store",
         });
@@ -227,7 +256,7 @@ const OrderPage: React.FC = () => {
       }
     };
     fetchOrders();
-  }, [router]);
+  }, [router, showFailedOrders]);
 
   const debounce = <T extends (...args: any[]) => void>(func: T, wait: number) => {
     let timeout: NodeJS.Timeout;
@@ -249,12 +278,12 @@ const OrderPage: React.FC = () => {
           orderId.includes(searchLower) ||
           address.includes(searchLower);
         const matchesShippingStatus = shippingStatus === "all" || order.shippingStatus === shippingStatus;
-        return matchesSearch && matchesShippingStatus;
+        return matchesSearch && (showFailedOrders ? order.shippingStatus === "failed" : matchesShippingStatus);
       });
       setFilteredOrders(filtered);
       setCurrentPage(1);
     },
-    [orders]
+    [orders, showFailedOrders]
   );
 
   const debouncedFilter = useMemo(
@@ -298,8 +327,9 @@ const OrderPage: React.FC = () => {
     orderId: string,
     newStatus: string,
     currentStatus: string,
-    type: "shipping" | "return" | "cancel",
-    cancelReason?: string
+    type: "shipping" | "return" | "cancel" | "fail",
+    cancelReason?: string,
+    failReason?: string
   ) => {
     if (type === "shipping" && ["returned", "cancelled", "failed"].includes(currentStatus)) {
       showNotification("Không thể thay đổi trạng thái đơn hàng khi đã hoàn, hủy hoặc thất bại", "error");
@@ -316,6 +346,14 @@ const OrderPage: React.FC = () => {
         setShowConfirm({ orderId, newStatus, currentStatus, type: "cancel", cancelReason: "" });
         setSelectedCancelReason("");
         setCancelReasonInput("");
+      } else if (englishStatus === "failed") {
+        if (currentStatus !== "in_transit") {
+          showNotification("Chỉ có thể đánh dấu thất bại khi trạng thái là Đang vận chuyển", "error");
+          return;
+        }
+        setShowConfirm({ orderId, newStatus, currentStatus, type: "fail", failReason: "" });
+        setSelectedFailReason("");
+        setFailReasonInput("");
       } else if (!statusProgression[currentStatus]?.includes(englishStatus)) {
         showNotification("Trạng thái không hợp lệ hoặc không thể chuyển về trạng thái trước đó", "error");
         return;
@@ -333,6 +371,14 @@ const OrderPage: React.FC = () => {
       setShowConfirm({ orderId, newStatus, currentStatus, type, cancelReason: "" });
       setSelectedCancelReason("");
       setCancelReasonInput("");
+    } else if (type === "fail") {
+      if (currentStatus !== "in_transit") {
+        showNotification("Chỉ có thể đánh dấu thất bại khi trạng thái là Đang vận chuyển", "error");
+        return;
+      }
+      setShowConfirm({ orderId, newStatus, currentStatus, type, failReason: "" });
+      setSelectedFailReason("");
+      setFailReasonInput("");
     } else {
       setShowConfirm({ orderId, newStatus, currentStatus, type });
     }
@@ -341,9 +387,9 @@ const OrderPage: React.FC = () => {
   const confirmStatusChange = async () => {
     if (!showConfirm) return;
 
-    const { orderId, newStatus, currentStatus, type, cancelReason } = showConfirm;
+    const { orderId, newStatus, currentStatus, type, cancelReason, failReason } = showConfirm;
     let englishStatus: string;
-    let updatePayload: { shippingStatus?: string; paymentStatus?: string; returnStatus?: string; cancelReason?: string };
+    let updatePayload: { shippingStatus?: string; paymentStatus?: string; returnStatus?: string; cancelReason?: string; failReason?: string };
 
     const order = orders.find((o) => o._id === orderId);
     if (!order) {
@@ -369,6 +415,18 @@ const OrderPage: React.FC = () => {
         cancelReason: finalCancelReason,
         ...(order.paymentStatus === "completed" && { paymentStatus: "cancelled" }),
       };
+    } else if (type === "fail") {
+      englishStatus = reverseShippingStatusMapping[newStatus] || newStatus;
+      const finalFailReason = selectedFailReason === "other" ? failReasonInput : selectedFailReason;
+      if (!finalFailReason || finalFailReason.trim() === "") {
+        showNotification("Vui lòng chọn hoặc nhập lý do giao hàng thất bại", "error");
+        return;
+      }
+      updatePayload = {
+        shippingStatus: englishStatus,
+        failReason: finalFailReason,
+        paymentStatus: "failed",
+      };
     } else {
       englishStatus = reverseReturnStatusMapping[newStatus] || newStatus;
       updatePayload = { returnStatus: englishStatus };
@@ -381,7 +439,8 @@ const OrderPage: React.FC = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
-      const response = await fetch(`${API_BASE_URL}/api/orders/update/${orderId}`, {
+      const endpoint = type === "fail" ? `${API_BASE_URL}/api/orders/admin/fail/${orderId}` : `${API_BASE_URL}/api/orders/update/${orderId}`;
+      const response = await fetch(endpoint, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -414,6 +473,7 @@ const OrderPage: React.FC = () => {
                 paymentStatus: updatedOrder.paymentStatus,
                 returnStatus: updatedOrder.returnStatus,
                 cancelReason: updatedOrder.cancelReason,
+                failReason: updatedOrder.failReason,
               }
             : o
         )
@@ -427,6 +487,7 @@ const OrderPage: React.FC = () => {
                 paymentStatus: updatedOrder.paymentStatus,
                 returnStatus: updatedOrder.returnStatus,
                 cancelReason: updatedOrder.cancelReason,
+                failReason: updatedOrder.failReason,
               }
             : o
         )
@@ -436,11 +497,15 @@ const OrderPage: React.FC = () => {
           ? "Cập nhật trạng thái vận chuyển thành công"
           : type === "cancel"
           ? "Hủy đơn hàng thành công"
+          : type === "fail"
+          ? "Đánh dấu giao hàng thất bại thành công"
           : "Cập nhật trạng thái hoàn hàng thành công",
         "success"
       );
       setCancelReasonInput("");
       setSelectedCancelReason("");
+      setFailReasonInput("");
+      setSelectedFailReason("");
       setSelectedOrderId(null);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
@@ -465,6 +530,8 @@ const OrderPage: React.FC = () => {
       setShowConfirm(null);
       setCancelReasonInput("");
       setSelectedCancelReason("");
+      setFailReasonInput("");
+      setSelectedFailReason("");
     }
   };
 
@@ -552,7 +619,8 @@ const OrderPage: React.FC = () => {
                 if (!token) {
                   throw new Error("Không tìm thấy token. Vui lòng đăng nhập lại.");
                 }
-                const res = await fetch(`${API_BASE_URL}/api/orders/admin/all`, {
+                const endpoint = showFailedOrders ? `${API_BASE_URL}/api/orders/admin/failed` : `${API_BASE_URL}/api/orders/admin/all`;
+                const res = await fetch(endpoint, {
                   headers: { Authorization: `Bearer ${token}` },
                   cache: "no-store",
                 });
@@ -666,9 +734,9 @@ const OrderPage: React.FC = () => {
             {currentOrders.length === 0 ? (
               <tr>
                 <td colSpan={9} className={styles.emptyState}>
-                  <h3>{searchQuery || shippingStatusFilter !== "all" ? "Không tìm thấy đơn hàng" : "Chưa có đơn hàng"}</h3>
+                  <h3>{searchQuery || shippingStatusFilter !== "all" || showFailedOrders ? "Không tìm thấy đơn hàng" : "Chưa có đơn hàng"}</h3>
                   <p>
-                    {(searchQuery || shippingStatusFilter !== "all")
+                    {(searchQuery || shippingStatusFilter !== "all" || showFailedOrders)
                       ? "Không có đơn hàng nào khớp với bộ lọc."
                       : "Hiện tại không có đơn hàng nào để hiển thị."}
                   </p>
@@ -709,6 +777,8 @@ const OrderPage: React.FC = () => {
                               disabled={
                                 status.value === "cancelled"
                                   ? order.shippingStatus !== "pending"
+                                  : status.value === "failed"
+                                  ? order.shippingStatus !== "in_transit"
                                   : ["returned", "cancelled", "failed"].includes(order.shippingStatus) ||
                                     (isValidStatus
                                       ? !statusProgression[order.shippingStatus].includes(status.value) &&
@@ -758,6 +828,25 @@ const OrderPage: React.FC = () => {
                         aria-label={`Hủy đơn hàng ${order._id}`}
                       >
                         Hủy
+                      </button>
+                    )}
+                    {order.shippingStatus === "in_transit" && (
+                      <button
+                        className={styles.cancelBtn}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleStatusChange(
+                            order._id,
+                            "Giao hàng thất bại",
+                            order.shippingStatus,
+                            "fail"
+                          );
+                        }}
+                        disabled={loading}
+                        title="Đánh dấu giao hàng thất bại"
+                        aria-label={`Đánh dấu giao hàng thất bại cho đơn hàng ${order._id}`}
+                      >
+                        Thất bại
                       </button>
                     )}
                   </td>
@@ -831,7 +920,11 @@ const OrderPage: React.FC = () => {
         <div className={styles.confirmModalOverlay} onClick={handleOverlayClick}>
           <div className={styles.confirmModalContent}>
             <h2>
-              {showConfirm.type === "cancel" ? "Xác nhận hủy đơn hàng" : "Xác nhận thay đổi trạng thái"}
+              {showConfirm.type === "cancel"
+                ? "Xác nhận hủy đơn hàng"
+                : showConfirm.type === "fail"
+                ? "Xác nhận đánh dấu giao hàng thất bại"
+                : "Xác nhận thay đổi trạng thái"}
             </h2>
             {showConfirm.type === "cancel" ? (
               <>
@@ -867,6 +960,39 @@ const OrderPage: React.FC = () => {
                   {orders.find((o) => o._id === showConfirm.orderId)?.paymentStatus === "completed" ? "Hoàn tiền" : "giữ nguyên"}.
                 </p>
               </>
+            ) : showConfirm.type === "fail" ? (
+              <>
+                <p>Vui lòng chọn hoặc nhập lý do giao hàng thất bại:</p>
+                <select
+                  value={selectedFailReason}
+                  onChange={(e) => setSelectedFailReason(e.target.value)}
+                  className={styles.categorySelect}
+                  aria-label="Chọn lý do giao hàng thất bại"
+                >
+                  <option value="" disabled>
+                    Chọn lý do
+                  </option>
+                  {failReasons.map((reason) => (
+                    <option key={reason.value} value={reason.value}>
+                      {reason.label}
+                    </option>
+                  ))}
+                </select>
+                {selectedFailReason === "other" && (
+                  <input
+                    type="text"
+                    placeholder="Nhập lý do giao hàng thất bại"
+                    value={failReasonInput}
+                    onChange={(e) => setFailReasonInput(e.target.value)}
+                    className={styles.searchInput}
+                    style={{ marginTop: "10px" }}
+                    aria-label="Nhập lý do giao hàng thất bại tùy chỉnh"
+                  />
+                )}
+                <p style={{ marginTop: "10px" }}>
+                  Trạng thái thanh toán sẽ được cập nhật thành Chưa thanh toán.
+                </p>
+              </>
             ) : (
               <p>
                 Bạn có chắc chắn muốn{" "}
@@ -894,7 +1020,9 @@ const OrderPage: React.FC = () => {
                 disabled={
                   loading ||
                   (showConfirm.type === "cancel" &&
-                    (!selectedCancelReason || (selectedCancelReason === "other" && !cancelReasonInput.trim())))
+                    (!selectedCancelReason || (selectedCancelReason === "other" && !cancelReasonInput.trim()))) ||
+                  (showConfirm.type === "fail" &&
+                    (!selectedFailReason || (selectedFailReason === "other" && !failReasonInput.trim())))
                 }
                 title="Xác nhận"
                 aria-label="Xác nhận thay đổi trạng thái"
@@ -907,6 +1035,8 @@ const OrderPage: React.FC = () => {
                   setShowConfirm(null);
                   setCancelReasonInput("");
                   setSelectedCancelReason("");
+                  setFailReasonInput("");
+                  setSelectedFailReason("");
                 }}
                 disabled={loading}
                 title="Hủy"
@@ -960,40 +1090,91 @@ const OrderPage: React.FC = () => {
                     {selectedOrder.cancelReason && (
                       <p>Lý do hủy đơn: {getVietnameseCancelReason(selectedOrder.cancelReason)}</p>
                     )}
+                    {selectedOrder.failReason && (
+                      <p>Lý do giao hàng thất bại: {getVietnameseFailReason(selectedOrder.failReason)}</p>
+                    )}
                   </div>
                 </div>
                 <div className={styles.detailsSection}>
                   <h4>Trạng thái hoàn hàng</h4>
                   <div className={styles.detailsGrid}>
-                    <p>Trạng thái: {getVietnameseReturnStatus(selectedOrder.returnStatus)}</p>
-                    {selectedOrder.returnReason && (
-                      <p>Lý do hoàn hàng: {selectedOrder.returnReason}</p>
-                    )}
-                    {selectedOrder.returnStatus === "requested" && (
-                      <div className={styles.returnAction}>
-                        <select
-                          value=""
-                          onChange={(e) =>
-                            handleStatusChange(
-                              selectedOrder._id,
-                              e.target.value,
-                              selectedOrder.returnStatus,
-                              "return"
-                            )
-                          }
-                          className={styles.categorySelect}
-                          aria-label={`Thay đổi trạng thái hoàn hàng cho đơn hàng ${selectedOrder._id}`}
-                        >
-                          <option value="" disabled>
-                            Chọn hành động
-                          </option>
-                          {returnStatuses.map((status) => (
-                            <option key={status.value} value={status.label}>
-                              {status.label}
-                            </option>
-                          ))}
-                        </select>
+                    {selectedOrder.returnStatus !== "none" ? (
+                      <div className={styles.noteSection}>
+                        <h3>Trạng thái hoàn hàng</h3>
+                        <p>
+                          <strong>Trạng thái:</strong>{" "}
+                          {selectedOrder.returnStatus === "requested"
+                            ? "Đã yêu cầu hoàn hàng"
+                            : selectedOrder.returnStatus === "approved"
+                            ? "Hoàn hàng được chấp nhận"
+                            : "Hoàn hàng bị từ chối"}
+                        </p>
+                        {selectedOrder.returnReason && (
+                          <p><strong>Lý do hoàn hàng:</strong> {selectedOrder.returnReason}</p>
+                        )}
+                        {selectedOrder.returnRequestDate && (
+                          <p><strong>Ngày yêu cầu:</strong> {formatDate(selectedOrder.returnRequestDate)}</p>
+                        )}
+                        {/* Hiển thị ảnh hoàn hàng */}
+                        {selectedOrder.returnImages && selectedOrder.returnImages.length > 0 && (
+                          <div className={styles.returnMedia}>
+                            <h4>Ảnh hoàn hàng:</h4>
+                            <div className={styles.imageGrid}>
+                              {selectedOrder.returnImages.map((image, index) => (
+                                <div key={index} className={styles.returnImage}>
+                                  <Image
+                                    src={normalizeImageUrl(image.url) || FALLBACK_IMAGE_URL}
+                                    alt={`Ảnh hoàn hàng ${index + 1}`}
+                                    width={100}
+                                    height={100}
+                                    quality={100}
+                                    onError={(e) => {
+                                      console.error(`Image load failed for return image ${index + 1}: ${image.url}`);
+                                      (e.target as HTMLImageElement).src = FALLBACK_IMAGE_URL;
+                                    }}
+                                    style={{
+                                      objectFit: "cover",
+                                      borderRadius: "4px",
+                                      margin: "4px",
+                                    }}
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {/* Hiển thị video hoàn hàng */}
+                        {selectedOrder.returnVideos && selectedOrder.returnVideos.length > 0 && (
+                          <div className={styles.returnMedia}>
+                            <h4>Video hoàn hàng:</h4>
+                            {selectedOrder.returnVideos.map((video, index) => (
+                              <video
+                                key={index}
+                                src={normalizeImageUrl(video.url)}
+                                controls
+                                width="300"
+                                height="auto"
+                                style={{
+                                  borderRadius: "4px",
+                                  marginTop: "8px",
+                                }}
+                                onError={(e) => {
+                                  console.error(`Video load failed: ${video.url}`);
+                                  setNotification({ message: "Không thể tải video hoàn hàng.", type: "error" });
+                                }}
+                              >
+                                Trình duyệt của bạn không hỗ trợ thẻ video.
+                              </video>
+                            ))}
+                          </div>
+                        )}
+                        {(!selectedOrder.returnImages || selectedOrder.returnImages.length === 0) &&
+                          (!selectedOrder.returnVideos || selectedOrder.returnVideos.length === 0) && (
+                            <p>Không có ảnh hoặc video hoàn hàng.</p>
+                          )}
                       </div>
+                    ) : (
+                      <p>Không có yêu cầu hoàn hàng.</p>
                     )}
                   </div>
                 </div>

@@ -4,19 +4,19 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import styles from "./coupon.module.css";
-import type { Coupon, User } from "@/app/components/coupon_interface";
+import type { Coupon } from "@/app/components/coupon_interface";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faEdit,
-  faTrash,
+  faEye,
+  faEyeSlash,
   faPlus,
   faTimes,
   faCheck,
-  faUsers,
   faGear,
+  faTrash,
 } from "@fortawesome/free-solid-svg-icons";
 import ToastNotification from "../../user/ToastNotification/ToastNotification";
-import CouponForm from "../../components/CouponForm";
 
 // Interfaces
 interface Pagination {
@@ -48,7 +48,7 @@ interface BulkCouponFormData {
   target: "all" | "selected";
   selectedUserIds: string[];
   description: string;
-  count: number; // Thêm count cho số lượng mã
+  count: number;
 }
 
 interface SpecialDay {
@@ -138,9 +138,11 @@ function CouponsContent() {
     "all" | "active" | "inactive"
   >(statusFilterFromUrl);
   const [showModal, setShowModal] = useState(false);
+  const [showToggleModal, setShowToggleModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showBulkCouponModal, setShowBulkCouponModal] = useState(false);
   const [showAutoSetupModal, setShowAutoSetupModal] = useState(false);
+  const [toggleCouponId, setToggleCouponId] = useState<string | null>(null);
   const [deleteCouponId, setDeleteCouponId] = useState<string | null>(null);
 
   const initialFormData: FormData = {
@@ -189,6 +191,22 @@ function CouponsContent() {
     resetForm: resetAutoSetupForm,
     setFormData: setAutoSetupFormData,
   } = useCouponForm<AutoSetupFormData>(initialAutoSetupFormData);
+
+  // Handle closing modals on overlay click
+  const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) {
+      setShowModal(false);
+      setShowBulkCouponModal(false);
+      setShowAutoSetupModal(false);
+      setShowToggleModal(false);
+      setShowDeleteModal(false);
+      setToggleCouponId(null);
+      setDeleteCouponId(null);
+      resetForm();
+      resetBulkForm();
+      resetAutoSetupForm();
+    }
+  };
 
   // Xử lý lỗi
   const handleError = useCallback(
@@ -445,17 +463,19 @@ function CouponsContent() {
     if (
       showModal ||
       showBulkCouponModal ||
+      showToggleModal ||
       showDeleteModal ||
       showAutoSetupModal
     ) {
       const firstInput = document.querySelector(
-        `.${styles.modalContent} input, .${styles.modalContent} select`
+        `.${styles.modalContent} input:not(:disabled), .${styles.modalContent} select:not(:disabled)`
       ) as HTMLElement;
       firstInput?.focus();
     }
   }, [
     showModal,
     showBulkCouponModal,
+    showToggleModal,
     showDeleteModal,
     showAutoSetupModal,
   ]);
@@ -656,17 +676,64 @@ function CouponsContent() {
     [setFormData]
   );
 
+  // Xác nhận thay đổi trạng thái
+  const confirmToggle = useCallback((id: string) => {
+    setToggleCouponId(id);
+    setShowToggleModal(true);
+  }, []);
+
   // Xác nhận xóa mã giảm giá
   const confirmDelete = useCallback((id: string) => {
     setDeleteCouponId(id);
     setShowDeleteModal(true);
   }, []);
 
+  // Thay đổi trạng thái mã giảm giá
+  const handleToggle = async () => {
+    if (!toggleCouponId || actionLoading) return;
+    setActionLoading(true);
+    try {
+      const coupon = coupons.find((c) => c._id === toggleCouponId);
+      if (!coupon) throw new Error("Không tìm thấy mã giảm giá!");
+
+      const response = await fetchWithToken(
+        `https://api-zeal.onrender.com/api/coupons/${toggleCouponId}`,
+        {
+          method: "PUT",
+          body: JSON.stringify({ isActive: !coupon.isActive }),
+          cache: "no-store",
+        }
+      );
+
+      const data = await response.json();
+      setShowToggleModal(false);
+      setToggleCouponId(null);
+      setNotification({
+        show: true,
+        message: `Đã ${coupon.isActive ? "hủy kích hoạt" : "kích hoạt"} mã giảm giá thành công!`,
+        type: "success",
+      });
+      setTimeout(
+        () => setNotification({ show: false, message: "", type: "success" }),
+        3000
+      );
+      setPagination((prev) => ({ ...prev, page: 1 }));
+      await fetchCoupons();
+    } catch (err) {
+      handleError(err, "Lỗi khi thay đổi trạng thái mã giảm giá!");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   // Xóa mã giảm giá
   const handleDelete = async () => {
     if (!deleteCouponId || actionLoading) return;
     setActionLoading(true);
     try {
+      const coupon = coupons.find((c) => c._id === deleteCouponId);
+      if (!coupon) throw new Error("Không tìm thấy mã giảm giá!");
+
       const response = await fetchWithToken(
         `https://api-zeal.onrender.com/api/coupons/${deleteCouponId}`,
         {
@@ -709,20 +776,34 @@ function CouponsContent() {
   // Tạo thông tin phân trang
   const getPaginationInfo = useCallback(() => {
     const visiblePages: number[] = [];
-    const maxPages = 5;
-    let startPage = Math.max(1, pagination.page - Math.floor(maxPages / 2));
-    let endPage = Math.min(pagination.totalPages, startPage + maxPages - 1);
+    let showPrevEllipsis = false;
+    let showNextEllipsis = false;
 
-    if (endPage - startPage + 1 < maxPages) {
-      startPage = Math.max(1, endPage - maxPages + 1);
+    if (pagination.totalPages <= 3) {
+      for (let i = 1; i <= pagination.totalPages; i++) {
+        visiblePages.push(i);
+      }
+    } else {
+      if (pagination.page === 1) {
+        visiblePages.push(1, 2, 3);
+        showNextEllipsis = pagination.totalPages > 3;
+      } else if (pagination.page === pagination.totalPages) {
+        visiblePages.push(
+          pagination.totalPages - 2,
+          pagination.totalPages - 1,
+          pagination.totalPages
+        );
+        showPrevEllipsis = pagination.totalPages > 3;
+      } else {
+        visiblePages.push(
+          pagination.page - 1,
+          pagination.page,
+          pagination.page + 1
+        );
+        showPrevEllipsis = pagination.page > 2;
+        showNextEllipsis = pagination.page < pagination.totalPages - 1;
+      }
     }
-
-    for (let i = startPage; i <= endPage; i++) {
-      visiblePages.push(i);
-    }
-
-    const showPrevEllipsis = startPage > 1;
-    const showNextEllipsis = endPage < pagination.totalPages;
 
     return { visiblePages, showPrevEllipsis, showNextEllipsis };
   }, [pagination.page, pagination.totalPages]);
@@ -800,23 +881,25 @@ function CouponsContent() {
           {isAdmin && (
             <>
               <button
-                className={styles.addProductBtn}
+                className={`${styles.iconBtn} ${styles.addProductBtn}`}
                 onClick={() => setShowModal(true)}
                 disabled={actionLoading || bulkLoading}
                 aria-label="Thêm mã giảm giá mới"
+                title="Thêm mã giảm giá"
               >
-                Thêm mã giảm giá
+                <FontAwesomeIcon icon={faPlus} />
               </button>
               <button
-                className={styles.addProductBtn}
+                className={`${styles.iconBtn} ${styles.setupBtn}`}
                 onClick={() => {
                   setShowAutoSetupModal(true);
                   fetchAutoSetupConfig();
                 }}
                 disabled={actionLoading || bulkLoading}
                 aria-label="Thiết lập tự động tạo mã"
+                title="Thiết lập tự động"
               >
-                <FontAwesomeIcon icon={faGear} /> Thiết lập tự động
+                <FontAwesomeIcon icon={faGear} />
               </button>
             </>
           )}
@@ -833,7 +916,7 @@ function CouponsContent() {
               <th>Giá trị giảm</th>
               <th>Đơn hàng tối thiểu</th>
               <th>Ngày hết hạn</th>
-              <th>Số lượt sử dụng</th>
+              <th>Giới hạn sử dụng</th>
               <th>Số lượt đã dùng</th>
               <th>Trạng thái</th>
               <th>Người dùng</th>
@@ -882,7 +965,7 @@ function CouponsContent() {
                       <td>
                         <div className={styles.actionButtons}>
                           <button
-                            className={styles.editBtn}
+                            className={`${styles.iconBtn} ${styles.editBtn}`}
                             onClick={() => handleEdit(coupon)}
                             disabled={actionLoading || bulkLoading}
                             title="Sửa mã giảm giá"
@@ -891,7 +974,18 @@ function CouponsContent() {
                             <FontAwesomeIcon icon={faEdit} />
                           </button>
                           <button
-                            className={styles.deleteBtn}
+                            className={`${styles.iconBtn} ${styles.toggleStatusBtn}`}
+                            onClick={() => confirmToggle(coupon._id)}
+                            disabled={actionLoading || bulkLoading}
+                            title={coupon.isActive ? "Hủy kích hoạt" : "Kích hoạt"}
+                            aria-label={`${
+                              coupon.isActive ? "Hủy kích hoạt" : "Kích hoạt"
+                            } mã giảm giá ${coupon.code}`}
+                          >
+                            <FontAwesomeIcon icon={coupon.isActive ? faEyeSlash : faEye} />
+                          </button>
+                          <button
+                            className={`${styles.iconBtn} ${styles.deleteBtn}`}
                             onClick={() => confirmDelete(coupon._id)}
                             disabled={actionLoading || bulkLoading}
                             title="Xóa mã giảm giá"
@@ -922,19 +1016,25 @@ function CouponsContent() {
             const { visiblePages, showPrevEllipsis, showNextEllipsis } = getPaginationInfo();
             return (
               <>
-                <button
-                  className={styles.pageLink}
-                  onClick={() => handlePageChange(pagination.page - 1)}
-                  disabled={pagination.page === 1 || loading || actionLoading || bulkLoading}
-                  title="Trang trước"
-                  aria-label="Trang trước"
-                >
-                  Trước
-                </button>
                 {showPrevEllipsis && (
-                  <div className={styles.ellipsis} role="presentation">
-                    ...
-                  </div>
+                  <>
+                    <button
+                      className={`${styles.pageLink} ${styles.firstLastPage}`}
+                      onClick={() => handlePageChange(1)}
+                      disabled={loading || actionLoading || bulkLoading}
+                      title="Trang đầu tiên"
+                      aria-label="Trang đầu tiên"
+                    >
+                      1
+                    </button>
+                    <div
+                      className={styles.ellipsis}
+                      onClick={() => handlePageChange(Math.max(1, pagination.page - 3))}
+                      title="Trang trước đó"
+                    >
+                      ...
+                    </div>
+                  </>
                 )}
                 {visiblePages.map((page) => (
                   <button
@@ -951,68 +1051,304 @@ function CouponsContent() {
                   </button>
                 ))}
                 {showNextEllipsis && (
-                  <div className={styles.ellipsis} role="presentation">
-                    ...
-                  </div>
+                  <>
+                    <div
+                      className={styles.ellipsis}
+                      onClick={() =>
+                        handlePageChange(Math.min(pagination.totalPages, pagination.page + 3))
+                      }
+                      title="Trang tiếp theo"
+                    >
+                      ...
+                    </div>
+                    <button
+                      className={`${styles.pageLink} ${styles.firstLastPage}`}
+                      onClick={() => handlePageChange(pagination.totalPages)}
+                      disabled={loading || actionLoading || bulkLoading}
+                      title="Trang cuối cùng"
+                      aria-label="Trang cuối cùng"
+                    >
+                      {pagination.totalPages}
+                    </button>
+                  </>
                 )}
-                <button
-                  className={styles.pageLink}
-                  onClick={() => handlePageChange(pagination.page + 1)}
-                  disabled={
-                    pagination.page === pagination.totalPages ||
-                    loading ||
-                    actionLoading ||
-                    bulkLoading
-                  }
-                  title="Trang sau"
-                  aria-label="Trang sau"
-                >
-                  Sau
-                </button>
               </>
             );
           })()}
         </div>
       )}
       {showModal && (
-        <CouponForm
-          formData={formData}
-          updateField={updateField}
-          onSubmit={handleSubmit}
-          onCancel={() => {
-            setShowModal(false);
-            resetForm();
-          }}
-          title={formData._id ? "Sửa mã giảm giá" : "Thêm mã giảm giá"}
-          isLoading={actionLoading}
-          isEdit={!!formData._id}
-          users={undefined}
-        />
+        <div className={styles.modalOverlay} onClick={handleOverlayClick}>
+          <div className={styles.modalContent}>
+            <button
+              className={`${styles.iconBtn} ${styles.closeBtn}`}
+              onClick={() => {
+                setShowModal(false);
+                resetForm();
+              }}
+              disabled={actionLoading}
+              aria-label="Đóng"
+              title="Đóng"
+            >
+              <FontAwesomeIcon icon={faTimes} />
+            </button>
+            <h2 className={styles.modalContentTitle}>
+              {formData._id ? "Sửa mã giảm giá" : "Thêm mã giảm giá"}
+            </h2>
+            <form onSubmit={handleSubmit} className={styles.couponFormContainer}>
+              <div className={styles.formGroup}>
+                <label htmlFor="code">Mã giảm giá:</label>
+                <input
+                  id="code"
+                  value={formData.code}
+                  onChange={(e) => updateField("code", e.target.value)}
+                  disabled={actionLoading || !!formData._id}
+                  maxLength={20}
+                />
+              </div>
+              <div className={styles.formGroup}>
+                <label htmlFor="description">Mô tả:</label>
+                <textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => updateField("description", e.target.value)}
+                  disabled={actionLoading}
+                  maxLength={200}
+                />
+              </div>
+              <div className={styles.formGroup}>
+                <label htmlFor="discountType">Loại giảm giá:</label>
+                <select
+                  id="discountType"
+                  value={formData.discountType}
+                  onChange={(e) => updateField("discountType", e.target.value as "percentage" | "fixed")}
+                  disabled={actionLoading}
+                >
+                  <option value="percentage">Phần trăm</option>
+                  <option value="fixed">Cố định</option>
+                </select>
+              </div>
+              <div className={styles.formGroup}>
+                <label htmlFor="discountValue">Giá trị giảm:</label>
+                <input
+                  type="number"
+                  id="discountValue"
+                  value={formData.discountValue}
+                  onChange={(e) => updateField("discountValue", parseFloat(e.target.value) || 0)}
+                  min="1"
+                  disabled={actionLoading}
+                />
+                <span>{formData.discountType === "percentage" ? "%" : "VNĐ"}</span>
+              </div>
+              <div className={styles.formGroup}>
+                <label htmlFor="minOrderValue">Đơn hàng tối thiểu:</label>
+                <input
+                  type="number"
+                  id="minOrderValue"
+                  value={formData.minOrderValue}
+                  onChange={(e) => updateField("minOrderValue", parseFloat(e.target.value) || 0)}
+                  min="0"
+                  disabled={actionLoading}
+                />
+                <span>VNĐ</span>
+              </div>
+              <div className={styles.formGroup}>
+                <label htmlFor="expiryDate">Ngày hết hạn:</label>
+                <input
+                  type="date"
+                  id="expiryDate"
+                  value={formData.expiryDate || ""}
+                  onChange={(e) => updateField("expiryDate", e.target.value || null)}
+                  disabled={actionLoading}
+                />
+              </div>
+              <div className={styles.formGroup}>
+                <label htmlFor="usageLimit">Giới hạn sử dụng:</label>
+                <input
+                  type="number"
+                  id="usageLimit"
+                  value={formData.usageLimit || ""}
+                  onChange={(e) => updateField("usageLimit", e.target.value ? parseInt(e.target.value) : null)}
+                  min="1"
+                  placeholder="Không giới hạn"
+                  disabled={actionLoading}
+                />
+              </div>
+              <div className={`${styles.formGroup} ${styles.checkbox}`}>
+                <input
+                  type="checkbox"
+                  id="isActive"
+                  checked={formData.isActive}
+                  onChange={(e) => updateField("isActive", e.target.checked)}
+                  disabled={actionLoading}
+                />
+                <label htmlFor="isActive">Hoạt động</label>
+              </div>
+              <div className={styles.modalActions}>
+                <button
+                  type="submit"
+                  className={`${styles.iconBtn} ${styles.confirmBtn}`}
+                  disabled={actionLoading}
+                  aria-label={formData._id ? "Cập nhật mã giảm giá" : "Thêm mã giảm giá"}
+                  title="Xác nhận"
+                >
+                  <FontAwesomeIcon icon={faCheck} />
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.iconBtn} ${styles.cancelBtn}`}
+                  onClick={() => {
+                    setShowModal(false);
+                    resetForm();
+                  }}
+                  disabled={actionLoading}
+                  aria-label="Hủy"
+                  title="Hủy"
+                >
+                  <FontAwesomeIcon icon={faTimes} />
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
       {showBulkCouponModal && (
-        <CouponForm
-          formData={bulkCouponFormData}
-          updateField={updateBulkField}
-          onSubmit={handleBulkCouponSubmit}
-          onCancel={() => {
-            setShowBulkCouponModal(false);
-            resetBulkForm();
-          }}
-          title="Tạo mã giảm giá hàng loạt"
-          isLoading={bulkLoading}
-          users={undefined}
-        />
+        <div className={styles.modalOverlay} onClick={handleOverlayClick}>
+          <div className={styles.modalContent}>
+            <button
+              className={`${styles.iconBtn} ${styles.closeBtn}`}
+              onClick={() => {
+                setShowBulkCouponModal(false);
+                resetBulkForm();
+              }}
+              disabled={bulkLoading}
+              aria-label="Đóng"
+              title="Đóng"
+            >
+              <FontAwesomeIcon icon={faTimes} />
+            </button>
+            <h2 className={styles.modalContentTitle}>Tạo mã giảm giá hàng loạt</h2>
+            <form onSubmit={handleBulkCouponSubmit} className={styles.couponFormContainer}>
+              <div className={styles.formGroup}>
+                <label htmlFor="discountType">Loại giảm giá:</label>
+                <select
+                  id="discountType"
+                  value={bulkCouponFormData.discountType}
+                  onChange={(e) => updateBulkField("discountType", e.target.value as "percentage" | "fixed")}
+                  disabled={bulkLoading}
+                >
+                  <option value="percentage">Phần trăm</option>
+                  <option value="fixed">Cố định</option>
+                </select>
+              </div>
+              <div className={styles.formGroup}>
+                <label htmlFor="discountValue">Giá trị giảm:</label>
+                <input
+                  type="number"
+                  id="discountValue"
+                  value={bulkCouponFormData.discountValue}
+                  onChange={(e) => updateBulkField("discountValue", parseFloat(e.target.value) || 0)}
+                  min="1"
+                  disabled={bulkLoading}
+                />
+                <span>{bulkCouponFormData.discountType === "percentage" ? "%" : "VNĐ"}</span>
+              </div>
+              <div className={styles.formGroup}>
+                <label htmlFor="minOrderValue">Đơn hàng tối thiểu:</label>
+                <input
+                  type="number"
+                  id="minOrderValue"
+                  value={bulkCouponFormData.minOrderValue}
+                  onChange={(e) => updateBulkField("minOrderValue", parseFloat(e.target.value) || 0)}
+                  min="0"
+                  disabled={bulkLoading}
+                />
+                <span>VNĐ</span>
+              </div>
+              <div className={styles.formGroup}>
+                <label htmlFor="expiryDays">Số ngày hiệu lực:</label>
+                <input
+                  type="number"
+                  id="expiryDays"
+                  value={bulkCouponFormData.expiryDays}
+                  onChange={(e) => updateBulkField("expiryDays", parseInt(e.target.value) || 1)}
+                  min="1"
+                  disabled={bulkLoading}
+                />
+                <span>ngày</span>
+              </div>
+              <div className={styles.formGroup}>
+                <label htmlFor="usageLimit">Giới hạn sử dụng:</label>
+                <input
+                  type="number"
+                  id="usageLimit"
+                  value={bulkCouponFormData.usageLimit || ""}
+                  onChange={(e) => updateBulkField("usageLimit", e.target.value ? parseInt(e.target.value) : null)}
+                  min="1"
+                  placeholder="Không giới hạn"
+                  disabled={bulkLoading}
+                />
+              </div>
+              <div className={styles.formGroup}>
+                <label htmlFor="count">Số lượng mã:</label>
+                <input
+                  type="number"
+                  id="count"
+                  value={bulkCouponFormData.count}
+                  onChange={(e) => updateBulkField("count", parseInt(e.target.value) || 1)}
+                  min="1"
+                  disabled={bulkLoading}
+                />
+              </div>
+              <div className={styles.formGroup}>
+                <label htmlFor="description">Mô tả:</label>
+                <textarea
+                  id="description"
+                  value={bulkCouponFormData.description}
+                  onChange={(e) => updateBulkField("description", e.target.value)}
+                  disabled={bulkLoading}
+                  maxLength={200}
+                />
+              </div>
+              <div className={styles.modalActions}>
+                <button
+                  type="submit"
+                  className={`${styles.iconBtn} ${styles.confirmBtn}`}
+                  disabled={bulkLoading}
+                  aria-label="Tạo mã giảm giá hàng loạt"
+                  title="Xác nhận"
+                >
+                  <FontAwesomeIcon icon={faCheck} />
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.iconBtn} ${styles.cancelBtn}`}
+                  onClick={() => {
+                    setShowBulkCouponModal(false);
+                    resetBulkForm();
+                  }}
+                  disabled={bulkLoading}
+                  aria-label="Hủy"
+                  title="Hủy"
+                >
+                  <FontAwesomeIcon icon={faTimes} />
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
       {showAutoSetupModal && (
         <div
           className={styles.modalOverlay}
+          onClick={handleOverlayClick}
           role="dialog"
           aria-modal="true"
           aria-labelledby="auto-setup-modal-title"
         >
           <div className={styles.modalContent}>
             <button
-              className={styles.closePopupBtn}
+              className={`${styles.iconBtn} ${styles.closeBtn}`}
               onClick={() => {
                 setShowAutoSetupModal(false);
                 resetAutoSetupForm();
@@ -1026,7 +1362,7 @@ function CouponsContent() {
             <h2 id="auto-setup-modal-title" className={styles.modalContentTitle}>
               Thiết Lập Tự Động
             </h2>
-            <form onSubmit={handleAutoSetupSubmit} className={styles.formContainer}>
+            <form onSubmit={handleAutoSetupSubmit} className={styles.couponFormContainer}>
               <div className={styles.formGroup}>
                 <label htmlFor="discountType">Loại giảm giá:</label>
                 <select
@@ -1121,63 +1457,125 @@ function CouponsContent() {
                     />
                     <button
                       type="button"
-                      className={styles.deleteBtn}
+                      className={`${styles.iconBtn} ${styles.cancelBtn}`}
                       onClick={() => removeSpecialDay(index)}
                       disabled={actionLoading}
                       aria-label={`Xóa ngày đặc biệt ${index + 1}`}
+                      title="Xóa ngày đặc biệt"
                     >
-                      <FontAwesomeIcon icon={faTrash} />
+                      <FontAwesomeIcon icon={faTimes} />
                     </button>
                   </div>
                 ))}
                 <button
                   type="button"
-                  className={styles.addProductBtn}
+                  className={`${styles.iconBtn} ${styles.addProductBtn}`}
                   onClick={addSpecialDay}
                   disabled={actionLoading}
                   aria-label="Thêm ngày đặc biệt"
+                  title="Thêm ngày đặc biệt"
                 >
-                  <FontAwesomeIcon icon={faPlus} /> Thêm ngày
+                  <FontAwesomeIcon icon={faPlus} />
                 </button>
               </div>
               <div className={styles.modalActions}>
                 <button
                   type="submit"
-                  className={styles.confirmBtn}
+                  className={`${styles.iconBtn} ${styles.confirmBtn}`}
                   disabled={actionLoading}
                   aria-label="Lưu thiết lập tự động"
+                  title="Xác nhận"
                 >
                   <FontAwesomeIcon icon={faCheck} />
-                  {actionLoading ? " Đang xử lý..." : "Lưu"}
                 </button>
                 <button
                   type="button"
-                  className={styles.cancelBtn}
+                  className={`${styles.iconBtn} ${styles.cancelBtn}`}
                   onClick={() => {
                     setShowAutoSetupModal(false);
                     resetAutoSetupForm();
                   }}
                   disabled={actionLoading}
                   aria-label="Hủy thiết lập tự động"
+                  title="Hủy"
                 >
                   <FontAwesomeIcon icon={faTimes} />
-                  Hủy
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
+      {showToggleModal && (
+        <div
+          className={styles.modalOverlay}
+          onClick={handleOverlayClick}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="toggle-modal-title"
+        >
+          <div className={styles.modalContent}>
+            <button
+              className={`${styles.iconBtn} ${styles.closeBtn}`}
+              onClick={() => {
+                setShowToggleModal(false);
+                setToggleCouponId(null);
+              }}
+              disabled={actionLoading}
+              title="Đóng"
+              aria-label="Đóng xác nhận thay đổi trạng thái"
+            >
+              <FontAwesomeIcon icon={faTimes} />
+            </button>
+            <h2 id="toggle-modal-title" className={styles.modalContentTitle}>
+              Xác Nhận Thay Đổi Trạng Thái
+            </h2>
+            <div className={styles.popupDetails}>
+              <p>
+                Bạn có chắc muốn{" "}
+                {coupons.find((c) => c._id === toggleCouponId)?.isActive
+                  ? "hủy kích hoạt"
+                  : "kích hoạt"}{" "}
+                mã giảm giá này?
+              </p>
+              <div className={styles.modalActions}>
+                <button
+                  className={`${styles.iconBtn} ${styles.confirmBtn}`}
+                  onClick={handleToggle}
+                  disabled={actionLoading}
+                  aria-label="Xác nhận thay đổi trạng thái mã giảm giá"
+                  title="Xác nhận"
+                >
+                  <FontAwesomeIcon icon={faCheck} />
+                </button>
+                <button
+                  className={`${styles.iconBtn} ${styles.cancelBtn}`}
+                  onClick={() => {
+                    setShowToggleModal(false);
+                    setToggleCouponId(null);
+                  }}
+                  disabled={actionLoading}
+                  aria-label="Hủy thay đổi trạng thái mã giảm giá"
+                  title="Hủy"
+                >
+                  <FontAwesomeIcon icon={faTimes} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {showDeleteModal && (
         <div
           className={styles.modalOverlay}
+          onClick={handleOverlayClick}
           role="dialog"
           aria-modal="true"
           aria-labelledby="delete-modal-title"
         >
           <div className={styles.modalContent}>
             <button
-              className={styles.closePopupBtn}
+              className={`${styles.iconBtn} ${styles.closeBtn}`}
               onClick={() => {
                 setShowDeleteModal(false);
                 setDeleteCouponId(null);
@@ -1189,31 +1587,34 @@ function CouponsContent() {
               <FontAwesomeIcon icon={faTimes} />
             </button>
             <h2 id="delete-modal-title" className={styles.modalContentTitle}>
-              Xác Nhận Xóa
+              Xác Nhận Xóa Mã Giảm Giá
             </h2>
             <div className={styles.popupDetails}>
-              <p>Bạn có chắc muốn xóa mã giảm giá này?</p>
+              <p>
+                Bạn có chắc muốn xóa mã giảm giá{" "}
+                <strong>{coupons.find((c) => c._id === deleteCouponId)?.code}</strong>?
+              </p>
               <div className={styles.modalActions}>
                 <button
-                  className={styles.confirmBtn}
+                  className={`${styles.iconBtn} ${styles.confirmBtn}`}
                   onClick={handleDelete}
                   disabled={actionLoading}
                   aria-label="Xác nhận xóa mã giảm giá"
+                  title="Xác nhận"
                 >
                   <FontAwesomeIcon icon={faCheck} />
-                  {actionLoading ? " Đang xử lý..." : "Xác nhận"}
                 </button>
                 <button
-                  className={styles.cancelBtn}
+                  className={`${styles.iconBtn} ${styles.cancelBtn}`}
                   onClick={() => {
                     setShowDeleteModal(false);
                     setDeleteCouponId(null);
                   }}
                   disabled={actionLoading}
                   aria-label="Hủy xóa mã giảm giá"
+                  title="Hủy"
                 >
                   <FontAwesomeIcon icon={faTimes} />
-                  Hủy
                 </button>
               </div>
             </div>

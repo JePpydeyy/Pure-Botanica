@@ -1,462 +1,28 @@
-.modalContent {
-  background: #ffffff;
-  padding: 24px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  max-width: 500px;
-  width: 90%;
-  max-height: 80vh;
-  overflow-y: auto;
-  position: relative;
-  animation: slideIn 0.3s ease-out;
-}
-
-@keyframes slideIn {
-  from {
-    transform: translateY(-20px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-.modalContentTitle {
-  color: #1a202c;
-  font-size: 20px;
-  font-weight: 600;
-  margin-bottom: 16px;
-  text-align: left;
-}
-
-.modalContent select,
-.modalContent input[type="text"],
-.modalContent input[type="number"],
-.modalContent input[type="date"] {
-  width: 100%;
-  padding: 12px 0px 12px 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 14px;
-  color: #334155;
-  background: #ffffff;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.modalContent select {
-  background: #ffffff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E") no-repeat calc(100% - 12px) center;
-  background-size: 18px;
-  appearance: none;
-  cursor: pointer;
-}
-
-.modalContent select[multiple] {
-  padding: 8px;
-  height: 120px;
-  background-image: none;
-}
-
-.modalContent select[multiple] option {
-  padding: 4px;
-  font-size: 14px;
-}
-
-.modalContent select:focus,
-.modalContent input[type="text"]:focus,
-.modalContent input[type="number"]:focus,
-.modalContent input[type="date"]:focus {
-  border-color: #4CAF50;
-  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
-  outline: none;
-}
-
-.modalContent select:disabled,
-.modalContent input[type="text"]:disabled,
-.modalContent input[type="number"]:disabled,
-.modalContent input[type="date"]:disabled {
-  background: #f1f1f1;
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.modalContent input[type="number"]::-webkit-inner-spin-button,
-.modalContent input[type="number"]::-webkit-outer-spin-button {
-  opacity: 1;
-}
-
-.modalContent input[type="date"] {
-  background: #ffffff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'/%3E%3C/svg%3E") no-repeat calc(100% - 12px) center;
-  background-size: 18px;
-}
-
-.modalContent input[type="date"]::-webkit-calendar-picker-indicator {
-  opacity: 0;
-  width: 24px;
-  height: 24px;
-  cursor: pointer;
-}
-
-.modalContent input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  margin-right: 8px;
-  vertical-align: middle;
-  accent-color: #4CAF50;
-  cursor: pointer;
-}
-
-.modalContent input[type="checkbox"]:focus {
-  outline: 2px solid #4CAF50;
-  outline-offset: 2px;
-}
-
-.modalContent input[type="checkbox"]:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-}
-
-.modalContent .formGroup {
-  margin-bottom: 16px;
-  text-align: left;
-}
-
-.modalContent .formGroup label {
-  display: block;
-  color: #334155;
-  font-size: 14px;
-  font-weight: 600;
-  margin-bottom: 8px;
-}
-
-.modalContent .formGroup.error input,
-.modalContent .formGroup.error select {
-  border-color: #f44336;
-  box-shadow: 0 0 0 3px rgba(244, 67, 54, 0.1);
-}
-
-.modalContent .formGroup.error::after {
-  content: attr(data-error);
-  color: #f44336;
-  font-size: 12px;
-  margin-top: 4px;
-  display: block;
-}
-
-.modalContent .modalActions {
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-  margin-top: 20px;
-}
-
-.modalContent button[type="submit"],
-.modalContent .confirmBtn,
-.modalContent .cancelBtn {
-  min-width: 100px;
-  height: 40px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.modalContent button[type="submit"],
-.modalContent .confirmBtn {
-  background: #4CAF50;
-  color: white;
-}
-
-.modalContent button[type="submit"]:hover,
-.modalContent .confirmBtn:hover {
-  background: #45a049;
-}
-
-.modalContent button[type="submit"]:disabled,
-.modalContent .confirmBtn:disabled {
-  background: #a5d6a7;
-  cursor: not-allowed;
-}
-
-.modalContent .cancelBtn {
-  background: #fce8e6;
-  color: #c62828;
-}
-
-.modalContent .cancelBtn:hover {
-  background: #ef9a9a;
-}
-
-.modalContent .cancelBtn:disabled {
-  background: #e0e0e0;
-  color: #9e9e9e;
-  cursor: not-allowed;
-}
-
-.closePopupBtn {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: #f44336;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  cursor: pointer;
-  font-size: 16px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.closePopupBtn:hover {
-  background: #d32f2f;
-}
-
-.closePopupBtn:disabled {
-  background: #ef9a9a;
-  cursor: not-allowed;
-}
-
-.modalContent .popupDetails {
-  color: #64748b;
-  font-size: 14px;
-  margin-bottom: 16px;
-}
-
-.modalContent .popupDetails p {
-  margin: 10px 0;
-}
-
-/* Enhanced table styles */
-.tableContainer {
-  max-width: 1920px;
-  margin: 24px;
-  background: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e5e7eb;
-  overflow-x: auto;
-  padding: 8px;
-}
-
-.productTable {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-}
-
-.productTableThead {
-  background: linear-gradient(180deg, #4CAF50 0%, #45a049 100%);
-  color: #ffffff;
-  position: sticky;
-  top: 0;
-  z-index: 1;
-}
-
-.productTableThead th {
-  padding: 16px 20px;
-  text-align: left;
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  border-bottom: 2px solid #388e3c;
-}
-
-.productTableThead th:first-child {
-  border-top-left-radius: 8px;
-}
-
-.productTableThead th:last-child {
-  border-top-right-radius: 8px;
-}
-
-.productTable tbody tr {
-  transition: all 0.2s ease-in-out;
-}
-
-.productTable tbody tr:nth-child(even) {
-  background: #f8fafc;
-}
-
-.productTable tbody tr:hover {
-  background: #e6f4ea;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.productTable td {
-  padding: 16px 20px;
-  border-bottom: 1px solid #e5e7eb;
-  font-size: 14px;
-  color: #1a202c;
-  vertical-align: middle;
-}
-
-.productTable tbody tr:last-child td {
-  border-bottom: none;
-}
-
-.productTable td:first-child {
-  font-weight: 500;
-}
-
-.statusActive {
-  background: #e6f4ea;
-  color: #2e7d32;
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.statusActive::before {
-  content: '';
-  width: 8px;
-  height: 8px;
-  background: #2e7d32;
-  border-radius: 50%;
-}
-
-.statusInactive {
-  background: #fce8e6;
-  color: #c62828;
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.statusInactive::before {
-  content: '';
-  width: 8px;
-  height: 8px;
-  background: #c62828;
-  border-radius: 50%;
-}
-
-.actionButtons {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-  align-items: center;
-}
-
-.editBtn,
-.cancelBtn,
-.confirmBtn {
-  min-width: 36px;
-  height: 36px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.editBtn {
-  background: #e6f4ea;
-  color: #2e7d32;
-}
-
-.editBtn:hover {
-  background: #c8e6c9;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-}
-
-.editBtn:disabled {
-  background: #e5e7eb;
-  color: #9ca3af;
-  cursor: not-allowed;
-  box-shadow: none;
-}
-
-.cancelBtn {
-  background: #fce8e6;
-  color: #c62828;
-}
-
-.cancelBtn:hover {
-  background: #f9a8a5;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-}
-
-.cancelBtn:disabled {
-  background: #e5e7eb;
-  color: #9ca3af;
-  cursor: not-allowed;
-  box-shadow: none;
-}
-
-.confirmBtn {
-  background: #4CAF50;
-  color: #ffffff;
-}
-
-.confirmBtn:hover {
-  background: #45a049;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-}
-
-.confirmBtn:disabled {
-  background: #a5d6a7;
-  color: #e5e7eb;
-  cursor: not-allowed;
-  box-shadow: none;
-}
-
-/* Existing styles for context */
-.modalActions {
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-  margin-top: 16px;
-}
-
+/* Main Layout */
 .productManagementContainer {
   padding: 24px;
   background: #f3f4f6;
   min-height: 100vh;
   font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   margin-left: 250px;
-  transition: margin-left 0.3s ease-in-out;
+  transition: margin-left 0.3s;
 }
 
+/* Title */
 .titleContainer {
   max-width: 1400px;
   padding: 2rem;
-  margin: 0;
 }
 
 .titleContainer h1 {
-  color: #1a202c;
+  color: #000000;
   font-size: 28px;
   font-weight: 700;
   margin-bottom: 24px;
   letter-spacing: -0.5px;
 }
 
+/* Filter */
 .filterContainer {
   display: flex;
   flex-wrap: wrap;
@@ -466,6 +32,7 @@
   border-radius: 12px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   width: fit-content;
+  align-items: center;
 }
 
 .searchInput {
@@ -481,6 +48,10 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.searchInput:hover {
+  border-color: #94a3b8;
+}
+
 .searchInput:focus {
   border-color: #4CAF50;
   box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
@@ -493,7 +64,7 @@
 }
 
 .searchInput:disabled {
-  background: #f1f1f1;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
@@ -511,98 +82,325 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.categorySelect:focus,
-.categorySelect:hover {
+.categorySelect:hover,
+.categorySelect:focus {
   border-color: #4CAF50;
   box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
   outline: none;
 }
 
 .categorySelect:disabled {
-  background: #f1f1f1;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
-.addProductBtn {
-  width: 150px;
-  height: 40px;
+/* Table */
+.tableContainer {
+  max-width: 1920px;
+  margin: 24px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+  overflow-x: auto;
+}
+
+.productTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.productTableThead {
   background: #4CAF50;
   color: white;
-  border: none;
-  border-radius: 6px;
+}
+
+.productTableThead th {
+  padding: 14px 16px;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.productTable td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #e2e8f0;
   font-size: 14px;
+  color: #334155;
+}
+
+.productTable tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.productRow {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.productRow:hover {
+  background: #f8fafc;
+}
+
+.statusActive {
   font-weight: 500;
-  text-align: center;
-  line-height: 40px;
+}
+
+.statusInactive {
+  font-weight: 500;
+}
+
+/* Buttons */
+.iconBtn {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  border: none;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.addProductBtn {
+  background: #4CAF50;
+  color: white;
 }
 
 .addProductBtn:hover {
   background: #45a049;
+  transform: translateY(-2px);
 }
 
-.addProductBtn:disabled {
-  background: #a5d6a7;
+.setupBtn {
+  background: #2196F3;
+  color: white;
+}
+
+.setupBtn:hover {
+  background: #1976D2;
+  transform: translateY(-2px);
+}
+
+.editBtn {
+  background: #4CAF50;
+  color: white;
+}
+
+.editBtn:hover {
+  background: #45a049;
+  transform: translateY(-2px);
+}
+
+.toggleStatusBtn {
+  background: #2196F3;
+  color: white;
+}
+
+.toggleStatusBtn:hover {
+  background: #1976D2;
+  transform: translateY(-2px);
+}
+
+.confirmBtn {
+  background: #4CAF50;
+  color: white;
+}
+
+.confirmBtn:hover {
+  background: #45a049;
+}
+
+.cancelBtn, .closeBtn {
+  background: #f44336;
+  color: white;
+}
+
+.cancelBtn:hover, .closeBtn:hover {
+  background: #d32f2f;
+}
+
+.iconBtn:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
 }
 
+.actionButtons {
+  display: flex;
+  gap: 8px;
+}
+
+/* Modal Overlay */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(3px);
+}
+
+/* Modal Content */
+.modalContent {
+  background: #ffffff;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  max-width: 600px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+/* Modal Title */
+.modalContentTitle {
+  color: #000000;
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+/* Close Button */
+.closeBtn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+
+/* Popup Details (for Toggle Modal) */
+.popupDetails {
+  color: #64748b;
+  font-size: 14px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+/* Form Container */
+.couponFormContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Form Group */
 .formGroup {
-  margin-bottom: 16px;
-  text-align: left;
+  display: grid;
+  grid-template-columns: 120px 1fr 50px;
+  align-items: center;
+  gap: 12px;
 }
 
 .formGroup label {
-  display: block;
   color: #334155;
   font-size: 14px;
-  font-weight: 600;
-  margin-bottom: 8px;
+  font-weight: 500;
+  justify-self: end;
 }
 
-.formGroup label input[type="checkbox"] {
-  margin-right: 8px;
-  vertical-align: middle;
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
-  accent-color: #4CAF50;
-}
-
-.errorContainer {
-  max-width: 1400px;
-  margin: 24px auto;
-  padding: 32px;
+.formGroup input,
+.formGroup select,
+.formGroup textarea {
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #334155;
   background: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  text-align: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.errorContainer p {
-  color: #f44336;
-  font-size: 15px;
-  margin-bottom: 16px;
+.formGroup textarea {
+  resize: vertical;
+  min-height: 80px;
 }
 
-.emptyState {
-  padding: 32px;
-  text-align: center;
+.formGroup input:hover,
+.formGroup select:hover,
+.formGroup textarea:hover {
+  border-color: #94a3b8;
+}
+
+.formGroup input:focus,
+.formGroup select:focus,
+.formGroup textarea:focus {
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+  outline: none;
+}
+
+.formGroup input:disabled,
+.formGroup select:disabled,
+.formGroup textarea:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #e2e8f0;
+}
+
+.formGroup input::placeholder,
+.formGroup textarea::placeholder,
+.formGroup select:invalid {
   color: #64748b;
+  font-weight: 400;
 }
 
-.emptyState h3 {
-  font-size: 18px;
-  font-weight: 600;
-  margin-bottom: 8px;
-  color: #334155;
+.formGroup select {
+  appearance: none;
+  background: #ffffff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E") no-repeat calc(100% - 12px) center;
+  background-size: 18px;
+  padding-right: 36px;
+  cursor: pointer;
 }
 
-.emptyState p {
+/* Checkbox */
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  grid-template-columns: auto 1fr;
+}
+
+.checkbox input {
+  width: auto;
+}
+
+/* Special Day Row */
+.specialDayRow {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.specialDayRow input {
+  flex: 1;
+  min-width: 150px;
+}
+
+/* Form Unit (e.g., %, VNĐ, days) */
+.formGroup span {
   font-size: 14px;
   color: #64748b;
+  margin-left: 8px;
+  align-self: center;
 }
 
+/* Modal Actions */
+.modalActions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+/* Processing and Errors */
 .processingIndicator {
   position: fixed;
   top: 16px;
@@ -615,22 +413,36 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 14px;
 }
 
-.processingIndicator svg {
-  animation: spin 1s linear infinite;
+.errorContainer {
+  max-width: 1400px;
+  margin: 24px auto;
+  padding: 32px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  text-align: center;
 }
 
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
+/* Empty State */
+.emptyState {
+  text-align: center;
+  padding: 48px 16px;
+  color: #64748b;
 }
 
+.emptyState h3 {
+  color: #000000;
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.emptyState p {
+  font-size: 13px;
+}
+
+/* Pagination */
 .pagination {
   display: flex;
   justify-content: center;
@@ -689,49 +501,37 @@
   font-weight: 600;
 }
 
+/* Scrollbar */
+.tableContainer::-webkit-scrollbar,
+.modalContent::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.tableContainer::-webkit-scrollbar-track,
+.modalContent::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.tableContainer::-webkit-scrollbar-thumb,
+.modalContent::-webkit-scrollbar-thumb {
+  background: #4CAF50;
+  border-radius: 3px;
+}
+
+/* Accessibility */
 .searchInput:focus-visible,
 .categorySelect:focus-visible,
-.addProductBtn:focus-visible,
-.editBtn:focus-visible,
-.cancelBtn:focus-visible,
-.confirmBtn:focus-visible,
-.closePopupBtn:focus-visible,
-.pageLink:focus-visible,
-.modalContent input:focus-visible,
-.modalContent select:focus-visible,
-.modalContent button:focus-visible {
+.iconBtn:focus-visible,
+.formGroup input:focus-visible,
+.formGroup select:focus-visible,
+.formGroup textarea:focus-visible {
   outline: 2px solid #4CAF50;
   outline-offset: 2px;
 }
 
-.tableContainer::-webkit-scrollbar {
-  height: 8px;
-}
-
-.tableContainer::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 4px;
-}
-
-.tableContainer::-webkit-scrollbar-thumb {
-  background: #4CAF50;
-  border-radius: 4px;
-}
-
-.modalOverlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-  backdrop-filter: blur(3px);
-}
-
+/* Responsive */
 @media (max-width: 1280px) {
   .titleContainer,
   .tableContainer,
@@ -743,223 +543,80 @@
   .filterContainer {
     flex-direction: column;
     align-items: stretch;
-    width: 100%;
   }
 
   .searchInput,
-  .categorySelect,
-  .addProductBtn {
+  .categorySelect {
     min-width: 100%;
-    width: 100%;
   }
 
-  .productTableThead th,
-  .productTable td {
-    padding: 12px 16px;
+  .addProductBtn,
+  .setupBtn {
+    align-self: center;
   }
 }
 
 @media (max-width: 768px) {
   .productManagementContainer {
     margin-left: 0;
-    padding: 16px;
-  }
-
-  .titleContainer h1 {
-    font-size: 24px;
+    padding: 1rem;
   }
 
   .productTableThead th,
   .productTable td {
-    padding: 10px 12px;
+    padding: 10px;
     font-size: 13px;
-  }
-
-  .searchInput,
-  .categorySelect {
-    font-size: 13px;
-    padding: 10px 36px 10px 12px;
-    background-size: 16px;
-  }
-
-  .addProductBtn {
-    width: 100%;
-    height: 38px;
-    line-height: 38px;
   }
 
   .modalContent {
     padding: 16px;
     width: 95%;
+    max-height: 90vh;
   }
 
   .modalContentTitle {
     font-size: 18px;
   }
 
-  .modalContent select,
-  .modalContent input[type="text"],
-  .modalContent input[type="number"],
-  .modalContent input[type="date"] {
-    font-size: 13px;
-    padding: 10px 36px 10px 12px;
-    background-size: 16px;
-  }
-
-  .modalContent select[multiple] {
-    height: 100px;
-  }
-
-  .modalContent button[type="submit"],
-  .modalContent .confirmBtn,
-  .modalContent .cancelBtn {
-    min-width: 80px;
-    height: 38px;
+  .formGroup input,
+  .formGroup select,
+  .formGroup textarea {
     font-size: 13px;
   }
 
-  .actionButtons {
-    gap: 6px;
+  .specialDayRow {
+    flex-direction: column;
+    align-items: stretch;
   }
 
-  .editBtn,
-  .cancelBtn,
-  .confirmBtn {
-    min-width: 32px;
-    height: 32px;
-    font-size: 13px;
+  .specialDayRow input {
+    min-width: 100%;
   }
 
-  .statusActive,
-  .statusInactive {
-    padding: 4px 8px;
-    font-size: 12px;
+  .iconBtn {
+    width: 36px;
+    height: 36px;
   }
-}
-.deleteBtn {
-  min-width: 36px;
-  height: 36px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  background: #fce8e6; /* Light red background, consistent with cancelBtn */
-  color: #c62828; /* Red text/icon color for destructive action */
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
 
-.deleteBtn:hover {
-  background: #f9a8a5; /* Slightly darker red on hover */
-  transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-}
+  .formGroup {
+    grid-template-columns: 1fr;
+  }
 
-.deleteBtn:disabled {
-  background: #e5e7eb; /* Gray background when disabled, consistent with other buttons */
-  color: #9ca3af; /* Gray text/icon when disabled */
-  cursor: not-allowed;
-  box-shadow: none;
-}
-
-.deleteBtn:focus-visible {
-  outline: 2px solid #c62828; /* Red outline for accessibility */
-  outline-offset: 2px;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .deleteBtn {
-    min-width: 32px;
-    height: 32px;
-    font-size: 13px;
+  .formGroup label {
+    justify-self: start;
   }
 }
 
 @media (max-width: 480px) {
-  .deleteBtn {
-    min-width: 30px;
-    height: 30px;
-    font-size: 12px;
-  }
-}
-@media (max-width: 480px) {
-  .productTableThead th,
-  .productTable td {
-    padding: 8px 10px;
-    font-size: 12px;
+  .modalContent {
+    padding: 12px;
   }
 
-  .searchInput,
-  .categorySelect {
-    font-size: 12px;
-    padding: 8px 32px 8px 10px;
-    background-size: 16px;
-  }
-
-  .modalContent select,
-  .modalContent input[type="text"],
-  .modalContent input[type="number"],
-  .modalContent input[type="date"] {
-    font-size: 12px;
-    padding: 8px 32px 8px 10px;
-    background-size: 16px;
-  }
-
-  .modalContent select[multiple] {
-    height: 80px;
-  }
-
-  .modalContent button[type="submit"],
-  .modalContent .confirmBtn,
-  .modalContent .cancelBtn {
-    min-width: 70px;
-    height: 36px;
-    font-size: 12px;
-  }
-
-  .addProductBtn {
+  .formGroup label {
     font-size: 13px;
-    height: 36px;
-    line-height: 36px;
   }
 
-  .pagination {
-    gap: 6px;
-  }
-
-  .pageLink,
-  .ellipsis {
-    min-width: 36px;
-    height: 36px;
-    font-size: 12px;
-  }
-
-  .actionButtons {
-    flex-wrap: wrap;
-    justify-content: flex-end;
-  }
-
-  .editBtn,
-  .cancelBtn,
-  .confirmBtn {
-    min-width: 30px;
-    height: 30px;
-    font-size: 12px;
-  }
-
-  .statusActive,
-  .statusInactive {
-    padding: 3px 6px;
-    font-size: 11px;
-  }
-
-  .statusActive::before,
-  .statusInactive::before {
-    width: 6px;
-    height: 6px;
+  .formGroup span {
+    font-size: 13px;
   }
 }

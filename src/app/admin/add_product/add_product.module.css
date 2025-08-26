@@ -1,4 +1,5 @@
 .mainContainer {
+  width:1920px;
   min-height: 100vh;
   background: #f8fafc;
   font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;

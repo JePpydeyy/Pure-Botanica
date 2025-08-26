@@ -370,7 +370,10 @@ const AdminNewsPage: React.FC = () => {
           </tbody>
         </table>
 
-        {totalPages > 1 && (
+        
+      </div>
+
+{totalPages > 1 && (
           <div className={styles.pagination}>
             {(() => {
               const visiblePages: number[] = [];
@@ -451,7 +454,6 @@ const AdminNewsPage: React.FC = () => {
             })()}
           </div>
         )}
-      </div>
 
       {isPopupOpen && selectedNews && (
         <div className={styles.modalOverlay} onClick={handleOverlayClick}>

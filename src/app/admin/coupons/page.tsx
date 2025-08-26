@@ -299,7 +299,7 @@ function CouponsContent() {
   };
 
   // Fetch với token
-  const fetchWithToken = async (url: string, options: RequestInit = {}) => {
+  const fetchWithToken = async (url: string, options: RequestInit = {}, hasRetried = false) => {
     let token = localStorage.getItem("token");
     if (!token) {
       throw new Error("No token found");
@@ -313,7 +313,7 @@ function CouponsContent() {
 
     let response = await fetch(url, { ...options, headers });
 
-    if (response.status === 401 && !options.noRetry) {
+    if (response.status === 401 && !hasRetried) {
       token = await refreshToken();
       if (token) {
         response = await fetch(url, {
@@ -323,8 +323,8 @@ function CouponsContent() {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          noRetry: true,
         });
+        hasRetried = true;
       } else {
         throw new Error("Không thể làm mới token!");
       }
@@ -806,16 +806,6 @@ function CouponsContent() {
                 aria-label="Thêm mã giảm giá mới"
               >
                 Thêm mã giảm giá
-              </button>
-              <button
-                className={styles.addProductBtn}
-                onClick={() => {
-                  setShowBulkCouponModal(true);
-                }}
-                disabled={actionLoading || bulkLoading}
-                aria-label="Tạo mã giảm giá hàng loạt"
-              >
-                Tạo hàng loạt
               </button>
               <button
                 className={styles.addProductBtn}

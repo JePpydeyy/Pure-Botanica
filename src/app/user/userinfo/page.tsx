@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import styles from "./Userinfo.module.css";
@@ -19,6 +20,7 @@ interface Order {
   total: number;
   paymentStatus: string;
   shippingStatus: string;
+  failReason?: string;
   returnStatus: "none" | "requested" | "approved" | "rejected";
   returnReason?: string;
   returnRequestDate?: string;
@@ -70,14 +72,16 @@ interface Comment {
 interface Coupon {
   _id: string;
   code: string;
-  discountType: string;
+  discountType: "percentage" | "fixed";
   discountValue: number;
   minOrderValue: number;
-  expiryDate: string;
-  usageLimit: number;
+  expiryDate: string | null;
+  usageLimit: number | null;
+  usedCount: number;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  description: string;
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api-zeal.onrender.com";
@@ -109,6 +113,18 @@ const translateCancelReason = (reason: string): string => {
     other: "Lý do khác",
   };
   return reasonMap[reason] || reason;
+};
+
+const translateFailReason = (reason: string | undefined): string => {
+  const failReasons = [
+    { value: "delivery_error", label: "Lỗi vận chuyển" },
+    { value: "address_issue", label: "Sai địa chỉ" },
+    { value: "timeout", label: "Quá thời gian giao hàng" },
+    { value: "other", label: "Khác" },
+  ];
+  if (!reason) return "Không có lý do cụ thể";
+  const foundReason = failReasons.find(r => r.value === reason);
+  return foundReason ? foundReason.label : reason;
 };
 
 const translatePaymentMethod = (method: string): string => {
@@ -166,17 +182,124 @@ const formatPrice = (price: number | undefined | null): string => {
   return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "đ";
 };
 
-const formatDate = (date: string): string => {
-  return new Date(date).toLocaleDateString("vi-VN", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+const formatDate = (date: string | null): string => {
+  if (!date) return "Không có ngày hết hạn";
+  try {
+    return new Date(date).toLocaleDateString("vi-VN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return "Ngày không hợp lệ";
+  }
 };
 
+const renderShippingStatus = (order: Order) => (
+  <span
+    className={`${styles.statusButton} ${
+      order.shippingStatus === "pending"
+        ? styles.pending
+        : order.shippingStatus === "in_transit"
+        ? styles.intransit
+        : order.shippingStatus === "delivered"
+        ? styles.delivered
+        : order.shippingStatus === "cancelled"
+        ? styles.cancelled
+        : order.shippingStatus === "failed"
+        ? styles.failed
+        : styles.returned
+    }`}
+  >
+    {order.shippingStatus === "pending"
+      ? "Đang chờ xử lý"
+      : order.shippingStatus === "in_transit"
+      ? "Đang giao"
+      : order.shippingStatus === "delivered"
+      ? "Đã giao"
+      : order.shippingStatus === "cancelled"
+      ? "Hủy hàng"
+      : order.shippingStatus === "failed"
+      ? "Giao hàng thất bại"
+      : "Hoàn hàng"}
+  </span>
+);
+
+const renderOrderStatus = (order: Order) => (
+  <div className={styles.statusGroup}>
+    <span
+      className={`${styles.statusButton} ${
+        order.paymentStatus === "pending"
+          ? styles.pending
+          : order.paymentStatus === "completed"
+          ? styles.completed
+          : order.paymentStatus === "cancelled"
+          ? styles.cancelled
+          : styles.failed
+      }`}
+    >
+      {order.paymentStatus === "pending"
+        ? "Chờ thanh toán"
+        : order.paymentStatus === "completed"
+        ? "Đã thanh toán"
+        : order.paymentStatus === "cancelled"
+        ? "Đã hủy"
+        : "Thanh toán lỗi"}
+    </span>
+    <span
+      className={`${styles.statusButton} ${
+        order.shippingStatus === "pending"
+          ? styles.pending
+          : order.shippingStatus === "in_transit"
+          ? styles.intransit
+          : order.shippingStatus === "delivered"
+          ? styles.delivered
+          : order.shippingStatus === "cancelled"
+          ? styles.cancelled
+          : order.shippingStatus === "failed"
+          ? styles.failed
+          : styles.returned
+      }`}
+      style={{ marginLeft: 8 }}
+    >
+      {order.shippingStatus === "pending"
+        ? "Chờ giao hàng"
+        : order.shippingStatus === "in_transit"
+        ? "Đang giao"
+        : order.shippingStatus === "delivered"
+        ? "Đã giao"
+        : order.shippingStatus === "cancelled"
+        ? "Đã hủy"
+        : order.shippingStatus === "failed"
+        ? "Giao hàng thất bại"
+        : "Đã trả hàng"}
+    </span>
+    {order.returnStatus !== "none" && (
+      <span
+        className={`${styles.statusButton} ${
+          order.returnStatus === "requested"
+            ? styles.pending
+            : order.returnStatus === "approved"
+            ? styles.completed
+            : styles.cancelled
+        }`}
+        style={{ marginLeft: 8 }}
+      >
+        {order.returnStatus === "requested"
+          ? "Đã yêu cầu hoàn hàng"
+          : order.returnStatus === "approved"
+          ? "Hoàn hàng được chấp nhận"
+          : "Hoàn hàng bị từ chối"}
+      </span>
+    )}
+  </div>
+);
+
 export default function UserProfile() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [user, setUser] = useState<User | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -221,6 +344,52 @@ export default function UserProfile() {
     setConfirmOrderId(orderId);
     setShowConfirmPopup(true);
   };
+
+  const updateQueryParam = (section: "profile" | "orders" | "wishlist" | "coupons") => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("section", section);
+    router.push(`/user/userinfo?${params.toString()}`, { scroll: false });
+  };
+
+  useEffect(() => {
+    const sectionParam = searchParams.get("section");
+    if (sectionParam && ["profile", "orders", "wishlist", "coupons"].includes(sectionParam)) {
+      setSelectedSection(sectionParam as "profile" | "orders" | "wishlist" | "coupons");
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const userId = localStorage.getItem("userId");
+        if (!token) {
+          setError("Không có token. Vui lòng đăng nhập.");
+          setMessage({ type: "error", text: "Không có token. Vui lòng đăng nhập." });
+          setLoading(false);
+          return;
+        }
+        if (!userId || userId === "undefined" || !userId.match(/^[0-9a-fA-F]{24}$/)) {
+          setError("Không tìm thấy hoặc userId không hợp lệ. Vui lòng đăng nhập lại.");
+          setMessage({ type: "error", text: "Không tìm thấy hoặc userId không hợp lệ. Vui lòng đăng nhập lại." });
+          setLoading(false);
+          return;
+        }
+        await fetchUserInfo();
+        await fetchOrders(userId);
+        await fetchWishlist();
+        await fetchCoupons();
+      } catch (err: any) {
+        console.error("Lỗi trong fetchData:", err);
+        setError(err.message || "Lỗi khi tải dữ liệu.");
+        setMessage({ type: "error", text: err.message || "Lỗi khi tải dữ liệu." });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const handleConfirmAction = () => {
     if (confirmAction === "cancel" && confirmOrderId) {
@@ -281,16 +450,13 @@ export default function UserProfile() {
       }
       const res = await fetchWithAuth(`${API_BASE_URL}/api/users/userinfo?id=${userId}`);
       if (!res.ok) {
-        if (res.status === 401) {
-          throw new Error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
-        } else if (res.status === 400) {
-          throw new Error("ID người dùng không hợp lệ.");
-        } else if (res.status === 403) {
-          throw new Error("Bạn không có quyền truy cập thông tin này.");
-        } else if (res.status === 404) {
-          throw new Error("Không tìm thấy người dùng.");
-        }
-        throw new Error("Lỗi khi tải thông tin người dùng.");
+        const errorMap: { [key: number]: string } = {
+          401: "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.",
+          400: "ID người dùng không hợp lệ.",
+          403: "Bạn không có quyền truy cập thông tin này.",
+          404: "Không tìm thấy người dùng.",
+        };
+        throw new Error(errorMap[res.status] || "Lỗi khi tải thông tin người dùng.");
       }
       const data = await res.json();
       const { password, passwordResetToken, ...safeUserData } = data;
@@ -306,6 +472,7 @@ export default function UserProfile() {
       setUser({ ...safeUserData, id: userId });
       return safeUserData;
     } catch (err: any) {
+      console.error("Lỗi trong fetchUserInfo:", err);
       throw new Error(err.message || "Lỗi khi tải thông tin người dùng.");
     }
   };
@@ -323,25 +490,14 @@ export default function UserProfile() {
         cache: "no-store",
       });
       if (!res.ok) {
-        if (res.status === 401) {
-          throw new Error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
-        } else if (res.status === 404) {
-          setOrders([]);
-          return;
-        }
-        throw new Error("Lỗi khi tải danh sách đơn hàng.");
+        const errorMap: { [key: number]: string } = {
+          401: "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.",
+          404: "Không tìm thấy đơn hàng.",
+        };
+        throw new Error(errorMap[res.status] || "Lỗi khi tải danh sách đơn hàng.");
       }
       const data = await res.json();
-      let ordersData: Order[] = [];
-      if (data.status === "success" && Array.isArray(data.data)) {
-        ordersData = data.data;
-      } else if (Array.isArray(data)) {
-        ordersData = data;
-      } else if (data && Array.isArray(data.orders)) {
-        ordersData = data.orders;
-      } else {
-        ordersData = [];
-      }
+      let ordersData: Order[] = Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : [];
       console.log("Orders data:", ordersData);
       const productsRes = await fetch(`${API_BASE_URL}/api/products/active`, {
         cache: "no-store",
@@ -353,6 +509,7 @@ export default function UserProfile() {
       console.log("Products data:", productsData);
       ordersData = ordersData.map(order => ({
         ...order,
+        failReason: order.failReason || undefined,
         items: order.items.map(item => ({
           ...item,
           product: item.product
@@ -413,15 +570,13 @@ export default function UserProfile() {
               map[p.orderId] = p.paymentCode;
             }
           });
-        } else {
-          console.log("Payment data is empty or invalid:", paymentData);
         }
         setPaymentMap(map);
       } else {
         console.warn("Payment request failed:", paymentRes.status, paymentRes.statusText);
-        throw new Error("Lỗi khi tải thông tin thanh toán.");
       }
     } catch (err: any) {
+      console.error("Lỗi trong fetchOrders:", err);
       setOrdersError(err.message || "Lỗi khi tải danh sách đơn hàng.");
       setMessage({ type: "error", text: err.message || "Lỗi khi tải danh sách đơn hàng." });
     } finally {
@@ -445,15 +600,13 @@ export default function UserProfile() {
         cache: "no-store",
       });
       if (!res.ok) {
-        const status = res.status;
         const errorMap: { [key: number]: string } = {
           400: "User ID không hợp lệ.",
           401: "Người dùng không được xác thực hoặc token không hợp lệ.",
           404: "Không tìm thấy người dùng.",
           500: "Lỗi server, có thể do kết nối database.",
         };
-        const errorMessage = errorMap[status] || "Không thể tải danh sách yêu thích.";
-        throw new Error(errorMessage);
+        throw new Error(errorMap[res.status] || "Không thể tải danh sách yêu thích.");
       }
       const data = await res.json();
       console.log("Wishlist data:", data);
@@ -482,6 +635,7 @@ export default function UserProfile() {
       });
       setProducts(processedProducts);
     } catch (err: any) {
+      console.error("Lỗi trong fetchWishlist:", err);
       setWishlistError(err.message || "Không thể tải danh sách yêu thích.");
       setMessage({ type: "error", text: err.message || "Không thể tải danh sách yêu thích!" });
     } finally {
@@ -493,31 +647,40 @@ export default function UserProfile() {
     setCouponsLoading(true);
     setCouponsError(null);
     try {
-      const res = await fetchWithAuth(`${API_BASE_URL}/api/coupons`, {
+      const res = await fetchWithAuth(`${API_BASE_URL}/api/coupons?page=1&limit=100`, {
         cache: "no-store",
       });
       if (!res.ok) {
-        if (res.status === 401) {
-          throw new Error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
-        } else if (res.status === 404) {
-          setCoupons([]);
-          return;
-        }
-        throw new Error("Lỗi khi tải danh sách mã giảm giá.");
+        const errorMap: { [key: number]: string } = {
+          401: "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.",
+          404: "Không tìm thấy mã giảm giá nào.",
+          500: "Lỗi máy chủ. Vui lòng thử lại sau.",
+        };
+        throw new Error(errorMap[res.status] || "Lỗi khi tải danh sách mã giảm giá.");
       }
       const data = await res.json();
-      if (data.message === "Lấy danh sách mã giảm giá thành công" && Array.isArray(data.coupons)) {
+      console.log("Coupon API response:", data);
+      if (Array.isArray(data.coupons)) {
         const currentDate = new Date();
-        const validCoupons = data.coupons.filter((coupon: Coupon) =>
-          coupon.isActive && new Date(coupon.expiryDate) > currentDate
-        );
+        const validCoupons = data.coupons.filter((coupon: Coupon) => {
+          const isValid = coupon.isActive && (!coupon.expiryDate || new Date(coupon.expiryDate) > currentDate);
+          console.log(`Coupon ${coupon.code}: isActive=${coupon.isActive}, expiryDate=${coupon.expiryDate}, valid=${isValid}`);
+          return isValid;
+        });
         setCoupons(validCoupons);
+        if (validCoupons.length === 0) {
+          setMessage({ type: "info", text: "Hiện tại không có mã giảm giá nào hợp lệ." });
+        }
       } else {
+        console.warn("Dữ liệu coupons không phải mảng:", data);
         setCoupons([]);
+        setMessage({ type: "error", text: "Dữ liệu mã giảm giá không hợp lệ từ server." });
       }
     } catch (err: any) {
+      console.error("Lỗi trong fetchCoupons:", err);
       setCouponsError(err.message || "Lỗi khi tải danh sách mã giảm giá.");
       setMessage({ type: "error", text: err.message || "Lỗi khi tải danh sách mã giảm giá!" });
+      setCoupons([]);
     } finally {
       setCouponsLoading(false);
     }
@@ -531,20 +694,23 @@ export default function UserProfile() {
         cache: "no-store",
       });
       if (!res.ok) {
-        if (res.status === 401) {
-          throw new Error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
-        } else if (res.status === 404) {
-          throw new Error("Không tìm thấy mã giảm giá.");
-        }
-        throw new Error("Lỗi khi tải chi tiết mã giảm giá.");
+        const errorMap: { [key: number]: string } = {
+          401: "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.",
+          400: "ID mã giảm giá không hợp lệ.",
+          404: "Không tìm thấy mã giảm giá.",
+          500: "Lỗi máy chủ. Vui lòng thử lại sau.",
+        };
+        throw new Error(errorMap[res.status] || "Lỗi khi tải chi tiết mã giảm giá.");
       }
       const data = await res.json();
-      if (data.message === "Lấy chi tiết mã giảm giá thành công" && data.coupon) {
+      console.log("Coupon by ID API response:", data);
+      if (data.coupon && typeof data.coupon === "object") {
         setSelectedCoupon(data.coupon);
       } else {
         throw new Error("Dữ liệu mã giảm giá không hợp lệ.");
       }
     } catch (err: any) {
+      console.error("Lỗi trong fetchCouponById:", err);
       setError(err.message || "Lỗi khi tải chi tiết mã giảm giá.");
       setMessage({ type: "error", text: err.message || "Lỗi khi tải chi tiết mã giảm giá!" });
     } finally {
@@ -563,27 +729,19 @@ export default function UserProfile() {
         method: "DELETE",
       });
       if (!res.ok) {
-        if (res.status === 401) {
-          localStorage.removeItem("token");
-          setMessage({ type: "error", text: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!" });
-          return;
-        } else if (res.status === 400) {
-          setMessage({ type: "error", text: "ProductId không hợp lệ!" });
-          return;
-        } else if (res.status === 404) {
-          setMessage({ type: "error", text: "Không tìm thấy người dùng!" });
-          return;
-        } else if (res.status === 500) {
-          setMessage({ type: "error", text: "Lỗi server. Vui lòng thử lại sau!" });
-          return;
-        }
-        throw new Error("Không thể xóa sản phẩm khỏi danh sách yêu thích.");
+        const errorMap: { [key: number]: string } = {
+          401: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
+          400: "ProductId không hợp lệ.",
+          404: "Không tìm thấy người dùng.",
+          500: "Lỗi server. Vui lòng thử lại sau.",
+        };
+        throw new Error(errorMap[res.status] || "Không thể xóa sản phẩm khỏi danh sách yêu thích.");
       }
       setProducts(prev => prev.filter(p => p._id !== productId));
       setMessage({ type: "success", text: "Đã xóa sản phẩm khỏi danh sách yêu thích!" });
     } catch (err: any) {
+      console.error("Lỗi trong removeFromWishlist:", err);
       setMessage({ type: "error", text: err.message || "Không thể xóa sản phẩm khỏi danh sách yêu thích!" });
-      console.error("Lỗi xóa sản phẩm:", err);
     }
   }, []);
 
@@ -593,12 +751,11 @@ export default function UserProfile() {
         cache: "no-store",
       });
       if (!res.ok) {
-        if (res.status === 401) {
-          throw new Error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
-        } else if (res.status === 404) {
-          throw new Error("Không tìm thấy đơn hàng.");
-        }
-        throw new Error("Lỗi khi tải chi tiết đơn hàng.");
+        const errorMap: { [key: number]: string } = {
+          401: "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.",
+          404: "Không tìm thấy đơn hàng.",
+        };
+        throw new Error(errorMap[res.status] || "Lỗi khi tải chi tiết đơn hàng.");
       }
       const data = await res.json();
       if (!data || !data._id || !data.items || !Array.isArray(data.items)) {
@@ -615,6 +772,7 @@ export default function UserProfile() {
       console.log("Products data:", productsData);
       const processedOrder = {
         ...data,
+        failReason: data.failReason || undefined,
         items: data.items.map((item: any) => ({
           ...item,
           product: item.product
@@ -638,35 +796,9 @@ export default function UserProfile() {
           public_id: typeof vid === "string" ? "" : vid.public_id || "",
         })).filter((vid: any) => vid.url && vid.url.trim() !== ""),
       };
-      const reviewMap: Record<string, boolean> = { ...canReviewMap };
-      if (processedOrder.paymentStatus === "completed" && processedOrder.shippingStatus === "delivered") {
-        const orderDate = new Date(processedOrder.createdAt);
-        const currentDate = new Date();
-        const daysDiff = (currentDate.getTime() - orderDate.getTime()) / (1000 * 60 * 60 * 24);
-        if (daysDiff <= 7) {
-          for (const item of processedOrder.items) {
-            if (!item.product?._id) continue;
-            try {
-              const commentsRes = await fetchWithAuth(`${API_BASE_URL}/api/comments/product/${item.product._id}`);
-              if (!commentsRes.ok) {
-                console.warn(`Failed to fetch comments for product ${item.product._id}: ${commentsRes.status}`);
-                continue;
-              }
-              const existingComments: Comment[] = await commentsRes.json();
-              const hasCommented = existingComments.some(
-                comment => comment.userId === user?.id && comment.orderId === processedOrder._id
-              );
-              reviewMap[`${item.product._id}-${processedOrder._id}`] = !hasCommented;
-            } catch (err) {
-              console.error(`Error checking comments for product ${item.product._id}:`, err);
-              reviewMap[`${item.product._id}-${processedOrder._id}`] = false;
-            }
-          }
-        }
-      }
-      setCanReviewMap(reviewMap);
       setSelectedOrder(processedOrder);
     } catch (err: any) {
+      console.error("Lỗi trong fetchOrderById:", err);
       setError(err.message || "Lỗi khi tải chi tiết đơn hàng.");
       setMessage({ type: "error", text: err.message || "Lỗi khi tải chi tiết đơn hàng!" });
     } finally {
@@ -715,6 +847,7 @@ export default function UserProfile() {
         await fetchOrders(userId);
       }
     } catch (err: any) {
+      console.error("Lỗi trong cancelOrder:", err);
       setMessage({ type: "error", text: err.message || "Lỗi khi hủy đơn hàng" });
     }
   };
@@ -790,6 +923,7 @@ export default function UserProfile() {
       setReturnImages([]);
       setOrderVideo(null);
     } catch (err: any) {
+      console.error("Lỗi trong requestOrderReturn:", err);
       setMessage({ type: "error", text: err.message || "Lỗi khi yêu cầu hoàn hàng." });
     }
   };
@@ -839,6 +973,7 @@ export default function UserProfile() {
       setConfirmNewPassword("");
       setPasswordError(null);
     } catch (err: any) {
+      console.error("Lỗi trong handleChangePassword:", err);
       setPasswordError(err.message || "Lỗi khi đổi mật khẩu.");
       setMessage({ type: "error", text: err.message || "Lỗi khi đổi mật khẩu!" });
     }
@@ -854,78 +989,6 @@ export default function UserProfile() {
   const retryFetchCoupons = () => {
     fetchCoupons();
   };
-
-  const renderOrderStatus = (order: Order) => (
-    <div className={styles.statusGroup}>
-      <span
-        className={`${styles.statusButton} ${
-          order.paymentStatus === "pending"
-            ? styles.pending
-            : order.paymentStatus === "completed"
-            ? styles.completed
-            : order.paymentStatus === "cancelled"
-            ? styles.cancelled
-            : styles.failed
-        }`}
-      >
-        {order.paymentStatus === "pending"
-          ? "Chờ thanh toán"
-          : order.paymentStatus === "completed"
-          ? "Đã thanh toán"
-          : order.paymentStatus === "cancelled"
-          ? "Đã hủy"
-          : "Thanh toán lỗi"}
-      </span>
-      <span
-        className={`${styles.statusButton} ${
-          order.shippingStatus === "pending"
-            ? styles.pending
-            : order.shippingStatus === "in_transit"
-            ? styles.intransit
-            : order.shippingStatus === "delivered"
-            ? styles.delivered
-            : styles.returned
-        }`}
-        style={{ marginLeft: 8 }}
-      >
-        {order.shippingStatus === "pending"
-          ? "Chờ giao hàng"
-          : order.shippingStatus === "in_transit"
-          ? "Đang giao"
-          : order.shippingStatus === "delivered"
-          ? "Đã giao"
-          : order.shippingStatus === "cancelled"
-          ? "Đã hủy"
-          : "Đã trả hàng"}
-      </span>
-      {order.returnStatus !== "none" && (
-        <span
-          className={`${styles.statusButton} ${
-            order.returnStatus === "requested"
-              ? styles.pending
-              : order.returnStatus === "approved"
-              ? styles.completed
-              : styles.cancelled
-          }`}
-          style={{ marginLeft: 8 }}
-        >
-          {order.returnStatus === "requested"
-            ? "Đã yêu cầu hoàn hàng"
-            : order.returnStatus === "approved"
-            ? "Hoàn hàng được chấp nhận"
-            : "Hoàn hàng bị từ chối"}
-        </span>
-      )}
-      {order.shippingStatus === "cancelled" && (
-        <span
-          className={`${styles.statusButton} ${styles.cancelled}`}
-          style={{ marginLeft: 8 }}
-        >
-          Đã hủy
-        </span>
-      )}
-    </div>
-  );
 
   const formatAddress = (address: any) => {
     if (!address) return "Chưa cập nhật";
@@ -948,38 +1011,6 @@ export default function UserProfile() {
     return daysDiff <= 4;
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const userId = localStorage.getItem("userId");
-        if (!token) {
-          setError("Không có token. Vui lòng đăng nhập.");
-          setMessage({ type: "error", text: "Không có token. Vui lòng đăng nhập." });
-          setLoading(false);
-          return;
-        }
-        if (!userId || userId === "undefined" || !userId.match(/^[0-9a-fA-F]{24}$/)) {
-          setError("Không tìm thấy hoặc userId không hợp lệ. Vui lòng đăng nhập lại.");
-          setMessage({ type: "error", text: "Không tìm thấy hoặc userId không hợp lệ. Vui lòng đăng nhập lại." });
-          setLoading(false);
-          return;
-        }
-        await fetchUserInfo();
-        await fetchOrders(userId);
-        await fetchWishlist();
-        await fetchCoupons();
-      } catch (err: any) {
-        setError(err.message || "Lỗi khi tải dữ liệu.");
-        setMessage({ type: "error", text: err.message || "Lỗi khi tải dữ liệu." });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
-
   if (loading) return <p className={styles.loading}>Đang tải thông tin...</p>;
   if (error) return <p className={styles.error}>{error}</p>;
   if (!user) return <p className={styles.error}>Không tìm thấy thông tin người dùng.</p>;
@@ -999,6 +1030,7 @@ export default function UserProfile() {
               setSelectedCoupon(null);
               setShowReturnForm(false);
               setShowPasswordForm(false);
+              updateQueryParam("profile");
             }}
           >
             Tài khoản
@@ -1011,6 +1043,7 @@ export default function UserProfile() {
               setSelectedCoupon(null);
               setShowReturnForm(false);
               setShowPasswordForm(false);
+              updateQueryParam("orders");
             }}
           >
             Đơn hàng
@@ -1023,6 +1056,7 @@ export default function UserProfile() {
               setSelectedCoupon(null);
               setShowReturnForm(false);
               setShowPasswordForm(false);
+              updateQueryParam("wishlist");
             }}
           >
             Sản phẩm yêu thích
@@ -1035,6 +1069,7 @@ export default function UserProfile() {
               setSelectedCoupon(null);
               setShowReturnForm(false);
               setShowPasswordForm(false);
+              updateQueryParam("coupons");
             }}
           >
             Mã giảm giá
@@ -1171,34 +1206,15 @@ export default function UserProfile() {
                       <div key={order._id} className={styles.orderCard}>
                         <div className={styles.orderHeader}>
                           <span>Mã đơn hàng: {order._id}</span>
-                          <span
-                            className={`${styles.statusButton} ${
-                              order.shippingStatus === "pending"
-                                ? styles.pending
-                                : order.shippingStatus === "in_transit"
-                                ? styles.intransit
-                                : order.shippingStatus === "delivered"
-                                ? styles.delivered
-                                : order.shippingStatus === "cancelled"
-                                ? styles.cancelled
-                                : styles.returned
-                            }`}
-                          >
-                            {order.shippingStatus === "pending"
-                              ? "Đang chờ xử lý"
-                              : order.shippingStatus === "in_transit"
-                              ? "Đang giao"
-                              : order.shippingStatus === "delivered"
-                              ? "Đã giao"
-                              : order.shippingStatus === "cancelled"
-                              ? "Hủy hàng"
-                              : "Hoàn hàng"}
-                          </span>
+                          {renderShippingStatus(order)}
                         </div>
                         <p>Ngày đặt: {new Date(order.createdAt).toLocaleDateString()}</p>
                         <p>Tổng tiền: {formatPrice(order.total)}</p>
                         <p>Thanh toán: {translatePaymentMethod(order.paymentMethod ?? "")}</p>
                         {order.couponCode && <p>Mã giảm giá: {order.couponCode}</p>}
+                        {order.shippingStatus === "failed" && order.failReason && (
+                          <p><strong>Lý do thất bại:</strong> {translateFailReason(order.failReason)}</p>
+                        )}
                         <button
                           className={styles.detailButton}
                           onClick={() => fetchOrderById(order._id)}
@@ -1339,6 +1355,14 @@ export default function UserProfile() {
                         <strong>Hủy bởi:</strong> {selectedOrder.cancelledBy === "admin" ? "Quản trị viên" : "Khách hàng"}
                       </p>
                     )}
+                  </div>
+                )}
+
+                {selectedOrder.shippingStatus === "failed" && (
+                  <div className={styles.noteSection}>
+                    <h3>Thông tin giao hàng thất bại</h3>
+                    <p><strong>Trạng thái:</strong> Giao hàng thất bại</p>
+                    <p><strong>Lý do thất bại:</strong> {translateFailReason(selectedOrder.failReason)}</p>
                   </div>
                 )}
 
@@ -1835,54 +1859,63 @@ export default function UserProfile() {
             )}
           </>
         )}
-
-        {selectedSection === "coupons" && !selectedCoupon && (
-          <>
-            <h2 className={styles.title}>Mã giảm giá</h2>
-            {couponsLoading && <p className={styles.loading}>Đang tải danh sách mã giảm giá...</p>}
-            {couponsError && (
-              <div className={styles.error}>
-                <p>{couponsError}</p>
-                <button onClick={retryFetchCoupons} className={styles.editButton}>
-                  Thử lại
-                </button>
-              </div>
-            )}
-            {!couponsLoading && !couponsError && (
-              <>
-                {coupons.length === 0 ? (
-                  <p className={styles.infoRow}>Chưa có mã giảm giá hợp lệ</p>
-                ) : (
-                  <div className={styles.orderCards}>
-                    {coupons.map(coupon => (
-                      <div key={coupon._id} className={styles.orderCard}>
-                        <div className={styles.orderHeader}>
-                          <span>Mã: {coupon.code}</span>
-                          <span
-                            className={`${styles.statusButton} ${coupon.isActive ? styles.completed : styles.cancelled}`}
-                          >
-                            {coupon.isActive ? "Đang hoạt động" : "Không hoạt động"}
-                          </span>
-                        </div>
-                        <p>Giảm: {coupon.discountType === "percentage" ? `${coupon.discountValue}%` : formatPrice(coupon.discountValue)}</p>
-                        <p>Đơn tối thiểu: {formatPrice(coupon.minOrderValue)}</p>
-                        <p>Hết hạn: {formatDate(coupon.expiryDate)}</p>
+      {selectedSection === "coupons" && !selectedCoupon && (
+        <>
+          <h2 className={styles.title}>Mã giảm giá</h2>
+          {couponsLoading && <p className={styles.loading}>Đang tải danh sách mã giảm giá...</p>}
+          {couponsError && (
+            <div className={styles.error}>
+              <p>{couponsError}</p>
+              <button onClick={retryFetchCoupons} className={styles.editButton}>
+                Thử lại
+              </button>
+            </div>
+          )}
+          {!couponsLoading && !couponsError && (
+            <>
+              {coupons.length === 0 ? (
+                <p className={styles.infoRow}>Chưa có mã giảm giá hợp lệ</p>
+              ) : (
+                <div className={styles.orderCards}>
+                  {coupons.map(coupon => (
+                    <div key={coupon._id} className={styles.orderCard}>
+                      <div className={styles.orderHeader}>
+                        <span>Mã: {coupon.code}</span>
                         <button
-                          className={styles.detailButton}
-                          onClick={() => fetchCouponById(coupon._id)}
+                          className={styles.copyButton}
+                          onClick={() => {
+                            navigator.clipboard.writeText(coupon.code);
+                            setMessage({ type: "success", text: "Đã sao chép mã!" });
+                          }}
                         >
-                          Xem chi tiết
+                          Copy
                         </button>
+                        <span
+                          className={`${styles.statusButton} ${coupon.isActive ? styles.completed : styles.cancelled}`}
+                        >
+                          {coupon.isActive ? "Đang hoạt động" : "Không hoạt động"}
+                        </span>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-          </>
-        )}
+                      <p>Giảm: {coupon.discountType === "percentage" ? `${coupon.discountValue}%` : formatPrice(coupon.discountValue)}</p>
+                      <p>Đơn tối thiểu: {formatPrice(coupon.minOrderValue)}</p>
+                      <p>Hết hạn: {formatDate(coupon.expiryDate)}</p>
+                      {coupon.description && <p>Mô tả: {coupon.description}</p>}
+                      <button
+                        className={styles.detailButton}
+                        onClick={() => fetchCouponById(coupon._id)}
+                      >
+                        Xem chi tiết
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </>
+      )}
 
-        {selectedSection === "coupons" && selectedCoupon && (
+      {selectedSection === "coupons" && selectedCoupon && (
           <>
             <h2 className={styles.title}>Chi tiết mã giảm giá: {selectedCoupon.code}</h2>
             {loading && <p className={styles.loading}>Đang tải chi tiết mã giảm giá...</p>}
@@ -1911,6 +1944,9 @@ export default function UserProfile() {
                 </p>
                 <p className={styles.infoRow}>
                   <strong>Trạng thái:</strong> {selectedCoupon.isActive ? "Đang hoạt động" : "Không hoạt động"}
+                </p>
+                <p className={styles.infoRow}>
+                  <strong>Mô tả:</strong> {selectedCoupon.description || "Không có mô tả"}
                 </p>
                 <p className={styles.infoRow}>
                   <strong>Ngày tạo:</strong> {formatDate(selectedCoupon.createdAt)}

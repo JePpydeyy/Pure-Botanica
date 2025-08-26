@@ -10,8 +10,13 @@ import SearchBar from "../components/Searchbar";
 import ImageWithFallback from "../components/ImageWithFallback";
 import ScrollToTop from "../components/ScrollToTop";
 import MobileMenuToggle from "../components/menumobile";
+import Chatbot from "../components/Chatbot";
+import Swal from "sweetalert2";
+import withReactContent from "sweetalert2-react-content";
 import '@fortawesome/fontawesome-free/css/all.min.css';
 export const dynamic = "force-dynamic";
+
+const MySwal = withReactContent(Swal);
 
 const fetchImage = async (type: "favicon" | "logo-shop"): Promise<string> => {
   console.log(`Fetching ${type}... at ${new Date().toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" })}`);
@@ -19,6 +24,21 @@ const fetchImage = async (type: "favicon" | "logo-shop"): Promise<string> => {
     const res = await fetch(`https://api-zeal.onrender.com/api/interfaces/${type}`, { cache: "no-store" });
     if (!res.ok) {
       console.error(`Fetch ${type} failed at ${new Date().toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" })}:`, res.status, res.statusText);
+      MySwal.fire({
+        icon: 'warning',
+        title: 'Cảnh báo',
+        text: `Không thể tải ${type}, sử dụng hình mặc định.`,
+      });
+      return type === "favicon" ? "/favicon.ico" : "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+    }
+    const contentType = res.headers.get("content-type");
+    if (!contentType?.includes("application/json")) {
+      console.error(`Invalid response type for ${type}:`, contentType);
+      MySwal.fire({
+        icon: 'warning',
+        title: 'Cảnh báo',
+        text: `Định dạng phản hồi không hợp lệ cho ${type}, sử dụng hình mặc định.`,
+      });
       return type === "favicon" ? "/favicon.ico" : "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
     }
     const data = await res.json();
@@ -26,11 +46,15 @@ const fetchImage = async (type: "favicon" | "logo-shop"): Promise<string> => {
     return data.paths && data.paths.length > 0 ? data.paths[0] : (type === "favicon" ? "/favicon.ico" : "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg");
   } catch (error) {
     console.error(`Error fetching ${type} at ${new Date().toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" })}:`, error);
+    MySwal.fire({
+      icon: 'error',
+      title: 'Lỗi',
+      text: `Lỗi khi tải ${type}: ${(error as Error).message}`,
+    });
     return type === "favicon" ? "/favicon.ico" : "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
   }
 };
 
-// Dynamically generate metadata for favicon
 export async function generateMetadata(): Promise<Metadata> {
   const faviconPath = await fetchImage("favicon");
   console.log("Resolved faviconPath:", faviconPath);
@@ -44,11 +68,7 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const categories: Category[] = await getCategories("https://api-zeal.onrender.com/api/categories");
   const logoPath = await fetchImage("logo-shop");
   console.log("Resolved logoPath:", logoPath);
@@ -125,22 +145,22 @@ export default async function RootLayout({
                   </ul>
                 </div>
                 <div className="footer-column">
-  <h4>CHÍNH SÁCH</h4>
-  <ul>
-    <li>
-      <Link href="/user/policy?type=privacy">Chính Sách Bảo Mật</Link>
-    </li>
-    <li>
-      <Link href="/user/policy?type=return">Chính Sách Đổi Trả</Link>
-    </li>
-    <li>
-      <Link href="/user/policy?type=shipping">Chính Sách Giao Hàng</Link>
-    </li>
-    <li>
-      <Link href="/user/policy?type=information">Chính Sách Bảo Mật Thông Tin</Link>
-    </li>
-  </ul>
-</div>
+                  <h4>CHÍNH SÁCH</h4>
+                  <ul>
+                    <li>
+                      <Link href="/user/policy?type=privacy">Chính Sách Bảo Mật</Link>
+                    </li>
+                    <li>
+                      <Link href="/user/policy?type=return">Chính Sách Đổi Trả</Link>
+                    </li>
+                    <li>
+                      <Link href="/user/policy?type=shipping">Chính Sách Giao Hàng</Link>
+                    </li>
+                    <li>
+                      <Link href="/user/policy?type=information">Chính Sách Bảo Mật Thông Tin</Link>
+                    </li>
+                  </ul>
+                </div>
               </div>
               <div className="footer-newsletter">
                 <h4>Đăng ký email để nhận thông tin</h4>
@@ -171,33 +191,43 @@ export default async function RootLayout({
           </footer>
 
           <ScrollToTop />
-
-          <script
-            data-name-bot="Pure Botanica - BOT"
-            src="https://app.preny.ai/embed-global.js"
-            data-button-style="width:300px;height:300px;"
-            data-language="vi"
-            async
-            defer
-            data-preny-bot-id="68a0315b620b2571ccdd98a4"
-          />
+          <Chatbot /> {/* Remove conditional rendering here */}
         </div>
       </CartProvider>
     </AuthProvider>
   );
 }
 
-// Hàm lấy danh mục
 async function getCategories(url: string): Promise<Category[]> {
   try {
     const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) {
       console.error(`Fetch categories failed at ${new Date().toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" })}:`, res.status, res.statusText);
+      MySwal.fire({
+        icon: 'warning',
+        title: 'Cảnh báo',
+        text: 'Không thể tải danh mục, hiển thị trang không danh mục.',
+      });
+      return [];
+    }
+    const contentType = res.headers.get("content-type");
+    if (!contentType?.includes("application/json")) {
+      console.error("Invalid response type for categories:", contentType);
+      MySwal.fire({
+        icon: 'warning',
+        title: 'Cảnh báo',
+        text: 'Định dạng phản hồi không hợp lệ, hiển thị trang không danh mục.',
+      });
       return [];
     }
     const data = await res.json();
     if (!Array.isArray(data)) {
       console.error(`Invalid categories data at ${new Date().toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" })}:`, data);
+      MySwal.fire({
+        icon: 'warning',
+        title: 'Cảnh báo',
+        text: 'Dữ liệu danh mục không hợp lệ, hiển thị trang không danh mục.',
+      });
       return [];
     }
     return data.map((category: any) => ({
@@ -210,7 +240,11 @@ async function getCategories(url: string): Promise<Category[]> {
     }));
   } catch (error) {
     console.error(`Error fetching categories at ${new Date().toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" })}:`, error);
+    MySwal.fire({
+      icon: 'error',
+      title: 'Lỗi',
+      text: `Lỗi khi tải danh mục: ${(error as Error).message}`,
+    });
     return [];
   }
 }
-

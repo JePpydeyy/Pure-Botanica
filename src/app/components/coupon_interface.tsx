@@ -6,6 +6,7 @@ export interface User {
 }
 
 export interface Coupon {
+  description: string;
   _id: string;
   code: string;
   discountType: "percentage" | "fixed"; // Ràng buộc cụ thể thay vì string

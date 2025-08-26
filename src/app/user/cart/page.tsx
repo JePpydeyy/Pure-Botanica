@@ -14,6 +14,20 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api-zeal.o
 const ERROR_IMAGE_URL = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
 const TIMEOUT_DURATION = 10000;
 
+// Interface for Coupon
+interface Coupon {
+  _id: string;
+  code: string;
+  isActive?: boolean; // Optional, default to true if missing
+  expiryDate: string | null;
+  discountType: "percentage" | "fixed";
+  discountValue: number;
+  minOrderValue: number;
+  usageLimit: number | null;
+  usedCount: number;
+  description: string;
+}
+
 // Utility function: Get image URL
 const getImageUrl = (image: string): string => {
   if (!image || typeof image !== "string" || image.trim() === "") {
@@ -31,14 +45,14 @@ const getImageUrl = (image: string): string => {
   }
 };
 
-// API request function with timeout handling
+// API request function with timeout handling and token
 const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
   const url = `${API_BASE_URL}${endpoint}`;
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
   const defaultHeaders = {
     "Content-Type": "application/json",
-    ...(token && { Authorization: `Bearer ${token}` }),
+    ...(token && { Authorization: `Bearer ${token}` }), // Add token if exists
   };
 
   const config: RequestInit = {
@@ -82,6 +96,7 @@ export default function CartPage() {
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [couponCode, setCouponCode] = useState("");
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [discount, setDiscount] = useState(0);
   const [total, setTotal] = useState(0);
   const [cartMessage, setCartMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -131,6 +146,46 @@ export default function CartPage() {
       setTimeout(() => router.push("/user/login"), 3000);
     }
   }, [router]);
+
+  // Fetch coupons - Requires token authentication
+  const fetchCoupons = async () => {
+    try {
+      const couponData = await apiRequest("/api/coupons"); // Token is now included in header
+      console.log("Raw coupon data from API:", couponData); // Debug raw data
+
+      // Handle if API returns { coupons: [...] } or direct array
+      const couponsArray = Array.isArray(couponData) ? couponData : (couponData.coupons || []);
+      
+      if (couponsArray.length > 0) {
+        const validCoupons = couponsArray
+          .filter((coupon: Coupon) => {
+            const isActive = coupon.isActive !== false; // Default to true if missing or undefined
+            const expiryDate = coupon.expiryDate ? new Date(coupon.expiryDate) : null;
+            const isNotExpired = !expiryDate || expiryDate > new Date(); // Current date: 2025-08-26 14:15 +07
+            const isWithinUsageLimit = coupon.usageLimit === null || coupon.usedCount < coupon.usageLimit;
+            console.log(`Filtering coupon ${coupon.code}: active=${isActive}, notExpired=${isNotExpired}, withinLimit=${isWithinUsageLimit}`); // Debug filter
+            return isActive && isNotExpired && isWithinUsageLimit;
+          });
+        console.log("Valid coupons after filter:", validCoupons); // Debug valid coupons
+        setCoupons(validCoupons);
+      } else {
+        setCoupons([]);
+        console.warn("No coupons found in API response:", couponData);
+      }
+    } catch (err) {
+      console.error("Error fetching coupons:", err); // Debug error
+      setCartMessage({ type: "error", text: "Lỗi khi tải danh sách mã giảm giá (có thể do token không hợp lệ)" });
+      setTimeout(() => setCartMessage(null), 3000);
+    }
+  };
+
+  // Fetch cart and coupons
+  useEffect(() => {
+    if (userId) {
+      fetchCart();
+      fetchCoupons();
+    }
+  }, [userId]);
 
   // Fetch cart data
   const fetchCart = async () => {
@@ -182,12 +237,6 @@ export default function CartPage() {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (userId) {
-      fetchCart();
-    }
-  }, [userId]);
 
   // Get product price from option
   const getProductPrice = (option: CartItem["option"] | null | undefined): number => {
@@ -361,7 +410,7 @@ export default function CartPage() {
   // Apply coupon code
   const updatePrice = async () => {
     if (!userId || !couponCode.trim()) {
-      setCartMessage({ type: "error", text: "Vui lòng nhập mã giảm giá" });
+      setCartMessage({ type: "error", text: "Vui lòng chọn mã giảm giá" });
       setTimeout(() => setCartMessage(null), 3000);
       return;
     }
@@ -560,13 +609,27 @@ export default function CartPage() {
         </div>
         <div className={styles["cart-right"]}>
           <div className={styles.discount}>
-            <input
-              type="text"
-              placeholder="Nhập mã giảm giá"
-              className={styles["discount-input"]}
+            <select
+              className={styles["discount-select"]}
               value={couponCode}
               onChange={(e) => setCouponCode(e.target.value)}
-            />
+            >
+              <option value="">Chọn mã giảm giá</option>
+              {coupons.length === 0 ? (
+                <option disabled>Không có mã giảm giá khả dụng</option>
+              ) : (
+                coupons.map((coupon) => {
+                  const discountDisplay = coupon.discountType === "percentage" 
+                    ? `${coupon.discountValue}%` 
+                    : formatPrice(coupon.discountValue);
+                  return (
+                    <option key={coupon._id} value={coupon.code}>
+                      {`${coupon.code} - ${coupon.description || "không có mô tả"} (${discountDisplay})`}
+                    </option>
+                  );
+                })
+              )}
+            </select>
             <button className={`${styles["discount-btn"]} ${styles.apply}`} onClick={handleApplyCoupon}>
               Sử dụng
             </button>

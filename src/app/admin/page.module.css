@@ -125,6 +125,9 @@
 .statBox:nth-child(4) {
   border-left-color: #8b5cf6;
 }
+.statBox:nth-child(5) {
+  border-left-color: #5cf673;
+}
 
 .statBox:hover {
   transform: translateY(-3px);

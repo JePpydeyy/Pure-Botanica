@@ -6,10 +6,19 @@ import { Suspense } from "react";
 import styles from "./coupon.module.css";
 import type { Coupon, User } from "@/app/components/coupon_interface";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEdit, faTrash, faPlus, faTimes, faCheck, faUsers, faGear } from "@fortawesome/free-solid-svg-icons";
+import {
+  faEdit,
+  faTrash,
+  faPlus,
+  faTimes,
+  faCheck,
+  faUsers,
+  faGear,
+} from "@fortawesome/free-solid-svg-icons";
 import ToastNotification from "../../user/ToastNotification/ToastNotification";
 import CouponForm from "../../components/CouponForm";
 
+// Interfaces
 interface Pagination {
   page: number;
   limit: number;
@@ -27,6 +36,7 @@ interface FormData {
   usageLimit: number | null;
   isActive: boolean;
   usedCount?: number;
+  description: string;
 }
 
 interface BulkCouponFormData {
@@ -35,8 +45,15 @@ interface BulkCouponFormData {
   minOrderValue: number;
   expiryDays: number;
   usageLimit: number | null;
-  target: "all" | "selected"; // Giữ target để tương thích, nhưng chỉ dùng "all"
+  target: "all" | "selected";
   selectedUserIds: string[];
+  description: string;
+  count: number; // Thêm count cho số lượng mã
+}
+
+interface SpecialDay {
+  date: string;
+  description: string;
 }
 
 interface AutoSetupFormData {
@@ -45,7 +62,7 @@ interface AutoSetupFormData {
   minOrderValue: number;
   expiryDays: number;
   usageLimit: number | null;
-  specialDays: string;
+  specialDays: SpecialDay[];
 }
 
 interface AutoSetupConfig {
@@ -54,7 +71,7 @@ interface AutoSetupConfig {
   minOrderValue: number;
   expiryDays: number;
   usageLimit: number | null;
-  specialDays: string[];
+  specialDays: SpecialDay[];
 }
 
 interface Notification {
@@ -63,20 +80,26 @@ interface Notification {
   type: "success" | "error";
 }
 
-// Type guard
-function isFormData(formData: FormData | BulkCouponFormData | AutoSetupFormData): formData is FormData {
+// Type guards
+function isFormData(
+  formData: FormData | BulkCouponFormData | AutoSetupFormData
+): formData is FormData {
   return "code" in formData && "isActive" in formData;
 }
 
-function isBulkCouponFormData(formData: FormData | BulkCouponFormData | AutoSetupFormData): formData is BulkCouponFormData {
+function isBulkCouponFormData(
+  formData: FormData | BulkCouponFormData | AutoSetupFormData
+): formData is BulkCouponFormData {
   return "target" in formData && "selectedUserIds" in formData;
 }
 
-function isAutoSetupFormData(formData: FormData | BulkCouponFormData | AutoSetupFormData): formData is AutoSetupFormData {
+function isAutoSetupFormData(
+  formData: FormData | BulkCouponFormData | AutoSetupFormData
+): formData is AutoSetupFormData {
   return "specialDays" in formData;
 }
 
-// Custom hook để quản lý form state
+// Custom hook
 const useCouponForm = <T extends object>(initialState: T) => {
   const [formData, setFormData] = useState<T>(initialState);
   const updateField = useCallback(<K extends keyof T>(field: K, value: T[K]) => {
@@ -90,7 +113,8 @@ function CouponsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const searchQueryFromUrl = searchParams.get("search") || "";
-  const statusFilterFromUrl = (searchParams.get("status") as "all" | "active" | "inactive") || "all";
+  const statusFilterFromUrl =
+    (searchParams.get("status") as "all" | "active" | "inactive") || "all";
 
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [isAuthorized, setIsAuthorized] = useState(false);
@@ -98,10 +122,21 @@ function CouponsContent() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [bulkLoading, setBulkLoading] = useState(false);
-  const [notification, setNotification] = useState<Notification>({ show: false, message: "", type: "success" });
-  const [pagination, setPagination] = useState<Pagination>({ page: 1, limit: 9, total: 0, totalPages: 1 });
+  const [notification, setNotification] = useState<Notification>({
+    show: false,
+    message: "",
+    type: "success",
+  });
+  const [pagination, setPagination] = useState<Pagination>({
+    page: 1,
+    limit: 9,
+    total: 0,
+    totalPages: 1,
+  });
   const [searchQuery, setSearchQuery] = useState(searchQueryFromUrl);
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">(statusFilterFromUrl);
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "active" | "inactive"
+  >(statusFilterFromUrl);
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showBulkCouponModal, setShowBulkCouponModal] = useState(false);
@@ -117,6 +152,7 @@ function CouponsContent() {
     usageLimit: null,
     isActive: true,
     usedCount: 0,
+    description: "",
   };
 
   const initialBulkCouponFormData: BulkCouponFormData = {
@@ -125,8 +161,10 @@ function CouponsContent() {
     minOrderValue: 0,
     expiryDays: 7,
     usageLimit: 1,
-    target: "all", // Mặc định là "all" để áp dụng cho mọi người
+    target: "all",
     selectedUserIds: [],
+    description: "",
+    count: 5,
   };
 
   const initialAutoSetupFormData: AutoSetupFormData = {
@@ -135,58 +173,111 @@ function CouponsContent() {
     minOrderValue: 0,
     expiryDays: 7,
     usageLimit: 1,
-    specialDays: "2025-09-02,2026-01-01",
+    specialDays: [
+      { date: "2025-09-02", description: "Ngày Quốc Khánh" },
+      { date: "2026-01-01", description: "Năm Mới" },
+    ],
   };
 
-  const { formData, updateField, resetForm, setFormData } = useCouponForm<FormData>(initialFormData);
-  const { formData: bulkCouponFormData, updateField: updateBulkField, resetForm: resetBulkForm } = useCouponForm<BulkCouponFormData>(initialBulkCouponFormData);
-  const { formData: autoSetupFormData, updateField: updateAutoSetupField, resetForm: resetAutoSetupForm } = useCouponForm<AutoSetupFormData>(initialAutoSetupFormData);
+  const { formData, updateField, resetForm, setFormData } =
+    useCouponForm<FormData>(initialFormData);
+  const { formData: bulkCouponFormData, updateField: updateBulkField, resetForm: resetBulkForm } =
+    useCouponForm<BulkCouponFormData>(initialBulkCouponFormData);
+  const {
+    formData: autoSetupFormData,
+    updateField: updateAutoSetupField,
+    resetForm: resetAutoSetupForm,
+    setFormData: setAutoSetupFormData,
+  } = useCouponForm<AutoSetupFormData>(initialAutoSetupFormData);
 
   // Xử lý lỗi
-  const handleError = useCallback((err: unknown, defaultMessage: string) => {
-    let errorMessage = defaultMessage;
-    if (err instanceof Error) {
-      if (err.message.includes("Phiên đăng nhập hết hạn") || err.message.includes("Unauthorized")) {
-        errorMessage = "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!";
-        localStorage.clear();
-        setTimeout(() => router.push("/user/login"), 3000);
-      } else if (err.message.includes("already exists")) {
-        errorMessage = "Mã giảm giá đã tồn tại!";
-      } else if (err.message.includes("limit exceeded")) {
-        errorMessage = "Đã vượt quá giới hạn mã giảm giá!";
-      } else if (err.message.includes("Không có người dùng hợp lệ")) {
-        errorMessage = "Không có người dùng hợp lệ để tạo mã giảm giá!";
-      } else {
-        errorMessage = err.message || defaultMessage;
+  const handleError = useCallback(
+    (err: unknown, defaultMessage: string) => {
+      let errorMessage = defaultMessage;
+      if (err instanceof Error) {
+        if (
+          err.message.includes("Phiên đăng nhập hết hạn") ||
+          err.message.includes("Unauthorized")
+        ) {
+          errorMessage = "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!";
+          localStorage.clear();
+          setTimeout(() => router.push("/user/login"), 3000);
+        } else if (err.message.includes("already exists")) {
+          errorMessage = "Mã giảm giá đã tồn tại!";
+        } else if (err.message.includes("limit exceeded")) {
+          errorMessage = "Đã vượt quá giới hạn mã giảm giá!";
+        } else if (err.message.includes("Không có người dùng hợp lệ")) {
+          errorMessage = "Không có người dùng hợp lệ để tạo mã giảm giá!";
+        } else {
+          errorMessage = err.message || defaultMessage;
+        }
       }
-    }
-    setNotification({ show: true, message: errorMessage, type: "error" });
-    setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
-  }, [router]);
+      setNotification({ show: true, message: errorMessage, type: "error" });
+      setTimeout(
+        () => setNotification({ show: false, message: "", type: "success" }),
+        3000
+      );
+    },
+    [router]
+  );
 
   // Validate form
-  const validateForm = useCallback((data: FormData | BulkCouponFormData | AutoSetupFormData) => {
-    const errors: string[] = [];
-    if (isFormData(data) && !data.code.trim()) {
-      errors.push("Mã giảm giá là bắt buộc!");
-    }
-    if (data.discountValue <= 0) {
-      errors.push("Giá trị giảm phải lớn hơn 0!");
-    }
-    if ((isBulkCouponFormData(data) || isAutoSetupFormData(data)) && data.expiryDays < 1) {
-      errors.push("Số ngày hiệu lực phải lớn hơn hoặc bằng 1!");
-    }
-    if (isFormData(data) && data.code.length > 20) {
-      errors.push("Mã giảm giá không được vượt quá 20 ký tự!");
-    }
-    if (isAutoSetupFormData(data) && !data.specialDays.trim()) {
-      errors.push("Vui lòng nhập ngày đặc biệt (dạng YYYY-MM-DD, cách nhau bằng dấu phẩy)!");
-    }
-    return errors;
-  }, []);
+  const validateForm = useCallback(
+    (data: FormData | BulkCouponFormData | AutoSetupFormData) => {
+      const errors: string[] = [];
+      if (isFormData(data)) {
+        if (!data.code.trim()) {
+          errors.push("Mã giảm giá là bắt buộc!");
+        }
+        if (data.code.length > 20) {
+          errors.push("Mã giảm giá không được vượt quá 20 ký tự!");
+        }
+        if (data.description && data.description.length > 200) {
+          errors.push("Mô tả không được vượt quá 200 ký tự!");
+        }
+      }
+      if (data.discountValue <= 0) {
+        errors.push("Giá trị giảm phải lớn hơn 0!");
+      }
+      if (
+        (isBulkCouponFormData(data) || isAutoSetupFormData(data)) &&
+        data.expiryDays < 1
+      ) {
+        errors.push("Số ngày hiệu lực phải lớn hơn hoặc bằng 1!");
+      }
+      if (isBulkCouponFormData(data)) {
+        if (data.description && data.description.length > 200) {
+          errors.push("Mô tả không được vượt quá 200 ký tự!");
+        }
+        if (data.count < 1) {
+          errors.push("Số lượng mã phải lớn hơn hoặc bằng 1!");
+        }
+      }
+      if (isAutoSetupFormData(data)) {
+        if (!data.specialDays.length) {
+          errors.push("Vui lòng nhập ít nhất một ngày đặc biệt!");
+        } else {
+          const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+          for (const day of data.specialDays) {
+            if (!dateRegex.test(day.date)) {
+              errors.push(
+                "Ngày đặc biệt phải đúng định dạng YYYY-MM-DD (ví dụ: 2025-09-02)!"
+              );
+              break;
+            }
+            if (day.description && day.description.length > 200) {
+              errors.push(`Mô tả cho ngày ${day.date} không được vượt quá 200 ký tự!`);
+            }
+          }
+        }
+      }
+      return errors;
+    },
+    []
+  );
 
   // Làm mới token
-  const refreshToken = async () => {
+  const refreshToken = async (attempts = 0, maxAttempts = 2) => {
     try {
       const response = await fetch("https://api-zeal.onrender.com/api/auth/refresh", {
         method: "POST",
@@ -199,6 +290,9 @@ function CouponsContent() {
       localStorage.setItem("token", data.token);
       return data.token;
     } catch (err) {
+      if (attempts < maxAttempts) {
+        return refreshToken(attempts + 1, maxAttempts);
+      }
       handleError(err, "Lỗi khi làm mới token!");
       return null;
     }
@@ -217,12 +311,9 @@ function CouponsContent() {
       "Content-Type": "application/json",
     };
 
-    let response = await fetch(url, {
-      ...options,
-      headers,
-    });
+    let response = await fetch(url, { ...options, headers });
 
-    if (response.status === 401) {
+    if (response.status === 401 && !options.noRetry) {
       token = await refreshToken();
       if (token) {
         response = await fetch(url, {
@@ -232,6 +323,7 @@ function CouponsContent() {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
+          noRetry: true,
         });
       } else {
         throw new Error("Không thể làm mới token!");
@@ -249,24 +341,26 @@ function CouponsContent() {
   // Lấy cấu hình tự động
   const fetchAutoSetupConfig = useCallback(async () => {
     try {
-      const response = await fetchWithToken("https://api-zeal.onrender.com/api/coupons/auto-setup", {
-        method: "GET",
-        cache: "no-store",
-      });
+      const response = await fetchWithToken(
+        "https://api-zeal.onrender.com/api/coupons/auto-setup",
+        { method: "GET", cache: "no-store" }
+      );
       const data = await response.json();
-      if (data.success) {
+      if (data.success && data.config) {
         const config: AutoSetupConfig = data.config;
-        updateAutoSetupField("discountType", config.discountType);
-        updateAutoSetupField("discountValue", config.discountValue);
-        updateAutoSetupField("minOrderValue", config.minOrderValue);
-        updateAutoSetupField("expiryDays", config.expiryDays);
-        updateAutoSetupField("usageLimit", config.usageLimit);
-        updateAutoSetupField("specialDays", config.specialDays.join(","));
+        setAutoSetupFormData({
+          discountType: config.discountType,
+          discountValue: config.discountValue,
+          minOrderValue: config.minOrderValue,
+          expiryDays: config.expiryDays,
+          usageLimit: config.usageLimit,
+          specialDays: config.specialDays,
+        });
       }
     } catch (err) {
       handleError(err, "Lỗi khi tải cấu hình tự động!");
     }
-  }, [handleError, updateAutoSetupField]);
+  }, [handleError, setAutoSetupFormData]);
 
   // Kiểm tra quyền truy cập
   useEffect(() => {
@@ -307,12 +401,15 @@ function CouponsContent() {
         page: pagination.page.toString(),
         limit: pagination.limit.toString(),
         ...(searchQuery && { code: searchQuery }),
-        ...(statusFilter !== "all" && { isActive: statusFilter === "active" ? "true" : "false" }),
+        ...(statusFilter !== "all" && {
+          isActive: statusFilter === "active" ? "true" : "false",
+        }),
       });
 
-      const response = await fetchWithToken(`https://api-zeal.onrender.com/api/coupons?${queryParams}`, {
-        cache: "no-store",
-      });
+      const response = await fetchWithToken(
+        `https://api-zeal.onrender.com/api/coupons?${queryParams}`,
+        { cache: "no-store" }
+      );
       const data = await response.json();
       setCoupons(data.coupons || []);
       setPagination(data.pagination || pagination);
@@ -333,16 +430,35 @@ function CouponsContent() {
     });
     router.push(`?${params.toString()}`, { scroll: false });
     fetchCoupons();
-    fetchAutoSetupConfig(); // Lấy cấu hình tự động khi component mount
-  }, [isAuthorized, searchQuery, statusFilter, fetchCoupons, router, fetchAutoSetupConfig]);
+    fetchAutoSetupConfig();
+  }, [
+    isAuthorized,
+    searchQuery,
+    statusFilter,
+    fetchCoupons,
+    router,
+    fetchAutoSetupConfig,
+  ]);
 
   // Quản lý focus cho modal
   useEffect(() => {
-    if (showModal || showBulkCouponModal || showDeleteModal || showAutoSetupModal) {
-      const firstInput = document.querySelector(`.${styles.modalContent} input, .${styles.modalContent} select`) as HTMLElement;
+    if (
+      showModal ||
+      showBulkCouponModal ||
+      showDeleteModal ||
+      showAutoSetupModal
+    ) {
+      const firstInput = document.querySelector(
+        `.${styles.modalContent} input, .${styles.modalContent} select`
+      ) as HTMLElement;
       firstInput?.focus();
     }
-  }, [showModal, showBulkCouponModal, showDeleteModal, showAutoSetupModal]);
+  }, [
+    showModal,
+    showBulkCouponModal,
+    showDeleteModal,
+    showAutoSetupModal,
+  ]);
 
   // Xử lý submit form tạo/sửa mã giảm giá
   const handleSubmit = async (e: React.FormEvent) => {
@@ -352,7 +468,10 @@ function CouponsContent() {
     const errors = validateForm(formData);
     if (errors.length > 0) {
       setNotification({ show: true, message: errors.join(", "), type: "error" });
-      setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
+      setTimeout(
+        () => setNotification({ show: false, message: "", type: "success" }),
+        3000
+      );
       return;
     }
 
@@ -371,6 +490,7 @@ function CouponsContent() {
         expiryDate: formData.expiryDate || null,
         usageLimit: formData.usageLimit || null,
         isActive: formData.isActive,
+        description: formData.description || "",
       };
 
       const response = await fetchWithToken(url, {
@@ -384,10 +504,15 @@ function CouponsContent() {
       resetForm();
       setNotification({
         show: true,
-        message: formData._id ? "Cập nhật mã giảm giá thành công!" : "Thêm mã giảm giá thành công!",
+        message: formData._id
+          ? "Cập nhật mã giảm giá thành công!"
+          : "Thêm mã giảm giá thành công!",
         type: "success",
       });
-      setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
+      setTimeout(
+        () => setNotification({ show: false, message: "", type: "success" }),
+        3000
+      );
       setPagination((prev) => ({ ...prev, page: 1 }));
       await fetchCoupons();
     } catch (err) {
@@ -405,7 +530,10 @@ function CouponsContent() {
     const errors = validateForm(bulkCouponFormData);
     if (errors.length > 0) {
       setNotification({ show: true, message: errors.join(", "), type: "error" });
-      setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
+      setTimeout(
+        () => setNotification({ show: false, message: "", type: "success" }),
+        3000
+      );
       return;
     }
 
@@ -417,15 +545,18 @@ function CouponsContent() {
         minOrderValue: bulkCouponFormData.minOrderValue,
         expiryDays: bulkCouponFormData.expiryDays,
         usageLimit: bulkCouponFormData.usageLimit,
-        target: "all", // Luôn áp dụng cho tất cả
-        userIds: null, // Không gửi userIds
+        count: bulkCouponFormData.count,
+        description: bulkCouponFormData.description || "",
       };
 
-      const response = await fetchWithToken("https://api-zeal.onrender.com/api/coupons/bulk", {
-        method: "POST",
-        body: JSON.stringify(bodyData),
-        cache: "no-store",
-      });
+      const response = await fetchWithToken(
+        "https://api-zeal.onrender.com/api/coupons/bulk",
+        {
+          method: "POST",
+          body: JSON.stringify(bodyData),
+          cache: "no-store",
+        }
+      );
 
       const data = await response.json();
       setShowBulkCouponModal(false);
@@ -435,7 +566,10 @@ function CouponsContent() {
         message: `Tạo ${data.coupons.length} mã giảm giá thành công!`,
         type: "success",
       });
-      setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
+      setTimeout(
+        () => setNotification({ show: false, message: "", type: "success" }),
+        3000
+      );
       setPagination((prev) => ({ ...prev, page: 1 }));
       await fetchCoupons();
     } catch (err) {
@@ -453,7 +587,10 @@ function CouponsContent() {
     const errors = validateForm(autoSetupFormData);
     if (errors.length > 0) {
       setNotification({ show: true, message: errors.join(", "), type: "error" });
-      setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
+      setTimeout(
+        () => setNotification({ show: false, message: "", type: "success" }),
+        3000
+      );
       return;
     }
 
@@ -465,14 +602,17 @@ function CouponsContent() {
         minOrderValue: autoSetupFormData.minOrderValue,
         expiryDays: autoSetupFormData.expiryDays,
         usageLimit: autoSetupFormData.usageLimit,
-        specialDays: autoSetupFormData.specialDays.split(",").map((day) => day.trim()),
+        specialDays: autoSetupFormData.specialDays,
       };
 
-      const response = await fetchWithToken("https://api-zeal.onrender.com/api/coupons/auto-setup", {
-        method: "POST",
-        body: JSON.stringify(bodyData),
-        cache: "no-store",
-      });
+      const response = await fetchWithToken(
+        "https://api-zeal.onrender.com/api/coupons/auto-setup",
+        {
+          method: "POST",
+          body: JSON.stringify(bodyData),
+          cache: "no-store",
+        }
+      );
 
       const data = await response.json();
       setShowAutoSetupModal(false);
@@ -482,7 +622,10 @@ function CouponsContent() {
         message: "Cài đặt tự động tạo mã giảm giá thành công!",
         type: "success",
       });
-      setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
+      setTimeout(
+        () => setNotification({ show: false, message: "", type: "success" }),
+        3000
+      );
       await fetchAutoSetupConfig();
     } catch (err) {
       handleError(err, "Lỗi khi thiết lập tự động!");
@@ -492,20 +635,26 @@ function CouponsContent() {
   };
 
   // Sửa mã giảm giá
-  const handleEdit = useCallback((coupon: Coupon) => {
-    setFormData({
-      _id: coupon._id,
-      code: coupon.code,
-      discountType: coupon.discountType,
-      discountValue: coupon.discountValue,
-      minOrderValue: coupon.minOrderValue,
-      expiryDate: coupon.expiryDate ? new Date(coupon.expiryDate).toISOString().split("T")[0] : null,
-      usageLimit: coupon.usageLimit,
-      isActive: coupon.isActive,
-      usedCount: coupon.usedCount ?? 0,
-    });
-    setShowModal(true);
-  }, [setFormData]);
+  const handleEdit = useCallback(
+    (coupon: Coupon) => {
+      setFormData({
+        _id: coupon._id,
+        code: coupon.code,
+        discountType: coupon.discountType,
+        discountValue: coupon.discountValue,
+        minOrderValue: coupon.minOrderValue,
+        expiryDate: coupon.expiryDate
+          ? new Date(coupon.expiryDate).toISOString().split("T")[0]
+          : null,
+        usageLimit: coupon.usageLimit,
+        isActive: coupon.isActive,
+        usedCount: coupon.usedCount ?? 0,
+        description: coupon.description || "",
+      });
+      setShowModal(true);
+    },
+    [setFormData]
+  );
 
   // Xác nhận xóa mã giảm giá
   const confirmDelete = useCallback((id: string) => {
@@ -518,16 +667,26 @@ function CouponsContent() {
     if (!deleteCouponId || actionLoading) return;
     setActionLoading(true);
     try {
-      const response = await fetchWithToken(`https://api-zeal.onrender.com/api/coupons/${deleteCouponId}`, {
-        method: "DELETE",
-        cache: "no-store",
-      });
+      const response = await fetchWithToken(
+        `https://api-zeal.onrender.com/api/coupons/${deleteCouponId}`,
+        {
+          method: "DELETE",
+          cache: "no-store",
+        }
+      );
 
       const data = await response.json();
       setShowDeleteModal(false);
       setDeleteCouponId(null);
-      setNotification({ show: true, message: "Xóa mã giảm giá thành công!", type: "success" });
-      setTimeout(() => setNotification({ show: false, message: "", type: "success" }), 3000);
+      setNotification({
+        show: true,
+        message: "Xóa mã giảm giá thành công!",
+        type: "success",
+      });
+      setTimeout(
+        () => setNotification({ show: false, message: "", type: "success" }),
+        3000
+      );
       setPagination((prev) => ({ ...prev, page: 1 }));
       await fetchCoupons();
     } catch (err) {
@@ -538,11 +697,14 @@ function CouponsContent() {
   };
 
   // Xử lý thay đổi trang
-  const handlePageChange = useCallback((newPage: number) => {
-    if (newPage > 0 && newPage <= pagination.totalPages) {
-      setPagination((prev) => ({ ...prev, page: newPage }));
-    }
-  }, [pagination.totalPages]);
+  const handlePageChange = useCallback(
+    (newPage: number) => {
+      if (newPage > 0 && newPage <= pagination.totalPages) {
+        setPagination((prev) => ({ ...prev, page: newPage }));
+      }
+    },
+    [pagination.totalPages]
+  );
 
   // Tạo thông tin phân trang
   const getPaginationInfo = useCallback(() => {
@@ -565,6 +727,27 @@ function CouponsContent() {
     return { visiblePages, showPrevEllipsis, showNextEllipsis };
   }, [pagination.page, pagination.totalPages]);
 
+  // Xử lý thêm/xóa ngày đặc biệt
+  const addSpecialDay = () => {
+    setAutoSetupFormData({
+      ...autoSetupFormData,
+      specialDays: [...autoSetupFormData.specialDays, { date: "", description: "" }],
+    });
+  };
+
+  const removeSpecialDay = (index: number) => {
+    setAutoSetupFormData({
+      ...autoSetupFormData,
+      specialDays: autoSetupFormData.specialDays.filter((_, i) => i !== index),
+    });
+  };
+
+  const updateSpecialDay = (index: number, field: keyof SpecialDay, value: string) => {
+    const updatedSpecialDays = [...autoSetupFormData.specialDays];
+    updatedSpecialDays[index] = { ...updatedSpecialDays[index], [field]: value };
+    updateAutoSetupField("specialDays", updatedSpecialDays);
+  };
+
   if (loading) {
     return (
       <div className={styles.productManagementContainer}>
@@ -584,7 +767,9 @@ function CouponsContent() {
         <ToastNotification
           message={notification.message}
           type={notification.type}
-          onClose={() => setNotification({ show: false, message: "", type: "success" })}
+          onClose={() =>
+            setNotification({ show: false, message: "", type: "success" })
+          }
         />
       )}
       <div className={styles.titleContainer}>
@@ -601,7 +786,9 @@ function CouponsContent() {
           />
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as "all" | "active" | "inactive")}
+            onChange={(e) =>
+              setStatusFilter(e.target.value as "all" | "active" | "inactive")
+            }
             className={styles.categorySelect}
             aria-label="Lọc theo trạng thái mã giảm giá"
             disabled={actionLoading || bulkLoading}
@@ -622,11 +809,13 @@ function CouponsContent() {
               </button>
               <button
                 className={styles.addProductBtn}
-                onClick={() => setShowBulkCouponModal(true)}
+                onClick={() => {
+                  setShowBulkCouponModal(true);
+                }}
                 disabled={actionLoading || bulkLoading}
                 aria-label="Tạo mã giảm giá hàng loạt"
               >
-                <FontAwesomeIcon icon={faUsers} /> Tạo mã hàng loạt
+                Tạo hàng loạt
               </button>
               <button
                 className={styles.addProductBtn}
@@ -649,6 +838,7 @@ function CouponsContent() {
             <tr>
               <th>STT</th>
               <th>Mã giảm giá</th>
+              <th>Mô tả</th>
               <th>Loại giảm giá</th>
               <th>Giá trị giảm</th>
               <th>Đơn hàng tối thiểu</th>
@@ -660,77 +850,80 @@ function CouponsContent() {
               {isAdmin && <th>Hành động</th>}
             </tr>
           </thead>
-        <tbody>
-  {coupons.length > 0 ? (
-    coupons.map((coupon, index) => {
-      if (!coupon._id) {
-        console.error("Invalid coupon ID:", coupon);
-        return null; // Bỏ qua phần tử không hợp lệ
-      }
-      return (
-        <tr key={coupon._id} className={styles.productRow}>
-          <td>{(pagination.page - 1) * pagination.limit + index + 1}</td>
-          <td>{coupon.code}</td>
-          <td>{coupon.discountType === "percentage" ? "Phần trăm" : "Cố định"}</td>
-          <td>
-            {coupon.discountType === "percentage"
-              ? `${coupon.discountValue}%`
-              : `${coupon.discountValue.toLocaleString()} VNĐ`}
-          </td>
-          <td>{(coupon.minOrderValue || 0).toLocaleString()} VNĐ</td>
-          <td>
-            {coupon.expiryDate
-              ? new Date(coupon.expiryDate).toLocaleDateString("vi-VN")
-              : "Không có"}
-          </td>
-          <td>{coupon.usageLimit ?? "Không giới hạn"}</td>
-          <td>{coupon.usedCount ?? 0}</td>
-          <td>
-            <span
-              className={
-                coupon.isActive ? styles.statusActive : styles.statusInactive
-              }
-            >
-              {coupon.isActive ? "Hoạt động" : "Không hoạt động"}
-            </span>
-          </td>
-          <td>Tất cả</td>
-          {isAdmin && (
-            <td>
-              <div className={styles.actionButtons}>
-                <button
-                  className={styles.editBtn}
-                  onClick={() => handleEdit(coupon)}
-                  disabled={actionLoading || bulkLoading}
-                  title="Sửa mã giảm giá"
-                  aria-label={`Sửa mã giảm giá ${coupon.code}`}
-                >
-                  <FontAwesomeIcon icon={faEdit} />
-                </button>
-                <button
-                  className={styles.deleteBtn}
-                  onClick={() => confirmDelete(coupon._id)}
-                  disabled={actionLoading || bulkLoading}
-                  title="Xóa mã giảm giá"
-                  aria-label={`Xóa mã giảm giá ${coupon.code}`}
-                >
-                  <FontAwesomeIcon icon={faTrash} />
-                </button>
-              </div>
-            </td>
-          )}
-        </tr>
-      );
-    })
-  ) : (
-    <tr>
-      <td colSpan={isAdmin ? 10 : 9} className={styles.emptyState}>
-        <h3>Không có mã giảm giá</h3>
-        <p>Chưa có mã giảm giá nào phù hợp với bộ lọc.</p>
-      </td>
-    </tr>
-  )}
-</tbody>
+          <tbody>
+            {coupons.length > 0 ? (
+              coupons.map((coupon, index) => {
+                if (!coupon._id) {
+                  console.error("Invalid coupon ID:", coupon);
+                  return null;
+                }
+                return (
+                  <tr key={coupon._id} className={styles.productRow}>
+                    <td>{(pagination.page - 1) * pagination.limit + index + 1}</td>
+                    <td>{coupon.code}</td>
+                    <td>{coupon.description || "Không có mô tả"}</td>
+                    <td>
+                      {coupon.discountType === "percentage" ? "Phần trăm" : "Cố định"}
+                    </td>
+                    <td>
+                      {coupon.discountType === "percentage"
+                        ? `${coupon.discountValue}%`
+                        : `${coupon.discountValue.toLocaleString()} VNĐ`}
+                    </td>
+                    <td>{(coupon.minOrderValue || 0).toLocaleString()} VNĐ</td>
+                    <td>
+                      {coupon.expiryDate
+                        ? new Date(coupon.expiryDate).toLocaleDateString("vi-VN")
+                        : "Không có"}
+                    </td>
+                    <td>{coupon.usageLimit ?? "Không giới hạn"}</td>
+                    <td>{coupon.usedCount ?? 0}</td>
+                    <td>
+                      <span
+                        className={
+                          coupon.isActive ? styles.statusActive : styles.statusInactive
+                        }
+                      >
+                        {coupon.isActive ? "Hoạt động" : "Không hoạt động"}
+                      </span>
+                    </td>
+                    <td>Tất cả</td>
+                    {isAdmin && (
+                      <td>
+                        <div className={styles.actionButtons}>
+                          <button
+                            className={styles.editBtn}
+                            onClick={() => handleEdit(coupon)}
+                            disabled={actionLoading || bulkLoading}
+                            title="Sửa mã giảm giá"
+                            aria-label={`Sửa mã giảm giá ${coupon.code}`}
+                          >
+                            <FontAwesomeIcon icon={faEdit} />
+                          </button>
+                          <button
+                            className={styles.deleteBtn}
+                            onClick={() => confirmDelete(coupon._id)}
+                            disabled={actionLoading || bulkLoading}
+                            title="Xóa mã giảm giá"
+                            aria-label={`Xóa mã giảm giá ${coupon.code}`}
+                          >
+                            <FontAwesomeIcon icon={faTrash} />
+                          </button>
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                );
+              })
+            ) : (
+              <tr>
+                <td colSpan={isAdmin ? 11 : 10} className={styles.emptyState}>
+                  <h3>Không có mã giảm giá</h3>
+                  <p>Chưa có mã giảm giá nào phù hợp với bộ lọc.</p>
+                </td>
+              </tr>
+            )}
+          </tbody>
         </table>
       </div>
       {pagination.totalPages > 1 && (
@@ -775,7 +968,12 @@ function CouponsContent() {
                 <button
                   className={styles.pageLink}
                   onClick={() => handlePageChange(pagination.page + 1)}
-                  disabled={pagination.page === pagination.totalPages || loading || actionLoading || bulkLoading}
+                  disabled={
+                    pagination.page === pagination.totalPages ||
+                    loading ||
+                    actionLoading ||
+                    bulkLoading
+                  }
                   title="Trang sau"
                   aria-label="Trang sau"
                 >
@@ -798,6 +996,7 @@ function CouponsContent() {
           title={formData._id ? "Sửa mã giảm giá" : "Thêm mã giảm giá"}
           isLoading={actionLoading}
           isEdit={!!formData._id}
+          users={undefined}
         />
       )}
       {showBulkCouponModal && (
@@ -811,10 +1010,16 @@ function CouponsContent() {
           }}
           title="Tạo mã giảm giá hàng loạt"
           isLoading={bulkLoading}
+          users={undefined}
         />
       )}
       {showAutoSetupModal && (
-        <div className={styles.modalOverlay} role="dialog" aria-modal="true" aria-labelledby="auto-setup-modal-title">
+        <div
+          className={styles.modalOverlay}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="auto-setup-modal-title"
+        >
           <div className={styles.modalContent}>
             <button
               className={styles.closePopupBtn}
@@ -828,14 +1033,18 @@ function CouponsContent() {
             >
               <FontAwesomeIcon icon={faTimes} />
             </button>
-            <h2 id="auto-setup-modal-title" className={styles.modalContentTitle}>Thiết Lập Tự Động</h2>
+            <h2 id="auto-setup-modal-title" className={styles.modalContentTitle}>
+              Thiết Lập Tự Động
+            </h2>
             <form onSubmit={handleAutoSetupSubmit} className={styles.formContainer}>
               <div className={styles.formGroup}>
                 <label htmlFor="discountType">Loại giảm giá:</label>
                 <select
                   id="discountType"
                   value={autoSetupFormData.discountType}
-                  onChange={(e) => updateAutoSetupField("discountType", e.target.value as "percentage" | "fixed")}
+                  onChange={(e) =>
+                    updateAutoSetupField("discountType", e.target.value as "percentage" | "fixed")
+                  }
                   disabled={actionLoading}
                 >
                   <option value="percentage">Phần trăm</option>
@@ -848,7 +1057,9 @@ function CouponsContent() {
                   type="number"
                   id="discountValue"
                   value={autoSetupFormData.discountValue}
-                  onChange={(e) => updateAutoSetupField("discountValue", parseInt(e.target.value) || 0)}
+                  onChange={(e) =>
+                    updateAutoSetupField("discountValue", parseInt(e.target.value) || 0)
+                  }
                   min="0"
                   disabled={actionLoading}
                 />
@@ -860,7 +1071,9 @@ function CouponsContent() {
                   type="number"
                   id="minOrderValue"
                   value={autoSetupFormData.minOrderValue}
-                  onChange={(e) => updateAutoSetupField("minOrderValue", parseInt(e.target.value) || 0)}
+                  onChange={(e) =>
+                    updateAutoSetupField("minOrderValue", parseInt(e.target.value) || 0)
+                  }
                   min="0"
                   disabled={actionLoading}
                 />
@@ -872,7 +1085,9 @@ function CouponsContent() {
                   type="number"
                   id="expiryDays"
                   value={autoSetupFormData.expiryDays}
-                  onChange={(e) => updateAutoSetupField("expiryDays", parseInt(e.target.value) || 1)}
+                  onChange={(e) =>
+                    updateAutoSetupField("expiryDays", parseInt(e.target.value) || 1)
+                  }
                   min="1"
                   disabled={actionLoading}
                 />
@@ -884,22 +1099,56 @@ function CouponsContent() {
                   type="number"
                   id="usageLimit"
                   value={autoSetupFormData.usageLimit || ""}
-                  onChange={(e) => updateAutoSetupField("usageLimit", e.target.value ? parseInt(e.target.value) : null)}
+                  onChange={(e) =>
+                    updateAutoSetupField(
+                      "usageLimit",
+                      e.target.value ? parseInt(e.target.value) : null
+                    )
+                  }
                   min="1"
                   placeholder="Không giới hạn"
                   disabled={actionLoading}
                 />
               </div>
               <div className={styles.formGroup}>
-                <label htmlFor="specialDays">Ngày đặc biệt (YYYY-MM-DD, cách nhau bằng dấu phẩy):</label>
-                <input
-                  type="text"
-                  id="specialDays"
-                  value={autoSetupFormData.specialDays}
-                  onChange={(e) => updateAutoSetupField("specialDays", e.target.value)}
-                  placeholder="Ví dụ: 2025-09-02,2026-01-01"
+                <label>Ngày đặc biệt:</label>
+                {autoSetupFormData.specialDays.map((day, index) => (
+                  <div key={index} className={styles.specialDayRow}>
+                    <input
+                      type="date"
+                      value={day.date}
+                      onChange={(e) => updateSpecialDay(index, "date", e.target.value)}
+                      disabled={actionLoading}
+                      placeholder="YYYY-MM-DD"
+                    />
+                    <input
+                      type="text"
+                      value={day.description}
+                      onChange={(e) => updateSpecialDay(index, "description", e.target.value)}
+                      maxLength={200}
+                      placeholder="Mô tả (ví dụ: Ngày Quốc Khánh)"
+                      disabled={actionLoading}
+                    />
+                    <button
+                      type="button"
+                      className={styles.deleteBtn}
+                      onClick={() => removeSpecialDay(index)}
+                      disabled={actionLoading}
+                      aria-label={`Xóa ngày đặc biệt ${index + 1}`}
+                    >
+                      <FontAwesomeIcon icon={faTrash} />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  className={styles.addProductBtn}
+                  onClick={addSpecialDay}
                   disabled={actionLoading}
-                />
+                  aria-label="Thêm ngày đặc biệt"
+                >
+                  <FontAwesomeIcon icon={faPlus} /> Thêm ngày
+                </button>
               </div>
               <div className={styles.modalActions}>
                 <button
@@ -922,6 +1171,7 @@ function CouponsContent() {
                   aria-label="Hủy thiết lập tự động"
                 >
                   <FontAwesomeIcon icon={faTimes} />
+                  Hủy
                 </button>
               </div>
             </form>
@@ -929,7 +1179,12 @@ function CouponsContent() {
         </div>
       )}
       {showDeleteModal && (
-        <div className={styles.modalOverlay} role="dialog" aria-modal="true" aria-labelledby="delete-modal-title">
+        <div
+          className={styles.modalOverlay}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-modal-title"
+        >
           <div className={styles.modalContent}>
             <button
               className={styles.closePopupBtn}
@@ -943,7 +1198,9 @@ function CouponsContent() {
             >
               <FontAwesomeIcon icon={faTimes} />
             </button>
-            <h2 id="delete-modal-title" className={styles.modalContentTitle}>Xác Nhận Xóa</h2>
+            <h2 id="delete-modal-title" className={styles.modalContentTitle}>
+              Xác Nhận Xóa
+            </h2>
             <div className={styles.popupDetails}>
               <p>Bạn có chắc muốn xóa mã giảm giá này?</p>
               <div className={styles.modalActions}>
@@ -954,7 +1211,7 @@ function CouponsContent() {
                   aria-label="Xác nhận xóa mã giảm giá"
                 >
                   <FontAwesomeIcon icon={faCheck} />
-                  {actionLoading ? " Đang xử lý..." : ""}
+                  {actionLoading ? " Đang xử lý..." : "Xác nhận"}
                 </button>
                 <button
                   className={styles.cancelBtn}
@@ -966,6 +1223,7 @@ function CouponsContent() {
                   aria-label="Hủy xóa mã giảm giá"
                 >
                   <FontAwesomeIcon icon={faTimes} />
+                  Hủy
                 </button>
               </div>
             </div>

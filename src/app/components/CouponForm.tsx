@@ -17,6 +17,7 @@ interface FormData {
   isActive: boolean;
   usedCount?: number;
   userId?: string | null;
+  description: string; // Thêm trường mô tả
 }
 
 interface SingleCouponFormData {
@@ -26,6 +27,7 @@ interface SingleCouponFormData {
   minOrderValue: number;
   expiryDays: number;
   usageLimit: number | null;
+  description: string; // Thêm trường mô tả
 }
 
 interface BulkCouponFormData {
@@ -36,6 +38,7 @@ interface BulkCouponFormData {
   usageLimit: number | null;
   target: "all" | "selected";
   selectedUserIds: string[];
+  description: string; // Thêm trường mô tả
 }
 
 type FormDataTypes = FormData | SingleCouponFormData | BulkCouponFormData;
@@ -47,7 +50,7 @@ interface CouponFormProps<T extends FormDataTypes> {
   onCancel: () => void;
   title: string;
   isLoading: boolean;
-  users: User[];
+  users: User[] | undefined; // Cho phép users là undefined
   isEdit?: boolean;
 }
 
@@ -71,11 +74,11 @@ const CouponForm = <T extends FormDataTypes>({
   onCancel,
   title,
   isLoading,
-  users,
+  users = [], // Giá trị mặc định là mảng rỗng nếu undefined
   isEdit,
 }: CouponFormProps<T>) => {
   const handleChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
       const { name, value, type } = e.target;
 
       if (type === "checkbox") {
@@ -86,7 +89,6 @@ const CouponForm = <T extends FormDataTypes>({
         ).map((option) => option.value);
         updateField(name as keyof T, selectedOptions as T[keyof T]);
       } else if (name === "usageLimit") {
-        // Kiểm tra và ép kiểu rõ ràng cho usageLimit
         const usageLimitValue = value ? Number(value) : null;
         updateField(name as keyof T, usageLimitValue as T[keyof T]);
       } else {
@@ -120,7 +122,7 @@ const CouponForm = <T extends FormDataTypes>({
                   name="code"
                   value={formData.code}
                   onChange={handleChange}
-                  disabled={isLoading}
+                  disabled={isLoading || isEdit}
                   required
                   maxLength={20}
                   placeholder="Nhập mã giảm giá..."
@@ -138,23 +140,6 @@ const CouponForm = <T extends FormDataTypes>({
                   disabled={isLoading}
                 />
                 <span>{formData.isActive ? "Hoạt động" : "Không hoạt động"}</span>
-              </div>
-              <div className={styles.formGroup}>
-                <label htmlFor="userId">Người dùng (tùy chọn):</label>
-                <select
-                  id="userId"
-                  name="userId"
-                  value={formData.userId || ""}
-                  onChange={handleChange}
-                  disabled={isLoading}
-                >
-                  <option value="">Không giới hạn</option>
-                  {users.map((user) => (
-                    <option key={user._id} value={user._id}>
-                      {user.username} ({user.email})
-                    </option>
-                  ))}
-                </select>
               </div>
               <div className={styles.formGroup}>
                 <label htmlFor="expiryDate">Ngày hết hạn (tùy chọn):</label>
@@ -183,7 +168,7 @@ const CouponForm = <T extends FormDataTypes>({
                   aria-required="true"
                 >
                   <option value="">Chọn người dùng</option>
-                  {users.map((user) => (
+                  {users && users.map((user) => (
                     <option key={user._id} value={user._id}>
                       {user.username} ({user.email})
                     </option>
@@ -236,7 +221,7 @@ const CouponForm = <T extends FormDataTypes>({
                     required
                     aria-required="true"
                   >
-                    {users.map((user) => (
+                    {users && users.map((user) => (
                       <option key={user._id} value={user._id}>
                         {user.username} ({user.email})
                       </option>
@@ -313,6 +298,21 @@ const CouponForm = <T extends FormDataTypes>({
               min="1"
             />
           </div>
+          {(isFormData(formData) || isSingleCouponFormData(formData) || isBulkCouponFormData(formData)) && (
+            <div className={styles.formGroup}>
+              <label htmlFor="description">Mô tả (tùy chọn):</label>
+              <textarea
+                id="description"
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                disabled={isLoading}
+                maxLength={200}
+                placeholder="Nhập mô tả mã giảm giá..."
+                rows={4}
+              />
+            </div>
+          )}
           <div className={styles.formActions}>
             <button
               type="submit"

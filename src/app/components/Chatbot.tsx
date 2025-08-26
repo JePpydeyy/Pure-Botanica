@@ -8,10 +8,49 @@ import withReactContent from "sweetalert2-react-content";
 
 const MySwal = withReactContent(Swal);
 
+// Hàm chuyển đổi chuỗi có dấu thành không dấu và định dạng slug (thêm lại làm dự phòng)
+const convertToSlug = (text: string): string => {
+  return text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Loại bỏ dấu
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "") // Loại bỏ ký tự đặc biệt
+    .trim()
+    .replace(/\s+/g, "-"); // Thay khoảng trắng bằng dấu gạch ngang
+};
+
 interface Product {
+  _id?: string;
   name: string;
   price: number | null;
   images: string[];
+  slug?: string; // Thêm optional để xử lý trường hợp undefined
+}
+
+interface Coupon {
+  code: string;
+  discountValue: number;
+  discountType: string;
+  minOrderValue: number;
+  expiryDate?: string;
+}
+
+interface News {
+  title: string;
+  slug: string;
+  thumbnailUrl: string;
+  publishedAt: string;
+}
+
+interface Brand {
+  name: string;
+  logoImg: string;
+}
+
+interface Category {
+  name: string;
 }
 
 interface Message {
@@ -21,7 +60,11 @@ interface Message {
   content: string;
   file?: { data: string; mime_type: string } | null;
   timestamp: string;
-  products?: Product[]; // Thêm trường products vào interface
+  products?: Product[];
+  coupons?: Coupon[];
+  news?: News[];
+  brands?: Brand[];
+  categories?: Category[];
 }
 
 const API_BASE_URL = "https://api-zeal.onrender.com/api/chatbot";
@@ -66,17 +109,11 @@ const Chatbot: React.FC = () => {
   const fetchChatHistory = async (sessionId: string) => {
     try {
       const response = await fetch(`${API_BASE_URL}/history/${sessionId}`, {
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
       });
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
       const contentType = response.headers.get("content-type");
-      if (!contentType?.includes("application/json")) {
-        throw new Error("Response is not JSON");
-      }
+      if (!contentType?.includes("application/json")) throw new Error("Response is not JSON");
       const data = await response.json();
       setMessages(data.messages || []);
     } catch (error) {
@@ -106,48 +143,47 @@ const Chatbot: React.FC = () => {
         message: newMessage.content,
         ...(file && { file: file }),
       };
-      console.log('Request URL:', `${API_BASE_URL}/send`);
-      console.log('Request body:', JSON.stringify(sendData, null, 2));
+      console.log("Request URL:", `${API_BASE_URL}/send`);
+      console.log("Request body:", JSON.stringify(sendData, null, 2));
 
       const response = await fetch(`${API_BASE_URL}/send`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(sendData),
-        });
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Response error:', errorText);
-            throw new Error(`HTTP error! Status: ${response.status}, Details: ${errorText}`);
-        }
-        const contentType = response.headers.get("content-type");
-        if (!contentType?.includes("application/json")) {
-            throw new Error("Response is not JSON");
-        }
-        const data = await response.json();
-        // Thêm cả message và products (nếu có) vào tin nhắn của bot
-        setMessages((prev) => [
-            ...prev,
-            {
-                sessionId,
-                role: "model",
-                content: data.message,
-                timestamp: new Date().toISOString(),
-                products: data.products || [], // Lưu danh sách sản phẩm
-            },
-        ]);
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Response error:", errorText);
+        throw new Error(`HTTP error! Status: ${response.status}, Details: ${errorText}`);
+      }
+      const contentType = response.headers.get("content-type");
+      if (!contentType?.includes("application/json")) throw new Error("Response is not JSON");
+      const data = await response.json();
+      setMessages((prev) => [
+        ...prev,
+        {
+          sessionId,
+          role: "model",
+          content: data.message,
+          timestamp: new Date().toISOString(),
+          products: data.products || [],
+          coupons: data.coupons || [],
+          news: data.news || [],
+          brands: data.brands || [],
+          categories: data.categories || [],
+        },
+      ]);
     } catch (error) {
-        console.error('Send message error:', error);
-        setMessages((prev) => [
-            ...prev,
-            {
-                sessionId,
-                role: "model",
-                content: `Lỗi: ${(error as Error).message}`,
-                timestamp: new Date().toISOString(),
-            },
-        ]);
+      console.error("Send message error:", error);
+      setMessages((prev) => [
+        ...prev,
+        {
+          sessionId,
+          role: "model",
+          content: `Lỗi: ${(error as Error).message}`,
+          timestamp: new Date().toISOString(),
+        },
+      ]);
     }
 
     if (chatBodyRef.current) {
@@ -196,10 +232,9 @@ const Chatbot: React.FC = () => {
     }
   }, [input]);
 
-  // Render with error handling
   if (error) {
     return (
-      <div style={{ color: "red", textAlign: "center", padding: "10px" }}>
+      <div style={{ color: "red", textAlign: "center", padding: "20px" }}>
         Chatbot không khả dụng: {error}
       </div>
     );
@@ -230,7 +265,10 @@ const Chatbot: React.FC = () => {
         </div>
         <div ref={chatBodyRef} className="chat-body">
           {messages.map((msg, index) => (
-            <div key={index} className={`message ${msg.role === "user" ? "user-message" : "bot-message"}`}>
+            <div
+              key={index}
+              className={`message ${msg.role === "user" ? "user-message" : "bot-message"}`}
+            >
               {msg.role === "model" && (
                 <img
                   src="https://res.cloudinary.com/dgud3sqyn/image/upload/v1756088068/uploads/1756088067315-e2a6w0.png"
@@ -238,44 +276,147 @@ const Chatbot: React.FC = () => {
                   className="bot-avatar"
                 />
               )}
-              <div className="message-text">{msg.content}</div>
-              {msg.file?.data && (
-                <img
-                  src={`data:${msg.file.mime_type};base64,${msg.file.data}`}
-                  alt="Attachment"
-                  className="attachment"
-                />
-              )}
-              {/* Hiển thị danh sách sản phẩm nếu có */}
-              {msg.products && msg.products.length > 0 && (
-                <div className="products-list">
-                  <h4>Gợi ý sản phẩm:</h4>
-                  <div className="products-container">
-                    {msg.products.map((product, idx) => (
-                      <div key={idx} className="product-item">
-                        {product.images && product.images[0] ? (
-                          <img
-                            src={product.images[0]}
-                            alt={product.name}
-                            className="product-image"
-                            style={{ width: "100px", height: "100px", objectFit: "cover", borderRadius: "8px" }}
-                          />
-                        ) : (
-                          <div className="no-image" style={{ width: "100px", height: "100px", background: "#f0f0f0", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                            Không có ảnh
+              <div className="message-content">
+                <div className="message-text">{msg.content}</div>
+                {msg.file?.data && (
+                  <img
+                    src={`data:${msg.file.mime_type};base64,${msg.file.data}`}
+                    alt="Attachment"
+                    className="attachment"
+                  />
+                )}
+                {/* Hiển thị sản phẩm */}
+                {msg.products && msg.products.length > 0 && (
+                  <div className="products-list">
+                    <h4 className="section-title">Gợi ý sản phẩm</h4>
+                    <div className="products-grid">
+                      {msg.products.map((product, idx) => (
+                        <div key={idx} className="product-card">
+                          {product.images && product.images[0] ? (
+                            <img
+                              src={product.images[0]}
+                              alt={product.name}
+                              className="product-image"
+                            />
+                          ) : (
+                            <div className="no-image">Không có ảnh</div>
+                          )}
+                          <div className="product-info">
+                            <h5 className="product-name">{product.name}</h5>
+                            <p className="product-price">
+                              {product.price ? `${product.price.toLocaleString("vi-VN")} VNĐ` : "Liên hệ"}
+                            </p>
+                            <a
+                              href={`/user/detail/${product.slug || convertToSlug(product.name)}`}
+                              className="product-link"
+                            >
+                              Xem chi tiết
+                            </a>
                           </div>
-                        )}
-                        <div className="product-info">
-                          <p className="product-name">{product.name}</p>
-                          <p className="product-price">
-                            {product.price ? `${product.price.toLocaleString("vi-VN")} VNĐ` : "Liên hệ"}
-                          </p>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+                {/* Hiển thị mã giảm giá */}
+                {msg.coupons && msg.coupons.length > 0 && (
+                  <div className="coupons-list">
+                    <h4 className="section-title">Mã giảm giá</h4>
+                    <div className="coupons-grid">
+                      {msg.coupons.map((coupon, idx) => (
+                        <div key={idx} className="coupon-card">
+                          <div className="coupon-code">{coupon.code}</div>
+                          <div className="coupon-details">
+                            <p>
+                              Giảm:{" "}
+                              {coupon.discountType === "percentage"
+                                ? `${coupon.discountValue}%`
+                                : `${coupon.discountValue.toLocaleString("vi-VN")} VNĐ`}
+                            </p>
+                            <p>Đơn tối thiểu: {coupon.minOrderValue.toLocaleString("vi-VN")} VNĐ</p>
+                            <p>
+                              Hết hạn:{" "}
+                              {coupon.expiryDate
+                                ? new Date(coupon.expiryDate).toLocaleDateString("vi-VN")
+                                : "Không thời hạn"}
+                            </p>
+                          </div>
+                          <button
+                            className="copy-coupon-btn"
+                            onClick={() => navigator.clipboard.writeText(coupon.code)}
+                          >
+                            Sao chép mã
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* Hiển thị tin tức */}
+                {msg.news && msg.news.length > 0 && (
+                  <div className="news-list">
+                    <h4 className="section-title">Tin tức mới nhất</h4>
+                    <div className="news-grid">
+                      {msg.news.map((news, idx) => (
+                        <div key={idx} className="news-card">
+                          {news.thumbnailUrl && (
+                            <img
+                              src={news.thumbnailUrl}
+                              alt={news.title}
+                              className="news-image"
+                            />
+                          )}
+                          <div className="news-info">
+                            <h5 className="news-title">{news.title}</h5>
+                            <p className="news-date">
+                              Ngày đăng: {new Date(news.publishedAt).toLocaleDateString("vi-VN")}
+                            </p>
+                            <a
+                              href={`https://purebotanice.com/news/${news.slug}`}
+                              className="news-link"
+                            >
+                              Đọc thêm
+                            </a>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* Hiển thị thương hiệu */}
+                {msg.brands && msg.brands.length > 0 && (
+                  <div className="brands-list">
+                    <h4 className="section-title">Thương hiệu</h4>
+                    <div className="brands-grid">
+                      {msg.brands.map((brand, idx) => (
+                        <div key={idx} className="brand-card">
+                          {brand.logoImg && (
+                            <img
+                              src={brand.logoImg}
+                              alt={brand.name}
+                              className="brand-image"
+                            />
+                          )}
+                          <p className="brand-name">{brand.name}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* Hiển thị danh mục */}
+                {msg.categories && msg.categories.length > 0 && (
+                  <div className="categories-list">
+                    <h4 className="section-title">Danh mục</h4>
+                    <div className="categories-grid">
+                      {msg.categories.map((category, idx) => (
+                        <div key={idx} className="category-card">
+                          <p className="category-name">{category.name}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -286,7 +427,7 @@ const Chatbot: React.FC = () => {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Message..."
+              placeholder="Nhập tin nhắn..."
               className="message-input"
               required
             />
@@ -304,7 +445,7 @@ const Chatbot: React.FC = () => {
                 />
                 {file?.data ? (
                   <>
-                    <img src={`data:${file.mime_type};base64,${file.data}`} alt="Uploaded" />
+                    <img src={`data:${file.mime_type};base64,${file.data}`} alt="Uploaded" className="file-preview" />
                     <button type="button" id="file-cancel" onClick={() => setFile(null)}>
                       ✕
                     </button>
@@ -325,7 +466,7 @@ const Chatbot: React.FC = () => {
             </div>
           </form>
           {showEmojiPicker && (
-            <div>
+            <div className="emoji-picker">
               <Picker
                 data={data}
                 onEmojiSelect={handleEmojiSelect}

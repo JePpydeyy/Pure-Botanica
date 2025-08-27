@@ -166,7 +166,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 <h4>Đăng ký tài khoản để nhận ưu đãi ngay </h4>
                 <p>Hãy đăng ký tài khoản để nhận ưu đãi từ Pure-Botanica</p>
                 <form>
-                   <Link href="/user/register"><button type="submit">Đăng Ký</button></Link>
+                   <Link href="/user/register"><button type="submit">Đăng ký ngay</button></Link>
                   
                 </form>
                 <div className="footer-address">

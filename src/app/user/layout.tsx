@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 
 const MySwal = withReactContent(Swal);
 
-const fetchImage = async (type: "favicon" | "logo-shop"): Promise<string> => {
+const fetchImage = async (type: "logo-shop"): Promise<string> => {
   console.log(`Fetching ${type}... at ${new Date().toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" })}`);
   try {
     const res = await fetch(`https://api-zeal.onrender.com/api/interfaces/${type}`, { cache: "no-store" });
@@ -29,7 +29,7 @@ const fetchImage = async (type: "favicon" | "logo-shop"): Promise<string> => {
         title: 'Cảnh báo',
         text: `Không thể tải ${type}, sử dụng hình mặc định.`,
       });
-      return type === "favicon" ? "/favicon.ico" : "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+      return "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
     }
     const contentType = res.headers.get("content-type");
     if (!contentType?.includes("application/json")) {
@@ -39,11 +39,11 @@ const fetchImage = async (type: "favicon" | "logo-shop"): Promise<string> => {
         title: 'Cảnh báo',
         text: `Định dạng phản hồi không hợp lệ cho ${type}, sử dụng hình mặc định.`,
       });
-      return type === "favicon" ? "/favicon.ico" : "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+      return "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
     }
     const data = await res.json();
     console.log(`${type} data at ${new Date().toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" })}:`, data);
-    return data.paths && data.paths.length > 0 ? data.paths[0] : (type === "favicon" ? "/favicon.ico" : "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg");
+    return data.paths && data.paths.length > 0 ? data.paths[0] : "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
   } catch (error) {
     console.error(`Error fetching ${type} at ${new Date().toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" })}:`, error);
     MySwal.fire({
@@ -51,12 +51,12 @@ const fetchImage = async (type: "favicon" | "logo-shop"): Promise<string> => {
       title: 'Lỗi',
       text: `Lỗi khi tải ${type}: ${(error as Error).message}`,
     });
-    return type === "favicon" ? "/favicon.ico" : "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
+    return "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
   }
 };
 
 export async function generateMetadata(): Promise<Metadata> {
-  const faviconPath = await fetchImage("favicon");
+  const faviconPath = "/logo_web.png"; // Đường dẫn tĩnh tới favicon
   console.log("Resolved faviconPath:", faviconPath);
 
   return {
@@ -191,7 +191,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </footer>
 
           <ScrollToTop />
-          <Chatbot /> {/* Remove conditional rendering here */}
+          <Chatbot />
         </div>
       </CartProvider>
     </AuthProvider>

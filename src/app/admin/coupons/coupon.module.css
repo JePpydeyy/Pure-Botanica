@@ -1,3 +1,5 @@
+/* coupon.module.css */
+
 /* Main Layout */
 .productManagementContainer {
   padding: 24px;
@@ -144,10 +146,12 @@
 
 .statusActive {
   font-weight: 500;
+  color: #4CAF50;
 }
 
 .statusInactive {
   font-weight: 500;
+  color: #f44336;
 }
 
 /* Buttons */
@@ -190,6 +194,16 @@
 
 .editBtn:hover {
   background: #45a049;
+  transform: translateY(-2px);
+}
+
+.deleteBtn {
+  background: #f44336;
+  color: white;
+}
+
+.deleteBtn:hover {
+  background: #d32f2f;
   transform: translateY(-2px);
 }
 
@@ -275,7 +289,7 @@
   right: 12px;
 }
 
-/* Popup Details (for Toggle Modal) */
+/* Popup Details (for Toggle/Delete Modal) */
 .popupDetails {
   color: #64748b;
   font-size: 14px;
@@ -296,7 +310,9 @@
   grid-template-columns: 120px 1fr 50px;
   align-items: center;
   gap: 12px;
+  margin-bottom: 16px;
 }
+
 
 .formGroup label {
   color: #334155;
@@ -373,15 +389,50 @@
 
 /* Special Day Row */
 .specialDayRow {
+  margin-top: 7px;
+  margin-bottom: 7px;
   display: flex;
   gap: 12px;
   align-items: center;
   flex-wrap: wrap;
 }
 
-.specialDayRow input {
+.specialDayRow input[type="date"],
+.specialDayRow input[type="text"] {
   flex: 1;
   min-width: 150px;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #334155;
+  background: #ffffff;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.specialDayRow input[type="date"]:hover,
+.specialDayRow input[type="text"]:hover {
+  border-color: #94a3b8;
+}
+
+.specialDayRow input[type="date"]:focus,
+.specialDayRow input[type="text"]:focus {
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+  outline: none;
+}
+
+.specialDayRow input[type="date"]::placeholder,
+.specialDayRow input[type="text"]::placeholder {
+  color: #64748b;
+  font-weight: 400;
+}
+
+.specialDayRow input[type="date"]:disabled,
+.specialDayRow input[type="text"]:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #e2e8f0;
 }
 
 /* Form Unit (e.g., %, VNĐ, days) */
@@ -604,6 +655,10 @@
 
   .formGroup label {
     justify-self: start;
+  }
+
+  .formGroup span {
+    margin-left: 0;
   }
 }
 

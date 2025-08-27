@@ -425,7 +425,7 @@ function CouponsContent() {
       });
 
       const response = await fetchWithToken(
-        `https://api-zeal.onrender.com/api/coupons/all?${queryParams}`,
+        `https://api-zeal.onrender.com/api/coupons?${queryParams}`,
         { cache: "no-store" }
       );
       const data = await response.json();
@@ -973,17 +973,7 @@ function CouponsContent() {
                           >
                             <FontAwesomeIcon icon={faEdit} />
                           </button>
-                          <button
-                            className={`${styles.iconBtn} ${styles.toggleStatusBtn}`}
-                            onClick={() => confirmToggle(coupon._id)}
-                            disabled={actionLoading || bulkLoading}
-                            title={coupon.isActive ? "Hủy kích hoạt" : "Kích hoạt"}
-                            aria-label={`${
-                              coupon.isActive ? "Hủy kích hoạt" : "Kích hoạt"
-                            } mã giảm giá ${coupon.code}`}
-                          >
-                            <FontAwesomeIcon icon={coupon.isActive ? faEyeSlash : faEye} />
-                          </button>
+                          
                           <button
                             className={`${styles.iconBtn} ${styles.deleteBtn}`}
                             onClick={() => confirmDelete(coupon._id)}
@@ -1436,7 +1426,7 @@ function CouponsContent() {
                   disabled={actionLoading}
                 />
               </div>
-              <div className={styles.formGroup}>
+              <div className={styles.formGroup1}>
                 <label>Ngày đặc biệt:</label>
                 {autoSetupFormData.specialDays.map((day, index) => (
                   <div key={index} className={styles.specialDayRow}>

@@ -1254,7 +1254,7 @@ const AD_Home: React.FC = () => {
             <table className={styles.productTable}>
               <thead className={styles.productTableThead}>
                 <tr>
-                  <th>ID</th>
+                  <th>STT</th>
                   <th>Tên</th>
                   <th>Tổng Tiền</th>
                   <th>Ngày</th>

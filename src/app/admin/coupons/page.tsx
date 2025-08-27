@@ -253,6 +253,16 @@ function CouponsContent() {
         if (data.description && data.description.length > 200) {
           errors.push("Mô tả không được vượt quá 200 ký tự!");
         }
+        // Kiểm tra usageLimit so với usedCount
+        if (data.usageLimit !== null && data.usedCount !== undefined) {
+          if (data.usageLimit < data.usedCount) {
+            errors.push("Giới hạn sử dụng không được nhỏ hơn số lượt đã dùng!");
+          }
+          // Nếu usageLimit bằng usedCount, đặt isActive thành false
+          if (data.usageLimit === data.usedCount) {
+            data.isActive = false;
+          }
+        }
       }
       if (data.discountValue <= 0) {
         errors.push("Giá trị giảm phải lớn hơn 0!");
@@ -973,7 +983,6 @@ function CouponsContent() {
                           >
                             <FontAwesomeIcon icon={faEdit} />
                           </button>
-                          
                           <button
                             className={`${styles.iconBtn} ${styles.deleteBtn}`}
                             onClick={() => confirmDelete(coupon._id)}
@@ -1068,7 +1077,7 @@ function CouponsContent() {
         </div>
       )}
       {showModal && (
-        <div className={styles.modalOverlay} onClick={handleOverlayClick}>
+        <div className={styles.modalOverlay} onClick={() => handleOverlayClick}>
           <div className={styles.modalContent}>
             <button
               className={`${styles.iconBtn} ${styles.closeBtn}`}
@@ -1159,7 +1168,7 @@ function CouponsContent() {
                   id="usageLimit"
                   value={formData.usageLimit || ""}
                   onChange={(e) => updateField("usageLimit", e.target.value ? parseInt(e.target.value) : null)}
-                  min="1"
+                  min={formData.usedCount ?? 0}
                   placeholder="Không giới hạn"
                   disabled={actionLoading}
                 />
@@ -1170,7 +1179,7 @@ function CouponsContent() {
                   id="isActive"
                   checked={formData.isActive}
                   onChange={(e) => updateField("isActive", e.target.checked)}
-                  disabled={actionLoading}
+                  disabled={actionLoading || (formData.usageLimit !== null && formData.usedCount !== undefined && formData.usageLimit === formData.usedCount)}
                 />
                 <label htmlFor="isActive">Hoạt động</label>
               </div>

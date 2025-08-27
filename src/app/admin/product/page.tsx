@@ -754,7 +754,7 @@ export default function ProductPage() {
       )}
       {isTogglingStatus && (
         <div className={styles.modalOverlay}>
-          <div className={styles.modalContent}>
+          <div className={styles.modalConfirm}>
             <h2>Xác nhận thay đổi trạng thái</h2>
             <p>{toggleMessage}</p>
             <div className={styles.modalActions}>

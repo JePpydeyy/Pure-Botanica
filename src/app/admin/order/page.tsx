@@ -52,7 +52,7 @@ interface Order {
   items: { product: Product | null; optionId: string; quantity: number; images: string[] }[];
 }
 
-const API_BASE_URL = "https://api-zeal.onrender.com";
+const API_BASE_URL = "http://localhost:10000";
 const FALLBACK_IMAGE_URL = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
 
 const normalizeImageUrl = (url: string): string => {
@@ -157,7 +157,7 @@ const OrderPage: React.FC = () => {
   const statusProgression: { [key: string]: string[] } = {
     pending: ["in_transit", "cancelled"],
     in_transit: ["delivered", "failed"],
-    delivered: [],
+    delivered: ["returned"],
     returned: [],
     cancelled: [],
     failed: [],
@@ -377,6 +377,12 @@ const OrderPage: React.FC = () => {
         setShowConfirm({ orderId, newStatus, currentStatus, type: "fail", failReason: "" });
         setSelectedFailReason("");
         setFailReasonInput("");
+      } else if (englishStatus === "returned") {
+        if (currentStatus !== "delivered" || order.returnStatus !== "approved") {
+          showNotification("Chỉ có thể chuyển sang trạng thái Hoàn hàng khi đơn hàng đã giao và yêu cầu hoàn hàng được chấp nhận", "error");
+          return;
+        }
+        setShowConfirm({ orderId, newStatus, currentStatus, type });
       } else if (!statusProgression[currentStatus]?.includes(englishStatus)) {
         showNotification("Trạng thái không hợp lệ hoặc không thể chuyển về trạng thái trước đó", "error");
         return;
@@ -494,35 +500,50 @@ const OrderPage: React.FC = () => {
         throw new Error(`Lỗi API: ${response.status} ${errorText}`);
       }
 
-      const { order: updatedOrder }: { order: Order } = await response.json();
-      setOrders((prevOrders) =>
-        prevOrders.map((o) =>
-          o._id === orderId
-            ? {
-                ...o,
-                shippingStatus: updatedOrder.shippingStatus,
-                paymentStatus: updatedOrder.paymentStatus,
-                returnStatus: updatedOrder.returnStatus,
-                cancelReason: updatedOrder.cancelReason,
-                failReason: updatedOrder.failReason,
-              }
-            : o
-        )
-      );
-      setFilteredOrders((prevOrders) =>
-        prevOrders.map((o) =>
-          o._id === orderId
-            ? {
-                ...o,
-                shippingStatus: updatedOrder.shippingStatus,
-                paymentStatus: updatedOrder.paymentStatus,
-                returnStatus: updatedOrder.returnStatus,
-                cancelReason: updatedOrder.cancelReason,
-                failReason: updatedOrder.failReason,
-              }
-            : o
-        )
-      );
+      const fetchOrders = async () => {
+        try {
+          const endpoint = showFailedOrders ? `${API_BASE_URL}/api/orders/admin/failed` : `${API_BASE_URL}/api/orders/admin/all`;
+          const res = await fetch(endpoint, {
+            headers: { Authorization: `Bearer ${token}` },
+            cache: "no-store",
+          });
+          if (res.status === 401 || res.status === 403) {
+            showNotification("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!", "error");
+            localStorage.removeItem("token");
+            localStorage.removeItem("role");
+            localStorage.removeItem("email");
+            router.push("/user/login");
+            return;
+          }
+          if (!res.ok) {
+            throw new Error(`Lỗi API: ${res.status} ${res.statusText}`);
+          }
+          const data: Order[] = await res.json();
+          if (!Array.isArray(data)) {
+            throw new Error("Dữ liệu đơn hàng không hợp lệ");
+          }
+
+          const normalizedOrders = data.map((order) => ({
+            ...order,
+            shippingStatus: ["pending", "in_transit", "delivered", "returned", "cancelled", "failed"].includes(order.shippingStatus)
+              ? order.shippingStatus
+              : "pending",
+            returnStatus: ["none", "requested", "approved", "rejected"].includes(order.returnStatus)
+              ? order.returnStatus
+              : "none",
+          }));
+
+          setOrders(normalizedOrders);
+          setFilteredOrders(normalizedOrders);
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : "Lỗi không xác định";
+          showNotification("Không thể tải danh sách đơn hàng", "error");
+          setError("Không thể tải danh sách đơn hàng. Vui lòng thử lại sau.");
+        }
+      };
+
+      await fetchOrders();
+
       showNotification(
         type === "shipping"
           ? "Cập nhật trạng thái vận chuyển thành công"
@@ -785,8 +806,8 @@ const OrderPage: React.FC = () => {
               <th>Ngày</th>
               <th>Trạng Thái Thanh Toán</th>
               <th>Trạng Thái Vận Chuyển</th>
-              <th>Trạng Thái Hoàn Hàng</th>
               <th>Phương Thức Thanh Toán</th>
+              <th>Trạng Thái Hoàn Hàng</th>
             </tr>
           </thead>
           <tbody>
@@ -838,6 +859,8 @@ const OrderPage: React.FC = () => {
                                   ? order.shippingStatus !== "pending"
                                   : status.value === "failed"
                                   ? order.shippingStatus !== "in_transit" || order.paymentStatus === "completed"
+                                  : status.value === "returned"
+                                  ? order.shippingStatus !== "delivered" || order.returnStatus !== "approved"
                                   : ["returned", "cancelled", "failed"].includes(order.shippingStatus) ||
                                     (isValidStatus
                                       ? !statusProgression[order.shippingStatus].includes(status.value) &&
@@ -852,17 +875,6 @@ const OrderPage: React.FC = () => {
                     </select>
                   </td>
                   <td>
-                    {getVietnameseReturnStatus(order.returnStatus)}
-                    {order.returnReason && (
-                      <>
-                        <br />
-                        <span className={styles.returnReason}>
-                          (Lý do: {order.returnReason})
-                        </span>
-                      </>
-                    )}
-                  </td>
-                  <td>
                     {order.paymentMethod === "cod"
                       ? "Thanh toán khi nhận hàng"
                       : order.paymentMethod === "bank"
@@ -872,6 +884,23 @@ const OrderPage: React.FC = () => {
                       : order.paymentMethod === "momo"
                       ? "Momo"
                       : order.paymentMethod || "Không xác định"}
+                  </td>
+                  <td>
+                    {["approved", "rejected"].includes(order.returnStatus) ? (
+                      <>
+                        {getVietnameseReturnStatus(order.returnStatus)}
+                        {order.returnReason && (
+                          <>
+                            <br />
+                            <span className={styles.returnReason}>
+                              (Lý do: {order.returnReason})
+                            </span>
+                          </>
+                        )}
+                      </>
+                    ) : (
+                      "-"
+                    )}
                   </td>
                 </tr>
               ))
@@ -1248,7 +1277,7 @@ const OrderPage: React.FC = () => {
                       <tr>
                         <th>Hình ảnh</th>
                         <th>Tên sản phẩm</th>
-                        <th>Biến thể</th>
+                        <th>Loại</th>
                         <th>Giá</th>
                         <th>Số lượng</th>
                         <th>Tổng</th>

@@ -146,12 +146,11 @@
 
 .statusActive {
   font-weight: 500;
-  color: #4CAF50;
+  
 }
 
 .statusInactive {
   font-weight: 500;
-  color: #f44336;
 }
 
 /* Buttons */

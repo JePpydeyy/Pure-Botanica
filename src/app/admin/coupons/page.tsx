@@ -435,11 +435,22 @@ function CouponsContent() {
       });
 
       const response = await fetchWithToken(
-        `https://api-zeal.onrender.com/api/coupons?${queryParams}`,
+        `https://api-zeal.onrender.com/api/coupons/all?${queryParams}`,
         { cache: "no-store" }
       );
       const data = await response.json();
-      setCoupons(data.coupons || []);
+      // Cập nhật trạng thái isActive nếu usageLimit === usedCount
+      const updatedCoupons = (data.coupons || []).map((coupon: Coupon) => {
+        if (
+          coupon.usageLimit !== null &&
+          coupon.usedCount !== undefined &&
+          coupon.usageLimit === coupon.usedCount
+        ) {
+          return { ...coupon, isActive: false };
+        }
+        return coupon;
+      });
+      setCoupons(updatedCoupons);
       setPagination(data.pagination || pagination);
     } catch (err) {
       handleError(err, "Lỗi khi tải dữ liệu khuyến mãi!");
@@ -1077,7 +1088,7 @@ function CouponsContent() {
         </div>
       )}
       {showModal && (
-        <div className={styles.modalOverlay} onClick={() => handleOverlayClick}>
+        <div className={styles.modalOverlay} onClick={handleOverlayClick}>
           <div className={styles.modalContent}>
             <button
               className={`${styles.iconBtn} ${styles.closeBtn}`}

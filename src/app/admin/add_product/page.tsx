@@ -693,7 +693,7 @@ const AddProduct = () => {
                 {errors.name && <span className={styles.error}>{errors.name}</span>}
                 {errors.slug && <span className={styles.error}>{errors.slug}</span>}
               </div>
-              <div className={styles.formGroup}>
+               <div className={styles.formGroup}>
                 <label className={styles.label}>Danh mục *</label>
                 <select
                   name="id_category"
@@ -714,7 +714,23 @@ const AddProduct = () => {
                 </select>
                 {errors.id_category && <span className={styles.error}>{errors.id_category}</span>}
               </div>
-              <div className={styles.formGroup}>
+             
+              
+            </div>
+             <div className={styles.formGroup}>
+              <label className={styles.label}>Mô tả ngắn *</label>
+              <textarea
+                name="short_description"
+                value={formData.short_description}
+                onChange={handleInputChange}  
+                onBlur={handleInputBlur}
+                className={styles.textarea}
+                required
+                placeholder="Nhập mô tả ngắn"
+              />
+              {errors.short_description && <span className={styles.error}>{errors.short_description}</span>}
+            </div>
+            <div className={styles.formGroup}>
                 <label className={styles.label}>Thương hiệu *</label>
                 <select
                   name="id_brand"
@@ -735,20 +751,7 @@ const AddProduct = () => {
                 </select>
                 {errors.id_brand && <span className={styles.error}>{errors.id_brand}</span>}
               </div>
-            </div>
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Mô tả ngắn *</label>
-              <textarea
-                name="short_description"
-                value={formData.short_description}
-                onChange={handleInputChange}
-                onBlur={handleInputBlur}
-                className={styles.textarea}
-                required
-                placeholder="Nhập mô tả ngắn"
-              />
-              {errors.short_description && <span className={styles.error}>{errors.short_description}</span>}
-            </div>
+           
           </div>
           <div className={styles.formGroup}>
             <label className={styles.label}>Tùy chọn sản phẩm *</label>

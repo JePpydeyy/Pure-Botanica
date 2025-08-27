@@ -422,7 +422,7 @@ export default function CartPage() {
         // Merge new cart data with original to preserve option
         if (data.cart && data.cart.items) {
           const updatedItems = data.cart.items.map((newItem: CartItem) => {
-           const originalItem = originalCart?.items?.find(
+            const originalItem = originalCart?.items?.find(
               (i) =>
                 i.product._id === newItem.product._id &&
                 i.optionId === newItem.optionId
@@ -646,75 +646,75 @@ export default function CartPage() {
       {cartMessage && (
         <ToastNotification message={cartMessage.text} type={cartMessage.type} onClose={() => setCartMessage(null)} />
       )}
-    {showCouponPopup && (
-  <div className={styles["popup-overlay"]} onClick={() => setShowCouponPopup(false)}>
-    <div className={styles["popup-content"]} onClick={(e) => e.stopPropagation()}>
-      <h3>Chọn mã giảm giá</h3>
-      <div className={styles["coupon-list"]}>
-        {coupons.map((coupon) => {
-          const isActive = coupon.isActive !== false;
-          const expiryDate = coupon.expiryDate ? new Date(coupon.expiryDate) : null;
-          const isNotExpired = !expiryDate || expiryDate > new Date();
-          const isWithinUsageLimit = coupon.usageLimit === null || coupon.usedCount < coupon.usageLimit;
-          const subtotal = calculateSubtotal();
-          const meetsMinOrderValue = subtotal >= coupon.minOrderValue;
-          const isUsable = isActive && isNotExpired && isWithinUsageLimit && meetsMinOrderValue;
-          
-          const discountDisplay = coupon.discountType === "percentage" 
-            ? `${coupon.discountValue}%` 
-            : formatPrice(coupon.discountValue);
-          
-          // Format expiry date to show only day/month/year
-          const formatExpiryDate = (date) => {
-            if (!date) return "Không giới hạn";
-            const expiry = new Date(date);
-            return expiry.toLocaleDateString('vi-VN', {
-              day: '2-digit',
-              month: '2-digit', 
-              year: 'numeric'
-            });
-          };
+      {showCouponPopup && (
+        <div className={styles["popup-overlay"]} onClick={() => setShowCouponPopup(false)}>
+          <div className={styles["popup-content"]} onClick={(e) => e.stopPropagation()}>
+            <h3>Chọn mã giảm giá</h3>
+            <div className={styles["coupon-list"]}>
+              {coupons
+                .filter((coupon) => coupon.usageLimit === null || coupon.usedCount < coupon.usageLimit) // Hide coupons that have reached usage limit
+                .map((coupon) => {
+                  const isActive = coupon.isActive !== false;
+                  const expiryDate = coupon.expiryDate ? new Date(coupon.expiryDate) : null;
+                  const isNotExpired = !expiryDate || expiryDate > new Date();
+                  const subtotal = calculateSubtotal();
+                  const meetsMinOrderValue = subtotal >= coupon.minOrderValue;
+                  const isUsable = isActive && isNotExpired && meetsMinOrderValue;
 
-          return (
-            <div
-              key={coupon._id}
-              className={`${styles["coupon-item"]} ${!isUsable ? styles["disabled"] : ""}`}
-              onClick={() => {
-                if (isUsable) {
-                  setCouponCode(coupon.code);
-                  setShowCouponPopup(false);
-                }
-              }}
-            >
-              {/* Left block - 20% - Discount display */}
-              <div className={styles["coupon-discount"]}>
-                <span className={styles["discount-value"]}>{discountDisplay}</span>
-              </div>
-              
-              {/* Right block - 80% - Details */}
-              <div className={styles["coupon-info"]}>
-                <div className={styles["coupon-description"]}>
-                  {coupon.description || "Không có mô tả"}
-                  {!meetsMinOrderValue && (
-                    <span className={styles["min-order-warning"]}>
-                      (Yêu cầu tối thiểu {formatPrice(coupon.minOrderValue)})
-                    </span>
-                  )}
-                </div>
-                <div className={styles["coupon-expiry"]}>
-                  HSD: {formatExpiryDate(coupon.expiryDate)}
-                </div>
-              </div>
+                  const discountDisplay = coupon.discountType === "percentage"
+                    ? `${coupon.discountValue}%`
+                    : formatPrice(coupon.discountValue);
+
+                  // Format expiry date to show only day/month/year
+                  const formatExpiryDate = (date) => {
+                    if (!date) return "Không giới hạn";
+                    const expiry = new Date(date);
+                    return expiry.toLocaleDateString('vi-VN', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric'
+                    });
+                  };
+
+                  return (
+                    <div
+                      key={coupon._id}
+                      className={`${styles["coupon-item"]} ${!isUsable ? styles["disabled"] : ""}`}
+                      onClick={() => {
+                        if (isUsable) {
+                          setCouponCode(coupon.code);
+                          setShowCouponPopup(false);
+                        }
+                      }}
+                    >
+                      {/* Left block - 20% - Discount display */}
+                      <div className={styles["coupon-discount"]}>
+                        <span className={styles["discount-value"]}>{discountDisplay}</span>
+                      </div>
+                      {/* Right block - 80% - Details */}
+                      <div className={styles["coupon-info"]}>
+                        <div className={styles["coupon-description"]}>
+                          {coupon.description || "Không có mô tả"}
+                          {!meetsMinOrderValue && (
+                            <span className={styles["min-order-warning"]}>
+                              (Yêu cầu tối thiểu {formatPrice(coupon.minOrderValue)})
+                            </span>
+                          )}
+                        </div>
+                        <div className={styles["coupon-expiry"]}>
+                          HSD: {formatExpiryDate(coupon.expiryDate)}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
             </div>
-          );
-        })}
-      </div>
-      <button className={styles["popup-close"]} onClick={() => setShowCouponPopup(false)}>
-        Đóng
-      </button>
-    </div>
-  </div>
-)}
+            <button className={styles["popup-close"]} onClick={() => setShowCouponPopup(false)}>
+              Đóng
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

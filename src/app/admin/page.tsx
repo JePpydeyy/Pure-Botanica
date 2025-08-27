@@ -102,6 +102,13 @@ interface Notification {
   type: "success" | "error";
 }
 
+interface BestSellingProduct {
+  productId: string;
+  productName: string;
+  totalQuantity: number;
+  totalRevenue: number;
+}
+
 const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat("vi-VN", {
     style: "currency",
@@ -253,6 +260,12 @@ const AD_Home: React.FC = () => {
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const ordersPerPage = 8;
   const commentsPerPage = 9;
+
+  const [bestSellingProducts, setBestSellingProducts] = useState<BestSellingProduct[]>([]);
+  const [filteredBestSellingProducts, setFilteredBestSellingProducts] = useState<BestSellingProduct[]>([]);
+  const [currentPageProducts, setCurrentPageProducts] = useState<number>(1);
+  const [searchQueryProducts, setSearchQueryProducts] = useState<string>("");
+  const productsPerPage = 5;
 
   // Reload logic
   useEffect(() => {
@@ -798,6 +811,69 @@ const AD_Home: React.FC = () => {
     };
   }, []);
 
+  const calculateBestSellingProducts = useMemo(() => {
+    return (orders: Order[], period: string, month: number, year: number, week?: number): BestSellingProduct[] => {
+      const productMap: { [key: string]: BestSellingProduct } = {};
+
+      // Filter orders by the selected time period
+      const filteredOrders = orders.filter((order) => {
+        const orderDate = new Date(order.createdAt);
+        if (period === "week" && week !== undefined) {
+          const firstDayOfMonth = new Date(year, month, 1);
+          const firstMonday = new Date(firstDayOfMonth);
+          if (firstDayOfMonth.getDay() !== 1) {
+            const offset = firstDayOfMonth.getDay() === 0 ? -6 : 1 - firstDayOfMonth.getDay();
+            firstMonday.setDate(firstDayOfMonth.getDate() + offset);
+          }
+          const weekStart = new Date(firstMonday);
+          weekStart.setDate(firstMonday.getDate() + (week - 1) * 7);
+          const weekEnd = new Date(weekStart);
+          weekEnd.setDate(weekStart.getDate() + 6);
+          return orderDate >= weekStart && orderDate <= weekEnd;
+        } else if (period === "month") {
+          return (
+            orderDate.getFullYear() === year &&
+            orderDate.getMonth() === month
+          );
+        } else {
+          return orderDate.getFullYear() === year;
+        }
+      });
+
+      // Aggregate quantities and revenue per product
+      filteredOrders.forEach((order) => {
+        if (order.paymentStatus === "completed") {
+          order.items.forEach((item) => {
+            if (item.product) {
+              const productId = item.product._id;
+              const productName = item.product.name || "Sản phẩm không xác định";
+              const price = item.product.price || 0;
+              const quantity = item.quantity || 0;
+
+              if (!productMap[productId]) {
+                productMap[productId] = {
+                  productId,
+                  productName,
+                  totalQuantity: 0,
+                  totalRevenue: 0,
+                };
+              }
+              productMap[productId].totalQuantity += quantity;
+              productMap[productId].totalRevenue += quantity * price;
+            }
+          });
+        }
+      });
+
+      // Convert to array and sort by total quantity
+      const bestSellingProducts = Object.values(productMap).sort(
+        (a, b) => b.totalQuantity - a.totalQuantity
+      );
+
+      return bestSellingProducts;
+    };
+  }, []);
+
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -892,6 +968,9 @@ const AD_Home: React.FC = () => {
         const newUsers = users.filter((u) => isInPeriod(new Date(u.createdAt))).length;
         const newComments = comments.filter((c) => isInPeriod(new Date(c.createdAt))).length;
 
+        // Calculate best-selling products
+        const bestSelling = calculateBestSellingProducts(orders, timePeriod, selectedMonth, selectedYear, selectedWeek);
+
         setStats({ orders: ordersInPeriod.length, newUsers, revenue, newComments });
         setChartData(calculateRevenue(orders, timePeriod, selectedMonth, selectedYear, selectedWeek));
         setRecentOrders(
@@ -903,6 +982,8 @@ const AD_Home: React.FC = () => {
         setFilteredPendingOrders(filteredPendingOrders);
         setComments(comments);
         setFilteredComments(comments);
+        setBestSellingProducts(bestSelling);
+        setFilteredBestSellingProducts(bestSelling);
       } catch (err) {
         console.error("Lỗi khi tải dữ liệu:", err);
         setError("Không thể tải dữ liệu. Vui lòng thử lại sau.");
@@ -912,7 +993,7 @@ const AD_Home: React.FC = () => {
     };
 
     fetchData();
-  }, [timePeriod, selectedMonth, selectedYear, selectedWeek, router, calculateRevenue]);
+  }, [timePeriod, selectedMonth, selectedYear, selectedWeek, router, calculateRevenue, calculateBestSellingProducts]);
 
   useEffect(() => {
     const filtered = pendingOrders.filter((order) => {
@@ -951,6 +1032,14 @@ const AD_Home: React.FC = () => {
     setCurrentPageComments(1);
   }, [searchQueryComments, comments]);
 
+  useEffect(() => {
+    const filtered = bestSellingProducts.filter((product) =>
+      product.productName.toLowerCase().includes(searchQueryProducts.toLowerCase())
+    );
+    setFilteredBestSellingProducts(filtered);
+    setCurrentPageProducts(1);
+  }, [searchQueryProducts, bestSellingProducts]);
+
   const totalPagesOrders = Math.ceil(filteredPendingOrders.length / ordersPerPage);
   const paginatedOrders = useMemo(() => {
     const startIndex = (currentPageOrders - 1) * ordersPerPage;
@@ -962,6 +1051,12 @@ const AD_Home: React.FC = () => {
   const indexOfFirstComment = indexOfLastComment - commentsPerPage;
   const currentComments = filteredComments.slice(indexOfFirstComment, indexOfLastComment);
 
+  const totalPagesProducts = Math.ceil(filteredBestSellingProducts.length / productsPerPage);
+  const paginatedProducts = useMemo(() => {
+    const startIndex = (currentPageProducts - 1) * productsPerPage;
+    return filteredBestSellingProducts.slice(startIndex, startIndex + productsPerPage);
+  }, [filteredBestSellingProducts, currentPageProducts]);
+
   const handlePageChangeOrders = (page: number) => {
     if (page >= 1 && page <= totalPagesOrders) {
       setCurrentPageOrders(page);
@@ -972,6 +1067,12 @@ const AD_Home: React.FC = () => {
     if (page >= 1 && page <= totalPagesComments) {
       setCurrentPageComments(page);
       setSelectedCommentId(null);
+    }
+  };
+
+  const handlePageChangeProducts = (page: number) => {
+    if (page >= 1 && page <= totalPagesProducts) {
+      setCurrentPageProducts(page);
     }
   };
 
@@ -1021,6 +1122,32 @@ const AD_Home: React.FC = () => {
         visiblePages.push(currentPageComments - 1, currentPageComments, currentPageComments + 1);
         showPrevEllipsis = currentPageComments > 2;
         showNextEllipsis = currentPageComments < totalPagesComments - 1;
+      }
+    }
+
+    return { visiblePages, showPrevEllipsis, showNextEllipsis };
+  };
+
+  const getPaginationInfoProducts = () => {
+    const visiblePages: number[] = [];
+    let showPrevEllipsis = false;
+    let showNextEllipsis = false;
+
+    if (totalPagesProducts <= 3) {
+      for (let i = 1; i <= totalPagesProducts; i++) {
+        visiblePages.push(i);
+      }
+    } else {
+      if (currentPageProducts === 1) {
+        visiblePages.push(1, 2, 3);
+        showNextEllipsis = totalPagesProducts > 3;
+      } else if (currentPageProducts === totalPagesProducts) {
+        visiblePages.push(totalPagesProducts - 2, totalPagesProducts - 1, totalPagesProducts);
+        showPrevEllipsis = totalPagesProducts > 3;
+      } else {
+        visiblePages.push(currentPageProducts - 1, currentPageProducts, currentPageProducts + 1);
+        showPrevEllipsis = currentPageProducts > 2;
+        showNextEllipsis = currentPageProducts < totalPagesProducts - 1;
       }
     }
 
@@ -1504,6 +1631,8 @@ const AD_Home: React.FC = () => {
             </div>
           )}
         </section>
+
+        
       </div>
 
       {selectedCommentId && (

@@ -630,7 +630,7 @@ export default function ProductPage() {
                   <h4>Mô tả sản phẩm</h4>
                   <p><strong>Mô tả ngắn:</strong> {selectedProduct.short_description}</p>
                   <br />
-                  <p><strong>Mô tả chi tiết:</strong></p>
+                  <h4><strong>Mô tả chi tiết:</strong></h4>
                   <div className={styles.descriptionContent} dangerouslySetInnerHTML={{ __html: selectedProduct.description }} />
                 </div>
                 <div className={styles.detailsSection}>

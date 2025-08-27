@@ -48,11 +48,13 @@ interface Order {
   cancelReason?: string;
   failReason?: string;
   address: Address;
+  subtotal: number;
+  discount: number;
   total: number;
   items: { product: Product | null; optionId: string; quantity: number; images: string[] }[];
 }
 
-const API_BASE_URL = "http://localhost:10000";
+const API_BASE_URL = "https://api-zeal.onrender.com";
 const FALLBACK_IMAGE_URL = "https://png.pngtree.com/png-vector/20210227/ourlarge/pngtree-error-404-glitch-effect-png-image_2943478.jpg";
 
 const normalizeImageUrl = (url: string): string => {
@@ -197,6 +199,22 @@ const OrderPage: React.FC = () => {
     return failReasonMapping[failReason] || failReason;
   };
 
+  const getProductOptionDetails = (product: Product | null, optionId: string): { value: string } => {
+    if (!product || !product.option || !product.option.length || !optionId) {
+      console.warn(`Invalid product or optionId: product=${JSON.stringify(product)}, optionId=${optionId}`);
+      return { value: "Không xác định" };
+    }
+
+    const selectedOption = product.option.find((opt) => opt._id.toString() === optionId.toString());
+
+    if (!selectedOption) {
+      console.warn(`Option not found for optionId=${optionId} in product ${product._id}`);
+      return { value: "Không xác định" };
+    }
+
+    return { value: selectedOption.value || "Không xác định" };
+  };
+
   useEffect(() => {
     const token = localStorage.getItem("token");
     const role = localStorage.getItem("role");
@@ -246,10 +264,6 @@ const OrderPage: React.FC = () => {
             : "none",
         }));
 
-        const invalidOrders = normalizedOrders.filter((order) => !order.user);
-        if (invalidOrders.length > 0) {
-          console.warn("Found orders with null user:", invalidOrders);
-        }
         setOrders(normalizedOrders);
         setFilteredOrders(normalizedOrders);
       } catch (error) {
@@ -594,22 +608,6 @@ const OrderPage: React.FC = () => {
 
   const handleCloseEnlargedImage = (): void => {
     setEnlargedImage(null);
-  };
-
-  const getProductOptionDetails = (product: Product | null, optionId: string): { price: number; value: string } => {
-    if (!product || !product.option || product.option.length === 0 || !optionId) {
-      console.warn(`Invalid product or optionId: product=${JSON.stringify(product)}, optionId=${optionId}`);
-      return { price: 0, value: "Không xác định" };
-    }
-    const selectedOption = product.option.find((opt) => opt._id.toString() === optionId.toString());
-    if (!selectedOption) {
-      console.warn(`Option not found for optionId=${optionId} in product ${product._id}`);
-      return { price: 0, value: "Không xác định" };
-    }
-    return {
-      price: selectedOption.discount_price ?? selectedOption.price ?? 0,
-      value: selectedOption.value ?? "Không xác định",
-    };
   };
 
   const getProductImage = (item: { product: Product | null; images: string[] }): string => {
@@ -1277,16 +1275,14 @@ const OrderPage: React.FC = () => {
                       <tr>
                         <th>Hình ảnh</th>
                         <th>Tên sản phẩm</th>
-                        <th>Loại</th>
-                        <th>Giá</th>
+                        <th>Biến thể</th>
                         <th>Số lượng</th>
-                        <th>Tổng</th>
                       </tr>
                     </thead>
                     <tbody>
                       {selectedOrder.items && selectedOrder.items.length > 0 ? (
                         selectedOrder.items.map((item, idx) => {
-                          const { price, value } = getProductOptionDetails(item.product, item.optionId);
+                          const { value } = getProductOptionDetails(item.product, item.optionId);
                           return (
                             <tr key={idx}>
                               <td>
@@ -1297,21 +1293,20 @@ const OrderPage: React.FC = () => {
                                   height={48}
                                   className={styles.orderTableImage}
                                   onError={(e) => {
+                                    console.error(`Image load failed for product: ${item.product?._id}`);
                                     (e.target as HTMLImageElement).src = FALLBACK_IMAGE_URL;
                                   }}
                                 />
                               </td>
                               <td>{item.product?.name || "Không xác định"}</td>
                               <td>{value}</td>
-                              <td>{price.toLocaleString()}₫</td>
                               <td>{item.quantity}</td>
-                              <td>{(price * item.quantity).toLocaleString()}₫</td>
                             </tr>
                           );
                         })
                       ) : (
                         <tr>
-                          <td colSpan={6} className="text-center">
+                          <td colSpan={4} className="text-center">
                             Không có sản phẩm trong đơn hàng
                           </td>
                         </tr>
@@ -1320,8 +1315,12 @@ const OrderPage: React.FC = () => {
                   </table>
                 </div>
                 <div className={styles.detailsSection}>
-                  <h4>Tổng tiền</h4>
-                  <p>{selectedOrder.total.toLocaleString()}₫</p>
+                  <h4>Thông tin giá</h4>
+                  <div className={styles.detailsGrid}>
+                    <p>Tổng giá trước giảm giá: {selectedOrder.subtotal.toLocaleString()}₫</p>
+                    <p>Giảm giá: {selectedOrder.discount.toLocaleString()}₫</p>
+                    <p>Tổng tiền: {selectedOrder.total.toLocaleString()}₫</p>
+                  </div>
                 </div>
               </div>
             </div>
